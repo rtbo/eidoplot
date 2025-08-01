@@ -1,7 +1,8 @@
 use eidoplot::prelude::*;
+use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 
-use std::f64::consts::PI;
+use std::{env, f64::consts::PI};
 
 fn main() {
     let fig = Figure {
@@ -41,7 +42,31 @@ fn main() {
         }),
     };
 
+    let mut written = false;
+
+    for arg in env::args() {
+        if arg == "png" {
+            write_png(&fig);
+            written = false;
+        } else if arg == "svg" {
+            write_svg(&fig);
+            written = false;
+        }
+    }
+
+    if !written {
+        write_svg(&fig);
+    }
+}
+
+fn write_svg(fig: &Figure) {
     let mut svg = SvgSurface::new(1200, 900);
     fig.draw(&mut svg).unwrap();
     svg.save("sine.svg").unwrap();
+}
+
+fn write_png(fig: &Figure) {
+    let mut surf = PxlSurface::new(1200, 900);
+    fig.draw(&mut surf).unwrap();
+    surf.save("sine.png").unwrap();
 }

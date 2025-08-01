@@ -19,6 +19,13 @@ impl SvgSurface {
     pub fn save(&self, path: &str) -> io::Result<()> {
         svg::save(path, &self.doc)
     }
+
+    pub fn write<W>(&self, dest: &mut W) -> io::Result<()>
+    where
+        W: io::Write,
+    {
+        svg::write(dest, &self.doc)
+    }
 }
 
 impl Surface for SvgSurface {

@@ -1,14 +1,12 @@
 [package]
-name = "eidoplot"
+name = "eidoplot-pxl"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
 
-[[example]]
-name="sine"
-
 [dependencies]
-
-[dev-dependencies]
+eidoplot = { path = "../eidoplot" }
 eidoplot-svg = { path = "../eidoplot-svg" }
-eidoplot-pxl = { path = "../eidoplot-pxl" }
+resvg = "0.45.1"
+tiny-skia = "0.11.4"
+usvg = "0.45.1"

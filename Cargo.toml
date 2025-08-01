@@ -1,5 +1,5 @@
 [workspace]
-members = ["eidoplot", "eidoplot-svg"]
+members = ["eidoplot", "eidoplot-pxl", "eidoplot-svg"]
 resolver = "3"
 
 [workspace.package]

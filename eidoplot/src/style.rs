@@ -10,7 +10,7 @@ pub enum LinePattern {
     /// Dashed line. The pattern is relative to the line width.
     Dash(f32, f32),
     /// Dotted line. Equivalent to Dash(1.0, 1.0)
-    Dot, 
+    Dot,
 }
 
 impl Default for LinePattern {
@@ -28,7 +28,11 @@ pub struct Line {
 
 impl From<RgbaColor> for Line {
     fn from(color: RgbaColor) -> Self {
-        Line { width: 1.0, color, pattern: LinePattern::default() }
+        Line {
+            width: 1.0,
+            color,
+            pattern: LinePattern::default(),
+        }
     }
 }
 

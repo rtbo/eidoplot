@@ -16,10 +16,7 @@ pub enum TickLocator {
     Auto,
     MaxN { num: u32, steps: Vec<f64> },
     Multiple(f64),
-    PiMultiple {
-        num: f64,
-        den: f64,
-    },
+    PiMultiple { num: f64, den: f64 },
     Linear(u32),
     Fixed(Vec<f64>),
     Log { base: f64, num: u32 },

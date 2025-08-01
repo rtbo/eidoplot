@@ -10,7 +10,7 @@ pub enum Plots {
         rows: u32,
         cols: u32,
         plots: Vec<Plot>,
-    }
+    },
 }
 
 impl Plots {
@@ -46,8 +46,8 @@ impl Plot {
                 rect: geom::Rect {
                     x: 50.0,
                     y: 50.0,
-                    w: 100.0,
-                    h: 100.0,
+                    w: 700.0,
+                    h: 400.0,
                 },
                 fill: Some(fill.clone()),
                 outline: Some(color::BLACK.into()),
