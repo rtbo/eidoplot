@@ -1,0 +1,10 @@
+[package]
+name = "eidoplot"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[[example]]
+name="sine"
+
+[dependencies]
