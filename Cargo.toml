@@ -1,7 +1,11 @@
 [workspace]
-members = ["eidoplot"]
+members = ["eidoplot", "eidoplot-svg"]
+resolver = "3"
 
 [workspace.package]
 version = "0.1.0"
 authors = ["Rémi THEBAULT"]
 edition = "2024"
+
+[workspace.dependencies]
+

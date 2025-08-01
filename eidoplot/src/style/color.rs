@@ -31,6 +31,10 @@ impl RgbaColor {
         let b = hex_to_u8(hex[5]) << 4 | hex_to_u8(hex[6]);
         RgbaColor::new_rgb(r, g, b)
     }
+
+    pub fn html(&self) -> String {
+        format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
+    }
 }
 
 const fn hex_to_u8(hex: u8) -> u8 {

@@ -1,13 +1,16 @@
 use eidoplot::prelude::*;
+use eidoplot_svg::SvgSurface;
 
 use std::f64::consts::PI;
 
 fn main() {
-    let _fig = Figure {
+    let fig = Figure {
         size: FigSize::default(),
         title: Some("Sine wave".into()),
+        fill: Some(css::ANTIQUEWHITE.into()),
         plots: Plots::Plot(Plot {
             title: None,
+            fill: Some(css::ALICEBLUE.into()),
             desc: PlotDesc::Curves(Curves {
                 x_axis: Axis {
                     name: "x".into(),
@@ -37,4 +40,8 @@ fn main() {
             }),
         }),
     };
+
+    let mut svg = SvgSurface::new(1200, 900);
+    fig.draw(&mut svg).unwrap();
+    svg.save("sine.svg").unwrap();
 }

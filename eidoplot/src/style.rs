@@ -2,24 +2,14 @@ pub mod color;
 
 pub use color::RgbaColor;
 
-pub struct DashPattern {
-    pub length: f32,
-    pub gap: f32,
-}
-
-impl Default for DashPattern {
-    fn default() -> Self {
-        DashPattern { length: 5.0, gap: 5.0 }
-    }
-}
-
 /// Line pattern defines how the line is drawn
+#[derive(Debug, Clone, Copy)]
 pub enum LinePattern {
     /// Solid line
     Solid,
     /// Dashed line. The pattern is relative to the line width.
-    Dash(DashPattern),
-    /// Dotted line. Equivalent to Dash(DashPattern { length: 1.0, gap: 1.0 })
+    Dash(f32, f32),
+    /// Dotted line. Equivalent to Dash(1.0, 1.0)
     Dot, 
 }
 
@@ -29,8 +19,26 @@ impl Default for LinePattern {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Line {
     pub width: f32,
     pub color: RgbaColor,
     pub pattern: LinePattern,
+}
+
+impl From<RgbaColor> for Line {
+    fn from(color: RgbaColor) -> Self {
+        Line { width: 1.0, color, pattern: LinePattern::default() }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Fill {
+    pub color: RgbaColor,
+}
+
+impl From<RgbaColor> for Fill {
+    fn from(color: RgbaColor) -> Self {
+        Fill { color }
+    }
 }

@@ -8,3 +8,6 @@ edition.workspace = true
 name="sine"
 
 [dependencies]
+
+[dev-dependencies]
+eidoplot-svg = { path = "../eidoplot-svg" }
