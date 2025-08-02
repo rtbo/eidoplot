@@ -1,7 +1,10 @@
 use crate::backend;
+use crate::geom;
 use crate::plots::Plots;
 use crate::style;
+use crate::style::color;
 
+#[derive(Debug, Clone, Copy)]
 pub struct FigSize {
     pub w: f32,
     pub h: f32,
@@ -13,11 +16,31 @@ impl Default for FigSize {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Figure {
     pub size: FigSize,
     pub title: Option<String>,
-    pub plots: Plots,
     pub fill: Option<style::Fill>,
+    pub padding: geom::Padding,
+    pub plots: Option<Plots>,
+}
+
+impl Default for Figure {
+    fn default() -> Self {
+        Figure {
+            size: FigSize::default(),
+            title: None,
+            fill: Some(color::WHITE.into()),
+            padding: 10.0.into(),
+            plots: None,
+        }
+    }
+}
+
+impl Figure {
+    fn rect(&self) -> geom::Rect {
+        geom::Rect::new(0.0, 0.0, self.size.w, self.size.h)
+    }
 }
 
 impl Figure {
@@ -29,7 +52,10 @@ impl Figure {
         if let Some(fill) = &self.fill {
             surface.fill(fill.color)?;
         }
-        self.plots.draw(surface)?;
+        if let Some(plots) = &self.plots {
+            let rect = self.rect().pad(&self.padding); 
+            plots.draw_in_rect(surface, &rect)?
+        }
         Ok(())
     }
 }

@@ -5,41 +5,32 @@ use eidoplot_svg::SvgSurface;
 use std::{env, f64::consts::PI};
 
 fn main() {
+    let points = (0..=360).map(|t| (t as f64 * PI / 180.0, (t as f64 * PI / 180.0).sin())).collect();
     let fig = Figure {
         size: FigSize::default(),
         title: Some("Sine wave".into()),
+        padding: 20.0.into(),
         fill: Some(css::ANTIQUEWHITE.into()),
-        plots: Plots::Plot(Plot {
+        plots: Some(Plots::Plot(Plot {
             title: None,
             fill: Some(css::ALICEBLUE.into()),
-            desc: PlotDesc::Curves(Curves {
-                x_axis: Axis {
-                    name: "x".into(),
-                    range: axis::Range::Auto,
-                    scale: axis::Scale::Linear,
-                    ticks: Some(TickLocator::PiMultiple { num: 1.0, den: 2.0 }),
-                    ticks_min: None,
-                },
-                y_axis: Axis {
-                    name: "y".into(),
-                    range: axis::Range::Auto,
-                    scale: axis::Scale::Linear,
-                    ticks: Some(TickLocator::Auto),
-                    ticks_min: None,
-                },
-                series: vec![XySeries {
-                    name: "y=sin(x)".into(),
-                    line_style: style::Line {
-                        color: css::FUCHSIA,
-                        width: 2.0,
-                        pattern: LinePattern::Solid,
-                    },
-                    points: (0..=360)
-                        .map(|x| (x as f64 / 180.0 * PI, (x as f64 / 180.0 * PI).sin()))
-                        .collect(),
-                }],
-            }),
-        }),
+            x_axis: axis::Axis {
+                name: Some("x".into()),
+                ticks: Some(TickLocator::PiMultiple { num: 1.0, den: 2.0 }),
+                ..axis::Axis::default()
+            },
+            y_axis: axis::Axis {
+                name: Some("y".into()),
+                ..axis::Axis::default()
+            },
+            series: vec![Series {
+                name: Some("y=sin(x)".into()),
+                plot: SeriesPlot::Xy {
+                    line: css::FUCHSIA.into(), 
+                    points,
+                }
+            }],
+        })),
     };
 
     let mut written = false;
