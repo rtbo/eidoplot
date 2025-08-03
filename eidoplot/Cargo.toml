@@ -8,6 +8,7 @@ edition.workspace = true
 name="sine"
 
 [dependencies]
+float_eq = "1.0.1"
 tiny-skia-path.workspace = true
 
 [dev-dependencies]

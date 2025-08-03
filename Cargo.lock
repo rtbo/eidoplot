@@ -98,6 +98,7 @@ version = "0.1.0"
 dependencies = [
  "eidoplot-pxl",
  "eidoplot-svg",
+ "float_eq",
  "tiny-skia-path",
 ]
 
@@ -153,6 +154,12 @@ name = "float-cmp"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
+
+[[package]]
+name = "float_eq"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28a80e3145d8ad11ba0995949bbcf48b9df2be62772b3d351ef017dff6ecb853"
 
 [[package]]
 name = "fontconfig-parser"

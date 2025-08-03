@@ -12,12 +12,12 @@ pub enum Plots {
 }
 
 impl Plots {
-    pub fn draw_in_rect<S>(&self, surface: &mut S, rect: &geom::Rect) -> Result<(), S::Error>
+    pub fn draw<S>(&self, surface: &mut S, rect: &geom::Rect) -> Result<(), S::Error>
     where
         S: crate::backend::Surface,
     {
         match self {
-            Plots::Plot(plot) => plot.draw_in_rect(surface, rect),
+            Plots::Plot(plot) => plot.draw(surface, rect),
             Plots::Subplots(subplots) => {
                 let w =
                     (rect.w - subplots.space * (subplots.cols - 1) as f32) / subplots.cols as f32;
@@ -30,7 +30,7 @@ impl Plots {
                         let cols = subplots.cols as u32;
                         let idx = (r * cols + c) as usize;
                         let plot = &subplots.plots[idx];
-                        plot.draw_in_rect(surface, &geom::Rect { x, y, w, h })?;
+                        plot.draw(surface, &geom::Rect { x, y, w, h })?;
                         x += w + subplots.space;
                     }
                     y += h + subplots.space;
@@ -82,7 +82,7 @@ impl Default for Plot {
 }
 
 impl Plot {
-    pub fn draw_in_rect<S>(&self, surface: &mut S, rect: &geom::Rect) -> Result<(), S::Error>
+    pub fn draw<S>(&self, surface: &mut S, rect: &geom::Rect) -> Result<(), S::Error>
     where
         S: crate::backend::Surface,
     {
@@ -111,11 +111,55 @@ impl Plot {
             }
             (x_bounds, y_bounds)
         };
-        println!("{:?}", data_bounds);
+        let x_ticks = self
+            .x_axis
+            .ticks
+            .as_ref()
+            .map(|t| t.ticks(data_bounds.0))
+            .unwrap_or_else(Vec::new);
+        let y_ticks = self
+            .y_axis
+            .ticks
+            .as_ref()
+            .map(|t| t.ticks(data_bounds.1))
+            .unwrap_or_else(Vec::new);
+
         let cm = CoordMap {
             x: self.x_axis.scale.coord_mapper(mesh_rect.w, data_bounds.0),
             y: self.y_axis.scale.coord_mapper(mesh_rect.h, data_bounds.1),
         };
+
+        let mut x_path = geom::PathBuilder::new();
+        x_path.move_to(mesh_rect.x, mesh_rect.y + mesh_rect.h);
+        x_path.line_to(mesh_rect.x + mesh_rect.w, mesh_rect.y + mesh_rect.h);
+        for t in x_ticks.iter().copied() {
+            let x = cm.x.map_coord(t);
+            x_path.move_to(mesh_rect.x + x, mesh_rect.y + mesh_rect.h + 2.0);
+            x_path.line_to(mesh_rect.x + x, mesh_rect.y + mesh_rect.h - 2.0);
+        }
+        let x_path = x_path.finish().expect("Should be a valid path");
+        let x_path = render::Path {
+            path: x_path,
+            fill: None,
+            stroke: Some(color::BLACK.into()),
+        };
+        surface.draw_path(&x_path)?;
+
+        let mut y_path = geom::PathBuilder::new();
+        y_path.move_to(mesh_rect.x, mesh_rect.y);
+        y_path.line_to(mesh_rect.x, mesh_rect.y + mesh_rect.h);
+        for t in y_ticks.iter().copied() {
+            let y = cm.y.map_coord(t);
+            y_path.move_to(mesh_rect.x - 2.0, mesh_rect.y + mesh_rect.h - y);
+            y_path.line_to(mesh_rect.x + 2.0, mesh_rect.y + mesh_rect.h - y);
+        }
+        let y_path = y_path.finish().expect("Should be a valid path");
+        let y_path = render::Path {
+            path: y_path,
+            fill: None,
+            stroke: Some(color::BLACK.into()),
+        };
+        surface.draw_path(&y_path)?;
 
         for series in &self.series {
             series.plot.draw(surface, &mesh_rect, &cm)?;
@@ -191,6 +235,7 @@ impl XySeries {
         for (i, dp) in self.points.iter().enumerate() {
             let (x, y) = cm.map_coord(*dp);
             let x = x + rect.x;
+            // Y coord is flipped here. Is it the right place?
             let y = rect.h - y + rect.y;
             if i == 0 {
                 pb.move_to(x, y);

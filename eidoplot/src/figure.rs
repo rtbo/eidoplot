@@ -54,7 +54,7 @@ impl Figure {
         }
         if let Some(plots) = &self.plots {
             let rect = self.rect().pad(&self.padding); 
-            plots.draw_in_rect(surface, &rect)?
+            plots.draw(surface, &rect)?
         }
         Ok(())
     }
