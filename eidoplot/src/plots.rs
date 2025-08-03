@@ -1,4 +1,5 @@
-use crate::axis;
+use crate::axis::{Axis, scale};
+use crate::data;
 use crate::geom;
 use crate::render;
 use crate::style;
@@ -7,7 +8,7 @@ use crate::style::color;
 #[derive(Debug, Clone)]
 pub enum Plots {
     Plot(Plot),
-    Subplots (Subplots),
+    Subplots(Subplots),
 }
 
 impl Plots {
@@ -18,8 +19,10 @@ impl Plots {
         match self {
             Plots::Plot(plot) => plot.draw_in_rect(surface, rect),
             Plots::Subplots(subplots) => {
-                let w = (rect.w - subplots.space * (subplots.cols - 1) as f32) / subplots.cols as f32;
-                let h = (rect.h - subplots.space * (subplots.rows - 1) as f32) / subplots.rows as f32;
+                let w =
+                    (rect.w - subplots.space * (subplots.cols - 1) as f32) / subplots.cols as f32;
+                let h =
+                    (rect.h - subplots.space * (subplots.rows - 1) as f32) / subplots.rows as f32;
                 let mut y = rect.y;
                 for c in 0..subplots.cols {
                     let mut x = rect.x;
@@ -42,16 +45,27 @@ impl Plots {
 pub struct Subplots {
     pub rows: u32,
     pub cols: u32,
-    pub plots: Vec<Plot>,
     pub space: f32,
+    pub plots: Vec<Plot>,
+}
+
+impl Default for Subplots {
+    fn default() -> Self {
+        Subplots {
+            rows: 1,
+            cols: 1,
+            space: 10.0,
+            plots: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Plot {
     pub title: Option<String>,
     pub fill: Option<style::Fill>,
-    pub x_axis: axis::Axis,
-    pub y_axis: axis::Axis,
+    pub x_axis: Axis,
+    pub y_axis: Axis,
     pub series: Vec<Series>,
 }
 
@@ -71,13 +85,41 @@ impl Plot {
             surface.draw_rect(&render::Rect {
                 rect: mesh_rect,
                 fill: Some(fill.clone()),
-                outline: Some(color::BLACK.into()),
+                stroke: Some(color::BLACK.into()),
             })?;
         }
+
+        let data_bounds = {
+            let mut x_bounds = data::Bounds::NAN;
+            let mut y_bounds = data::Bounds::NAN;
+            for series in &self.series {
+                let (x, y) = series.data_bounds();
+                x_bounds.add_bounds(x);
+                y_bounds.add_bounds(y);
+            }
+            (x_bounds, y_bounds)
+        };
+        println!("{:?}", data_bounds);
+        let cm = CoordMap {
+            x: self.x_axis.scale.coord_mapper(mesh_rect.w, data_bounds.0),
+            y: self.y_axis.scale.coord_mapper(mesh_rect.h, data_bounds.1),
+        };
+
         for series in &self.series {
-            series.plot.draw_in_rect(surface, &mesh_rect)?;
+            series.plot.draw(surface, &mesh_rect, &cm)?;
         }
         Ok(())
+    }
+}
+
+struct CoordMap {
+    x: Box<dyn scale::MapCoord>,
+    y: Box<dyn scale::MapCoord>,
+}
+
+impl CoordMap {
+    fn map_coord(&self, dp: (f64, f64)) -> (f32, f32) {
+        (self.x.map_coord(dp.0), self.y.map_coord(dp.1))
     }
 }
 
@@ -87,21 +129,70 @@ pub struct Series {
     pub plot: SeriesPlot,
 }
 
-#[derive(Debug, Clone)]
-pub enum SeriesPlot {
-    /// Plots data in XY space.
-    Xy {
-        line: style::Line,
-        // TODO: concept of data source
-        points: Vec<(f64, f64)>,
+impl Series {
+    pub fn data_bounds(&self) -> (data::Bounds, data::Bounds) {
+        match &self.plot {
+            SeriesPlot::Xy(xy) => xy.data_bounds(),
+        }
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum SeriesPlot {
+    /// Plots data in XY space.
+    Xy(XySeries),
+}
+
 impl SeriesPlot {
-    pub fn draw_in_rect<S>(&self, _surface: &mut S, _rect: &geom::Rect) -> Result<(), S::Error>
+    fn draw<S>(&self, surface: &mut S, rect: &geom::Rect, cm: &CoordMap) -> Result<(), S::Error>
     where
         S: crate::backend::Surface,
     {
+        match self {
+            SeriesPlot::Xy(xy) => xy.draw(surface, rect, cm),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct XySeries {
+    pub line: style::Line,
+    pub points: Vec<(f64, f64)>,
+}
+
+impl XySeries {
+    pub fn data_bounds(&self) -> (data::Bounds, data::Bounds) {
+        let mut x_bounds = data::Bounds::NAN;
+        let mut y_bounds = data::Bounds::NAN;
+        for (x, y) in &self.points {
+            x_bounds.add_point(*x);
+            y_bounds.add_point(*y);
+        }
+        (x_bounds, y_bounds)
+    }
+
+    fn draw<S>(&self, surface: &mut S, rect: &geom::Rect, cm: &CoordMap) -> Result<(), S::Error>
+    where
+        S: crate::backend::Surface,
+    {
+        let mut pb = geom::PathBuilder::with_capacity(self.points.len() + 1, self.points.len());
+        for (i, dp) in self.points.iter().enumerate() {
+            let (x, y) = cm.map_coord(*dp);
+            let x = x + rect.x;
+            let y = rect.h - y + rect.y;
+            if i == 0 {
+                pb.move_to(x, y);
+            } else {
+                pb.line_to(x, y);
+            }
+        }
+        let path = pb.finish().expect("Should be a valid path");
+        let path = render::Path {
+            path,
+            fill: None,
+            stroke: Some(self.line.clone()),
+        };
+        surface.draw_path(&path)?;
         Ok(())
     }
 }

@@ -1,11 +1,10 @@
 use crate::{geom, style};
 
-pub use tiny_skia_path::{Path, PathBuilder, PathSegment};
 
 pub struct Rect {
     pub rect: geom::Rect,
     pub fill: Option<style::Fill>,
-    pub outline: Option<style::Line>,
+    pub stroke: Option<style::Line>,
 }
 
 impl Rect {
@@ -13,7 +12,13 @@ impl Rect {
         Rect {
             rect,
             fill: None,
-            outline: None,
+            stroke: None,
         }
     }
+}
+
+pub struct Path {
+    pub path: geom::Path,
+    pub fill: Option<style::Fill>,
+    pub stroke: Option<style::Line>,
 }

@@ -1,7 +1,7 @@
 use std::io;
 
 use eidoplot::backend::Surface;
-use eidoplot::{render, style};
+use eidoplot::{geom, render, style};
 use svg::Node;
 
 pub struct SvgSurface {
@@ -57,7 +57,7 @@ impl Surface for SvgSurface {
         if let Some(fill) = &rect.fill {
             node.assign("fill", fill.color.html());
         }
-        if let Some(outline) = &rect.outline {
+        if let Some(outline) = &rect.stroke {
             let w = outline.width;
             node.assign("stroke", outline.color.html());
             node.assign("stroke-width", w);
@@ -69,6 +69,48 @@ impl Surface for SvgSurface {
                 }
             }
         }
+        self.doc.append(node);
+        Ok(())
+    }
+
+    fn draw_path(&mut self, path: &render::Path) -> Result<(), Self::Error> {
+        let mut node = svg::node::element::Path::new();
+        if let Some(fill) = &path.fill {
+            node.assign("fill", fill.color.html());
+        } else {
+            node.assign("fill", "transparent");
+        }
+        if let Some(outline) = &path.stroke {
+            let w = outline.width;
+            node.assign("stroke", outline.color.html());
+            node.assign("stroke-width", w);
+            match outline.pattern {
+                style::LinePattern::Solid => (),
+                style::LinePattern::Dot => node.assign("stroke-dasharray", (w, w)),
+                style::LinePattern::Dash(len, gap) => {
+                    node.assign("stroke-dasharray", (w * len, w * gap))
+                }
+            }
+        }
+        let data = {
+            let mut data = svg::node::element::path::Data::new();
+            for segment in path.path.segments() {
+                match segment {
+                    geom::PathSegment::MoveTo(p) => {
+                        data = data.move_to((p.x, p.y));
+                    }
+                    geom::PathSegment::LineTo(p) => {
+                        data = data.line_to((p.x, p.y));
+                    }
+                    geom::PathSegment::Close => {
+                        data = data.close();
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            data
+        };
+        node.assign("d", data);
         self.doc.append(node);
         Ok(())
     }

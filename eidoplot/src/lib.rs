@@ -1,5 +1,6 @@
 pub mod axis;
 pub mod backend;
+pub mod data;
 pub mod figure;
 pub mod geom;
 pub mod plots;

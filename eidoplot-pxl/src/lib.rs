@@ -54,4 +54,8 @@ impl Surface for PxlSurface {
     fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), Self::Error> {
         self.svg.draw_rect(rect)
     }
+
+    fn draw_path(&mut self, path: &render::Path) -> Result<(), Self::Error> {
+        self.svg.draw_path(path)
+    }
 }

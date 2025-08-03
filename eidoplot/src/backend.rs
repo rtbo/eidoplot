@@ -11,4 +11,7 @@ pub trait Surface {
 
     /// Draw a rectangle
     fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), Self::Error>;
+
+    /// Draw a path
+    fn draw_path(&mut self, path: &render::Path) -> Result<(), Self::Error>;
 }

@@ -1,3 +1,5 @@
+pub use tiny_skia_path::{Path, PathBuilder, PathSegment};
+
 #[derive(Debug, Clone, Copy)]
 pub struct Point {
     pub x: f32,

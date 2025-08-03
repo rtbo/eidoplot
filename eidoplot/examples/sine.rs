@@ -5,7 +5,10 @@ use eidoplot_svg::SvgSurface;
 use std::{env, f64::consts::PI};
 
 fn main() {
-    let points = (0..=360).map(|t| (t as f64 * PI / 180.0, (t as f64 * PI / 180.0).sin())).collect();
+    let points = (0..=360)
+        .map(|t| (t as f64 * PI / 180.0, (t as f64 * PI / 180.0).sin()))
+        .collect();
+
     let fig = Figure {
         size: FigSize::default(),
         title: Some("Sine wave".into()),
@@ -16,7 +19,6 @@ fn main() {
             fill: Some(css::ALICEBLUE.into()),
             x_axis: axis::Axis {
                 name: Some("x".into()),
-                ticks: Some(TickLocator::PiMultiple { num: 1.0, den: 2.0 }),
                 ..axis::Axis::default()
             },
             y_axis: axis::Axis {
@@ -25,10 +27,14 @@ fn main() {
             },
             series: vec![Series {
                 name: Some("y=sin(x)".into()),
-                plot: SeriesPlot::Xy {
-                    line: css::FUCHSIA.into(), 
+                plot: SeriesPlot::Xy(XySeries {
+                    line: style::Line {
+                        color: css::FUCHSIA,
+                        width: 1.5,
+                        pattern: style::LinePattern::Dash(5.0, 5.0),
+                    },
                     points,
-                }
+                }),
             }],
         })),
     };
