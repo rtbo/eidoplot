@@ -13,10 +13,8 @@ fn main() {
         size: FigSize::default(),
         title: Some("Sine wave".into()),
         padding: 20.0.into(),
-        fill: Some(css::ANTIQUEWHITE.into()),
         plots: Some(Plots::Plot(Plot {
             title: None,
-            fill: Some(css::ALICEBLUE.into()),
             x_axis: axis::Axis {
                 name: Some("x".into()),
                 ..axis::Axis::default()
@@ -36,7 +34,9 @@ fn main() {
                     points,
                 }),
             }],
+            ..Plot::default()
         })),
+        ..Figure::default()
     };
 
     let mut written = false;

@@ -63,10 +63,22 @@ impl Default for Subplots {
 #[derive(Debug, Clone)]
 pub struct Plot {
     pub title: Option<String>,
-    pub fill: Option<style::Fill>,
+    pub mesh_fill: Option<style::Fill>,
     pub x_axis: Axis,
     pub y_axis: Axis,
     pub series: Vec<Series>,
+}
+
+impl Default for Plot {
+    fn default() -> Self {
+        Plot {
+            title: None,
+            mesh_fill: None,
+            x_axis: Axis::default(),
+            y_axis: Axis::default(),
+            series: vec![],
+        }
+    }
 }
 
 impl Plot {
@@ -81,7 +93,7 @@ impl Plot {
             l: rect.w / 10.0,
         };
         let mesh_rect = rect.pad(&axis_padding);
-        if let Some(fill) = &self.fill {
+        if let Some(fill) = &self.mesh_fill {
             surface.draw_rect(&render::Rect {
                 rect: mesh_rect,
                 fill: Some(fill.clone()),
