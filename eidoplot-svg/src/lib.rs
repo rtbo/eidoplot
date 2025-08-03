@@ -54,44 +54,16 @@ impl Surface for SvgSurface {
             .set("y", rect.rect.y)
             .set("width", rect.rect.w)
             .set("height", rect.rect.h);
-        if let Some(fill) = &rect.fill {
-            node.assign("fill", fill.color.html());
-        }
-        if let Some(outline) = &rect.stroke {
-            let w = outline.width;
-            node.assign("stroke", outline.color.html());
-            node.assign("stroke-width", w);
-            match outline.pattern {
-                style::LinePattern::Solid => (),
-                style::LinePattern::Dot => node.assign("stroke-dasharray", (w, w)),
-                style::LinePattern::Dash(len, gap) => {
-                    node.assign("stroke-dasharray", (w * len, w * gap))
-                }
-            }
-        }
+        assign_fill(&mut node, rect.fill.as_ref());
+        assign_stroke(&mut node, rect.stroke.as_ref());
         self.doc.append(node);
         Ok(())
     }
 
     fn draw_path(&mut self, path: &render::Path) -> Result<(), Self::Error> {
         let mut node = svg::node::element::Path::new();
-        if let Some(fill) = &path.fill {
-            node.assign("fill", fill.color.html());
-        } else {
-            node.assign("fill", "transparent");
-        }
-        if let Some(outline) = &path.stroke {
-            let w = outline.width;
-            node.assign("stroke", outline.color.html());
-            node.assign("stroke-width", w);
-            match outline.pattern {
-                style::LinePattern::Solid => (),
-                style::LinePattern::Dot => node.assign("stroke-dasharray", (w, w)),
-                style::LinePattern::Dash(len, gap) => {
-                    node.assign("stroke-dasharray", (w * len, w * gap))
-                }
-            }
-        }
+        assign_fill(&mut node, path.fill.as_ref());
+        assign_stroke(&mut node, path.stroke.as_ref());
         let data = {
             let mut data = svg::node::element::path::Data::new();
             for segment in path.path.segments() {
@@ -114,4 +86,35 @@ impl Surface for SvgSurface {
         self.doc.append(node);
         Ok(())
     }
+}
+
+fn assign_fill<N>(node: &mut N, fill: Option<&style::Fill>)
+where
+    N: svg::node::Node,
+{
+    if let Some(fill) = fill {
+        node.assign("fill", fill.color.html());
+    } else {
+        node.assign("fill", "none");
+    }
+}
+
+fn assign_stroke<N>(node: &mut N, stroke: Option<&style::Line>)
+where
+    N: svg::node::Node,
+{
+        if let Some(stroke) = stroke {
+            let w = stroke.width;
+            node.assign("stroke", stroke.color.html());
+            node.assign("stroke-width", w);
+            match stroke.pattern {
+                style::LinePattern::Solid => (),
+                style::LinePattern::Dot => node.assign("stroke-dasharray", (w, w)),
+                style::LinePattern::Dash(len, gap) => {
+                    node.assign("stroke-dasharray", (w * len, w * gap))
+                }
+            }
+        } else {
+            node.assign("stroke", "none");
+        }
 }
