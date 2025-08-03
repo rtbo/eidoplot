@@ -1,5 +1,7 @@
 use crate::{geom, style};
 
+pub use tiny_skia_path::{Path, PathBuilder, PathSegment};
+
 pub struct Rect {
     pub rect: geom::Rect,
     pub fill: Option<style::Fill>,

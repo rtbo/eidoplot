@@ -8,6 +8,7 @@ edition.workspace = true
 name="sine"
 
 [dependencies]
+tiny-skia-path.workspace = true
 
 [dev-dependencies]
 eidoplot-svg = { path = "../eidoplot-svg" }
