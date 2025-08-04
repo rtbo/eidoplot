@@ -1,9 +1,6 @@
-pub mod css;
+mod named;
 
-pub use css::{
-    AQUA, BLACK, BLUE, FUCHSIA, GRAY, GREEN, LIME, MAROON, NAVY, OLIVE, PURPLE, RED, SILVER, TEAL,
-    WHITE, YELLOW,
-};
+pub use named::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct RgbaColor {
