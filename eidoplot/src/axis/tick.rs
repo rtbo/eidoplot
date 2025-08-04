@@ -4,7 +4,7 @@ use crate::data;
 pub enum Locator {
     Auto,
     MaxN { bins: u32, steps: Vec<f64> },
-    PiMultiple { num: f64, den: f64 },
+    PiMultiple { bins: u32 },
 }
 
 impl Default for Locator {
@@ -21,13 +21,19 @@ impl Locator {
                 let ticker = MaxN::new(*bins, steps.as_slice());
                 ticker.ticks(db)
             }
-            Locator::PiMultiple { .. } => todo!(),
+            Locator::PiMultiple { bins } => {
+                let ticker = MaxN::new_pi(*bins);
+                ticker.ticks(db)
+            }
         }
     }
 }
 
 const AUTO_BINS: u32 = 10;
 const AUTO_STEPS: &[f64] = &[1.0, 2.0, 2.5, 5.0];
+
+const PI: f64 = std::f64::consts::PI;
+const PI_STEPS: &[f64] = &[PI / 8.0, PI / 6.0, PI / 4.0, PI / 3.0, PI / 2.0];
 
 struct MaxN<'a> {
     bins: u32,
@@ -43,8 +49,14 @@ impl<'a> MaxN<'a> {
         Self::new(AUTO_BINS, AUTO_STEPS)
     }
 
+    fn new_pi(bins: u32) -> Self {
+        Self::new(bins, PI_STEPS)
+    }
+
     fn ticks(&self, db: data::Bounds) -> Vec<f64> {
         let target_step = db.span() / self.bins as f64;
+
+        // getting quite about where we need to be
         let scale = 10f64.powf(target_step.log10().div_euclid(1.0));
         assert!(scale > 0.0);
 
@@ -67,7 +79,7 @@ impl<'a> MaxN<'a> {
 
         let mut ticks = Vec::with_capacity((high - low + 1.0) as usize);
         let mut val = low;
-        while val < high {
+        while val <= high {
             ticks.push(vmin + val * step);
             val += 1.0;
         }

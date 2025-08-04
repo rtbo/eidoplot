@@ -17,6 +17,7 @@ fn main() {
             title: None,
             x_axis: axis::Axis {
                 name: Some("x".into()),
+                ticks: Some(tick::Locator::PiMultiple { bins: 8 }),
                 ..axis::Axis::default()
             },
             y_axis: axis::Axis {
