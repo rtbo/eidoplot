@@ -39,7 +39,7 @@ impl Surface for SvgSurface {
     }
 
     /// Fill the entire surface with the given color
-    fn fill(&mut self, color: style::RgbaColor) -> Result<(), Self::Error> {
+    fn fill(&mut self, color: style::Color) -> Result<(), Self::Error> {
         let node = svg::node::element::Rectangle::new()
             .set("width", "100%")
             .set("height", "100%")

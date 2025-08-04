@@ -47,7 +47,7 @@ impl Surface for PxlSurface {
         self.svg.prepare(width, height)
     }
 
-    fn fill(&mut self, color: style::RgbaColor) -> Result<(), Self::Error> {
+    fn fill(&mut self, color: style::Color) -> Result<(), Self::Error> {
         self.svg.fill(color)
     }
 

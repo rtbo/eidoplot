@@ -1,6 +1,6 @@
 pub mod color;
 
-pub use color::RgbaColor;
+pub use color::Color;
 
 /// Line pattern defines how the line is drawn
 #[derive(Debug, Clone, Copy)]
@@ -22,12 +22,12 @@ impl Default for LinePattern {
 #[derive(Debug, Clone, Copy)]
 pub struct Line {
     pub width: f32,
-    pub color: RgbaColor,
+    pub color: Color,
     pub pattern: LinePattern,
 }
 
-impl From<RgbaColor> for Line {
-    fn from(color: RgbaColor) -> Self {
+impl From<Color> for Line {
+    fn from(color: Color) -> Self {
         Line {
             width: 1.0,
             color,
@@ -38,11 +38,11 @@ impl From<RgbaColor> for Line {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Fill {
-    pub color: RgbaColor,
+    pub color: Color,
 }
 
-impl From<RgbaColor> for Fill {
-    fn from(color: RgbaColor) -> Self {
+impl From<Color> for Fill {
+    fn from(color: Color) -> Self {
         Fill { color }
     }
 }
