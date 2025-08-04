@@ -27,9 +27,9 @@ fn main() {
                 name: Some("y=sin(x)".into()),
                 plot: SeriesPlot::Xy(XySeries {
                     line: style::Line {
-                        color: css::FUCHSIA,
-                        width: 1.5,
-                        pattern: style::LinePattern::Dash(5.0, 5.0),
+                        color: color::BLUE,
+                        width: 3.0,
+                        pattern: style::LinePattern::Solid,
                     },
                     points,
                 }),
