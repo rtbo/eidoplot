@@ -21,10 +21,10 @@ pub struct Rect {
 }
 
 impl Rect {
-    pub fn from_xywh(x: f32, y: f32, w: f32, h: f32) -> Self {
+    pub const fn from_xywh(x: f32, y: f32, w: f32, h: f32) -> Self {
         Rect { x, y, w, h }
     }
-    pub fn from_trbl(top: f32, right: f32, bottom: f32, left: f32) -> Self {
+    pub const fn from_trbl(top: f32, right: f32, bottom: f32, left: f32) -> Self {
         Rect {
             x: left,
             y: top,
@@ -32,11 +32,11 @@ impl Rect {
             h: bottom - top,
         }
     }
-    pub fn from_ps(top_left: Point, size: Size) -> Self {
+    pub const fn from_ps(top_left: Point, size: Size) -> Self {
         Rect::from_xywh(top_left.x, top_left.y, size.width, size.height)
     }
 
-    pub fn pad(&self, padding: &Padding) -> Self {
+    pub const fn pad(&self, padding: &Padding) -> Self {
         Rect {
             x: self.x + padding.left(),
             y: self.y + padding.top(),
@@ -45,35 +45,35 @@ impl Rect {
         }
     }
 
-    pub fn x(&self) -> f32 {
+    pub const fn x(&self) -> f32 {
         self.x
     }
 
-    pub fn y(&self) -> f32 {
+    pub const fn y(&self) -> f32 {
         self.y
     }
 
-    pub fn w(&self) -> f32 {
+    pub const fn w(&self) -> f32 {
         self.w
     }
 
-    pub fn h(&self) -> f32 {
+    pub const fn h(&self) -> f32 {
         self.h
     }
 
-    pub fn top(&self) -> f32 {
+    pub const fn top(&self) -> f32 {
         self.y
     }
 
-    pub fn right(&self) -> f32 {
+    pub const fn right(&self) -> f32 {
         self.x + self.w
     }
 
-    pub fn bottom(&self) -> f32 {
+    pub const fn bottom(&self) -> f32 {
         self.y + self.h
     }
 
-    pub fn left(&self) -> f32 {
+    pub const fn left(&self) -> f32 {
         self.x
     }
 }
@@ -92,7 +92,7 @@ pub enum Padding {
 }
 
 impl Padding {
-    pub fn top(&self) -> f32 {
+    pub const fn top(&self) -> f32 {
         match self {
             Padding::None => 0.0,
             Padding::Even(p) => *p,
@@ -101,7 +101,7 @@ impl Padding {
         }
     }
 
-    pub fn right(&self) -> f32 {
+    pub const fn right(&self) -> f32 {
         match self {
             Padding::None => 0.0,
             Padding::Even(p) => *p,
@@ -110,7 +110,7 @@ impl Padding {
         }
     }
 
-    pub fn bottom(&self) -> f32 {
+    pub const fn bottom(&self) -> f32 {
         match self {
             Padding::None => 0.0,
             Padding::Even(p) => *p,
@@ -119,7 +119,7 @@ impl Padding {
         }
     }
 
-    pub fn left(&self) -> f32 {
+    pub const fn left(&self) -> f32 {
         match self {
             Padding::None => 0.0,
             Padding::Even(p) => *p,
@@ -128,21 +128,21 @@ impl Padding {
         }
     }
 
-    pub fn sum_ver(&self) -> f32 {
+    pub const fn sum_ver(&self) -> f32 {
         match self {
             Padding::None => 0.0,
-            Padding::Even(p) => 2.0 * p,
-            Padding::Center { v, .. } => 2.0 * v,
-            Padding::Custom { t, b, .. } => t + b,
+            Padding::Even(p) => *p * 2.0,
+            Padding::Center { v, .. } => *v * 2.0,
+            Padding::Custom { t, b, .. } => *t + *b,
         }
     }
 
-    pub fn sum_hor(&self) -> f32 {
+    pub const fn sum_hor(&self) -> f32 {
         match self {
             Padding::None => 0.0,
-            Padding::Even(p) => 2.0 * p,
-            Padding::Center { h, .. } => 2.0 * h,
-            Padding::Custom { l, r, .. } => l + r,
+            Padding::Even(p) => *p * 2.0,
+            Padding::Center { h, .. } => *h * 2.0,
+            Padding::Custom { l, r, .. } => *l + *r,
         }
     }
 }
