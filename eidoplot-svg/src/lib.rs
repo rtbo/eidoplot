@@ -187,7 +187,7 @@ where
         match stroke.pattern {
             style::LinePattern::Solid => (),
             style::LinePattern::Dot => node.assign("stroke-dasharray", (w, w)),
-            style::LinePattern::Dash(len, gap) => {
+            style::LinePattern::Dash(style::Dash(len, gap)) => {
                 node.assign("stroke-dasharray", (w * len, w * gap))
             }
         }
