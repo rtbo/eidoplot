@@ -34,6 +34,12 @@ impl Bounds {
         (self.0 + self.1) / 2.0
     }
 
+    pub fn contains(&self, point: f64) -> bool {
+        // TODO: handle very large and very low values
+        const EPS: f64 = 1e-10;
+        point >= (self.0 - EPS) && point <= (self.1 + EPS)
+    }
+
     pub fn add_point(&mut self, point: f64) {
         self.0 = self.0.min(point);
         self.1 = self.1.max(point);

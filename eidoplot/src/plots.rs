@@ -201,7 +201,7 @@ impl Plot {
         &self,
         surface: &mut S,
         rect: &geom::Rect,
-        data_bounds: (data::Bounds, data::Bounds),
+        (x_bounds, y_bounds): (data::Bounds, data::Bounds),
         coord_map: &MapCoordXy,
     ) -> Result<(), S::Error>
     where
@@ -211,10 +211,10 @@ impl Plot {
             .x_axis
             .ticks
             .as_ref()
-            .map(|t| t.ticks(data_bounds.0))
+            .map(|t| t.ticks(x_bounds))
             .unwrap_or_else(Vec::new);
 
-        let x_ticks_path = ticks_path(&x_ticks, &*coord_map.x, None);
+        let x_ticks_path = ticks_path(&x_ticks, &x_bounds, &*coord_map.x, None);
         let x_ticks_tr = geom::Transform::from_translate(rect.left(), rect.bottom());
         let x_ticks_path = render::Path {
             path: x_ticks_path,
@@ -228,9 +228,9 @@ impl Plot {
             .y_axis
             .ticks
             .as_ref()
-            .map(|t| t.ticks(data_bounds.1))
+            .map(|t| t.ticks(y_bounds))
             .unwrap_or_else(Vec::new);
-        let y_ticks_path = ticks_path(&y_ticks, &*coord_map.y, Some(x_ticks_path.path));
+        let y_ticks_path = ticks_path(&y_ticks, &y_bounds, &*coord_map.y, Some(x_ticks_path.path));
         let y_ticks_path = render::Path {
             path: y_ticks_path,
             fill: None,
@@ -246,6 +246,7 @@ impl Plot {
 /// Y axis will use the same function and rotate 90°
 fn ticks_path(
     ticks: &[f64],
+    db: &data::Bounds,
     cm: &dyn scale::MapCoord,
     reuse_alloc: Option<geom::Path>,
 ) -> geom::Path {
@@ -254,6 +255,9 @@ fn ticks_path(
         .map(|p| p.clear())
         .unwrap_or_else(geom::PathBuilder::new);
     for tick in ticks {
+        if !db.contains(*tick) {
+            continue;
+        } 
         let x = cm.map_coord(*tick);
         path.move_to(x, -sz);
         path.line_to(x, sz);
