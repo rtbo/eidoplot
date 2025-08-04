@@ -59,12 +59,20 @@ impl Surface for PxlSurface {
         self.svg.draw_path(path)
     }
 
-    fn push_clip_path(&mut self, path: &geom::Path) -> Result<(), Self::Error> {
-        self.svg.push_clip_path(path)
+    fn push_clip_path(
+        &mut self,
+        path: &geom::Path,
+        transform: Option<&geom::Transform>,
+    ) -> Result<(), Self::Error> {
+        self.svg.push_clip_path(path, transform)
     }
 
-    fn push_clip_rect(&mut self, rect: &geom::Rect) -> Result<(), Self::Error> {
-        self.svg.push_clip_rect(rect)
+    fn push_clip_rect(
+        &mut self,
+        rect: &geom::Rect,
+        transform: Option<&geom::Transform>,
+    ) -> Result<(), Self::Error> {
+        self.svg.push_clip_rect(rect, transform)
     }
 
     fn pop_clip(&mut self) -> Result<(), Self::Error> {

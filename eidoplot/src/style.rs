@@ -3,7 +3,7 @@ pub mod color;
 pub use color::Color;
 
 #[derive(Debug, Clone, Copy)]
-pub struct Dash (pub f32, pub f32);
+pub struct Dash(pub f32, pub f32);
 
 impl Default for Dash {
     fn default() -> Self {
@@ -57,7 +57,11 @@ impl From<(Color, f32)> for Line {
 
 impl From<(Color, f32, LinePattern)> for Line {
     fn from((color, width, pattern): (Color, f32, LinePattern)) -> Self {
-        Line { color, width, pattern }
+        Line {
+            color,
+            width,
+            pattern,
+        }
     }
 }
 

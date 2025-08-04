@@ -1,10 +1,10 @@
 use crate::axis::{Axis, scale};
-use crate::{backend, missing_params};
 use crate::data;
 use crate::geom;
 use crate::render;
 use crate::style;
 use crate::style::color;
+use crate::{backend, missing_params};
 
 #[derive(Debug, Clone)]
 pub enum Plots {
@@ -20,10 +20,10 @@ impl Plots {
         match self {
             Plots::Plot(plot) => plot.draw(surface, rect),
             Plots::Subplots(subplots) => {
-                let w =
-                    (rect.width() - subplots.space * (subplots.cols - 1) as f32) / subplots.cols as f32;
-                let h =
-                    (rect.height() - subplots.space * (subplots.rows - 1) as f32) / subplots.rows as f32;
+                let w = (rect.width() - subplots.space * (subplots.cols - 1) as f32)
+                    / subplots.cols as f32;
+                let h = (rect.height() - subplots.space * (subplots.rows - 1) as f32)
+                    / subplots.rows as f32;
                 let mut y = rect.y();
                 for c in 0..subplots.cols {
                     let mut x = rect.x();
@@ -118,10 +118,7 @@ impl Plot {
         };
 
         // update view bounds to view what is deemed visible by the axis scale
-        let view_bounds = (
-            coord_map.x.view_bounds(),
-            coord_map.y.view_bounds(),
-        );
+        let view_bounds = (coord_map.x.view_bounds(), coord_map.y.view_bounds());
 
         self.draw_background(surface, &rect)?;
         self.draw_series(surface, &rect, &coord_map)?;
@@ -198,7 +195,7 @@ impl Plot {
     where
         S: backend::Surface,
     {
-        surface.push_clip_rect(rect)?;
+        surface.push_clip_rect(rect, None)?;
         for series in &self.series {
             series.plot.draw(surface, &rect, &coord_map)?;
         }
@@ -266,7 +263,7 @@ fn ticks_path(
     for tick in ticks {
         if !db.contains(*tick) {
             continue;
-        } 
+        }
         let x = cm.map_coord(*tick);
         path.move_to(x, -sz);
         path.line_to(x, sz);

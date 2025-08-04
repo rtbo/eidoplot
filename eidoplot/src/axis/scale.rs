@@ -28,24 +28,18 @@ impl Scale {
                 sz: mesh_size,
                 vb: data_bounds,
             }),
-            Scale::Linear(Range::MinAuto(min)) => {
-                Box::new(LinCoordMap {
-                    sz: mesh_size,
-                    vb: (*min, data_bounds.max()).into(),
-                })
-            },
-            Scale::Linear(Range::AutoMax(max)) => {
-                Box::new(LinCoordMap {
-                    sz: mesh_size,
-                    vb: (data_bounds.min(), *max).into(),
-                })
-            },
-            Scale::Linear(Range::MinMax(min, max)) => {
-                Box::new(LinCoordMap {
-                    sz: mesh_size,
-                    vb: (*min, *max).into(),
-                })
-            },
+            Scale::Linear(Range::MinAuto(min)) => Box::new(LinCoordMap {
+                sz: mesh_size,
+                vb: (*min, data_bounds.max()).into(),
+            }),
+            Scale::Linear(Range::AutoMax(max)) => Box::new(LinCoordMap {
+                sz: mesh_size,
+                vb: (data_bounds.min(), *max).into(),
+            }),
+            Scale::Linear(Range::MinMax(min, max)) => Box::new(LinCoordMap {
+                sz: mesh_size,
+                vb: (*min, *max).into(),
+            }),
         }
     }
 }

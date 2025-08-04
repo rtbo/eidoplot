@@ -83,24 +83,36 @@ impl Surface for SvgSurface {
         Ok(())
     }
 
-    fn push_clip_path(&mut self, path: &geom::Path) -> Result<(), Self::Error> {
+    fn push_clip_path(
+        &mut self,
+        path: &geom::Path,
+        transform: Option<&geom::Transform>,
+    ) -> Result<(), Self::Error> {
         let clip_id = self.bump_clip_id();
         let clip_id_url = format!("url(#{})", clip_id);
+        let mut path_node = element::Path::new().set("d", path_data(path));
+        assign_transform(&mut path_node, transform);
         let node = element::ClipPath::new()
             .set("id", clip_id.clone())
-            .add(element::Path::new().set("d", path_data(path)));
+            .add(path_node);
         self.append_node(node);
         self.group_stack
             .push(element::Group::new().set("clip-path", clip_id_url));
         Ok(())
     }
 
-    fn push_clip_rect(&mut self, rect: &geom::Rect) -> Result<(), Self::Error> {
+    fn push_clip_rect(
+        &mut self,
+        rect: &geom::Rect,
+        transform: Option<&geom::Transform>,
+    ) -> Result<(), Self::Error> {
         let clip_id = self.bump_clip_id();
         let clip_id_url = format!("url(#{})", clip_id);
+        let mut rect_node = rectangle_node(rect);
+        assign_transform(&mut rect_node, transform);
         let node = element::ClipPath::new()
             .set("id", clip_id.clone())
-            .add(rectangle_node(rect));
+            .add(rect_node);
         self.append_node(node);
         self.draw_rect(&render::Rect {
             rect: *rect,
