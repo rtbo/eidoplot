@@ -1,5 +1,5 @@
 use crate::axis::{Axis, scale};
-use crate::backend;
+use crate::{backend, missing_config};
 use crate::data;
 use crate::geom;
 use crate::render;
@@ -106,12 +106,7 @@ impl Plot {
     where
         S: backend::Surface,
     {
-        let axis_padding = geom::Padding::Custom {
-            t: 0.0,
-            r: 0.0,
-            b: 30.0,
-            l: 30.0,
-        };
+        let axis_padding = missing_config::AXIS_PADDING;
         let rect = rect.pad(&axis_padding);
 
         let data_bounds = self.calc_data_bounds();
@@ -247,18 +242,21 @@ impl Plot {
     }
 }
 
+/// Build the ticks path along X axis.
+/// Y axis will use the same function and rotate 90°
 fn ticks_path(
     ticks: &[f64],
     cm: &dyn scale::MapCoord,
     reuse_alloc: Option<geom::Path>,
 ) -> geom::Path {
+    let sz = missing_config::TICK_SIZE;
     let mut path = reuse_alloc
         .map(|p| p.clear())
         .unwrap_or_else(geom::PathBuilder::new);
     for tick in ticks {
         let x = cm.map_coord(*tick);
-        path.move_to(x, -4.0);
-        path.line_to(x, 4.0);
+        path.move_to(x, -sz);
+        path.line_to(x, sz);
     }
     path.finish().expect("Should be a valid path")
 }

@@ -7,3 +7,5 @@ pub mod plots;
 pub mod prelude;
 pub mod render;
 pub mod style;
+
+mod missing_config;
