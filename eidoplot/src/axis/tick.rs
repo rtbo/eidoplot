@@ -20,7 +20,7 @@ impl Locator {
             Locator::MaxN { bins, steps } => {
                 let ticker = MaxN::new(*bins, steps.as_slice());
                 ticker.ticks(db)
-            },
+            }
             Locator::PiMultiple { .. } => todo!(),
         }
     }
@@ -28,7 +28,6 @@ impl Locator {
 
 const AUTO_BINS: u32 = 10;
 const AUTO_STEPS: &[f64] = &[1.0, 2.0, 2.5, 5.0];
-
 
 struct MaxN<'a> {
     bins: u32,
@@ -47,24 +46,25 @@ impl<'a> MaxN<'a> {
     fn ticks(&self, db: data::Bounds) -> Vec<f64> {
         let target_step = db.span() / self.bins as f64;
         let scale = 10f64.powf(target_step.log10().div_euclid(1.0));
-        let mut stepper = MaxNStepper::new(self.steps, scale);
-        while stepper.step() > target_step {
-            if !stepper.step().is_finite() {
-                panic!("step is not finite");
+        assert!(scale > 0.0);
+
+        let step = {
+            let mut stepper = MaxNStepper::new(self.steps, scale);
+            while stepper.step() > target_step {
+                stepper.next_smaller();
             }
-            stepper.next_smaller();
-        }
-        while stepper.step() < target_step {
-            if !stepper.step().is_finite() {
-                panic!("step is not finite");
+            while stepper.step() < target_step {
+                stepper.next_bigger();
             }
-            stepper.next_bigger();
-        }
-        let step = stepper.step();
-        let edge = MaxNEdge{step};
-        let vmin = (db.min() / step).floor() * step;  
+            stepper.step()
+        };
+
+        let vmin = (db.min() / step).floor() * step;
+
+        let edge = MaxNEdge { step };
         let low = edge.largest_le(db.min() - vmin);
         let high = edge.smallest_ge(db.max() - vmin);
+
         let mut ticks = Vec::with_capacity((high - low + 1.0) as usize);
         let mut val = low;
         while val < high {

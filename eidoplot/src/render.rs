@@ -1,10 +1,10 @@
 use crate::{geom, style};
 
-
 pub struct Rect {
     pub rect: geom::Rect,
     pub fill: Option<style::Fill>,
     pub stroke: Option<style::Line>,
+    pub transform: Option<geom::Transform>,
 }
 
 impl Rect {
@@ -13,6 +13,7 @@ impl Rect {
             rect,
             fill: None,
             stroke: None,
+            transform: None,
         }
     }
 }
@@ -21,4 +22,5 @@ pub struct Path {
     pub path: geom::Path,
     pub fill: Option<style::Fill>,
     pub stroke: Option<style::Line>,
+    pub transform: Option<geom::Transform>,
 }

@@ -1,6 +1,5 @@
 use crate::data;
 
-
 /// Describe the bounds of an axis in data space
 #[derive(Debug, Clone, Copy)]
 pub enum Range {
@@ -49,4 +48,3 @@ impl MapCoord for LinAutoCoordMap {
         ratio as f32 * self.sz
     }
 }
-

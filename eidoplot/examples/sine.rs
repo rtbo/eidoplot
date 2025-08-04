@@ -59,11 +59,11 @@ fn main() {
 fn write_svg(fig: &Figure) {
     let mut svg = SvgSurface::new(1200, 900);
     fig.draw(&mut svg).unwrap();
-    svg.save("sine.svg").unwrap();
+    svg.save("plot.svg").unwrap();
 }
 
 fn write_png(fig: &Figure) {
     let mut surf = PxlSurface::new(1200, 900);
     fig.draw(&mut surf).unwrap();
-    surf.save("sine.png").unwrap();
+    surf.save("plot.png").unwrap();
 }

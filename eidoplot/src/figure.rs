@@ -39,7 +39,7 @@ impl Default for Figure {
 
 impl Figure {
     fn rect(&self) -> geom::Rect {
-        geom::Rect::new(0.0, 0.0, self.size.w, self.size.h)
+        geom::Rect::from_xywh(0.0, 0.0, self.size.w, self.size.h)
     }
 }
 
@@ -53,7 +53,7 @@ impl Figure {
             surface.fill(fill.color)?;
         }
         if let Some(plots) = &self.plots {
-            let rect = self.rect().pad(&self.padding); 
+            let rect = self.rect().pad(&self.padding);
             plots.draw(surface, &rect)?
         }
         Ok(())

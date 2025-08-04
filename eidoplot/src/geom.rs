@@ -1,4 +1,4 @@
-pub use tiny_skia_path::{Path, PathBuilder, PathSegment};
+pub use tiny_skia_path::{Path, PathBuilder, PathSegment, Transform};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Point {
@@ -14,18 +14,26 @@ pub struct Size {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Rect {
-    pub x: f32,
-    pub y: f32,
-    pub w: f32,
-    pub h: f32,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
 }
 
 impl Rect {
-    pub fn new(x: f32, y: f32, w: f32, h: f32) -> Self {
+    pub fn from_xywh(x: f32, y: f32, w: f32, h: f32) -> Self {
         Rect { x, y, w, h }
     }
-    pub fn new_ps(top_left: Point, size: Size) -> Self {
-        Rect::new(top_left.x, top_left.y, size.width, size.height)
+    pub fn from_trbl(top: f32, right: f32, bottom: f32, left: f32) -> Self {
+        Rect {
+            x: left,
+            y: top,
+            w: right - left,
+            h: bottom - top,
+        }
+    }
+    pub fn from_ps(top_left: Point, size: Size) -> Self {
+        Rect::from_xywh(top_left.x, top_left.y, size.width, size.height)
     }
 
     pub fn pad(&self, padding: &Padding) -> Self {
@@ -35,6 +43,38 @@ impl Rect {
             w: self.w - padding.sum_hor(),
             h: self.h - padding.sum_ver(),
         }
+    }
+
+    pub fn x(&self) -> f32 {
+        self.x
+    }
+
+    pub fn y(&self) -> f32 {
+        self.y
+    }
+
+    pub fn w(&self) -> f32 {
+        self.w
+    }
+
+    pub fn h(&self) -> f32 {
+        self.h
+    }
+
+    pub fn top(&self) -> f32 {
+        self.y
+    }
+
+    pub fn right(&self) -> f32 {
+        self.x + self.w
+    }
+
+    pub fn bottom(&self) -> f32 {
+        self.y + self.h
+    }
+
+    pub fn left(&self) -> f32 {
+        self.x
     }
 }
 
