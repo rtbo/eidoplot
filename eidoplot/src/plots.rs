@@ -1,5 +1,5 @@
 use crate::axis::{Axis, scale};
-use crate::{backend, missing_config};
+use crate::{backend, missing_params};
 use crate::data;
 use crate::geom;
 use crate::render;
@@ -106,7 +106,7 @@ impl Plot {
     where
         S: backend::Surface,
     {
-        let axis_padding = missing_config::AXIS_PADDING;
+        let axis_padding = missing_params::AXIS_PADDING;
         let rect = rect.pad(&axis_padding);
 
         // initialize view bounds to view the whole data
@@ -259,7 +259,7 @@ fn ticks_path(
     cm: &dyn scale::MapCoord,
     reuse_alloc: Option<geom::Path>,
 ) -> geom::Path {
-    let sz = missing_config::TICK_SIZE;
+    let sz = missing_params::TICK_SIZE;
     let mut path = reuse_alloc
         .map(|p| p.clear())
         .unwrap_or_else(geom::PathBuilder::new);

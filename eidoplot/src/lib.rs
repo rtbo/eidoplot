@@ -8,4 +8,4 @@ pub mod prelude;
 pub mod render;
 pub mod style;
 
-mod missing_config;
+mod missing_params;
