@@ -1,4 +1,4 @@
-use crate::{render, style};
+use crate::{geom, render, style};
 
 pub trait Surface {
     type Error;
@@ -14,4 +14,20 @@ pub trait Surface {
 
     /// Draw a path
     fn draw_path(&mut self, path: &render::Path) -> Result<(), Self::Error>;
+
+    /// Push a clipping rectangle
+    /// Subsequent draw operations will be clipped to this rectangle,
+    /// until a matching [`pop_clip`] is called
+    fn push_clip_rect(&mut self, rect: &geom::Rect) -> Result<(), Self::Error> {
+        self.push_clip_path(&rect.path())
+    }
+
+    /// Push a clipping path
+    /// Subsequent draw operations will be clipped to this path,
+    /// until a matching [`pop_clip`] is called
+    fn push_clip_path(&mut self, path: &geom::Path) -> Result<(), Self::Error>;
+
+    /// Pop a clipping path that was pushed previously
+    /// with either [`push_clip_rect`] or [`push_clip_path`]
+    fn pop_clip(&mut self) -> Result<(), Self::Error>;
 }

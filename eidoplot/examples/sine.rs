@@ -22,6 +22,7 @@ fn main() {
             },
             y_axis: axis::Axis {
                 name: Some("y".into()),
+                scale: axis::Scale::Linear(scale::Range::MinMax(-0.8, 0.8)),
                 ..axis::Axis::default()
             },
             series: vec![Series {

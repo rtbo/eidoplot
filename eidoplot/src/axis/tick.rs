@@ -14,16 +14,16 @@ impl Default for Locator {
 }
 
 impl Locator {
-    pub fn ticks(&self, db: data::Bounds) -> Vec<f64> {
+    pub fn ticks(&self, vb: data::ViewBounds) -> Vec<f64> {
         match self {
-            Locator::Auto => MaxN::new_auto().ticks(db),
+            Locator::Auto => MaxN::new_auto().ticks(vb),
             Locator::MaxN { bins, steps } => {
                 let ticker = MaxN::new(*bins, steps.as_slice());
-                ticker.ticks(db)
+                ticker.ticks(vb)
             }
             Locator::PiMultiple { bins } => {
                 let ticker = MaxN::new_pi(*bins);
-                ticker.ticks(db)
+                ticker.ticks(vb)
             }
         }
     }
@@ -53,8 +53,8 @@ impl<'a> MaxN<'a> {
         Self::new(bins, PI_STEPS)
     }
 
-    fn ticks(&self, db: data::Bounds) -> Vec<f64> {
-        let target_step = db.span() / self.bins as f64;
+    fn ticks(&self, vb: data::ViewBounds) -> Vec<f64> {
+        let target_step = vb.span() / self.bins as f64;
 
         // getting quite about where we need to be
         let scale = 10f64.powf(target_step.log10().div_euclid(1.0));
@@ -71,11 +71,11 @@ impl<'a> MaxN<'a> {
             stepper.step()
         };
 
-        let vmin = (db.min() / step).floor() * step;
+        let vmin = (vb.min() / step).floor() * step;
 
         let edge = MaxNEdge { step };
-        let low = edge.largest_le(db.min() - vmin);
-        let high = edge.smallest_ge(db.max() - vmin);
+        let low = edge.largest_le(vb.min() - vmin);
+        let high = edge.smallest_ge(vb.max() - vmin);
 
         let mut ticks = Vec::with_capacity((high - low + 1.0) as usize);
         let mut val = low;

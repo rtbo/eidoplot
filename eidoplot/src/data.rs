@@ -1,23 +1,29 @@
 #[derive(Debug, Clone, Copy)]
-pub struct Bounds(f64, f64);
+pub struct ViewBounds(f64, f64);
 
-impl Bounds {
+impl ViewBounds {
     pub const NAN: Self = Self(f64::NAN, f64::NAN);
 }
 
-impl Default for Bounds {
+impl Default for ViewBounds {
     fn default() -> Self {
         Self::NAN
     }
 }
 
-impl From<f64> for Bounds {
+impl From<f64> for ViewBounds {
     fn from(value: f64) -> Self {
         Self(value, value)
     }
 }
 
-impl Bounds {
+impl From<(f64, f64)> for ViewBounds {
+    fn from(value: (f64, f64)) -> Self {
+        Self(value.0, value.1)
+    }
+}
+
+impl ViewBounds {
     pub fn min(&self) -> f64 {
         self.0
     }
@@ -45,7 +51,7 @@ impl Bounds {
         self.1 = self.1.max(point);
     }
 
-    pub fn add_bounds(&mut self, bounds: Bounds) {
+    pub fn add_bounds(&mut self, bounds: ViewBounds) {
         self.0 = self.0.min(bounds.0);
         self.1 = self.1.max(bounds.1);
     }

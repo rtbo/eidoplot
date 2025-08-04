@@ -53,11 +53,11 @@ impl Rect {
         self.y
     }
 
-    pub const fn w(&self) -> f32 {
+    pub const fn width(&self) -> f32 {
         self.w
     }
 
-    pub const fn h(&self) -> f32 {
+    pub const fn height(&self) -> f32 {
         self.h
     }
 
@@ -75,6 +75,10 @@ impl Rect {
 
     pub const fn left(&self) -> f32 {
         self.x
+    }
+
+    pub fn path(&self) -> Path {
+        PathBuilder::from_rect(tiny_skia_path::Rect::from_xywh(self.x,self.y, self.w, self.h).unwrap())
     }
 }
 

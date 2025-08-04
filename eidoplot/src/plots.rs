@@ -21,9 +21,9 @@ impl Plots {
             Plots::Plot(plot) => plot.draw(surface, rect),
             Plots::Subplots(subplots) => {
                 let w =
-                    (rect.w() - subplots.space * (subplots.cols - 1) as f32) / subplots.cols as f32;
+                    (rect.width() - subplots.space * (subplots.cols - 1) as f32) / subplots.cols as f32;
                 let h =
-                    (rect.h() - subplots.space * (subplots.rows - 1) as f32) / subplots.rows as f32;
+                    (rect.height() - subplots.space * (subplots.rows - 1) as f32) / subplots.rows as f32;
                 let mut y = rect.y();
                 for c in 0..subplots.cols {
                     let mut x = rect.x();
@@ -109,24 +109,31 @@ impl Plot {
         let axis_padding = missing_config::AXIS_PADDING;
         let rect = rect.pad(&axis_padding);
 
-        let data_bounds = self.calc_data_bounds();
+        // initialize view bounds to view the whole data
+        let view_bounds = self.calc_data_bounds();
 
         let coord_map = MapCoordXy {
-            x: self.x_axis.scale.coord_mapper(rect.w(), data_bounds.0),
-            y: self.y_axis.scale.coord_mapper(rect.h(), data_bounds.1),
+            x: self.x_axis.scale.coord_mapper(rect.width(), view_bounds.0),
+            y: self.y_axis.scale.coord_mapper(rect.height(), view_bounds.1),
         };
+
+        // update view bounds to view what is deemed visible by the axis scale
+        let view_bounds = (
+            coord_map.x.view_bounds(),
+            coord_map.y.view_bounds(),
+        );
 
         self.draw_background(surface, &rect)?;
         self.draw_series(surface, &rect, &coord_map)?;
-        self.draw_ticks(surface, &rect, data_bounds, &coord_map)?;
+        self.draw_ticks(surface, &rect, view_bounds, &coord_map)?;
         self.draw_border(surface, &rect)?;
 
         Ok(())
     }
 
-    fn calc_data_bounds(&self) -> (data::Bounds, data::Bounds) {
-        let mut x_bounds = data::Bounds::NAN;
-        let mut y_bounds = data::Bounds::NAN;
+    fn calc_data_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
+        let mut x_bounds = data::ViewBounds::NAN;
+        let mut y_bounds = data::ViewBounds::NAN;
         for series in &self.series {
             let (x, y) = series.data_bounds();
             x_bounds.add_bounds(x);
@@ -191,9 +198,11 @@ impl Plot {
     where
         S: backend::Surface,
     {
+        surface.push_clip_rect(rect)?;
         for series in &self.series {
             series.plot.draw(surface, &rect, &coord_map)?;
         }
+        surface.pop_clip()?;
         Ok(())
     }
 
@@ -201,7 +210,7 @@ impl Plot {
         &self,
         surface: &mut S,
         rect: &geom::Rect,
-        (x_bounds, y_bounds): (data::Bounds, data::Bounds),
+        (x_bounds, y_bounds): (data::ViewBounds, data::ViewBounds),
         coord_map: &MapCoordXy,
     ) -> Result<(), S::Error>
     where
@@ -246,7 +255,7 @@ impl Plot {
 /// Y axis will use the same function and rotate 90°
 fn ticks_path(
     ticks: &[f64],
-    db: &data::Bounds,
+    db: &data::ViewBounds,
     cm: &dyn scale::MapCoord,
     reuse_alloc: Option<geom::Path>,
 ) -> geom::Path {
@@ -283,7 +292,7 @@ pub struct Series {
 }
 
 impl Series {
-    pub fn data_bounds(&self) -> (data::Bounds, data::Bounds) {
+    pub fn data_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
         match &self.plot {
             SeriesPlot::Xy(xy) => xy.data_bounds(),
         }
@@ -314,9 +323,9 @@ pub struct XySeries {
 }
 
 impl XySeries {
-    pub fn data_bounds(&self) -> (data::Bounds, data::Bounds) {
-        let mut x_bounds = data::Bounds::NAN;
-        let mut y_bounds = data::Bounds::NAN;
+    pub fn data_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
+        let mut x_bounds = data::ViewBounds::NAN;
+        let mut y_bounds = data::ViewBounds::NAN;
         for (x, y) in &self.points {
             x_bounds.add_point(*x);
             y_bounds.add_point(*y);

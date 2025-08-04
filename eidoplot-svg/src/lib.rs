@@ -2,11 +2,16 @@ use std::io;
 
 use eidoplot::backend::Surface;
 use eidoplot::geom::Transform;
+use eidoplot::style::color;
 use eidoplot::{geom, render, style};
+
 use svg::Node;
+use svg::node::element;
 
 pub struct SvgSurface {
     doc: svg::Document,
+    clip_num: u32,
+    group_stack: Vec<element::Group>,
 }
 
 impl SvgSurface {
@@ -14,10 +19,17 @@ impl SvgSurface {
         let doc = svg::Document::new()
             .set("width", width)
             .set("height", height);
-        SvgSurface { doc }
+        SvgSurface {
+            doc,
+            clip_num: 0,
+            group_stack: vec![],
+        }
     }
 
     pub fn save(&self, path: &str) -> io::Result<()> {
+        if !self.group_stack.is_empty() {
+            panic!("Unbalanced clip stack");
+        }
         svg::save(path, &self.doc)
     }
 
@@ -25,6 +37,9 @@ impl SvgSurface {
     where
         W: io::Write,
     {
+        if !self.group_stack.is_empty() {
+            panic!("Unbalanced clip stack");
+        }
         svg::write(dest, &self.doc)
     }
 }
@@ -40,60 +55,99 @@ impl Surface for SvgSurface {
 
     /// Fill the entire surface with the given color
     fn fill(&mut self, color: style::Color) -> Result<(), Self::Error> {
-        let node = svg::node::element::Rectangle::new()
+        let node = element::Rectangle::new()
             .set("width", "100%")
             .set("height", "100%")
             .set("fill", color.html());
-        self.doc.append(node);
+        self.append_node(node);
         Ok(())
     }
 
     /// Draw a rectangle
     fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), Self::Error> {
-        let mut node = svg::node::element::Rectangle::new()
-            .set("x", rect.rect.x())
-            .set("y", rect.rect.y())
-            .set("width", rect.rect.w())
-            .set("height", rect.rect.h());
+        let mut node = rectangle_node(&rect.rect);
         assign_fill(&mut node, rect.fill.as_ref());
         assign_stroke(&mut node, rect.stroke.as_ref());
         assign_transform(&mut node, rect.transform.as_ref());
-        self.doc.append(node);
+        self.append_node(node);
         Ok(())
     }
 
     fn draw_path(&mut self, path: &render::Path) -> Result<(), Self::Error> {
-        let mut node = svg::node::element::Path::new();
+        let mut node = element::Path::new();
         assign_fill(&mut node, path.fill.as_ref());
         assign_stroke(&mut node, path.stroke.as_ref());
         assign_transform(&mut node, path.transform.as_ref());
-        let data = {
-            let mut data = svg::node::element::path::Data::new();
-            for segment in path.path.segments() {
-                match segment {
-                    geom::PathSegment::MoveTo(p) => {
-                        data = data.move_to((p.x, p.y));
-                    }
-                    geom::PathSegment::LineTo(p) => {
-                        data = data.line_to((p.x, p.y));
-                    }
-                    geom::PathSegment::Close => {
-                        data = data.close();
-                    }
-                    _ => unreachable!(),
-                }
-            }
-            data
-        };
-        node.assign("d", data);
-        self.doc.append(node);
+        node.assign("d", path_data(&path.path));
+        self.append_node(node);
         Ok(())
+    }
+
+    fn push_clip_path(&mut self, path: &geom::Path) -> Result<(), Self::Error> {
+        let clip_id = self.bump_clip_id();
+        let clip_id_url = format!("url(#{})", clip_id);
+        let node = element::ClipPath::new()
+            .set("id", clip_id.clone())
+            .add(element::Path::new().set("d", path_data(path)));
+        self.append_node(node);
+        self.group_stack
+            .push(element::Group::new().set("clip-path", clip_id_url));
+        Ok(())
+    }
+
+    fn push_clip_rect(&mut self, rect: &geom::Rect) -> Result<(), Self::Error> {
+        let clip_id = self.bump_clip_id();
+        let clip_id_url = format!("url(#{})", clip_id);
+        let node = element::ClipPath::new()
+            .set("id", clip_id.clone())
+            .add(rectangle_node(rect));
+        self.append_node(node);
+        self.draw_rect(&render::Rect {
+            rect: *rect,
+            fill: None,
+            stroke: Some(style::Line {
+                color: color::RED,
+                width: 1.0,
+                pattern: style::LinePattern::Dot,
+            }),
+            transform: None,
+        })?;
+        self.group_stack
+            .push(element::Group::new().set("clip-path", clip_id_url));
+        Ok(())
+    }
+
+    fn pop_clip(&mut self) -> Result<(), Self::Error> {
+        let g = self.group_stack.pop();
+        if g.is_none() {
+            panic!("Unbalanced clip stack");
+        }
+        self.append_node(g.unwrap());
+        Ok(())
+    }
+}
+
+impl SvgSurface {
+    fn append_node<T>(&mut self, node: T)
+    where
+        T: Node,
+    {
+        if self.group_stack.is_empty() {
+            self.doc.append(node);
+        } else {
+            self.group_stack.last_mut().unwrap().append(node);
+        }
+    }
+
+    fn bump_clip_id(&mut self) -> String {
+        self.clip_num += 1;
+        format!("eidoplot-clip{}", self.clip_num)
     }
 }
 
 fn assign_transform<N>(node: &mut N, transform: Option<&geom::Transform>)
 where
-    N: svg::node::Node,
+    N: Node,
 {
     if let Some(Transform {
         sx,
@@ -113,7 +167,7 @@ where
 
 fn assign_fill<N>(node: &mut N, fill: Option<&style::Fill>)
 where
-    N: svg::node::Node,
+    N: Node,
 {
     if let Some(fill) = fill {
         node.assign("fill", fill.color.html());
@@ -124,7 +178,7 @@ where
 
 fn assign_stroke<N>(node: &mut N, stroke: Option<&style::Line>)
 where
-    N: svg::node::Node,
+    N: Node,
 {
     if let Some(stroke) = stroke {
         let w = stroke.width;
@@ -140,4 +194,31 @@ where
     } else {
         node.assign("stroke", "none");
     }
+}
+
+fn path_data(path: &geom::Path) -> element::path::Data {
+    let mut data = element::path::Data::new();
+    for segment in path.segments() {
+        match segment {
+            geom::PathSegment::MoveTo(p) => {
+                data = data.move_to((p.x, p.y));
+            }
+            geom::PathSegment::LineTo(p) => {
+                data = data.line_to((p.x, p.y));
+            }
+            geom::PathSegment::Close => {
+                data = data.close();
+            }
+            _ => unreachable!(),
+        }
+    }
+    data
+}
+
+fn rectangle_node(rect: &geom::Rect) -> element::Rectangle {
+    element::Rectangle::new()
+        .set("x", rect.x())
+        .set("y", rect.y())
+        .set("width", rect.width())
+        .set("height", rect.height())
 }
