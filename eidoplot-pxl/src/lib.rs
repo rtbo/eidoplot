@@ -1,7 +1,7 @@
 use std::io;
 
 use eidoplot::backend::Surface;
-use eidoplot::{geom, render, style};
+use eidoplot::{render, style};
 
 use eidoplot_svg::SvgSurface;
 
@@ -67,20 +67,8 @@ impl Surface for PxlSurface {
         self.svg.draw_text(text)
     }
 
-    fn push_clip_path(
-        &mut self,
-        path: &geom::Path,
-        transform: Option<&geom::Transform>,
-    ) -> Result<(), Self::Error> {
-        self.svg.push_clip_path(path, transform)
-    }
-
-    fn push_clip_rect(
-        &mut self,
-        rect: &geom::Rect,
-        transform: Option<&geom::Transform>,
-    ) -> Result<(), Self::Error> {
-        self.svg.push_clip_rect(rect, transform)
+    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), Self::Error> {
+        self.svg.push_clip(clip)
     }
 
     fn pop_clip(&mut self) -> Result<(), Self::Error> {

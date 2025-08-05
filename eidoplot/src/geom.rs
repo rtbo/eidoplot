@@ -92,7 +92,7 @@ impl Rect {
         self.x
     }
 
-    pub fn path(&self) -> Path {
+    pub fn to_path(&self) -> Path {
         PathBuilder::from_rect(
             tiny_skia_path::Rect::from_xywh(self.x, self.y, self.w, self.h).unwrap(),
         )

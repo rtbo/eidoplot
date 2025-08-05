@@ -195,7 +195,10 @@ impl Plot {
     where
         S: backend::Surface,
     {
-        surface.push_clip_rect(rect, None)?;
+        surface.push_clip(&render::Clip {
+            path: rect.to_path(),
+            transform: None,
+        })?;
         for series in &self.series {
             series.plot.draw(surface, &rect, &coord_map)?;
         }

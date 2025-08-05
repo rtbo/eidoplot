@@ -1,5 +1,6 @@
 use crate::{geom, style, text};
 
+#[derive(Debug, Clone)]
 pub struct Rect {
     pub rect: geom::Rect,
     pub fill: Option<style::Fill>,
@@ -18,10 +19,17 @@ impl Rect {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Path {
     pub path: geom::Path,
     pub fill: Option<style::Fill>,
     pub stroke: Option<style::Line>,
+    pub transform: Option<geom::Transform>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Clip {
+    pub path: geom::Path,
     pub transform: Option<geom::Transform>,
 }
 

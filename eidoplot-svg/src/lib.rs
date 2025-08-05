@@ -2,7 +2,6 @@ use std::io;
 
 use eidoplot::backend::Surface;
 use eidoplot::geom::Transform;
-use eidoplot::style::color;
 use eidoplot::{geom, render, style, text};
 
 use svg::Node;
@@ -101,47 +100,18 @@ impl Surface for SvgSurface {
         Ok(())
     }
 
-    fn push_clip_path(
+    fn push_clip(
         &mut self,
-        path: &geom::Path,
-        transform: Option<&geom::Transform>,
+        clip: &render::Clip,
     ) -> Result<(), Self::Error> {
         let clip_id = self.bump_clip_id();
         let clip_id_url = format!("url(#{})", clip_id);
-        let mut path_node = element::Path::new().set("d", path_data(path));
-        assign_transform(&mut path_node, transform);
+        let mut path_node = element::Path::new().set("d", path_data(&clip.path));
+        assign_transform(&mut path_node, clip.transform.as_ref());
         let node = element::ClipPath::new()
             .set("id", clip_id.clone())
             .add(path_node);
         self.append_node(node);
-        self.group_stack
-            .push(element::Group::new().set("clip-path", clip_id_url));
-        Ok(())
-    }
-
-    fn push_clip_rect(
-        &mut self,
-        rect: &geom::Rect,
-        transform: Option<&geom::Transform>,
-    ) -> Result<(), Self::Error> {
-        let clip_id = self.bump_clip_id();
-        let clip_id_url = format!("url(#{})", clip_id);
-        let mut rect_node = rectangle_node(rect);
-        assign_transform(&mut rect_node, transform);
-        let node = element::ClipPath::new()
-            .set("id", clip_id.clone())
-            .add(rect_node);
-        self.append_node(node);
-        self.draw_rect(&render::Rect {
-            rect: *rect,
-            fill: None,
-            stroke: Some(style::Line {
-                color: color::RED,
-                width: 1.0,
-                pattern: style::LinePattern::Dot,
-            }),
-            transform: None,
-        })?;
         self.group_stack
             .push(element::Group::new().set("clip-path", clip_id_url));
         Ok(())
