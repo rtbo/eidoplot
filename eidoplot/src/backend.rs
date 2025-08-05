@@ -15,6 +15,9 @@ pub trait Surface {
     /// Draw a path
     fn draw_path(&mut self, path: &render::Path) -> Result<(), Self::Error>;
 
+    /// Draw some text
+    fn draw_text(&mut self, text: &render::Text) -> Result<(), Self::Error>;
+
     /// Push a clipping rectangle
     /// Subsequent draw operations will be clipped to this rectangle,
     /// until a matching [`pop_clip`] is called

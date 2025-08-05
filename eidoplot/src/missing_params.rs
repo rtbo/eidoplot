@@ -1,7 +1,9 @@
 //! Module containing missing configuration values
 //! Basically we put here all magic values that would require proper parameters
-use crate::geom;
+use crate::{geom, style::{color, Color}};
 
+pub const FIG_TITLE_MARGIN: f32 = 6.0;
+pub const FIG_TITLE_COLOR: Color = color::BLACK;
 pub const TICK_SIZE: f32 = 4.0;
 pub const AXIS_PADDING: geom::Padding = geom::Padding::Custom {
     t: 0.0,

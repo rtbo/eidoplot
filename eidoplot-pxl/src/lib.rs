@@ -59,6 +59,10 @@ impl Surface for PxlSurface {
         self.svg.draw_path(path)
     }
 
+    fn draw_text(&mut self, text: &render::Text) -> Result<(), Self::Error> {
+        self.svg.draw_text(text)
+    }
+
     fn push_clip_path(
         &mut self,
         path: &geom::Path,

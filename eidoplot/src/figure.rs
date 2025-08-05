@@ -1,8 +1,13 @@
 use crate::backend;
 use crate::geom;
+use crate::missing_params;
+use crate::missing_params::FIG_TITLE_MARGIN;
 use crate::plots::Plots;
+use crate::render;
 use crate::style;
 use crate::style::color;
+use crate::text::Font;
+use crate::text::Text;
 
 #[derive(Debug, Clone, Copy)]
 pub struct FigSize {
@@ -19,7 +24,7 @@ impl Default for FigSize {
 #[derive(Debug, Clone)]
 pub struct Figure {
     pub size: FigSize,
-    pub title: Option<String>,
+    pub title: Option<Text>,
     pub fill: Option<style::Fill>,
     pub padding: geom::Padding,
     pub plots: Option<Plots>,
@@ -43,6 +48,9 @@ impl Figure {
     }
 }
 
+const DEFAULT_TITLE_FONT_FAMILY: &str = "sans-serif";
+const DEFAULT_TITLE_FONT_SIZE: f32 = 36.0;
+
 impl Figure {
     pub fn draw<S>(&self, surface: &mut S) -> Result<(), S::Error>
     where
@@ -52,8 +60,45 @@ impl Figure {
         if let Some(fill) = &self.fill {
             surface.fill(fill.color)?;
         }
+
+        let mut rect = self.rect().pad(&self.padding);
+
+        if let Some(title) = &self.title {
+            let mut title = title.clone();
+            if title.font().is_none() {
+                title = title.with_font(Font::new(
+                    DEFAULT_TITLE_FONT_FAMILY.into(),
+                    DEFAULT_TITLE_FONT_SIZE,
+                ));
+            }
+
+            let font_size = title.font().unwrap().size();
+            let title_rect = geom::Rect::from_xywh(
+                rect.x() + missing_params::FIG_TITLE_MARGIN,
+                rect.y(),
+                rect.width(),
+                font_size + 2.0 * FIG_TITLE_MARGIN,
+            );
+            let text = render::Text {
+                text: title.clone(),
+                fill: missing_params::FIG_TITLE_COLOR.into(),
+                anchor: render::TextAnchor {
+                    pos: title_rect.center(),
+                    align: render::TextAlign::Center,
+                    baseline: render::TextBaseline::Center,
+                },
+                transform: None,
+            };
+            surface.draw_text(&text)?;
+            rect = rect.pad(&geom::Padding::Custom {
+                t: title_rect.height(),
+                r: 0.0,
+                b: 0.0,
+                l: 0.0,
+            });
+        }
+
         if let Some(plots) = &self.plots {
-            let rect = self.rect().pad(&self.padding);
             plots.draw(surface, &rect)?
         }
         Ok(())

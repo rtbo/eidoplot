@@ -7,5 +7,6 @@ pub mod plots;
 pub mod prelude;
 pub mod render;
 pub mod style;
+pub mod text;
 
 mod missing_params;

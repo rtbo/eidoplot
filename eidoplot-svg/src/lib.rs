@@ -3,7 +3,7 @@ use std::io;
 use eidoplot::backend::Surface;
 use eidoplot::geom::Transform;
 use eidoplot::style::color;
-use eidoplot::{geom, render, style};
+use eidoplot::{geom, render, style, text};
 
 use svg::Node;
 use svg::node::element;
@@ -12,6 +12,7 @@ pub struct SvgSurface {
     doc: svg::Document,
     clip_num: u32,
     group_stack: Vec<element::Group>,
+    default_font: text::Font,
 }
 
 impl SvgSurface {
@@ -23,6 +24,7 @@ impl SvgSurface {
             doc,
             clip_num: 0,
             group_stack: vec![],
+            default_font: text::Font::default(),
         }
     }
 
@@ -79,6 +81,22 @@ impl Surface for SvgSurface {
         assign_stroke(&mut node, path.stroke.as_ref());
         assign_transform(&mut node, path.transform.as_ref());
         node.assign("d", path_data(&path.path));
+        self.append_node(node);
+        Ok(())
+    }
+
+    fn draw_text(&mut self, text: &render::Text) -> Result<(), Self::Error> {
+        let font = text.text.font().unwrap_or(&self.default_font);
+
+        let mut node = element::Text::new(text.text.text())
+            .set("font-family", font.family().as_str())
+            .set("font-size", font.size())
+            .set("fill", text.fill.color.html())
+            .set("x", text.anchor.pos.x)
+            .set("y", text.anchor.pos.y)
+            .set("text-anchor", text_anchor(text.anchor.align))
+            .set("dominant-baseline", dominant_baseline(text.anchor.baseline));
+        assign_transform(&mut node, text.transform.as_ref());
         self.append_node(node);
         Ok(())
     }
@@ -233,4 +251,20 @@ fn rectangle_node(rect: &geom::Rect) -> element::Rectangle {
         .set("y", rect.y())
         .set("width", rect.width())
         .set("height", rect.height())
+}
+
+fn text_anchor(align: render::TextAlign) -> &'static str {
+    match align {
+        render::TextAlign::Start => "start",
+        render::TextAlign::Center => "middle",
+        render::TextAlign::End => "end",
+    }
+}
+
+fn dominant_baseline(baseline: render::TextBaseline) -> &'static str {
+    match baseline {
+        render::TextBaseline::Base => "alphabetic",
+        render::TextBaseline::Center => "middle",
+        render::TextBaseline::Hanging => "hanging",
+    }
 }

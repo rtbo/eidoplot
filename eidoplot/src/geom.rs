@@ -53,6 +53,21 @@ impl Rect {
         self.y
     }
 
+    pub const fn center(&self) -> Point {
+        Point {
+            x: self.center_x(),
+            y: self.center_y(),
+        }
+    }
+
+    pub const fn center_x(&self) -> f32 {
+        self.x() + self.width() / 2.0
+    }
+
+    pub const fn center_y(&self) -> f32 {
+        self.y() + self.height() / 2.0
+    }
+
     pub const fn width(&self) -> f32 {
         self.w
     }
