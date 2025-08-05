@@ -46,13 +46,12 @@ fn main() {
     for arg in env::args() {
         if arg == "png" {
             write_png(&fig);
-            written = false;
+            written = true;
         } else if arg == "svg" {
             write_svg(&fig);
-            written = false;
+            written = true;
         }
     }
-
     if !written {
         write_svg(&fig);
     }
