@@ -1,3 +1,4 @@
+use crate::axis::scale::MapCoord;
 use crate::axis::{Axis, scale};
 use crate::data;
 use crate::geom;
@@ -120,6 +121,7 @@ impl Plot {
         // update view bounds to view what is deemed visible by the axis scale
         let view_bounds = (coord_map.x.view_bounds(), coord_map.y.view_bounds());
 
+
         self.draw_background(surface, &rect)?;
         self.draw_series(surface, &rect, &coord_map)?;
         self.draw_ticks(surface, &rect, view_bounds, &coord_map)?;
@@ -210,8 +212,8 @@ impl Plot {
         &self,
         surface: &mut S,
         rect: &geom::Rect,
-        (x_bounds, y_bounds): (data::ViewBounds, data::ViewBounds),
-        coord_map: &MapCoordXy,
+        (x_vb, y_vb): (data::ViewBounds, data::ViewBounds),
+        cm: &MapCoordXy,
     ) -> Result<(), S::Error>
     where
         S: backend::Surface,
@@ -220,33 +222,43 @@ impl Plot {
             .x_axis
             .ticks
             .as_ref()
-            .map(|t| t.ticks(x_bounds))
+            .map(|t| t.ticks(x_vb))
             .unwrap_or_else(Vec::new);
-
-        let x_ticks_path = ticks_path(&x_ticks, &x_bounds, &*coord_map.x, None);
-        let x_ticks_tr = geom::Transform::from_translate(rect.left(), rect.bottom());
-        let x_ticks_path = render::Path {
-            path: x_ticks_path,
-            fill: None,
-            stroke: Some(color::BLACK.into()),
-            transform: Some(x_ticks_tr),
-        };
-        surface.draw_path(&x_ticks_path)?;
 
         let y_ticks = self
             .y_axis
             .ticks
             .as_ref()
-            .map(|t| t.ticks(y_bounds))
+            .map(|t| t.ticks(y_vb))
             .unwrap_or_else(Vec::new);
-        let y_ticks_path = ticks_path(&y_ticks, &y_bounds, &*coord_map.y, Some(x_ticks_path.path));
-        let y_ticks_path = render::Path {
-            path: y_ticks_path,
+
+        let x_ticks_tr = geom::Transform::from_translate(rect.left(), rect.bottom());
+        self.draw_ticks_path(surface, &x_ticks, &x_vb, &*cm.x, &x_ticks_tr)?;
+        self.draw_ticks_path(surface, &y_ticks, &y_vb, &*cm.y, &x_ticks_tr.pre_rotate(90.0))?;
+
+        Ok(())
+    }
+
+
+    fn draw_ticks_path<S>(
+        &self,
+        surface: &mut S,
+        ticks: &[f64],
+        vb: &data::ViewBounds,
+        cm: &dyn MapCoord,
+        transform: &geom::Transform,
+    ) -> Result<(), S::Error>
+    where
+        S: backend::Surface,
+    {
+        let ticks_path = ticks_path(&ticks, &vb, cm, None);
+        let ticks_path = render::Path {
+            path: ticks_path,
             fill: None,
             stroke: Some(color::BLACK.into()),
-            transform: Some(x_ticks_tr.pre_rotate(90.0)),
+            transform: Some(*transform),
         };
-        surface.draw_path(&y_ticks_path)?;
+        surface.draw_path(&ticks_path)?;
         Ok(())
     }
 }
@@ -255,7 +267,7 @@ impl Plot {
 /// Y axis will use the same function and rotate 90°
 fn ticks_path(
     ticks: &[f64],
-    db: &data::ViewBounds,
+    vb: &data::ViewBounds,
     cm: &dyn scale::MapCoord,
     reuse_alloc: Option<geom::Path>,
 ) -> geom::Path {
@@ -264,7 +276,7 @@ fn ticks_path(
         .map(|p| p.clear())
         .unwrap_or_else(geom::PathBuilder::new);
     for tick in ticks {
-        if !db.contains(*tick) {
+        if !vb.contains(*tick) {
             continue;
         }
         let x = cm.map_coord(*tick);
