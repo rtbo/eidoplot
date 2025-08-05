@@ -73,6 +73,15 @@ impl From<(FontFamily, f32)> for Font {
     }
 }
 
+impl From<f32> for Font {
+    fn from(value: f32) -> Self {
+        Font {
+            size: value,
+            ..Font::default()
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Text {
     text: String,

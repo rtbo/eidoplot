@@ -1,10 +1,12 @@
 use crate::axis::scale::MapCoord;
 use crate::axis::{Axis, scale};
-use crate::data;
+use crate::{data, text};
 use crate::geom;
-use crate::render;
+use crate::missing_params::{TICK_COLOR, TICK_LABEL_FONT_FAMILY, TICK_LABEL_FONT_SIZE, TICK_LABEL_MARGIN};
+use crate::render::{self, TextAnchor};
 use crate::style;
 use crate::style::color;
+use crate::text::{Font, FontFamily};
 use crate::{backend, missing_params};
 
 #[derive(Debug, Clone)]
@@ -235,6 +237,35 @@ impl Plot {
         let x_ticks_tr = geom::Transform::from_translate(rect.left(), rect.bottom());
         self.draw_ticks_path(surface, &x_ticks, &x_vb, &*cm.x, &x_ticks_tr)?;
         self.draw_ticks_path(surface, &y_ticks, &y_vb, &*cm.y, &x_ticks_tr.pre_rotate(90.0))?;
+
+        let font_family = FontFamily::from(TICK_LABEL_FONT_FAMILY);
+        let font_sz = TICK_LABEL_FONT_SIZE;
+        let font = Font::new(font_family, font_sz);
+
+        for xt in x_ticks.iter() {
+            let text = format!("{}", xt);
+            let text = text::Text::new(text, font.clone());
+
+            let x = cm.x.map_coord(*xt);
+            let x = rect.left() + x;
+            let pos = geom::Point {
+                x, 
+                y: rect.bottom() + TICK_LABEL_MARGIN,
+            };
+            let anchor = TextAnchor {
+                pos,
+                align: render::TextAlign::Center,
+                baseline: render::TextBaseline::Hanging,
+            };
+            let text = render::Text {
+                text,
+                anchor,
+                fill: TICK_COLOR.into(),
+                transform: None,
+            };
+
+            surface.draw_text(&text)?;
+        }
 
         Ok(())
     }
