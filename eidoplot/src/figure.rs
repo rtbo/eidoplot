@@ -74,8 +74,8 @@ impl Figure {
 
             let font_size = title.font().unwrap().size();
             let title_rect = geom::Rect::from_xywh(
-                rect.x() + missing_params::FIG_TITLE_MARGIN,
-                rect.y(),
+                rect.x(),
+                rect.y() + missing_params::FIG_TITLE_MARGIN,
                 rect.width(),
                 font_size + 2.0 * FIG_TITLE_MARGIN,
             );
