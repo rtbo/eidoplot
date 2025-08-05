@@ -8,6 +8,7 @@ use crate::style;
 use crate::style::color;
 use crate::text::Font;
 use crate::text::Text;
+use crate::text::DEFAULT_FONT_FAMILY;
 
 #[derive(Debug, Clone, Copy)]
 pub struct FigSize {
@@ -48,7 +49,7 @@ impl Figure {
     }
 }
 
-const DEFAULT_TITLE_FONT_FAMILY: &str = "'Open Sans','Noto Sans',sans-serif";
+const DEFAULT_TITLE_FONT_FAMILY: &str = DEFAULT_FONT_FAMILY;
 const DEFAULT_TITLE_FONT_SIZE: f32 = 36.0;
 
 impl Figure {

@@ -1,5 +1,7 @@
 use std::str;
 
+pub const DEFAULT_FONT_FAMILY: &str = "'Open Sans','Noto Sans',sans-serif";
+
 #[derive(Debug, Clone)]
 pub struct FontFamily(pub String);
 
