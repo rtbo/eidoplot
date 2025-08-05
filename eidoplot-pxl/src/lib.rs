@@ -26,7 +26,11 @@ impl PxlSurface {
         let mut buf = BufWriter::new(Vec::new());
         self.svg.write(&mut buf)?;
         let data = buf.into_inner()?;
-        let tree = usvg::Tree::from_data(&data, &Default::default()).expect("Should be valid SVG");
+
+        let mut opt = usvg::Options::default();
+        opt.fontdb_mut().load_system_fonts();
+
+        let tree = usvg::Tree::from_data(&data, &opt).expect("Should be valid SVG");
 
         let mut pixmap = tiny_skia::Pixmap::new(self.width, self.height).unwrap();
         resvg::render(
