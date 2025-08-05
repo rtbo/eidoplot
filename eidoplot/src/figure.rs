@@ -48,7 +48,7 @@ impl Figure {
     }
 }
 
-const DEFAULT_TITLE_FONT_FAMILY: &str = "sans-serif";
+const DEFAULT_TITLE_FONT_FAMILY: &str = "'Open Sans','Noto Sans',sans-serif";
 const DEFAULT_TITLE_FONT_SIZE: f32 = 36.0;
 
 impl Figure {
