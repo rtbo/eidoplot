@@ -1,13 +1,12 @@
 use crate::axis::scale::MapCoord;
+use crate::axis::tick::Ticks;
 use crate::axis::{Axis, scale};
-use crate::{data, text};
 use crate::geom;
-use crate::missing_params::{TICK_COLOR, TICK_LABEL_FONT_FAMILY, TICK_LABEL_FONT_SIZE, TICK_LABEL_MARGIN};
 use crate::render::{self, TextAnchor};
 use crate::style;
 use crate::style::color;
-use crate::text::{Font, FontFamily};
 use crate::{backend, missing_params};
+use crate::{data, text};
 
 #[derive(Debug, Clone)]
 pub enum Plots {
@@ -120,13 +119,18 @@ impl Plot {
             y: self.y_axis.scale.coord_mapper(rect.height(), view_bounds.1),
         };
 
-        // update view bounds to view what is deemed visible by the axis scale
-        let view_bounds = (coord_map.x.view_bounds(), coord_map.y.view_bounds());
-
-
         self.draw_background(surface, &rect)?;
         self.draw_series(surface, &rect, &coord_map)?;
-        self.draw_ticks(surface, &rect, view_bounds, &coord_map)?;
+
+        if let Some(x_ticks) = self.x_axis.ticks.as_ref() {
+            let x_vb = coord_map.x.view_bounds();
+            self.draw_x_ticks(surface, &rect, x_ticks, x_vb, &*coord_map.x)?;
+        }
+        if let Some(y_ticks) = self.y_axis.ticks.as_ref() {
+            let y_vb = coord_map.y.view_bounds();
+            self.draw_y_ticks(surface, &rect, y_ticks, y_vb, &*coord_map.y)?;
+        }
+
         self.draw_border(surface, &rect)?;
 
         Ok(())
@@ -210,47 +214,33 @@ impl Plot {
         Ok(())
     }
 
-    fn draw_ticks<S>(
+    fn draw_x_ticks<S>(
         &self,
         surface: &mut S,
         rect: &geom::Rect,
-        (x_vb, y_vb): (data::ViewBounds, data::ViewBounds),
-        cm: &MapCoordXy,
+        x_ticks: &Ticks,
+        x_vb: data::ViewBounds,
+        x_cm: &dyn MapCoord,
     ) -> Result<(), S::Error>
     where
         S: backend::Surface,
     {
-        let x_ticks = self
-            .x_axis
-            .ticks
-            .as_ref()
-            .map(|t| t.ticks(x_vb))
-            .unwrap_or_else(Vec::new);
+        let ticks = x_ticks.locator().ticks(x_vb);
+        let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
+        self.draw_ticks_path(surface, &ticks, &x_vb, x_cm, &transform)?;
 
-        let y_ticks = self
-            .y_axis
-            .ticks
-            .as_ref()
-            .map(|t| t.ticks(y_vb))
-            .unwrap_or_else(Vec::new);
+        let lbl_format = x_ticks.formatter().label_format(x_ticks.locator(), x_vb);
+        let fill = x_ticks.color().into();
 
-        let x_ticks_tr = geom::Transform::from_translate(rect.left(), rect.bottom());
-        self.draw_ticks_path(surface, &x_ticks, &x_vb, &*cm.x, &x_ticks_tr)?;
-        self.draw_ticks_path(surface, &y_ticks, &y_vb, &*cm.y, &x_ticks_tr.pre_rotate(90.0))?;
+        for xt in ticks.iter().copied() {
+            let text = lbl_format.format_label(xt);
+            let text = text::Text::new(text, x_ticks.font().clone());
 
-        let font_family = FontFamily::from(TICK_LABEL_FONT_FAMILY);
-        let font_sz = TICK_LABEL_FONT_SIZE;
-        let font = Font::new(font_family, font_sz);
-
-        for xt in x_ticks.iter() {
-            let text = format!("{}", xt);
-            let text = text::Text::new(text, font.clone());
-
-            let x = cm.x.map_coord(*xt);
+            let x = x_cm.map_coord(xt);
             let x = rect.left() + x;
             let pos = geom::Point {
-                x, 
-                y: rect.bottom() + TICK_LABEL_MARGIN,
+                x,
+                y: rect.bottom() + missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN,
             };
             let anchor = TextAnchor {
                 pos,
@@ -260,16 +250,56 @@ impl Plot {
             let text = render::Text {
                 text,
                 anchor,
-                fill: TICK_COLOR.into(),
+                fill,
                 transform: None,
             };
 
             surface.draw_text(&text)?;
         }
 
+        if let Some(annot) = lbl_format.axis_annotation() {
+            let text = text::Text::new(annot, x_ticks.font().clone());
+            let pos = geom::Point {
+                x: rect.right(),
+                y: rect.bottom()
+                    + missing_params::TICK_SIZE
+                    + 2.0 * missing_params::TICK_LABEL_MARGIN
+                    + x_ticks.font().size(),
+            };
+            let anchor = TextAnchor {
+                pos,
+                align: render::TextAlign::End,
+                baseline: render::TextBaseline::Hanging,
+            };
+            let text = render::Text {
+                text,
+                anchor,
+                fill,
+                transform: None,
+            };
+            surface.draw_text(&text)?;
+        }
+
         Ok(())
     }
 
+    fn draw_y_ticks<S>(
+        &self,
+        surface: &mut S,
+        rect: &geom::Rect,
+        y_ticks: &Ticks,
+        y_vb: data::ViewBounds,
+        y_cm: &dyn MapCoord,
+    ) -> Result<(), S::Error>
+    where
+        S: backend::Surface,
+    {
+        let ticks = y_ticks.locator().ticks(y_vb);
+        let transform =
+            geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(90.0);
+        self.draw_ticks_path(surface, &ticks, &y_vb, y_cm, &transform)?;
+        Ok(())
+    }
 
     fn draw_ticks_path<S>(
         &self,

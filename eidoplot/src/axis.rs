@@ -7,7 +7,7 @@ pub use scale::Scale;
 pub struct Axis {
     pub name: Option<String>,
     pub scale: Scale,
-    pub ticks: Option<tick::Locator>,
+    pub ticks: Option<tick::Ticks>,
     pub ticks_min: Option<tick::Locator>,
 }
 

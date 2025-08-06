@@ -1,16 +1,14 @@
-use crate::data;
+use crate::{data, style::{color, Color}, text::{self, FontFamily}};
 
-#[derive(Debug, Clone)]
+pub const DEFAULT_LABEL_FONT_SIZE: f32 = 10.0;
+pub const DEFAULT_LABEL_COLOR: Color = color::BLACK;
+
+#[derive(Debug, Default, Clone)]
 pub enum Locator {
+    #[default]
     Auto,
     MaxN { bins: u32, steps: Vec<f64> },
     PiMultiple { bins: u32 },
-}
-
-impl Default for Locator {
-    fn default() -> Self {
-        Locator::Auto
-    }
 }
 
 impl Locator {
@@ -25,6 +23,118 @@ impl Locator {
                 let ticker = MaxN::new_pi(*bins);
                 ticker.ticks(vb)
             }
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub enum Formatter {
+    #[default]
+    Auto,
+    Prec(usize),
+}
+
+impl Formatter {
+    pub fn label_format(&self, locator: &Locator, dvb: data::ViewBounds) -> Box<dyn LabelFormat> {
+        match self {
+            Formatter::Auto => Self::auto_label_format(locator, dvb),
+            Formatter::Prec(prec) => Box::new(PrecLabelFormat(*prec)),
+        }
+    }
+
+    fn auto_label_format(locator: &Locator, _dvb: data::ViewBounds) -> Box<dyn LabelFormat> {
+        match locator {
+            Locator::PiMultiple { .. } => Box::new(PiMultipleLabelFormat{prec: 2}),
+            _ => todo!(),
+        }
+    }
+}
+
+pub trait LabelFormat {
+    fn axis_annotation(&self) -> Option<&str> {
+        None
+    }
+    fn format_label(&self, data: f64) -> String;
+}
+
+struct PrecLabelFormat(usize);
+
+impl LabelFormat for PrecLabelFormat {
+    fn format_label(&self, data: f64) -> String {
+        format!("{data:.*}", self.0)
+    }
+}
+
+struct PiMultipleLabelFormat {
+    prec: usize,
+}
+
+impl LabelFormat for PiMultipleLabelFormat {
+    fn axis_annotation(&self) -> Option<&str> {
+        Some("\u{00d7} π")
+    }
+    fn format_label(&self, data: f64) -> String {
+        let val = data / PI; 
+        format!("{val:.*}", self.prec)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Ticks {
+    locator: Locator,
+    formatter: Formatter,
+    font: text::Font,
+    color: Color,
+}
+
+impl Default for Ticks {
+    fn default() -> Self {
+        Ticks {
+            locator: Locator::default(),
+            formatter: Formatter::default(),
+            font: text::Font::new(FontFamily::default(), DEFAULT_LABEL_FONT_SIZE),
+            color: DEFAULT_LABEL_COLOR,
+        }
+    }
+}
+
+impl Ticks {
+    pub fn with_locator(mut self, locator: Locator) -> Self {
+        self.locator = locator;
+        self
+    }
+    pub fn with_formatter(mut self, formatter: Formatter) -> Self {
+        self.formatter = formatter;
+        self
+    }
+    pub fn with_font(mut self, font: text::Font) -> Self {
+        self.font = font;
+        self
+    }
+    pub fn with_color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
+    }
+
+    pub fn locator(&self) -> &Locator {
+        &self.locator
+    }
+    pub fn formatter(&self) -> &Formatter {
+        &self.formatter
+    }
+    pub fn font(&self) -> &text::Font {
+        &self.font
+    }
+    pub fn color(&self) -> Color {
+        self.color
+    }
+}
+
+impl From<Locator> for Ticks {
+    fn from(value: Locator) -> Self {
+        Ticks {
+            locator: value,
+            ..Default::default()
         }
     }
 }
