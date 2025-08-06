@@ -10,9 +10,7 @@ fn main() {
         .collect();
 
     let fig = Figure {
-        size: FigSize::default(),
         title: Some("Sine wave".into()),
-        padding: 20.0.into(),
         plots: Some(Plots::Plot(Plot {
             title: None,
             x_axis: axis::Axis {
@@ -58,13 +56,13 @@ fn main() {
 }
 
 fn write_svg(fig: &Figure) {
-    let mut svg = SvgSurface::new(1200, 900);
+    let mut svg = SvgSurface::new(800, 600);
     fig.draw(&mut svg).unwrap();
     svg.save("plot.svg").unwrap();
 }
 
 fn write_png(fig: &Figure) {
-    let mut surf = PxlSurface::new(1200, 900);
+    let mut surf = PxlSurface::new(1600, 1200);
     fig.draw(&mut surf).unwrap();
     surf.save("plot.png").unwrap();
 }
