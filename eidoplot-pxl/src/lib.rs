@@ -1,7 +1,6 @@
 use std::io;
 
-use eidoplot::backend::Surface;
-use eidoplot::{render, style};
+use eidoplot::{geom, render, style};
 
 use eidoplot_svg::SvgSurface;
 
@@ -44,15 +43,15 @@ impl PxlSurface {
     }
 }
 
-impl Surface for PxlSurface {
-    type Error = <SvgSurface as Surface>::Error;
+impl render::Surface for PxlSurface {
+    type Error = <SvgSurface as render::Surface>::Error;
 
-    fn prepare(&mut self, width: f32, height: f32) -> Result<(), Self::Error> {
-        self.svg.prepare(width, height)
+    fn prepare(&mut self, size: geom::Size) -> Result<(), Self::Error> {
+        self.svg.prepare(size)
     }
 
-    fn fill(&mut self, color: style::Color) -> Result<(), Self::Error> {
-        self.svg.fill(color)
+    fn fill(&mut self, fill: style::Fill) -> Result<(), Self::Error> {
+        self.svg.fill(fill)
     }
 
     fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), Self::Error> {

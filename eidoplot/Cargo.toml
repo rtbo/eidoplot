@@ -4,12 +4,11 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 
+[dependencies]
+tiny-skia-path.workspace = true
+
 [[example]]
 name="sine"
-
-[dependencies]
-float_eq = "1.0.1"
-tiny-skia-path.workspace = true
 
 [dev-dependencies]
 eidoplot-svg = { path = "../eidoplot-svg" }

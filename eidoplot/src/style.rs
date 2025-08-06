@@ -1,6 +1,9 @@
 pub mod color;
+pub mod defaults;
+pub mod font;
 
 pub use color::Color;
+pub use font::Font;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dash(pub f32, pub f32);
@@ -76,12 +79,12 @@ impl From<(Color, f32, Dash)> for Line {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Fill {
-    pub color: Color,
+pub enum Fill {
+    Solid(Color),
 }
 
 impl From<Color> for Fill {
     fn from(color: Color) -> Self {
-        Fill { color }
+        Fill::Solid(color)
     }
 }

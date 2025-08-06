@@ -1,4 +1,32 @@
-use crate::{geom, style, text};
+use crate::{geom, style};
+
+pub trait Surface {
+    type Error;
+
+    /// Prepare the surface for drawing, with the given size in plot units
+    fn prepare(&mut self, size: geom::Size) -> Result<(), Self::Error>;
+
+    /// Fill the entire surface with the given fill pattern
+    fn fill(&mut self, fill: style::Fill) -> Result<(), Self::Error>;
+
+    /// Draw a rectangle
+    fn draw_rect(&mut self, rect: &Rect) -> Result<(), Self::Error>;
+
+    /// Draw a path
+    fn draw_path(&mut self, path: &Path) -> Result<(), Self::Error>;
+
+    /// Draw some text
+    fn draw_text(&mut self, text: &Text) -> Result<(), Self::Error>;
+
+    /// Push a clipping path
+    /// Subsequent draw operations will be clipped to this path,
+    /// until a matching [`pop_clip`] is called
+    fn push_clip(&mut self, clip: &Clip) -> Result<(), Self::Error>;
+
+    /// Pop a clipping path that was pushed previously with [`push_clip`]
+    fn pop_clip(&mut self) -> Result<(), Self::Error>;
+}
+
 
 #[derive(Debug, Clone)]
 pub struct Rect {
@@ -68,7 +96,8 @@ pub struct TextAnchor {
 
 #[derive(Debug, Clone)]
 pub struct Text {
-    pub text: text::Text,
+    pub text: String,
+    pub font: style::Font,
     pub fill: style::Fill,
     pub anchor: TextAnchor,
     pub transform: Option<geom::Transform>,

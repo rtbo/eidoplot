@@ -1,8 +1,8 @@
 use std::io;
 
-use eidoplot::backend::Surface;
+use eidoplot::render::Surface;
 use eidoplot::geom::Transform;
-use eidoplot::{geom, render, style, text};
+use eidoplot::{geom, render, style};
 
 use svg::Node;
 use svg::node::element;
@@ -11,7 +11,6 @@ pub struct SvgSurface {
     doc: svg::Document,
     clip_num: u32,
     group_stack: Vec<element::Group>,
-    default_font: text::Font,
 }
 
 impl SvgSurface {
@@ -23,7 +22,6 @@ impl SvgSurface {
             doc,
             clip_num: 0,
             group_stack: vec![],
-            default_font: text::Font::default(),
         }
     }
 
@@ -49,17 +47,19 @@ impl Surface for SvgSurface {
     type Error = ();
 
     /// Prepare the surface for drawing, with the given width and height in plot units
-    fn prepare(&mut self, width: f32, height: f32) -> Result<(), Self::Error> {
-        self.doc.assign("viewBox", (0, 0, width, height));
+    fn prepare(&mut self, size: geom::Size) -> Result<(), Self::Error> {
+        self.doc.assign("viewBox", (0, 0, size.width(), size.height()));
         Ok(())
     }
 
     /// Fill the entire surface with the given color
-    fn fill(&mut self, color: style::Color) -> Result<(), Self::Error> {
-        let node = element::Rectangle::new()
+    fn fill(&mut self, fill: style::Fill) -> Result<(), Self::Error> {
+        let mut node = element::Rectangle::new()
             .set("width", "100%")
-            .set("height", "100%")
-            .set("fill", color.html());
+            .set("height", "100%");
+        match fill {
+            style::Fill::Solid(color) => node.assign("fill", color.html()),
+        }
         self.append_node(node);
         Ok(())
     }
@@ -85,16 +85,20 @@ impl Surface for SvgSurface {
     }
 
     fn draw_text(&mut self, text: &render::Text) -> Result<(), Self::Error> {
-        let font = text.text.font().unwrap_or(&self.default_font);
+        let font = &text.font;
+        let color = match text.fill {
+            style::Fill::Solid(color) => color,
+        };
 
-        let mut node = element::Text::new(text.text.text())
+        let mut node = element::Text::new(text.text.as_str())
             .set("font-family", font.family().as_str())
             .set("font-size", font.size())
-            .set("fill", text.fill.color.html())
-            .set("x", text.anchor.pos.x)
-            .set("y", text.anchor.pos.y)
+            .set("fill", color.html())
+            .set("x", text.anchor.pos.x())
+            .set("y", text.anchor.pos.y())
             .set("text-anchor", text_anchor(text.anchor.align))
             .set("dominant-baseline", dominant_baseline(text.anchor.baseline));
+
         assign_transform(&mut node, text.transform.as_ref());
         self.append_node(node);
         Ok(())
@@ -169,8 +173,8 @@ fn assign_fill<N>(node: &mut N, fill: Option<&style::Fill>)
 where
     N: Node,
 {
-    if let Some(fill) = fill {
-        node.assign("fill", fill.color.html());
+    if let Some(style::Fill::Solid(color)) = fill {
+        node.assign("fill", color.html());
     } else {
         node.assign("fill", "none");
     }
