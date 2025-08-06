@@ -112,24 +112,17 @@ impl Plot {
         let rect = rect.pad(&axis_padding);
 
         // initialize view bounds to view the whole data
-        let view_bounds = self.calc_data_bounds();
-
-        let coord_map = MapCoordXy {
-            x: self.x_axis.scale.coord_mapper(rect.width(), view_bounds.0),
-            y: self.y_axis.scale.coord_mapper(rect.height(), view_bounds.1),
+        let vb = self.calc_data_bounds();
+        let cm = MapCoordXy {
+            x: self.x_axis.scale.coord_mapper(rect.width(), vb.0),
+            y: self.y_axis.scale.coord_mapper(rect.height(), vb.1),
         };
 
         self.draw_background(surface, &rect)?;
-        self.draw_series(surface, &rect, &coord_map)?;
+        self.draw_series(surface, &rect, &cm)?;
 
-        if let Some(x_ticks) = self.x_axis.ticks.as_ref() {
-            let x_vb = coord_map.x.view_bounds();
-            self.draw_x_ticks(surface, &rect, x_ticks, x_vb, &*coord_map.x)?;
-        }
-        if let Some(y_ticks) = self.y_axis.ticks.as_ref() {
-            let y_vb = coord_map.y.view_bounds();
-            self.draw_y_ticks(surface, &rect, y_ticks, y_vb, &*coord_map.y)?;
-        }
+        self.draw_x_axis(surface, &rect, &*cm.x)?;
+        self.draw_y_axis(surface, &rect, &*cm.y)?;
 
         self.draw_border(surface, &rect)?;
 
@@ -214,17 +207,50 @@ impl Plot {
         Ok(())
     }
 
+    fn draw_x_axis<S>(&self, surface: &mut S, rect: &geom::Rect, x_cm: &dyn MapCoord) -> Result<(), S::Error>
+    where 
+        S: backend::Surface,
+    {
+        let mut label_y = rect.bottom() + missing_params::AXIS_LABEL_MARGIN;
+        if let Some(x_ticks) = self.x_axis.ticks.as_ref() {
+            self.draw_x_ticks(surface, &rect, x_ticks, x_cm)?;
+            label_y += missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + x_ticks.font().size();
+        }
+        if let Some(label) = &self.x_axis.label {
+            let text = text::Text::new(
+                label.to_string(),
+                text::Font::new(text::FontFamily::default(), missing_params::AXIS_LABEL_FONT_SIZE),
+            );
+            let anchor = render::TextAnchor {
+                pos: geom::Point {
+                    x: rect.center_x(),
+                    y: label_y,
+                },
+                align: render::TextAlign::Center,
+                baseline: render::TextBaseline::Hanging,
+            };
+            let text = render::Text {
+                text,
+                anchor,
+                fill: missing_params::AXIS_LABEL_COLOR.into(),
+                transform: None,
+            };
+            surface.draw_text(&text)?;
+        }
+        Ok(())
+    }
+
     fn draw_x_ticks<S>(
         &self,
         surface: &mut S,
         rect: &geom::Rect,
         x_ticks: &Ticks,
-        x_vb: data::ViewBounds,
         x_cm: &dyn MapCoord,
     ) -> Result<(), S::Error>
     where
         S: backend::Surface,
     {
+        let x_vb = x_cm.view_bounds();
         let ticks = x_ticks.locator().ticks(x_vb);
         let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
         self.draw_ticks_path(surface, &ticks, &x_vb, x_cm, &transform)?;
@@ -283,17 +309,27 @@ impl Plot {
         Ok(())
     }
 
+    fn draw_y_axis<S>(&self, surface: &mut S, rect: &geom::Rect, y_cm: &dyn MapCoord) -> Result<(), S::Error>
+    where 
+        S: backend::Surface,
+    {
+        if let Some(y_ticks) = self.y_axis.ticks.as_ref() {
+            self.draw_y_ticks(surface, rect, y_ticks, y_cm)?;
+        }
+        Ok(())
+    }
+
     fn draw_y_ticks<S>(
         &self,
         surface: &mut S,
         rect: &geom::Rect,
         y_ticks: &Ticks,
-        y_vb: data::ViewBounds,
         y_cm: &dyn MapCoord,
     ) -> Result<(), S::Error>
     where
         S: backend::Surface,
     {
+        let y_vb = y_cm.view_bounds();
         let ticks = y_ticks.locator().ticks(y_vb);
         let transform =
             geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(90.0);

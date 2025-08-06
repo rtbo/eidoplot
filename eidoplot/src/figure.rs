@@ -1,7 +1,6 @@
 use crate::backend;
 use crate::geom;
 use crate::missing_params;
-use crate::missing_params::FIG_TITLE_MARGIN;
 use crate::plots::Plots;
 use crate::render;
 use crate::style;
@@ -50,7 +49,7 @@ impl Figure {
 }
 
 const DEFAULT_TITLE_FONT_FAMILY: &str = DEFAULT_FONT_FAMILY;
-const DEFAULT_TITLE_FONT_SIZE: f32 = 36.0;
+const DEFAULT_TITLE_FONT_SIZE: f32 = 32.0;
 
 impl Figure {
     pub fn draw<S>(&self, surface: &mut S) -> Result<(), S::Error>
@@ -78,7 +77,7 @@ impl Figure {
                 rect.x(),
                 rect.y() + missing_params::FIG_TITLE_MARGIN,
                 rect.width(),
-                font_size + 2.0 * FIG_TITLE_MARGIN,
+                font_size + 2.0 * missing_params::FIG_TITLE_MARGIN,
             );
             let text = render::Text {
                 text: title.clone(),

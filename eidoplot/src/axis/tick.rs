@@ -1,6 +1,6 @@
 use crate::{data, style::{color, Color}, text::{self, FontFamily}};
 
-pub const DEFAULT_LABEL_FONT_SIZE: f32 = 10.0;
+pub const DEFAULT_LABEL_FONT_SIZE: f32 = 12.0;
 pub const DEFAULT_LABEL_COLOR: Color = color::BLACK;
 
 #[derive(Debug, Default, Clone)]

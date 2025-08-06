@@ -91,6 +91,42 @@ impl Rect {
     pub const fn left(&self) -> f32 {
         self.x
     }
+    
+    pub const fn shifted_top(&self, shift: f32) -> Rect {
+        Rect {
+            x: self.x,
+            y: self.y + shift,
+            w: self.w,
+            h: self.h - shift,
+        }
+    }
+    
+    pub const fn shifted_right(&self, shift: f32) -> Rect {
+        Rect {
+            x: self.x,
+            y: self.y,
+            w: self.w + shift,
+            h: self.h,
+        }
+    }
+    
+    pub const fn shifted_bottom(&self, shift: f32) -> Rect {
+        Rect {
+            x: self.x,
+            y: self.y,
+            w: self.w,
+            h: self.h + shift,
+        }
+    }
+    
+    pub const fn shifted_left(&self, shift: f32) -> Rect {
+        Rect {
+            x: self.x + shift,
+            y: self.y,
+            w: self.w - shift,
+            h: self.h,
+        }
+    }
 
     pub fn to_path(&self) -> Path {
         PathBuilder::from_rect(

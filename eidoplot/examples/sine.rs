@@ -14,13 +14,12 @@ fn main() {
         plots: Some(Plots::Plot(Plot {
             title: None,
             x_axis: axis::Axis {
-                name: Some("x".into()),
+                label: Some("x".into()),
                 ticks: Some(tick::Locator::PiMultiple { bins: 8 }.into()),
                 ..axis::Axis::default()
             },
             y_axis: axis::Axis {
-                name: Some("y".into()),
-                scale: axis::Scale::Linear(scale::Range::MinMax(-0.8, 0.8)),
+                label: Some("y".into()),
                 ..axis::Axis::default()
             },
             series: vec![Series {

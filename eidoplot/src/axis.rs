@@ -5,8 +5,8 @@ pub use scale::Scale;
 
 #[derive(Debug, Clone)]
 pub struct Axis {
-    pub name: Option<String>,
     pub scale: Scale,
+    pub label: Option<String>,
     pub ticks: Option<tick::Ticks>,
     pub ticks_min: Option<tick::Locator>,
 }
@@ -14,7 +14,7 @@ pub struct Axis {
 impl Default for Axis {
     fn default() -> Self {
         Axis {
-            name: None,
+            label: None,
             scale: Default::default(),
             ticks: Some(Default::default()),
             ticks_min: None,
