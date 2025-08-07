@@ -37,8 +37,9 @@ impl<'a, S> Ctx<'a, S> {
         }
         if let Some(ticks) = y_ticks {
             let font = y_axis.ticks.as_ref().unwrap().font();
+            let families = parse_font_family(font.family().as_str());
             let query = fontdb::Query {
-                families: &[fontdb::Family::SansSerif],
+                families: &families,
                 ..Default::default()
             };
             // FIXME: error mgmt
@@ -68,5 +69,45 @@ impl<'a, S> Ctx<'a, S> {
             width += missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + max_w;
         }
         width
+    }
+}
+
+pub fn parse_font_family(input: &str) -> Vec<fontdb::Family> {
+    let mut families = Vec::new();
+    let parts = input.split(',').map(|s| s.trim());
+
+    for part in parts {
+        let part = part.trim();
+        let family = match part {
+            "serif" => fontdb::Family::Serif,
+            "sans-serif" => fontdb::Family::SansSerif,
+            "cursive" => fontdb::Family::Cursive,
+            "fantasy" => fontdb::Family::Fantasy,
+            "monospace" => fontdb::Family::Monospace,
+            _ => {
+                // Remove surrounding quotes if present
+                let name = part.trim_matches('\'').trim_matches('"');
+                fontdb::Family::Name(name)
+            }
+        };
+        families.push(family);
+    }
+
+    families
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_font_family() {
+        let input = "'Noto Sans', 'Open Sans', sans-serif";
+        let expected = vec![
+            fontdb::Family::Name("Noto Sans"),
+            fontdb::Family::Name("Open Sans"),
+            fontdb::Family::SansSerif,
+        ];
+        assert_eq!(parse_font_family(input), expected);
     }
 }
