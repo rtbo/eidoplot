@@ -122,7 +122,7 @@ impl Rect {
         self.x
     }
 
-    pub const fn shifted_top(&self, shift: f32) -> Rect {
+    pub const fn shifted_top_side(&self, shift: f32) -> Rect {
         Rect {
             x: self.x,
             y: self.y + shift,
@@ -131,7 +131,7 @@ impl Rect {
         }
     }
 
-    pub const fn shifted_right(&self, shift: f32) -> Rect {
+    pub const fn shifted_right_side(&self, shift: f32) -> Rect {
         Rect {
             x: self.x,
             y: self.y,
@@ -140,7 +140,7 @@ impl Rect {
         }
     }
 
-    pub const fn shifted_bottom(&self, shift: f32) -> Rect {
+    pub const fn shifted_bottom_side(&self, shift: f32) -> Rect {
         Rect {
             x: self.x,
             y: self.y,
@@ -149,7 +149,7 @@ impl Rect {
         }
     }
 
-    pub const fn shifted_left(&self, shift: f32) -> Rect {
+    pub const fn shifted_left_side(&self, shift: f32) -> Rect {
         Rect {
             x: self.x + shift,
             y: self.y,

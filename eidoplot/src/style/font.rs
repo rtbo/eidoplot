@@ -1,5 +1,5 @@
+use crate::style::defaults;
 
-pub const DEFAULT_FONT_FAMILY: &str = "'Noto Sans',sans-serif";
 
 #[derive(Debug, Clone)]
 pub struct Family(pub String);
@@ -12,7 +12,7 @@ impl Family {
 
 impl Default for Family {
     fn default() -> Self {
-        Family(DEFAULT_FONT_FAMILY.into())
+        Family(defaults::FONT_FAMILY.into())
     }
 }
 

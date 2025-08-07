@@ -19,46 +19,9 @@ pub trait FigureExt {
     fn draw<S: render::Surface>(&self, surface: &mut S, opts: Options) -> Result<(), S::Error>;
 }
 
-trait CalcViewBounds {
-    fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds);
-}
-
-impl CalcViewBounds for ir::Plot {
-    fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
-        let mut x_bounds = data::ViewBounds::NAN;
-        let mut y_bounds = data::ViewBounds::NAN;
-        for series in &self.series {
-            let (x, y) = series.calc_view_bounds();
-            x_bounds.add_bounds(x);
-            y_bounds.add_bounds(y);
-        }
-        (x_bounds, y_bounds)
-    }
-}
-
-impl CalcViewBounds for ir::Series {
-    fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
-        match &self.plot {
-            ir::plot::SeriesPlot::Xy(xy) => xy.calc_view_bounds(),
-        }
-    }
-}
-
-impl CalcViewBounds for ir::plot::XySeries {
-    fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
-        let mut x_bounds = data::ViewBounds::NAN;
-        let mut y_bounds = data::ViewBounds::NAN;
-        for (x, y) in &self.points {
-            x_bounds.add_point(*x);
-            y_bounds.add_point(*y);
-        }
-        (x_bounds, y_bounds)
-    }
-}
-
 impl FigureExt for ir::Figure {
     fn draw<S: render::Surface>(&self, surface: &mut S, opts: Options) -> Result<(), S::Error> {
-        let fontdb = opts.fontdb.unwrap_or_else(crate::default_font_db);
+        let fontdb = opts.fontdb.unwrap_or_else(crate::bundled_font_db);
         let mut ctx = Ctx { surface, fontdb };
         draw_figure(&mut ctx, self)?;
         Ok(())
@@ -109,7 +72,7 @@ where
             transform: None,
         };
         ctx.surface.draw_text(&text)?;
-        rect = rect.shifted_top(title_rect.height());
+        rect = rect.shifted_top_side(title_rect.height());
     }
 
     draw_figure_plots(ctx, fig.plots(), &rect)?;
@@ -167,17 +130,35 @@ where
     let axis_padding = missing_params::PLOT_AXIS_PADDING;
     let rect = rect.pad(&axis_padding);
 
-    // initialize view bounds to view the whole data
     let vb = plot.calc_view_bounds();
-    let cm = CoordMapXy {
-        x: scale::map_scale_coord(&plot.x_axis.scale, rect.width(), vb.0),
-        y: scale::map_scale_coord(&plot.y_axis.scale, rect.height(), vb.1),
-    };
+
+    // x-axis height only depends on font size, so cheap to compute
+    let x_height = ctx.calculate_x_axis_height(&plot.x_axis);
+
+    // y-axis width depdens on font width, which is more complex
+    let y_cm = scale::map_scale_coord(&plot.y_axis.scale, rect.height() - x_height, vb.1);
+    // we have to gather the ticks now
+    let y_ticks = plot
+        .y_axis
+        .ticks
+        .as_ref()
+        .map(|t| ticks::collect_ticks(t, y_cm.view_bounds()));
+    let y_width = ctx.calculate_y_axis_width(&plot.y_axis, y_ticks.as_deref());
+
+    let x_cm = scale::map_scale_coord(&plot.x_axis.scale, rect.width() - y_width, vb.0);
+
+    // initialize view bounds to view the whole data
+    let cm = CoordMapXy { x: x_cm, y: y_cm };
+
+    // rect of the plot area
+    let rect = rect
+        .shifted_left_side(y_width)
+        .shifted_bottom_side(-x_height);
 
     draw_plot_background(ctx, plot, &rect)?;
     draw_plot_series(ctx, plot, &rect, &cm)?;
     draw_x_axis(ctx, &plot.x_axis, &rect, &*cm.x)?;
-    draw_y_axis(ctx, &plot.y_axis, &rect, &*cm.y)?;
+    draw_y_axis(ctx, &plot.y_axis, &rect, &*cm.y, y_width)?;
     draw_plot_border(ctx, plot.border.as_ref(), &rect)?;
 
     Ok(())
@@ -370,12 +351,39 @@ fn draw_y_axis<S>(
     y_axis: &ir::Axis,
     rect: &geom::Rect,
     y_cm: &dyn CoordMap,
+    y_width: f32,
 ) -> Result<(), S::Error>
 where
     S: render::Surface,
 {
     if let Some(y_ticks) = y_axis.ticks.as_ref() {
         draw_y_ticks(ctx, rect, y_ticks, y_cm)?;
+    }
+    if let Some(label) = y_axis.label.as_ref() {
+        let font = style::Font::new(
+            missing_params::AXIS_LABEL_FONT_FAMILY.into(),
+            missing_params::AXIS_LABEL_FONT_SIZE,
+        );
+
+
+        // we render at origin, but translate to correct position and rotate
+        let anchor = render::TextAnchor {
+            pos: geom::Point::ORIGIN,
+            align: render::TextAlign::Center,
+            baseline: render::TextBaseline::Hanging,
+        };
+
+        let tx = rect.left() - y_width + missing_params::AXIS_LABEL_MARGIN;
+        let ty = rect.center_y();
+        let transform = Some(geom::Transform::from_translate(tx, ty).pre_rotate(90.0));
+        let text = render::Text {
+            text: label.clone(),
+            font,
+            anchor,
+            fill: missing_params::AXIS_LABEL_COLOR.into(),
+            transform,
+        };
+        ctx.surface.draw_text(&text)?;
     }
     Ok(())
 }
@@ -509,4 +517,41 @@ where
     };
     ctx.surface.draw_path(&path)?;
     Ok(())
+}
+
+trait CalcViewBounds {
+    fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds);
+}
+
+impl CalcViewBounds for ir::Plot {
+    fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
+        let mut x_bounds = data::ViewBounds::NAN;
+        let mut y_bounds = data::ViewBounds::NAN;
+        for series in &self.series {
+            let (x, y) = series.calc_view_bounds();
+            x_bounds.add_bounds(x);
+            y_bounds.add_bounds(y);
+        }
+        (x_bounds, y_bounds)
+    }
+}
+
+impl CalcViewBounds for ir::Series {
+    fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
+        match &self.plot {
+            ir::plot::SeriesPlot::Xy(xy) => xy.calc_view_bounds(),
+        }
+    }
+}
+
+impl CalcViewBounds for ir::plot::XySeries {
+    fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
+        let mut x_bounds = data::ViewBounds::NAN;
+        let mut y_bounds = data::ViewBounds::NAN;
+        for (x, y) in &self.points {
+            x_bounds.add_point(*x);
+            y_bounds.add_point(*y);
+        }
+        (x_bounds, y_bounds)
+    }
 }

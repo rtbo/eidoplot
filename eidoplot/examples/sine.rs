@@ -47,7 +47,7 @@ fn main() {
 }
 
 fn save_figure(fig: &ir::Figure) {
-    let fontdb = eidoplot::default_font_db();
+    let fontdb = eidoplot::bundled_font_db();
 
     let mut written = false;
     for arg in env::args() {
