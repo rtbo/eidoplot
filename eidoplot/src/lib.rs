@@ -51,9 +51,5 @@ pub fn bundled_font_db() -> Arc<fontdb::Database> {
     db.set_serif_family(FONTDB_FAMILY_SERIF);
     db.set_monospace_family(FONTDB_FAMILY_MONO);
 
-    for f in db.faces() {
-        println!("{:?}\n{:?}\n\n", &f.families, f);
-    }
-
     Arc::new(db)
 }
