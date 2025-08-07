@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
-use crate::drawing::scale::CoordMap;
 use crate::style::{self, defaults};
 use crate::{data, geom, ir, missing_params, render};
 
+mod ctx;
 mod scale;
 mod ticks;
+
+use ctx::Ctx;
+use scale::CoordMap;
 
 #[derive(Debug, Default, Clone)]
 pub struct Options {
@@ -51,11 +54,6 @@ impl CalcViewBounds for ir::plot::XySeries {
         }
         (x_bounds, y_bounds)
     }
-}
-
-struct Ctx<'a, S> {
-    surface: &'a mut S,
-    fontdb: Arc<fontdb::Database>,
 }
 
 impl FigureExt for ir::Figure {
@@ -395,6 +393,33 @@ where
     let ticks = ticks::locate(y_ticks.locator(), y_vb);
     let transform = geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(90.0);
     draw_ticks_path(ctx, &ticks, &y_vb, y_cm, &transform)?;
+
+    let lbl_formatter = ticks::label_formatter(&y_ticks, y_vb);
+    let fill = y_ticks.color().into();
+
+    for yt in ticks.iter().copied() {
+        if !y_vb.contains(yt) {
+            continue;
+        }
+        let text = lbl_formatter.format_label(yt);
+        let font = y_ticks.font().clone();
+        let x = rect.left() - missing_params::TICK_SIZE - missing_params::TICK_LABEL_MARGIN;
+        let y = rect.bottom() - y_cm.map_coord(yt);
+        let pos = geom::Point::new(x, y);
+        let anchor = render::TextAnchor {
+            pos,
+            align: render::TextAlign::End,
+            baseline: render::TextBaseline::Center,
+        };
+        let text = render::Text {
+            text,
+            font,
+            anchor,
+            fill,
+            transform: None,
+        };
+        ctx.surface.draw_text(&text)?;
+    }
     Ok(())
 }
 

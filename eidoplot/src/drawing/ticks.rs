@@ -150,6 +150,7 @@ pub fn label_formatter(
 fn auto_label_formatter(locator: &Locator, _dvb: data::ViewBounds) -> Box<dyn LabelFormatter> {
     match locator {
         Locator::PiMultiple { .. } => Box::new(PiMultipleLabelFormat { prec: 2 }),
+        Locator::Auto => Box::new(PrecLabelFormat(2)),
         _ => todo!(),
     }
 }

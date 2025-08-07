@@ -99,6 +99,7 @@ dependencies = [
  "eidoplot-pxl",
  "eidoplot-svg",
  "fontdb",
+ "rustybuzz",
  "tiny-skia-path",
 ]
 

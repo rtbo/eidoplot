@@ -6,6 +6,7 @@ edition.workspace = true
 
 [dependencies]
 fontdb.workspace = true
+rustybuzz = "0.20.1"
 tiny-skia-path.workspace = true
 
 [[example]]
