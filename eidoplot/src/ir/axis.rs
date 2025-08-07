@@ -20,11 +20,8 @@ impl Default for Scale {
 }
 
 pub mod ticks {
-    use crate::style::{Color, color};
-    use crate::style::{Font, font};
-
-    pub const DEFAULT_LABEL_FONT_SIZE: f32 = 12.0;
-    pub const DEFAULT_LABEL_COLOR: Color = color::BLACK;
+    use crate::style::{Color, Font};
+    use crate::style::defaults;
 
     #[derive(Debug, Default, Clone)]
     pub enum Locator {
@@ -59,8 +56,8 @@ pub mod ticks {
             Ticks {
                 locator: Locator::default(),
                 formatter: Formatter::default(),
-                font: Font::new(font::Family::default(), DEFAULT_LABEL_FONT_SIZE),
-                color: DEFAULT_LABEL_COLOR,
+                font: Font::default().with_size(defaults::TICKS_LABEL_FONT_SIZE),
+                color: defaults::TICKS_LABEL_COLOR,
             }
         }
     }

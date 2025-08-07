@@ -36,6 +36,10 @@ impl Font {
         Font { family, size }
     }
 
+    pub fn with_size(self, size: f32) -> Self {
+        Font { size, ..self }
+    }
+
     pub fn family(&self) -> &Family {
         &self.family
     }
