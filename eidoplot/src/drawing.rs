@@ -1,9 +1,20 @@
+use std::sync::Arc;
+
 use crate::drawing::scale::CoordMap;
 use crate::style::{self, defaults};
 use crate::{data, geom, ir, missing_params, render};
 
 mod scale;
 mod ticks;
+
+#[derive(Debug, Default, Clone)]
+pub struct Options {
+    pub fontdb: Option<Arc<fontdb::Database>>,
+}
+
+pub trait FigureExt {
+    fn draw<S: render::Surface>(&self, surface: &mut S, opts: Options) -> Result<(), S::Error>;
+}
 
 trait CalcViewBounds {
     fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds);
@@ -42,13 +53,27 @@ impl CalcViewBounds for ir::plot::XySeries {
     }
 }
 
-pub fn draw_figure<S>(surface: &mut S, fig: &ir::Figure) -> Result<(), S::Error>
+struct Ctx<'a, S> {
+    surface: &'a mut S,
+    fontdb: Arc<fontdb::Database>,
+}
+
+impl FigureExt for ir::Figure {
+    fn draw<S: render::Surface>(&self, surface: &mut S, opts: Options) -> Result<(), S::Error> {
+        let fontdb = opts.fontdb.unwrap_or_else(crate::default_font_db);
+        let mut ctx = Ctx { surface, fontdb };
+        draw_figure(&mut ctx, self)?;
+        Ok(())
+    }
+}
+
+fn draw_figure<S>(ctx: &mut Ctx<S>, fig: &ir::Figure) -> Result<(), S::Error>
 where
     S: render::Surface,
 {
-    surface.prepare(fig.size())?;
+    ctx.surface.prepare(fig.size())?;
     if let Some(fill) = fig.fill() {
-        surface.fill(fill)?;
+        ctx.surface.fill(fill)?;
     }
 
     let mut rect = geom::Rect::from_ps(geom::Point::ORIGIN, fig.size());
@@ -85,17 +110,17 @@ where
             },
             transform: None,
         };
-        surface.draw_text(&text)?;
+        ctx.surface.draw_text(&text)?;
         rect = rect.shifted_top(title_rect.height());
     }
 
-    draw_figure_plots(surface, fig.plots(), &rect)?;
+    draw_figure_plots(ctx, fig.plots(), &rect)?;
 
     Ok(())
 }
 
-pub fn draw_figure_plots<S>(
-    surface: &mut S,
+fn draw_figure_plots<S>(
+    ctx: &mut Ctx<S>,
     plots: &ir::figure::Plots,
     rect: &geom::Rect,
 ) -> Result<(), S::Error>
@@ -103,7 +128,7 @@ where
     S: render::Surface,
 {
     match plots {
-        ir::figure::Plots::Plot(plot) => draw_plot(surface, plot, rect),
+        ir::figure::Plots::Plot(plot) => draw_plot(ctx, plot, rect),
         ir::figure::Plots::Subplots(subplots) => {
             let w =
                 (rect.width() - subplots.space * (subplots.cols - 1) as f32) / subplots.cols as f32;
@@ -116,7 +141,7 @@ where
                     let cols = subplots.cols as u32;
                     let idx = (r * cols + c) as usize;
                     let plot = &subplots.plots[idx];
-                    draw_plot(surface, plot, &geom::Rect::from_xywh(x, y, w, h))?;
+                    draw_plot(ctx, plot, &geom::Rect::from_xywh(x, y, w, h))?;
                     x += w + subplots.space;
                 }
                 y += h + subplots.space;
@@ -137,7 +162,7 @@ impl CoordMapXy {
     }
 }
 
-pub fn draw_plot<S>(surface: &mut S, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error>
+fn draw_plot<S>(ctx: &mut Ctx<S>, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error>
 where
     S: render::Surface,
 {
@@ -151,17 +176,17 @@ where
         y: scale::map_scale_coord(&plot.y_axis.scale, rect.height(), vb.1),
     };
 
-    draw_plot_background(surface, plot, &rect)?;
-    draw_plot_series(surface, plot, &rect, &cm)?;
-    draw_x_axis(surface, &plot.x_axis, &rect, &*cm.x)?;
-    draw_y_axis(surface, &plot.y_axis, &rect, &*cm.y)?;
-    draw_plot_border(surface, plot.border.as_ref(), &rect)?;
+    draw_plot_background(ctx, plot, &rect)?;
+    draw_plot_series(ctx, plot, &rect, &cm)?;
+    draw_x_axis(ctx, &plot.x_axis, &rect, &*cm.x)?;
+    draw_y_axis(ctx, &plot.y_axis, &rect, &*cm.y)?;
+    draw_plot_border(ctx, plot.border.as_ref(), &rect)?;
 
     Ok(())
 }
 
 fn draw_plot_background<S>(
-    surface: &mut S,
+    ctx: &mut Ctx<S>,
     plot: &ir::Plot,
     rect: &geom::Rect,
 ) -> Result<(), S::Error>
@@ -169,7 +194,7 @@ where
     S: render::Surface,
 {
     if let Some(fill) = plot.fill.as_ref() {
-        surface.draw_rect(&render::Rect {
+        ctx.surface.draw_rect(&render::Rect {
             rect: *rect,
             fill: Some(fill.clone()),
             stroke: None,
@@ -180,7 +205,7 @@ where
 }
 
 fn draw_plot_border<S>(
-    surface: &mut S,
+    ctx: &mut Ctx<S>,
     border: Option<&ir::plot::Border>,
     rect: &geom::Rect,
 ) -> Result<(), S::Error>
@@ -189,7 +214,7 @@ where
 {
     match border {
         None => Ok(()),
-        Some(ir::plot::Border::Box(stroke)) => surface.draw_rect(&render::Rect {
+        Some(ir::plot::Border::Box(stroke)) => ctx.surface.draw_rect(&render::Rect {
             rect: *rect,
             fill: None,
             stroke: Some(stroke.clone()),
@@ -207,7 +232,7 @@ where
                 stroke: Some(stroke.clone()),
                 transform: None,
             };
-            surface.draw_path(&path)
+            ctx.surface.draw_path(&path)
         }
         Some(ir::plot::Border::AxisArrow { .. }) => {
             todo!("Draw axis arrow")
@@ -216,7 +241,7 @@ where
 }
 
 fn draw_plot_series<S>(
-    surface: &mut S,
+    ctx: &mut Ctx<S>,
     plot: &ir::Plot,
     rect: &geom::Rect,
     cm: &CoordMapXy,
@@ -224,19 +249,19 @@ fn draw_plot_series<S>(
 where
     S: render::Surface,
 {
-    surface.push_clip(&render::Clip {
+    ctx.surface.push_clip(&render::Clip {
         path: rect.to_path(),
         transform: None,
     })?;
     for series in &plot.series {
-        draw_series_plot(surface, &series.plot, rect, cm)?;
+        draw_series_plot(ctx, &series.plot, rect, cm)?;
     }
-    surface.pop_clip()?;
+    ctx.surface.pop_clip()?;
     Ok(())
 }
 
 fn draw_x_axis<S>(
-    surface: &mut S,
+    ctx: &mut Ctx<S>,
     x_axis: &ir::Axis,
     rect: &geom::Rect,
     x_cm: &dyn scale::CoordMap,
@@ -246,7 +271,7 @@ where
 {
     let mut label_y = rect.bottom() + missing_params::AXIS_LABEL_MARGIN;
     if let Some(x_ticks) = x_axis.ticks.as_ref() {
-        draw_x_ticks(surface, &rect, x_ticks, x_cm)?;
+        draw_x_ticks(ctx, &rect, x_ticks, x_cm)?;
         label_y +=
             missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + x_ticks.font().size();
     }
@@ -267,13 +292,13 @@ where
             fill: missing_params::AXIS_LABEL_COLOR.into(),
             transform: None,
         };
-        surface.draw_text(&text)?;
+        ctx.surface.draw_text(&text)?;
     }
     Ok(())
 }
 
 fn draw_x_ticks<S>(
-    surface: &mut S,
+    ctx: &mut Ctx<S>,
     rect: &geom::Rect,
     x_ticks: &ir::axis::Ticks,
     x_cm: &dyn scale::CoordMap,
@@ -284,7 +309,7 @@ where
     let x_vb = x_cm.view_bounds();
     let ticks = ticks::locate(x_ticks.locator(), x_vb);
     let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
-    draw_ticks_path(surface, &ticks, &x_vb, x_cm, &transform)?;
+    draw_ticks_path(ctx, &ticks, &x_vb, x_cm, &transform)?;
 
     let lbl_formatter = ticks::label_formatter(&x_ticks, x_vb);
     let fill = x_ticks.color().into();
@@ -312,7 +337,7 @@ where
             transform: None,
         };
 
-        surface.draw_text(&text)?;
+        ctx.surface.draw_text(&text)?;
     }
 
     if let Some(annot) = lbl_formatter.axis_annotation() {
@@ -336,14 +361,14 @@ where
             fill,
             transform: None,
         };
-        surface.draw_text(&text)?;
+        ctx.surface.draw_text(&text)?;
     }
 
     Ok(())
 }
 
 fn draw_y_axis<S>(
-    surface: &mut S,
+    ctx: &mut Ctx<S>,
     y_axis: &ir::Axis,
     rect: &geom::Rect,
     y_cm: &dyn CoordMap,
@@ -352,13 +377,13 @@ where
     S: render::Surface,
 {
     if let Some(y_ticks) = y_axis.ticks.as_ref() {
-        draw_y_ticks(surface, rect, y_ticks, y_cm)?;
+        draw_y_ticks(ctx, rect, y_ticks, y_cm)?;
     }
     Ok(())
 }
 
 fn draw_y_ticks<S>(
-    surface: &mut S,
+    ctx: &mut Ctx<S>,
     rect: &geom::Rect,
     y_ticks: &ir::axis::Ticks,
     y_cm: &dyn CoordMap,
@@ -369,7 +394,7 @@ where
     let y_vb = y_cm.view_bounds();
     let ticks = ticks::locate(y_ticks.locator(), y_vb);
     let transform = geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(90.0);
-    draw_ticks_path(surface, &ticks, &y_vb, y_cm, &transform)?;
+    draw_ticks_path(ctx, &ticks, &y_vb, y_cm, &transform)?;
     Ok(())
 }
 
@@ -397,7 +422,7 @@ fn ticks_path(
 }
 
 fn draw_ticks_path<S>(
-    surface: &mut S,
+    ctx: &mut Ctx<S>,
     ticks: &[f64],
     vb: &data::ViewBounds,
     cm: &dyn CoordMap,
@@ -413,12 +438,12 @@ where
         stroke: Some(missing_params::TICK_COLOR.into()),
         transform: Some(*transform),
     };
-    surface.draw_path(&ticks_path)?;
+    ctx.surface.draw_path(&ticks_path)?;
     Ok(())
 }
 
 fn draw_series_plot<S>(
-    surface: &mut S,
+    ctx: &mut Ctx<S>,
     series_plot: &ir::plot::SeriesPlot,
     rect: &geom::Rect,
     cm: &CoordMapXy,
@@ -427,11 +452,11 @@ where
     S: render::Surface,
 {
     match series_plot {
-        ir::plot::SeriesPlot::Xy(xy) => draw_series_xy(surface, xy, rect, cm),
+        ir::plot::SeriesPlot::Xy(xy) => draw_series_xy(ctx, xy, rect, cm),
     }
 }
 fn draw_series_xy<S>(
-    surface: &mut S,
+    ctx: &mut Ctx<S>,
     xy: &ir::plot::XySeries,
     rect: &geom::Rect,
     cm: &CoordMapXy,
@@ -457,6 +482,6 @@ where
         stroke: Some(xy.line.clone()),
         transform: None,
     };
-    surface.draw_path(&path)?;
+    ctx.surface.draw_path(&path)?;
     Ok(())
 }

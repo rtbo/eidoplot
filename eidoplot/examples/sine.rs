@@ -1,7 +1,9 @@
-use eidoplot::{drawing, ir, style};
+use eidoplot::drawing::{self, FigureExt};
+use eidoplot::{ir, style};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 
+use std::sync::Arc;
 use std::{env, f64::consts::PI};
 
 fn main() {
@@ -45,10 +47,12 @@ fn main() {
 }
 
 fn save_figure(fig: &ir::Figure) {
+    let fontdb = eidoplot::default_font_db();
+
     let mut written = false;
     for arg in env::args() {
         if arg == "png" {
-            write_png(&fig);
+            write_png(&fig, fontdb.clone());
             written = true;
         } else if arg == "svg" {
             write_svg(&fig);
@@ -56,18 +60,24 @@ fn save_figure(fig: &ir::Figure) {
         }
     }
     if !written {
-        write_png(&fig);
+        write_png(&fig, fontdb);
     }
 }
 
 fn write_svg(fig: &ir::Figure) {
     let mut svg = SvgSurface::new(800, 600);
-    drawing::draw_figure(&mut svg, fig).unwrap();
+    fig.draw(&mut svg, drawing::Options::default()).unwrap();
     svg.save("plot.svg").unwrap();
 }
 
-fn write_png(fig: &ir::Figure) {
+fn write_png(fig: &ir::Figure, fontdb: Arc<fontdb::Database>) {
     let mut pxl = PxlSurface::new(1600, 1200);
-    drawing::draw_figure(&mut pxl, fig).unwrap();
-    pxl.save("plot.png").unwrap();
+    fig.draw(
+        &mut pxl,
+        drawing::Options {
+            fontdb: Some(fontdb.clone()),
+        },
+    )
+    .unwrap();
+    pxl.save("plot.png", Some(fontdb)).unwrap();
 }

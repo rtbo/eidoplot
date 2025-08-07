@@ -1,5 +1,5 @@
 
-pub const DEFAULT_FONT_FAMILY: &str = "'Open Sans','Noto Sans',sans-serif";
+pub const DEFAULT_FONT_FAMILY: &str = "'Noto Sans',sans-serif";
 
 #[derive(Debug, Clone)]
 pub struct Family(pub String);
@@ -12,7 +12,7 @@ impl Family {
 
 impl Default for Family {
     fn default() -> Self {
-        Family("sans-serif".into())
+        Family(DEFAULT_FONT_FAMILY.into())
     }
 }
 

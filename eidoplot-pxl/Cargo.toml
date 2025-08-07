@@ -8,5 +8,6 @@ edition.workspace = true
 eidoplot = { path = "../eidoplot" }
 eidoplot-svg = { path = "../eidoplot-svg" }
 tiny-skia.workspace = true
+fontdb.workspace = true
 resvg = "0.45.1"
 usvg = "0.45.1"

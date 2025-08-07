@@ -96,6 +96,7 @@ impl Surface for SvgSurface {
             .set("fill", color.html())
             .set("x", text.anchor.pos.x())
             .set("y", text.anchor.pos.y())
+            .set("text-rendering", "optimizeLegibility")
             .set("text-anchor", text_anchor(text.anchor.align))
             .set("dominant-baseline", dominant_baseline(text.anchor.baseline));
 

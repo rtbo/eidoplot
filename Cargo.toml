@@ -10,4 +10,5 @@ edition = "2024"
 [workspace.dependencies]
 tiny-skia = "0.11.4"
 tiny-skia-path = "0.11.4"
+fontdb = "0.23.0"
 

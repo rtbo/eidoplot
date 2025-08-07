@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, sync::Arc};
 
 use eidoplot::{geom, render, style};
 
@@ -19,7 +19,7 @@ impl PxlSurface {
         }
     }
 
-    pub fn save(&self, path: &str) -> io::Result<()> {
+    pub fn save(&self, path: &str, fontdb: Option<Arc<fontdb::Database>>) -> io::Result<()> {
         use io::BufWriter;
 
         let mut buf = BufWriter::new(Vec::new());
@@ -27,7 +27,11 @@ impl PxlSurface {
         let data = buf.into_inner()?;
 
         let mut opt = usvg::Options::default();
-        opt.fontdb_mut().load_system_fonts();
+        if let Some(fontdb) = fontdb {
+            opt.fontdb = fontdb;
+        } else {
+            opt.fontdb_mut().load_system_fonts();
+        }
 
         let tree = usvg::Tree::from_data(&data, &opt).expect("Should be valid SVG");
 

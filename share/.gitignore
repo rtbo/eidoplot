@@ -1,0 +1,3 @@
+# not sure yet which fonts I want to distribute with eidoplot
+# so I ignore them all to not bloat the repo
+*.ttf
