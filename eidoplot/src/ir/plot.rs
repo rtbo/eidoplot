@@ -19,11 +19,22 @@ impl Default for Border {
     }
 }
 
+/// Insets inside the plot area
+/// around the data.
+#[derive(Debug, Default, Clone, Copy)]
+pub enum Insets {
+    /// The insets depends on the style of series
+    #[default]
+    Auto,
+    Fixed(f32, f32),
+}
+
 #[derive(Debug, Clone)]
 pub struct Plot {
     pub title: Option<String>,
     pub fill: Option<style::Fill>,
     pub border: Option<Border>,
+    pub insets: Option<Insets>,
     pub x_axis: Axis,
     pub y_axis: Axis,
     pub series: Vec<Series>,
@@ -35,6 +46,7 @@ impl Default for Plot {
             title: None,
             fill: None,
             border: Some(Border::default()),
+            insets: Some(Insets::default()),
             x_axis: Axis::default(),
             y_axis: Axis::default(),
             series: vec![],

@@ -131,12 +131,16 @@ where
     let rect = rect.pad(&axis_padding);
 
     let vb = plot.calc_view_bounds();
+    let insets = plot_insets(plot);
 
-    // x-axis height only depends on font size, so cheap to compute
+    // x-axis height only depends on font size, so it can be computed right-away, 
+    // y-axis width depends on font width therefore we have to generate tick labels, 
+    // which somehow depends on the x-axis height (for available space)
+
     let x_height = ctx.calculate_x_axis_height(&plot.x_axis);
+    let rect = rect.shifted_bottom_side(-x_height);
 
-    // y-axis width depdens on font width, which is more complex
-    let y_cm = scale::map_scale_coord(&plot.y_axis.scale, rect.height() - x_height, vb.1);
+    let y_cm = scale::map_scale_coord(&plot.y_axis.scale, rect.height(), vb.1, insets.1);
     // we have to gather the ticks now
     let y_ticks = plot
         .y_axis
@@ -144,16 +148,12 @@ where
         .as_ref()
         .map(|t| ticks::collect_ticks(t, y_cm.view_bounds()));
     let y_width = ctx.calculate_y_axis_width(&plot.y_axis, y_ticks.as_deref());
+    let rect = rect.shifted_left_side(y_width);
 
-    let x_cm = scale::map_scale_coord(&plot.x_axis.scale, rect.width() - y_width, vb.0);
+    let x_cm = scale::map_scale_coord(&plot.x_axis.scale, rect.width(), vb.0, insets.0);
 
     // initialize view bounds to view the whole data
     let cm = CoordMapXy { x: x_cm, y: y_cm };
-
-    // rect of the plot area
-    let rect = rect
-        .shifted_left_side(y_width)
-        .shifted_bottom_side(-x_height);
 
     draw_plot_background(ctx, plot, &rect)?;
     draw_plot_series(ctx, plot, &rect, &cm)?;
@@ -162,6 +162,19 @@ where
     draw_plot_border(ctx, plot.border.as_ref(), &rect)?;
 
     Ok(())
+}
+
+
+fn plot_insets(plot: &ir::Plot) -> (f32, f32) {
+    match plot.insets {
+        Some(ir::plot::Insets::Fixed(x, y)) => (x, y),
+        Some(ir::plot::Insets::Auto) => auto_insets(plot),
+        None => (0.0, 0.0),
+    }    
+}
+
+fn auto_insets(_plot: &ir::Plot) -> (f32, f32) {
+    defaults::PLOT_XY_AUTO_INSETS
 }
 
 fn draw_plot_background<S>(
