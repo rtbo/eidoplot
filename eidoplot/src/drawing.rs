@@ -333,7 +333,7 @@ where
     }
 
     if let Some(annot) = lbl_formatter.axis_annotation() {
-        let font = x_ticks.font().clone();
+        let font = x_ticks.font().clone().with_family(missing_params::AXIS_ANNOT_FONT_FAMILY.into());
         let pos = geom::Point::new(
             rect.right(),
             rect.bottom()

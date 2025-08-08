@@ -23,6 +23,7 @@ mod missing_params {
     pub const AXIS_LABEL_FONT_FAMILY: &str = defaults::FONT_FAMILY;
     pub const AXIS_LABEL_FONT_SIZE: f32 = 14.0;
     pub const AXIS_LABEL_COLOR: Color = color::BLACK;
+    pub const AXIS_ANNOT_FONT_FAMILY: &str = "Noto Sans Math";
 
     pub const TICK_SIZE: f32 = 4.0;
     pub const TICK_COLOR: Color = color::BLACK;
