@@ -37,6 +37,17 @@ pub trait CoordMap {
     fn view_bounds(&self) -> data::ViewBounds;
 }
 
+pub struct CoordMapXy {
+    pub x: Box<dyn CoordMap>,
+    pub y: Box<dyn CoordMap>,
+}
+
+impl CoordMapXy {
+    pub fn map_coord(&self, dp: (f64, f64)) -> (f32, f32) {
+        (self.x.map_coord(dp.0), self.y.map_coord(dp.1))
+    }
+}
+
 struct LinCoordMap {
     offset: f32,
     scale: f32,

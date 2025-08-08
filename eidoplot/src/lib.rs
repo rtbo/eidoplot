@@ -18,7 +18,7 @@ mod missing_params {
     pub const FIG_TITLE_MARGIN: f32 = 6.0;
     pub const FIG_TITLE_COLOR: Color = color::BLACK;
 
-    pub const PLOT_AXIS_PADDING: geom::Padding = geom::Padding::Even(5.0);
+    pub const PLOT_PADDING: geom::Padding = geom::Padding::Even(5.0);
     pub const AXIS_LABEL_MARGIN: f32 = 4.0;
     pub const AXIS_LABEL_FONT_FAMILY: &str = defaults::FONT_FAMILY;
     pub const AXIS_LABEL_FONT_SIZE: f32 = 14.0;
