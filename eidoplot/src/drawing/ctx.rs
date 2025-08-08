@@ -70,9 +70,9 @@ impl<'a, S> Ctx<'a, S> {
                 let hbf = rustybuzz::Face::from_face(face);
                 let scale = font.size() / units_per_em;
                 let mut max_w = f32::NAN;
+                let mut buffer = rustybuzz::UnicodeBuffer::new();
                 for lbl in labels {
                     let lbl = lbl.as_ref();
-                    let mut buffer = rustybuzz::UnicodeBuffer::new();
                     buffer.push_str(lbl);
                     let glyph_buffer = rustybuzz::shape(&hbf, &[], buffer);
                     let w: i32 = glyph_buffer
@@ -81,6 +81,7 @@ impl<'a, S> Ctx<'a, S> {
                         .map(|gp| gp.x_advance)
                         .sum();
                     max_w = max_w.max(w as f32 * scale);
+                    buffer = glyph_buffer.clear();
                 }
                 max_w
             })
