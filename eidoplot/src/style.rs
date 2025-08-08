@@ -10,7 +10,7 @@ pub struct Dash(pub f32, pub f32);
 
 impl Default for Dash {
     fn default() -> Self {
-        Dash(5.0, 5.0)
+        defaults::DASH_PATTERN
     }
 }
 

@@ -20,7 +20,7 @@ impl Default for Scale {
 }
 
 pub mod ticks {
-    use crate::style::defaults;
+    use crate::style::{self, defaults};
     use crate::style::{Color, Font};
 
     #[derive(Debug, Default, Clone)]
@@ -53,6 +53,8 @@ pub mod ticks {
         font: Font,
         /// Color for the ticks and the labels
         color: Color,
+        /// Gridline style
+        grid: Option<style::Line>,
     }
 
     impl Default for Ticks {
@@ -62,6 +64,7 @@ pub mod ticks {
                 formatter: Formatter::default(),
                 font: Font::default().with_size(defaults::TICKS_LABEL_FONT_SIZE),
                 color: defaults::TICKS_LABEL_COLOR,
+                grid: defaults::TICKS_GRID_LINE,
             }
         }
     }
@@ -79,6 +82,9 @@ pub mod ticks {
         pub fn with_color(self, color: Color) -> Self {
             Self { color, ..self }
         }
+        pub fn with_grid(self, grid: Option<style::Line>) -> Self {
+            Self { grid, ..self }
+        }
 
         pub fn locator(&self) -> &Locator {
             &self.locator
@@ -91,6 +97,9 @@ pub mod ticks {
         }
         pub fn color(&self) -> Color {
             self.color
+        }
+        pub fn grid(&self) -> Option<&style::Line> {
+            self.grid.as_ref() 
         }
     }
 

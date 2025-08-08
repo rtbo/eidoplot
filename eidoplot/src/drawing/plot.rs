@@ -28,6 +28,7 @@ struct Ticks {
     annot: Option<String>,
     font: style::Font,
     color: style::Color,
+    grid: Option<style::Line>,
 }
 
 struct Axis {
@@ -46,12 +47,12 @@ impl CoordMap for Axis {
     }
 }
 
-struct PlotAxes {
+struct Axes {
     x: Axis,
     y: Axis,
 }
 
-impl PlotAxes {
+impl Axes {
     fn x_height(&self) -> f32 {
         self.x.ortho_sz
     }
@@ -73,7 +74,8 @@ fn auto_insets(_plot: &ir::Plot) -> (f32, f32) {
 }
 
 fn setup_ticks(ticks: &ir::axis::Ticks, vb: data::ViewBounds) -> Ticks {
-    let locs = ticks::locate(ticks.locator(), vb);
+    let mut locs = ticks::locate(ticks.locator(), vb);
+    locs.retain(|l| vb.contains(*l));
     let lbl_formatter = ticks::label_formatter(ticks, vb);
     let lbls = locs
         .iter()
@@ -87,6 +89,7 @@ fn setup_ticks(ticks: &ir::axis::Ticks, vb: data::ViewBounds) -> Ticks {
         annot,
         font: ticks.font().clone(),
         color: ticks.color(),
+        grid: ticks.grid().copied(),
     }
 }
 
@@ -103,6 +106,7 @@ where
             .shifted_bottom_side(-axes.x_height());
 
         self.draw_plot_background(plot, &rect)?;
+        self.draw_grid(&axes, &rect)?;
         self.draw_plot_series(plot, &rect, &axes)?;
         self.draw_x_axis(&axes.x, &rect)?;
         self.draw_y_axis(&axes.y, &rect)?;
@@ -111,7 +115,7 @@ where
         Ok(())
     }
 
-    fn setup_plot_axes(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> PlotAxes {
+    fn setup_plot_axes(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Axes {
         let vb = plot.calc_view_bounds();
         let insets = plot_insets(plot);
 
@@ -129,7 +133,7 @@ where
         let x_cm = scale::map_scale_coord(&plot.x_axis.scale, rect.width(), vb.0, insets.0);
         let x_axis = self.setup_x_axis(&plot.x_axis, x_cm, x_height);
 
-        PlotAxes {
+        Axes {
             x: x_axis,
             y: y_axis,
         }
@@ -215,6 +219,46 @@ where
         Ok(())
     }
 
+    fn draw_grid(&mut self, axes: &Axes, rect: &geom::Rect) -> Result<(), S::Error> {
+        if let Some(x_ticks) = axes.x.ticks.as_ref() {
+            if let Some(x_grid) = x_ticks.grid {
+                for t in x_ticks.locs.iter().copied() {
+                    let x = axes.x.map_coord(t) + rect.left();
+                    let mut path = geom::PathBuilder::with_capacity(2, 2);
+                    path.move_to(x, rect.top());
+                    path.line_to(x, rect.bottom());
+                    let path = path.finish().expect("Should be a valid path");
+                    let path = render::Path {
+                        path,
+                        fill: None,
+                        stroke: Some(x_grid.clone()),
+                        transform: None,
+                    };
+                    self.draw_path(&path)?;
+                }
+            }
+        }
+        if let Some(y_ticks) = axes.y.ticks.as_ref() {
+            if let Some(y_grid) = y_ticks.grid {
+                for t in y_ticks.locs.iter().copied() {
+                    let y = rect.bottom() - axes.y.map_coord(t);
+                    let mut path = geom::PathBuilder::with_capacity(2, 2);
+                    path.move_to(rect.left(), y);
+                    path.line_to(rect.right(), y);
+                    let path = path.finish().expect("Should be a valid path");
+                    let path = render::Path {
+                        path,
+                        fill: None,
+                        stroke: Some(y_grid.clone()),
+                        transform: None,
+                    };
+                    self.draw_path(&path)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn draw_plot_border(
         &mut self,
         border: Option<&ir::plot::Border>,
@@ -252,7 +296,7 @@ where
         &mut self,
         plot: &ir::Plot,
         rect: &geom::Rect,
-        axes: &PlotAxes,
+        axes: &Axes,
     ) -> Result<(), S::Error> {
         self.push_clip(&render::Clip {
             path: rect.to_path(),
@@ -420,12 +464,8 @@ where
         self.draw_ticks_path(&y_ticks.locs, y_cm, &transform)?;
 
         let fill = y_ticks.color.into();
-        let y_vb = y_cm.view_bounds();
 
         for (yt, lbl) in y_ticks.locs.iter().copied().zip(y_ticks.lbls.iter()) {
-            if !y_vb.contains(yt) {
-                continue;
-            }
             let font = y_ticks.font.clone();
             let x = rect.left() - missing_params::TICK_SIZE - missing_params::TICK_LABEL_MARGIN;
             let y = rect.bottom() - y_cm.map_coord(yt);
