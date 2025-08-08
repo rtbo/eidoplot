@@ -1,4 +1,4 @@
-use crate::drawing::{plot, Ctx};
+use crate::drawing::Ctx;
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
@@ -66,7 +66,7 @@ where
     S: render::Surface,
 {
     match plots {
-        ir::figure::Plots::Plot(plot) => plot::draw_plot(ctx, plot, rect),
+        ir::figure::Plots::Plot(plot) => ctx.draw_plot(plot, rect),
         ir::figure::Plots::Subplots(subplots) => {
             let w =
                 (rect.width() - subplots.space * (subplots.cols - 1) as f32) / subplots.cols as f32;
@@ -79,7 +79,7 @@ where
                     let cols = subplots.cols as u32;
                     let idx = (r * cols + c) as usize;
                     let plot = &subplots.plots[idx];
-                    plot::draw_plot(ctx, plot, &geom::Rect::from_xywh(x, y, w, h))?;
+                    ctx.draw_plot(plot, &geom::Rect::from_xywh(x, y, w, h))?;
                     x += w + subplots.space;
                 }
                 y += h + subplots.space;

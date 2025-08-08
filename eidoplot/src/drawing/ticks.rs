@@ -1,15 +1,6 @@
 use crate::data;
 use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
 
-pub fn collect_ticks(ticks: &Ticks, vb: data::ViewBounds) -> Vec<(f64, String)> {
-    let ticks_loc = locate(ticks.locator(), vb);
-    let formatter = label_formatter(ticks, vb);
-    ticks_loc
-        .into_iter()
-        .map(|t| (t, formatter.format_label(t)))
-        .collect()
-}
-
 pub fn locate(locator: &Locator, vb: data::ViewBounds) -> Vec<f64> {
     match locator {
         Locator::Auto => MaxN::new_auto().ticks(vb),

@@ -23,7 +23,7 @@ pub trait FigureExt {
 impl FigureExt for ir::Figure {
     fn draw<S: render::Surface>(&self, surface: &mut S, opts: Options) -> Result<(), S::Error> {
         let fontdb = opts.fontdb.unwrap_or_else(crate::bundled_font_db);
-        let mut ctx = Ctx { surface, fontdb };
+        let mut ctx = Ctx::new(surface, fontdb);
         figure::draw_figure(&mut ctx, self)?;
         Ok(())
     }

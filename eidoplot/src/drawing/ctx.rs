@@ -10,6 +10,10 @@ pub struct Ctx<'a, S> {
 }
 
 impl<'a, S> Ctx<'a, S> {
+    pub fn new(surface: &'a mut S, fontdb: Arc<fontdb::Database>) -> Ctx<'a, S> {
+        Ctx { surface, fontdb}
+    }
+
     pub fn calculate_x_axis_height(&self, x_axis: &ir::Axis) -> f32 {
         let mut height = 0.0;
         if let Some(ticks) = &x_axis.ticks {
@@ -26,16 +30,19 @@ impl<'a, S> Ctx<'a, S> {
     // TODO: When pxl draws on its own rather than using resvg,
     // this function should return the calculated shapes and cache them in the render::Text
     // and send them to the surface for reuse
-    pub fn calculate_y_axis_width(
+    pub fn calculate_y_axis_width<I, L>(
         &self,
         y_axis: &ir::Axis,
-        y_ticks: Option<&[(f64, String)]>,
-    ) -> f32 {
+        y_lbls: Option<I>,
+    ) -> f32 
+    where I: IntoIterator<Item=L>,
+        L: AsRef<str>,
+    {
         let mut width = 0.0;
         if y_axis.label.is_some() {
             width += 2.0 * missing_params::AXIS_LABEL_MARGIN + missing_params::AXIS_LABEL_FONT_SIZE;
         }
-        if let Some(ticks) = y_ticks {
+        if let Some(y_lbls) = y_lbls {
             let font = y_axis.ticks.as_ref().unwrap().font();
             let families = parse_font_family(font.family().as_str());
             let query = fontdb::Query {
@@ -52,9 +59,10 @@ impl<'a, S> Ctx<'a, S> {
                     let hbf = rustybuzz::Face::from_face(face);
                     let scale = font.size() / units_per_em;
                     let mut max_w = f32::NAN;
-                    for (_, label) in ticks {
+                    for lbl in y_lbls {
+                        let lbl = lbl.as_ref();
                         let mut buffer = rustybuzz::UnicodeBuffer::new();
-                        buffer.push_str(label);
+                        buffer.push_str(lbl);
                         let glyph_buffer = rustybuzz::shape(&hbf, &[], buffer);
                         let w: i32 = glyph_buffer
                             .glyph_positions()
