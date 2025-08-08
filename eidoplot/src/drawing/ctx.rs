@@ -5,8 +5,14 @@ use rustybuzz::ttf_parser;
 use crate::{render, style};
 
 pub struct Ctx<'a, S> {
-    pub surface: &'a mut S,
-    pub fontdb: Arc<fontdb::Database>,
+    surface: &'a mut S,
+    fontdb: Arc<fontdb::Database>,
+}
+
+impl<'a, S> Ctx<'a, S> {
+    pub fn new(surface: &'a mut S, fontdb: Arc<fontdb::Database>) -> Ctx<'a, S> {
+        Ctx { surface, fontdb }
+    }
 }
 
 impl<'a, S> render::Surface for Ctx<'a, S>
@@ -45,10 +51,6 @@ where
 }
 
 impl<'a, S> Ctx<'a, S> {
-    pub fn new(surface: &'a mut S, fontdb: Arc<fontdb::Database>) -> Ctx<'a, S> {
-        Ctx { surface, fontdb }
-    }
-
     pub fn max_labels_width<I, L>(&self, font: &style::Font, labels: I) -> f32
     where
         I: IntoIterator<Item = L>,
@@ -86,7 +88,7 @@ impl<'a, S> Ctx<'a, S> {
     }
 }
 
-pub fn parse_font_family(input: &str) -> Vec<fontdb::Family> {
+fn parse_font_family(input: &str) -> Vec<fontdb::Family> {
     let mut families = Vec::new();
     let parts = input.split(',').map(|s| s.trim());
 
