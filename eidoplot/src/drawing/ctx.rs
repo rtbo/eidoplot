@@ -2,81 +2,87 @@ use std::sync::Arc;
 
 use rustybuzz::ttf_parser;
 
-use crate::{ir, missing_params};
+use crate::{render, style};
 
 pub struct Ctx<'a, S> {
     pub surface: &'a mut S,
     pub fontdb: Arc<fontdb::Database>,
 }
 
+impl<'a, S> render::Surface for Ctx<'a, S>
+where
+    S: render::Surface,
+{
+    type Error = S::Error;
+
+    fn prepare(&mut self, size: crate::geom::Size) -> Result<(), Self::Error> {
+        self.surface.prepare(size)
+    }
+
+    fn fill(&mut self, fill: style::Fill) -> Result<(), Self::Error> {
+        self.surface.fill(fill)
+    }
+
+    fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), Self::Error> {
+        self.surface.draw_rect(rect)
+    }
+
+    fn draw_path(&mut self, path: &render::Path) -> Result<(), Self::Error> {
+        self.surface.draw_path(path)
+    }
+
+    fn draw_text(&mut self, text: &render::Text) -> Result<(), Self::Error> {
+        self.surface.draw_text(text)
+    }
+
+    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), Self::Error> {
+        self.surface.push_clip(clip)
+    }
+
+    fn pop_clip(&mut self) -> Result<(), Self::Error> {
+        self.surface.pop_clip()
+    }
+}
+
 impl<'a, S> Ctx<'a, S> {
     pub fn new(surface: &'a mut S, fontdb: Arc<fontdb::Database>) -> Ctx<'a, S> {
-        Ctx { surface, fontdb}
+        Ctx { surface, fontdb }
     }
 
-    pub fn calculate_x_axis_height(&self, x_axis: &ir::Axis) -> f32 {
-        let mut height = 0.0;
-        if let Some(ticks) = &x_axis.ticks {
-            height +=
-                missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size();
-        }
-        if x_axis.label.is_some() {
-            height +=
-                2.0 * missing_params::AXIS_LABEL_MARGIN + missing_params::AXIS_LABEL_FONT_SIZE;
-        }
-        height
-    }
-
-    // TODO: When pxl draws on its own rather than using resvg,
-    // this function should return the calculated shapes and cache them in the render::Text
-    // and send them to the surface for reuse
-    pub fn calculate_y_axis_width<I, L>(
-        &self,
-        y_axis: &ir::Axis,
-        y_lbls: Option<I>,
-    ) -> f32 
-    where I: IntoIterator<Item=L>,
+    pub fn max_labels_width<I, L>(&self, font: &style::Font, labels: I) -> f32
+    where
+        I: IntoIterator<Item = L>,
         L: AsRef<str>,
     {
-        let mut width = 0.0;
-        if y_axis.label.is_some() {
-            width += 2.0 * missing_params::AXIS_LABEL_MARGIN + missing_params::AXIS_LABEL_FONT_SIZE;
-        }
-        if let Some(y_lbls) = y_lbls {
-            let font = y_axis.ticks.as_ref().unwrap().font();
-            let families = parse_font_family(font.family().as_str());
-            let query = fontdb::Query {
-                families: &families,
-                ..Default::default()
-            };
-            // FIXME: error mgmt
-            let id = self.fontdb.query(&query).expect("Should find a face");
-            let max_w = self
-                .fontdb
-                .with_face_data(id, |data, index| {
-                    let face = ttf_parser::Face::parse(data, index).unwrap();
-                    let units_per_em = face.units_per_em() as f32;
-                    let hbf = rustybuzz::Face::from_face(face);
-                    let scale = font.size() / units_per_em;
-                    let mut max_w = f32::NAN;
-                    for lbl in y_lbls {
-                        let lbl = lbl.as_ref();
-                        let mut buffer = rustybuzz::UnicodeBuffer::new();
-                        buffer.push_str(lbl);
-                        let glyph_buffer = rustybuzz::shape(&hbf, &[], buffer);
-                        let w: i32 = glyph_buffer
-                            .glyph_positions()
-                            .iter()
-                            .map(|gp| gp.x_advance)
-                            .sum();
-                        max_w = max_w.max(w as f32 * scale);
-                    }
-                    max_w
-                })
-                .expect("Should find face data");
-            width += missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + max_w;
-        }
-        width
+        let families = parse_font_family(font.family().as_str());
+        let query = fontdb::Query {
+            families: &families,
+            ..Default::default()
+        };
+        // FIXME: error mgmt
+        let id = self.fontdb.query(&query).expect("Should find a face");
+        self.fontdb
+            .with_face_data(id, |data, index| {
+                let face = ttf_parser::Face::parse(data, index).unwrap();
+                let units_per_em = face.units_per_em() as f32;
+                let hbf = rustybuzz::Face::from_face(face);
+                let scale = font.size() / units_per_em;
+                let mut max_w = f32::NAN;
+                for lbl in labels {
+                    let lbl = lbl.as_ref();
+                    let mut buffer = rustybuzz::UnicodeBuffer::new();
+                    buffer.push_str(lbl);
+                    let glyph_buffer = rustybuzz::shape(&hbf, &[], buffer);
+                    let w: i32 = glyph_buffer
+                        .glyph_positions()
+                        .iter()
+                        .map(|gp| gp.x_advance)
+                        .sum();
+                    max_w = max_w.max(w as f32 * scale);
+                }
+                max_w
+            })
+            .expect("Should find face data")
     }
 }
 

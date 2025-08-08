@@ -1,9 +1,9 @@
 use crate::data;
-use crate::drawing::{CalcViewBounds, ctx, scale, series, ticks};
+use crate::drawing::{CalcViewBounds, ctx, scale, ticks};
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
-use crate::render;
+use crate::render::{self, Surface};
 use crate::style::{self, defaults};
 
 use ctx::Ctx;
@@ -90,11 +90,11 @@ fn setup_ticks(ticks: &ir::axis::Ticks, vb: data::ViewBounds) -> Ticks {
     }
 }
 
-impl<'a, S> Ctx<'a, S> {
-    pub fn draw_plot(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error>
-    where
-        S: render::Surface,
-    {
+impl<'a, S> Ctx<'a, S>
+where
+    S: render::Surface,
+{
+    pub fn draw_plot(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error> {
         let rect = rect.pad(&missing_params::PLOT_PADDING);
         let axes = self.setup_plot_axes(plot, &rect);
 
@@ -135,15 +135,41 @@ impl<'a, S> Ctx<'a, S> {
         }
     }
 
+    pub fn calculate_x_axis_height(&self, x_axis: &ir::Axis) -> f32 {
+        let mut height = 0.0;
+        if let Some(ticks) = &x_axis.ticks {
+            height +=
+                missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size();
+        }
+        if x_axis.label.is_some() {
+            height +=
+                2.0 * missing_params::AXIS_LABEL_MARGIN + missing_params::AXIS_LABEL_FONT_SIZE;
+        }
+        height
+    }
+
+    // TODO: When pxl draws on its own rather than using resvg,
+    // this function should return the calculated shapes and cache them in the render::Text
+    // and send them to the surface for reuse
+    fn calculate_y_axis_width(&self, y_axis: &ir::Axis, y_ticks: Option<&Ticks>) -> f32 {
+        let mut width = 0.0;
+        if y_axis.label.is_some() {
+            width += 2.0 * missing_params::AXIS_LABEL_MARGIN + missing_params::AXIS_LABEL_FONT_SIZE;
+        }
+        if let Some(ticks) = y_ticks {
+            let max_w = self.max_labels_width(&ticks.font, ticks.lbls.iter());
+            width += missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + max_w;
+        }
+        width
+    }
+
     fn setup_y_axis(&mut self, y_axis: &ir::Axis, coord_map: Box<dyn CoordMap>) -> Axis {
         let ticks = y_axis
             .ticks
             .as_ref()
             .map(|t| setup_ticks(t, coord_map.view_bounds()));
 
-        let lbls = ticks.as_ref().map(|ts| ts.lbls.iter());
-
-        let y_width = self.calculate_y_axis_width(y_axis, lbls);
+        let y_width = self.calculate_y_axis_width(y_axis, ticks.as_ref());
 
         Axis {
             ortho_sz: y_width,
@@ -173,13 +199,13 @@ impl<'a, S> Ctx<'a, S> {
     }
 }
 
-impl<'a, S> Ctx<'a, S> {
-    fn draw_plot_background(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error>
-    where
-        S: render::Surface,
-    {
+impl<'a, S> Ctx<'a, S>
+where
+    S: render::Surface,
+{
+    fn draw_plot_background(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error> {
         if let Some(fill) = plot.fill.as_ref() {
-            self.surface.draw_rect(&render::Rect {
+            self.draw_rect(&render::Rect {
                 rect: *rect,
                 fill: Some(fill.clone()),
                 stroke: None,
@@ -193,13 +219,10 @@ impl<'a, S> Ctx<'a, S> {
         &mut self,
         border: Option<&ir::plot::Border>,
         rect: &geom::Rect,
-    ) -> Result<(), S::Error>
-    where
-        S: render::Surface,
-    {
+    ) -> Result<(), S::Error> {
         match border {
             None => Ok(()),
-            Some(ir::plot::Border::Box(stroke)) => self.surface.draw_rect(&render::Rect {
+            Some(ir::plot::Border::Box(stroke)) => self.draw_rect(&render::Rect {
                 rect: *rect,
                 fill: None,
                 stroke: Some(stroke.clone()),
@@ -217,7 +240,7 @@ impl<'a, S> Ctx<'a, S> {
                     stroke: Some(stroke.clone()),
                     transform: None,
                 };
-                self.surface.draw_path(&path)
+                self.draw_path(&path)
             }
             Some(ir::plot::Border::AxisArrow { .. }) => {
                 todo!("Draw axis arrow")
@@ -230,11 +253,8 @@ impl<'a, S> Ctx<'a, S> {
         plot: &ir::Plot,
         rect: &geom::Rect,
         axes: &PlotAxes,
-    ) -> Result<(), S::Error>
-    where
-        S: render::Surface,
-    {
-        self.surface.push_clip(&render::Clip {
+    ) -> Result<(), S::Error> {
+        self.push_clip(&render::Clip {
             path: rect.to_path(),
             transform: None,
         })?;
@@ -245,24 +265,23 @@ impl<'a, S> Ctx<'a, S> {
         };
 
         for series in &plot.series {
-            series::draw_series_plot(self, &series.plot, rect, &cm)?;
+            self.draw_series_plot(&series.plot, rect, &cm)?;
         }
-        self.surface.pop_clip()?;
+        self.pop_clip()?;
         Ok(())
     }
 }
 
-impl<'a, S> Ctx<'a, S> {
-    fn draw_x_axis(&mut self, x_axis: &Axis, rect: &geom::Rect) -> Result<(), S::Error>
-    where
-        S: render::Surface,
-    {
+impl<'a, S> Ctx<'a, S>
+where
+    S: render::Surface,
+{
+    fn draw_x_axis(&mut self, x_axis: &Axis, rect: &geom::Rect) -> Result<(), S::Error> {
         let mut label_y = rect.bottom() + missing_params::AXIS_LABEL_MARGIN;
         if let Some(x_ticks) = x_axis.ticks.as_ref() {
             self.draw_x_ticks(&rect, x_ticks, x_axis)?;
-            label_y += missing_params::TICK_SIZE
-                + missing_params::TICK_LABEL_MARGIN
-                + x_ticks.font.size();
+            label_y +=
+                missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + x_ticks.font.size();
         }
         if let Some(label) = &x_axis.label {
             let font = style::Font::new(
@@ -281,7 +300,7 @@ impl<'a, S> Ctx<'a, S> {
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: None,
             };
-            self.surface.draw_text(&text)?;
+            self.draw_text(&text)?;
         }
         Ok(())
     }
@@ -291,10 +310,7 @@ impl<'a, S> Ctx<'a, S> {
         rect: &geom::Rect,
         x_ticks: &Ticks,
         x_cm: &dyn scale::CoordMap,
-    ) -> Result<(), S::Error>
-    where
-        S: render::Surface,
-    {
+    ) -> Result<(), S::Error> {
         let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
         self.draw_ticks_path(&x_ticks.locs, x_cm, &transform)?;
 
@@ -322,7 +338,7 @@ impl<'a, S> Ctx<'a, S> {
                 transform: None,
             };
 
-            self.surface.draw_text(&text)?;
+            self.draw_text(&text)?;
         }
 
         if let Some(annot) = x_ticks.annot.as_ref() {
@@ -349,17 +365,13 @@ impl<'a, S> Ctx<'a, S> {
                 fill,
                 transform: None,
             };
-            self.surface.draw_text(&text)?;
+            self.draw_text(&text)?;
         }
 
         Ok(())
     }
 
-    fn draw_y_axis(
-        &mut self,
-        y_axis: &Axis,
-        rect: &geom::Rect,
-    ) -> Result<(), S::Error>
+    fn draw_y_axis(&mut self, y_axis: &Axis, rect: &geom::Rect) -> Result<(), S::Error>
     where
         S: render::Surface,
     {
@@ -389,7 +401,7 @@ impl<'a, S> Ctx<'a, S> {
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform,
             };
-            self.surface.draw_text(&text)?;
+            self.draw_text(&text)?;
         }
         Ok(())
     }
@@ -430,7 +442,7 @@ impl<'a, S> Ctx<'a, S> {
                 fill,
                 transform: None,
             };
-            self.surface.draw_text(&text)?;
+            self.draw_text(&text)?;
         }
         Ok(())
     }
@@ -451,7 +463,7 @@ impl<'a, S> Ctx<'a, S> {
             stroke: Some(missing_params::TICK_COLOR.into()),
             transform: Some(*transform),
         };
-        self.surface.draw_path(&ticks_path)?;
+        self.draw_path(&ticks_path)?;
         Ok(())
     }
 }
