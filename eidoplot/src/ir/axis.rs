@@ -20,8 +20,8 @@ impl Default for Scale {
 }
 
 pub mod ticks {
-    use crate::style::{Color, Font};
     use crate::style::defaults;
+    use crate::style::{Color, Font};
 
     #[derive(Debug, Default, Clone)]
     pub enum Locator {

@@ -1,5 +1,5 @@
+use crate::geom;
 use crate::ir::{Plot, Text};
-use crate::geom; 
 use crate::style::{self, color, defaults};
 
 #[derive(Debug, Clone)]
@@ -23,10 +23,7 @@ impl Figure {
     }
 
     pub fn with_size(self, size: geom::Size) -> Self {
-        Figure {
-            size: size,
-            ..self
-        }
+        Figure { size: size, ..self }
     }
 
     pub fn with_title(self, title: Option<Text>) -> Self {
@@ -37,17 +34,11 @@ impl Figure {
     }
 
     pub fn with_fill(self, fill: Option<style::Fill>) -> Self {
-        Figure {
-            fill,
-            ..self
-        }
+        Figure { fill, ..self }
     }
 
     pub fn with_layout(self, layout: Option<Layout>) -> Self {
-        Figure {
-            layout,
-            ..self
-        }
+        Figure { layout, ..self }
     }
 
     pub fn size(&self) -> geom::Size {
@@ -92,7 +83,9 @@ pub struct Layout {
 
 impl Default for Layout {
     fn default() -> Self {
-        Layout { padding: Some(defaults::FIG_PADDING) }
+        Layout {
+            padding: Some(defaults::FIG_PADDING),
+        }
     }
 }
 

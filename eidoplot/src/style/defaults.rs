@@ -1,5 +1,5 @@
 use crate::geom;
-use crate::style::{color, Color};
+use crate::style::{Color, color};
 
 pub const FONT_FAMILY: &str = "sans-serif";
 

@@ -9,7 +9,7 @@ pub fn map_scale_coord(
     match scale {
         axis::Scale::Linear(axis::Range::Auto) => Box::new(LinCoordMap {
             offset: insets,
-            scale: mesh_size - 2.0*insets,
+            scale: mesh_size - 2.0 * insets,
             vb: data_bounds,
         }),
         axis::Scale::Linear(axis::Range::MinAuto(min)) => Box::new(LinCoordMap {

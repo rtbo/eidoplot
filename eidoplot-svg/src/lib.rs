@@ -1,7 +1,7 @@
 use std::io;
 
-use eidoplot::render::Surface;
 use eidoplot::geom::Transform;
+use eidoplot::render::Surface;
 use eidoplot::{geom, render, style};
 
 use svg::Node;
@@ -48,7 +48,8 @@ impl Surface for SvgSurface {
 
     /// Prepare the surface for drawing, with the given width and height in plot units
     fn prepare(&mut self, size: geom::Size) -> Result<(), Self::Error> {
-        self.doc.assign("viewBox", (0, 0, size.width(), size.height()));
+        self.doc
+            .assign("viewBox", (0, 0, size.width(), size.height()));
         Ok(())
     }
 
@@ -105,10 +106,7 @@ impl Surface for SvgSurface {
         Ok(())
     }
 
-    fn push_clip(
-        &mut self,
-        clip: &render::Clip,
-    ) -> Result<(), Self::Error> {
+    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), Self::Error> {
         let clip_id = self.bump_clip_id();
         let clip_id_url = format!("url(#{})", clip_id);
         let mut path_node = element::Path::new().set("d", path_data(&clip.path));

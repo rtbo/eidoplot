@@ -4,7 +4,10 @@ use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
 pub fn collect_ticks(ticks: &Ticks, vb: data::ViewBounds) -> Vec<(f64, String)> {
     let ticks_loc = locate(ticks.locator(), vb);
     let formatter = label_formatter(ticks, vb);
-    ticks_loc.into_iter().map(|t| (t, formatter.format_label(t))).collect()
+    ticks_loc
+        .into_iter()
+        .map(|t| (t, formatter.format_label(t)))
+        .collect()
 }
 
 pub fn locate(locator: &Locator, vb: data::ViewBounds) -> Vec<f64> {
@@ -143,10 +146,7 @@ impl MaxNEdge {
     }
 }
 
-pub fn label_formatter(
-    ticks: &Ticks,
-    vb: data::ViewBounds,
-) -> Box<dyn LabelFormatter> {
+pub fn label_formatter(ticks: &Ticks, vb: data::ViewBounds) -> Box<dyn LabelFormatter> {
     match ticks.formatter() {
         Formatter::Auto => auto_label_formatter(ticks.locator(), vb),
         Formatter::Prec(prec) => Box::new(PrecLabelFormat(*prec)),

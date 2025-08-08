@@ -27,7 +27,6 @@ pub trait Surface {
     fn pop_clip(&mut self) -> Result<(), Self::Error>;
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Rect {
     pub rect: geom::Rect,

@@ -133,8 +133,8 @@ where
     let vb = plot.calc_view_bounds();
     let insets = plot_insets(plot);
 
-    // x-axis height only depends on font size, so it can be computed right-away, 
-    // y-axis width depends on font width therefore we have to generate tick labels, 
+    // x-axis height only depends on font size, so it can be computed right-away,
+    // y-axis width depends on font width therefore we have to generate tick labels,
     // which somehow depends on the x-axis height (for available space)
 
     let x_height = ctx.calculate_x_axis_height(&plot.x_axis);
@@ -164,13 +164,12 @@ where
     Ok(())
 }
 
-
 fn plot_insets(plot: &ir::Plot) -> (f32, f32) {
     match plot.insets {
         Some(ir::plot::Insets::Fixed(x, y)) => (x, y),
         Some(ir::plot::Insets::Auto) => auto_insets(plot),
         None => (0.0, 0.0),
-    }    
+    }
 }
 
 fn auto_insets(_plot: &ir::Plot) -> (f32, f32) {
@@ -333,7 +332,10 @@ where
     }
 
     if let Some(annot) = lbl_formatter.axis_annotation() {
-        let font = x_ticks.font().clone().with_family(missing_params::AXIS_ANNOT_FONT_FAMILY.into());
+        let font = x_ticks
+            .font()
+            .clone()
+            .with_family(missing_params::AXIS_ANNOT_FONT_FAMILY.into());
         let pos = geom::Point::new(
             rect.right(),
             rect.bottom()
@@ -377,7 +379,6 @@ where
             missing_params::AXIS_LABEL_FONT_FAMILY.into(),
             missing_params::AXIS_LABEL_FONT_SIZE,
         );
-
 
         // we render at origin, but translate to correct position and rotate
         let anchor = render::TextAnchor {
