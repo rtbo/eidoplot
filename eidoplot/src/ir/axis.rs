@@ -45,9 +45,13 @@ pub mod ticks {
 
     #[derive(Debug, Clone)]
     pub struct Ticks {
+        /// Generates the ticks at the specified locations
         locator: Locator,
+        /// Formats the ticks labels
         formatter: Formatter,
+        /// Font for the ticks labels
         font: Font,
+        /// Color for the ticks and the labels
         color: Color,
     }
 
@@ -98,16 +102,56 @@ pub mod ticks {
             }
         }
     }
+
+    #[derive(Debug, Clone)]
+    pub struct MinorTicks {
+        pub locator: Locator,
+        pub color: Color,
+    }
+
+    impl Default for MinorTicks {
+        fn default() -> Self {
+            MinorTicks {
+                locator: Locator::default(),
+                color: defaults::TICKS_LABEL_COLOR,
+            }
+        }
+    }
+
+    impl From<Locator> for MinorTicks {
+        fn from(value: Locator) -> Self {
+            MinorTicks {
+                locator: value,
+                ..Default::default()
+            }
+        }
+    }
+
+    impl MinorTicks {
+        pub fn with_locator(self, locator: Locator) -> Self {
+            Self { locator, ..self }
+        }
+        pub fn with_color(self, color: Color) -> Self {
+            Self { color, ..self }
+        }
+
+        pub fn locator(&self) -> &Locator {
+            &self.locator
+        }
+        pub fn color(&self) -> Color {
+            self.color
+        }
+    }
 }
 
-pub use ticks::Ticks;
+pub use ticks::{Ticks, MinorTicks};
 
 #[derive(Debug, Clone)]
 pub struct Axis {
     pub scale: Scale,
     pub label: Option<String>,
     pub ticks: Option<Ticks>,
-    pub ticks_min: Option<ticks::Locator>,
+    pub minor_ticks: Option<MinorTicks>,
 }
 
 impl Default for Axis {
@@ -116,7 +160,7 @@ impl Default for Axis {
             label: None,
             scale: Default::default(),
             ticks: Some(Default::default()),
-            ticks_min: None,
+            minor_ticks: None,
         }
     }
 }
