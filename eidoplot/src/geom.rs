@@ -176,6 +176,36 @@ impl Rect {
         self.w -= shift;
     }
 
+    pub const fn with_top(self, top: f32) -> Rect {
+        Rect {
+            y: top,
+            h: self.bottom() - top,
+            ..self
+        }
+    }
+
+    pub const fn with_right(self, right: f32) -> Rect {
+        Rect {
+            w: right - self.x,
+            ..self
+        }
+    }
+
+    pub const fn with_bottom(self, bottom: f32) -> Rect {
+        Rect {
+            h: bottom - self.y,
+            ..self
+        }
+    }
+
+    pub const fn with_left(self, left: f32) -> Rect {
+        Rect {
+            x: left,
+            w: self.right() - left,
+            ..self
+        }
+    }
+
     pub fn to_path(&self) -> Path {
         PathBuilder::from_rect(
             tiny_skia_path::Rect::from_xywh(self.x, self.y, self.w, self.h).unwrap(),
