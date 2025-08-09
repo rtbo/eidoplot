@@ -140,11 +140,11 @@ where
         let x_height = self.calculate_x_axis_height(&plot.x_axis);
         let rect = rect.shifted_bottom_side(-x_height);
 
-        let y_cm = scale::map_scale_coord(&plot.y_axis.scale, rect.height(), vb.1, insets.1);
+        let y_cm = scale::map_scale_coord(plot.y_axis.scale(), rect.height(), vb.1, insets.1);
         let y_axis = self.setup_y_axis(&plot.y_axis, y_cm);
         let rect = rect.shifted_left_side(y_axis.ortho_sz);
 
-        let x_cm = scale::map_scale_coord(&plot.x_axis.scale, rect.width(), vb.0, insets.0);
+        let x_cm = scale::map_scale_coord(plot.x_axis.scale(), rect.width(), vb.0, insets.0);
         let x_axis = self.setup_x_axis(&plot.x_axis, x_cm, x_height);
 
         Axes {
@@ -155,11 +155,11 @@ where
 
     pub fn calculate_x_axis_height(&self, x_axis: &ir::Axis) -> f32 {
         let mut height = 0.0;
-        if let Some(ticks) = &x_axis.ticks {
+        if let Some(ticks) = x_axis.ticks() {
             height +=
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size();
         }
-        if let Some(label) = x_axis.label.as_ref() {
+        if let Some(label) = x_axis.label() {
             let fs = label.font().map(|f| f.size()).unwrap_or(defaults::AXIS_LABEL_FONT_SIZE);
             height +=
                 2.0 * missing_params::AXIS_LABEL_MARGIN + fs;
@@ -172,7 +172,7 @@ where
     // and send them to the surface for reuse
     fn calculate_y_axis_width(&self, y_axis: &ir::Axis, y_ticks: Option<&Ticks>) -> f32 {
         let mut width = 0.0;
-        if let Some(label) = y_axis.label.as_ref() {
+        if let Some(label) = y_axis.label() {
             let fs = label.font().map(|f| f.size()).unwrap_or(defaults::AXIS_LABEL_FONT_SIZE);
             width += 2.0 * missing_params::AXIS_LABEL_MARGIN + fs;
         }
@@ -187,13 +187,12 @@ where
 
     fn setup_y_axis(&mut self, y_axis: &ir::Axis, coord_map: Box<dyn CoordMap>) -> Axis {
         let ticks = y_axis
-            .ticks
-            .as_ref()
+            .ticks()
             .map(|t| setup_ticks(t, coord_map.view_bounds()));
 
         let y_width = self.calculate_y_axis_width(y_axis, ticks.as_ref());
 
-        let label = y_axis.label.as_ref().map(|l| {
+        let label = y_axis.label().map(|l| {
             (
                 l.text().to_string(),
                 l.font().cloned().unwrap_or_else(|| {
@@ -220,11 +219,10 @@ where
         x_height: f32,
     ) -> Axis {
         let ticks = x_axis
-            .ticks
-            .as_ref()
+            .ticks()
             .map(|t| setup_ticks(t, coord_map.view_bounds()));
 
-        let label = x_axis.label.as_ref().map(|l| {
+        let label = x_axis.label().map(|l| {
             (
                 l.text().to_string(),
                 l.font().cloned().unwrap_or_else(|| {

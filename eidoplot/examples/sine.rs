@@ -11,15 +11,10 @@ fn main() {
         .map(|t| (t as f64 * PI / 180.0, (t as f64 * PI / 180.0).sin()))
         .collect();
 
-    let x_axis = ir::axis::Axis {
-        label: Some("x".into()),
-        ticks: Some(ir::axis::ticks::Locator::PiMultiple { bins: 8 }.into()),
-        ..ir::axis::Axis::default()
-    };
-    let y_axis = ir::axis::Axis {
-        label: Some("y".into()),
-        ..ir::axis::Axis::default()
-    };
+    let x_axis = ir::Axis::new(ir::axis::Scale::default())
+        .with_label("x".into())
+        .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 8 }.into());
+    let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("y".into());
 
     let series = ir::plot::Series {
         name: Some("y=sin(x)".into()),

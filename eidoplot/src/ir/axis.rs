@@ -162,10 +162,10 @@ use crate::{ir::Text};
 
 #[derive(Debug, Clone)]
 pub struct Axis {
-    pub scale: Scale,
-    pub label: Option<Text>,
-    pub ticks: Option<Ticks>,
-    pub minor_ticks: Option<MinorTicks>,
+    scale: Scale,
+    label: Option<Text>,
+    ticks: Option<Ticks>,
+    minor_ticks: Option<MinorTicks>,
 }
 
 impl Default for Axis {
@@ -176,5 +176,43 @@ impl Default for Axis {
             ticks: Some(Default::default()),
             minor_ticks: None,
         }
+    }
+}
+
+impl Axis {
+    pub fn new(scale: Scale) -> Self {
+        Axis {
+            scale,
+            ..Default::default()
+        }
+    }
+
+    pub fn with_label(self, label: Text) -> Self {
+        Self { label: Some(label), ..self }
+    }
+
+    pub fn with_scale(self, scale: Scale) -> Self {
+        Self { scale, ..self }
+    }
+
+    pub fn with_ticks(self, ticks: Ticks) -> Self {
+        Self { ticks: Some(ticks), ..self }
+    }
+
+    pub fn with_minor_ticks(self, minor_ticks: MinorTicks) -> Self {
+        Self { minor_ticks: Some(minor_ticks), ..self }
+    }
+
+    pub fn label(&self) -> Option<&Text> {
+        self.label.as_ref()
+    }
+    pub fn scale(&self) -> &Scale {
+        &self.scale
+    }
+    pub fn ticks(&self) -> Option<&Ticks> {
+        self.ticks.as_ref()
+    }
+    pub fn minor_ticks(&self) -> Option<&MinorTicks> {
+        self.minor_ticks.as_ref()
     }
 }
