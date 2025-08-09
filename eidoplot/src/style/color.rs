@@ -88,6 +88,30 @@ impl Color {
     pub fn html(&self) -> String {
         format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
     }
+
+    pub const fn with_red(self, r: u8) -> Self {
+        Color { r, ..self }
+    }
+
+    pub const fn with_green(self, g: u8) -> Self {
+        Color { g, ..self }
+    }
+
+    pub const fn with_blue(self, b: u8) -> Self {
+        Color { b, ..self }
+    }
+
+    pub const fn with_alpha(self, a: u8) -> Self {
+        Color { a, ..self }
+    }
+
+    pub const fn with_opacity(self, opacity: f32) -> Self {
+        assert!(0.0 <= opacity && opacity <= 1.0);
+        Color {
+            a: (self.a as f32 * opacity) as u8,
+            ..self
+        }
+    }
 }
 
 const fn hex_to_u8(hex: u8) -> u8 {
