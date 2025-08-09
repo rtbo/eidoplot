@@ -4,8 +4,7 @@ use crate::style;
 
 use rustybuzz::ttf_parser;
 
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FontDb(Arc<fontdb::Database>);
 
 impl FontDb {
@@ -15,7 +14,12 @@ impl FontDb {
 }
 
 impl FontDb {
-    pub fn max_labels_width<I, L>(&self, font: &style::Font, labels: I) -> f32
+    /// Compute the width of a label
+    pub fn label_width(&self, label: &str, font: &style::Font) -> f32 {
+        self.max_labels_width(&[label], font)
+    }
+
+    pub fn max_labels_width<I, L>(&self, labels: I, font: &style::Font) -> f32
     where
         I: IntoIterator<Item = L>,
         L: AsRef<str>,

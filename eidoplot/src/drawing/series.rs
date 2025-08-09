@@ -1,10 +1,14 @@
 use crate::data;
-use crate::drawing::{CalcViewBounds, Ctx, scale};
+use crate::drawing::{CalcViewBounds, Ctx, scale, legend};
 use crate::geom;
 use crate::ir;
 use crate::render::{self, Surface};
 
 use scale::CoordMapXy;
+
+pub fn series_has_legend(series: &ir::Series) -> bool {
+    series.name.is_some()
+}
 
 impl CalcViewBounds for ir::Series {
     fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
@@ -23,6 +27,22 @@ impl CalcViewBounds for ir::plot::XySeries {
             y_bounds.add_point(*y);
         }
         (x_bounds, y_bounds)
+    }
+}
+
+impl legend::Entry for ir::Series {
+    fn label(&self) -> &str {
+        self.name.as_deref().expect("Should have a name, or not used as legend entry")
+    }
+
+    fn font(&self) -> Option<&crate::style::Font> {
+        None
+    }
+
+    fn shape(&self) -> legend::Shape {
+        match &self.plot {
+            ir::plot::SeriesPlot::Xy(xy) => legend::Shape::Line(xy.line),
+        }
     }
 }
 

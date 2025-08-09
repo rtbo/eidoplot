@@ -1,4 +1,4 @@
-use crate::ir::Axis;
+use crate::ir::{Axis, Legend};
 use crate::style;
 use crate::style::color;
 
@@ -35,6 +35,7 @@ pub struct Plot {
     pub fill: Option<style::Fill>,
     pub border: Option<Border>,
     pub insets: Option<Insets>,
+    pub legend: Option<Legend>,
     pub x_axis: Axis,
     pub y_axis: Axis,
     pub series: Vec<Series>,
@@ -47,6 +48,7 @@ impl Default for Plot {
             fill: None,
             border: Some(Border::default()),
             insets: Some(Insets::default()),
+            legend: Some(Legend::default()),
             x_axis: Axis::default(),
             y_axis: Axis::default(),
             series: vec![],

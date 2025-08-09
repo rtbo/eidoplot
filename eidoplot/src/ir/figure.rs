@@ -1,12 +1,13 @@
 use crate::geom;
-use crate::ir::{Plot, Text};
+use crate::ir::{Plot, Legend, Text};
 use crate::style::{self, color, defaults};
 
 #[derive(Debug, Clone)]
 pub struct Figure {
     size: geom::Size,
-    plots: Plots,
     title: Option<Text>,
+    plots: Plots,
+    legend: Option<Legend>,
     fill: Option<style::Fill>,
     layout: Option<Layout>,
 }
@@ -15,8 +16,9 @@ impl Figure {
     pub fn new(plots: Plots) -> Figure {
         Figure {
             size: defaults::FIG_SIZE,
-            plots,
             title: None,
+            plots,
+            legend: None,
             fill: Some(color::WHITE.into()),
             layout: None,
         }
@@ -33,6 +35,10 @@ impl Figure {
         }
     }
 
+    pub fn with_legend(self, legend: Option<Legend>) -> Self {
+        Figure { legend, ..self }
+    }
+
     pub fn with_fill(self, fill: Option<style::Fill>) -> Self {
         Figure { fill, ..self }
     }
@@ -45,12 +51,16 @@ impl Figure {
         self.size
     }
 
+    pub fn title(&self) -> Option<&Text> {
+        self.title.as_ref()
+    }
+
     pub fn plots(&self) -> &Plots {
         &self.plots
     }
 
-    pub fn title(&self) -> Option<&Text> {
-        self.title.as_ref()
+    pub fn legend(&self) -> Option<&Legend> {
+        self.legend.as_ref()
     }
 
     pub fn fill(&self) -> Option<style::Fill> {

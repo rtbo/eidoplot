@@ -158,6 +158,24 @@ impl Rect {
         }
     }
 
+    pub const fn shift_top_side(&mut self, shift: f32) {
+        self.y += shift;
+        self.h -= shift;
+    }
+
+    pub const fn shift_right_side(&mut self, shift: f32) {
+        self.w += shift;
+    }
+
+    pub const fn shift_bottom_side(&mut self, shift: f32) {
+        self.h += shift;
+    }
+
+    pub const fn shift_left_side(&mut self, shift: f32) {
+        self.x += shift;
+        self.w -= shift;
+    }
+
     pub fn to_path(&self) -> Path {
         PathBuilder::from_rect(
             tiny_skia_path::Rect::from_xywh(self.x, self.y, self.w, self.h).unwrap(),

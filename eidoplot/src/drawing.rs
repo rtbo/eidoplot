@@ -4,6 +4,7 @@ use crate::{data, ir, render, style};
 
 mod figure;
 mod fdb;
+mod legend;
 mod plot;
 mod scale;
 mod ticks;

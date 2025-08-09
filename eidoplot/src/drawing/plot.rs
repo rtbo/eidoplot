@@ -1,4 +1,6 @@
 use crate::data;
+use crate::drawing::legend::Legend;
+use crate::drawing::series::series_has_legend;
 use crate::drawing::{CalcViewBounds, Ctx, scale, ticks};
 use crate::geom;
 use crate::ir;
@@ -97,7 +99,15 @@ where
     S: render::Surface,
 {
     pub fn draw_plot(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error> {
-        let rect = rect.pad(&missing_params::PLOT_PADDING);
+        let mut rect = rect.pad(&missing_params::PLOT_PADDING);
+
+        // draw outer legend
+        if let Some(legend) = &plot.legend {
+            if !legend.pos().is_inside() {
+                self.draw_plot_outer_legend(plot, legend, &mut rect)?;
+            }
+        }
+
         let axes = self.setup_plot_axes(plot, &rect);
 
         let rect = rect
@@ -121,6 +131,11 @@ where
         // x-axis height only depends on font size, so it can be computed right-away,
         // y-axis width depends on font width therefore we have to generate tick labels,
         // which somehow depends on the x-axis height (for available space)
+        // so the layout is bootstrapped in the following order:
+        // - x-axis height
+        // - y-axis ticks and labels
+        // - y_axis width
+        // - x-axis ticks and labels
 
         let x_height = self.calculate_x_axis_height(&plot.x_axis);
         let rect = rect.shifted_bottom_side(-x_height);
@@ -160,7 +175,9 @@ where
             width += 2.0 * missing_params::AXIS_LABEL_MARGIN + missing_params::AXIS_LABEL_FONT_SIZE;
         }
         if let Some(ticks) = y_ticks {
-            let max_w = self.fontdb().max_labels_width(&ticks.font, ticks.lbls.iter());
+            let max_w = self
+                .fontdb()
+                .max_labels_width(ticks.lbls.iter(), &ticks.font);
             width += missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + max_w;
         }
         width
@@ -206,6 +223,44 @@ impl<'a, S> Ctx<'a, S>
 where
     S: render::Surface,
 {
+    fn draw_plot_outer_legend(
+        &mut self,
+        plot: &ir::Plot,
+        legend: &ir::Legend,
+        rect: &mut geom::Rect,
+    ) -> Result<(), S::Error> {
+        let mut dlegend = Legend::from_ir(legend, rect.width(), self.fontdb().clone());
+        for s in plot.series.iter() {
+            if series_has_legend(s) {
+                dlegend.add_entry(s);
+            }
+        }
+        let sz = dlegend.layout();
+        let top_left = match legend.pos() {
+            ir::legend::Pos::OutTop => {
+                rect.shift_top_side(sz.height());
+                geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.top() - sz.height())
+            }
+            ir::legend::Pos::OutRight => {
+                rect.shift_right_side(-sz.width());
+                geom::Point::new(rect.right(), rect.center_y() - sz.height() / 2.0)
+            }
+            ir::legend::Pos::OutBottom => {
+                rect.shift_bottom_side(-sz.height());
+                geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.bottom())
+            }
+            ir::legend::Pos::OutLeft => {
+                rect.shift_left_side(sz.width());
+                geom::Point::new(
+                    rect.left() - sz.width(),
+                    rect.center_y() - sz.height() / 2.0,
+                )
+            }
+            _ => unreachable!(),
+        };
+        self.draw_legend(&dlegend, &top_left)
+    }
+
     fn draw_plot_background(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error> {
         if let Some(fill) = plot.fill.as_ref() {
             self.draw_rect(&render::Rect {
@@ -240,7 +295,7 @@ where
         }
         if let Some(y_ticks) = axes.y.ticks.as_ref() {
             if let Some(y_grid) = y_ticks.grid {
-                    let mut pathb = geom::PathBuilder::with_capacity(2, 2);
+                let mut pathb = geom::PathBuilder::with_capacity(2, 2);
                 for t in y_ticks.locs.iter().copied() {
                     let y = rect.bottom() - axes.y.map_coord(t);
                     pathb.move_to(rect.left(), y);
@@ -362,7 +417,6 @@ where
         let fill = x_ticks.color.into();
 
         for (xt, lbl) in x_ticks.locs.iter().copied().zip(x_ticks.lbls.iter()) {
-
             let x = x_cm.map_coord(xt);
             let x = rect.left() + x;
             let pos = geom::Point::new(
