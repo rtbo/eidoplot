@@ -62,7 +62,10 @@ pub mod ticks {
             Ticks {
                 locator: Locator::default(),
                 formatter: Formatter::default(),
-                font: Font::default().with_size(defaults::TICKS_LABEL_FONT_SIZE),
+                font: Font::new(
+                    defaults::TICKS_LABEL_FONT_FAMILY.into(),
+                    defaults::TICKS_LABEL_FONT_SIZE,
+                ),
                 color: defaults::TICKS_LABEL_COLOR,
                 grid: defaults::TICKS_GRID_LINE,
             }
@@ -99,7 +102,7 @@ pub mod ticks {
             self.color
         }
         pub fn grid(&self) -> Option<&style::Line> {
-            self.grid.as_ref() 
+            self.grid.as_ref()
         }
     }
 
@@ -153,12 +156,14 @@ pub mod ticks {
     }
 }
 
-pub use ticks::{Ticks, MinorTicks};
+pub use ticks::{MinorTicks, Ticks};
+
+use crate::{ir::Text};
 
 #[derive(Debug, Clone)]
 pub struct Axis {
     pub scale: Scale,
-    pub label: Option<String>,
+    pub label: Option<Text>,
     pub ticks: Option<Ticks>,
     pub minor_ticks: Option<MinorTicks>,
 }

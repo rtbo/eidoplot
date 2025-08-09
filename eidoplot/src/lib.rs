@@ -12,16 +12,14 @@ use std::{path, sync::Arc};
 mod missing_params {
     use crate::{
         geom,
-        style::{Color, color, defaults},
+        style::{Color, color},
     };
 
     pub const FIG_TITLE_MARGIN: f32 = 6.0;
     pub const FIG_TITLE_COLOR: Color = color::BLACK;
 
     pub const PLOT_PADDING: geom::Padding = geom::Padding::Even(5.0);
-    pub const AXIS_LABEL_MARGIN: f32 = 4.0;
-    pub const AXIS_LABEL_FONT_FAMILY: &str = defaults::FONT_FAMILY;
-    pub const AXIS_LABEL_FONT_SIZE: f32 = 14.0;
+    pub const AXIS_LABEL_MARGIN: f32 = 8.0;
     pub const AXIS_LABEL_COLOR: Color = color::BLACK;
     pub const AXIS_ANNOT_FONT_FAMILY: &str = "Noto Sans Math";
 

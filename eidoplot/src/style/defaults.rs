@@ -1,5 +1,5 @@
-use crate::{geom, style};
 use crate::style::{Color, color};
+use crate::{geom, style};
 
 pub const FONT_FAMILY: &str = "sans-serif";
 pub const DASH_PATTERN: style::Dash = style::Dash(5.0, 5.0);
@@ -10,6 +10,11 @@ pub const FIG_PADDING: geom::Padding = geom::Padding::Even(20.0);
 pub const TITLE_FONT_FAMILY: &str = FONT_FAMILY;
 pub const TITLE_FONT_SIZE: f32 = 24.0;
 
+pub const AXIS_LABEL_FONT_FAMILY: &str = FONT_FAMILY;
+pub const AXIS_LABEL_FONT_SIZE: f32 = 16.0;
+pub const AXIS_LABEL_COLOR: Color = color::BLACK;
+
+pub const TICKS_LABEL_FONT_FAMILY: &str = FONT_FAMILY;
 pub const TICKS_LABEL_FONT_SIZE: f32 = 12.0;
 pub const TICKS_LABEL_COLOR: Color = color::BLACK;
 pub const TICKS_GRID_LINE: Option<style::Line> = Some({

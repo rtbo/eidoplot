@@ -36,7 +36,7 @@ struct Axis {
     ortho_sz: f32,
     coord_map: Box<dyn CoordMap>,
     ticks: Option<Ticks>,
-    label: Option<String>,
+    label: Option<(String, style::Font)>,
 }
 
 impl CoordMap for Axis {
@@ -159,9 +159,10 @@ where
             height +=
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size();
         }
-        if x_axis.label.is_some() {
+        if let Some(label) = x_axis.label.as_ref() {
+            let fs = label.font().map(|f| f.size()).unwrap_or(defaults::AXIS_LABEL_FONT_SIZE);
             height +=
-                2.0 * missing_params::AXIS_LABEL_MARGIN + missing_params::AXIS_LABEL_FONT_SIZE;
+                2.0 * missing_params::AXIS_LABEL_MARGIN + fs;
         }
         height
     }
@@ -171,8 +172,9 @@ where
     // and send them to the surface for reuse
     fn calculate_y_axis_width(&self, y_axis: &ir::Axis, y_ticks: Option<&Ticks>) -> f32 {
         let mut width = 0.0;
-        if y_axis.label.is_some() {
-            width += 2.0 * missing_params::AXIS_LABEL_MARGIN + missing_params::AXIS_LABEL_FONT_SIZE;
+        if let Some(label) = y_axis.label.as_ref() {
+            let fs = label.font().map(|f| f.size()).unwrap_or(defaults::AXIS_LABEL_FONT_SIZE);
+            width += 2.0 * missing_params::AXIS_LABEL_MARGIN + fs;
         }
         if let Some(ticks) = y_ticks {
             let max_w = self
@@ -191,11 +193,23 @@ where
 
         let y_width = self.calculate_y_axis_width(y_axis, ticks.as_ref());
 
+        let label = y_axis.label.as_ref().map(|l| {
+            (
+                l.text().to_string(),
+                l.font().cloned().unwrap_or_else(|| {
+                    style::Font::new(
+                        defaults::AXIS_LABEL_FONT_FAMILY.into(),
+                        defaults::AXIS_LABEL_FONT_SIZE,
+                    )
+                }),
+            )
+        });
+
         Axis {
             ortho_sz: y_width,
             coord_map,
             ticks,
-            label: y_axis.label.clone(),
+            label,
         }
     }
 
@@ -210,11 +224,23 @@ where
             .as_ref()
             .map(|t| setup_ticks(t, coord_map.view_bounds()));
 
+        let label = x_axis.label.as_ref().map(|l| {
+            (
+                l.text().to_string(),
+                l.font().cloned().unwrap_or_else(|| {
+                    style::Font::new(
+                        defaults::AXIS_LABEL_FONT_FAMILY.into(),
+                        defaults::AXIS_LABEL_FONT_SIZE,
+                    )
+                }),
+            )
+        });
+
         Axis {
             ortho_sz: x_height,
             coord_map,
             ticks,
-            label: x_axis.label.clone(),
+            label,
         }
     }
 }
@@ -384,18 +410,14 @@ where
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + x_ticks.font.size();
         }
         if let Some(label) = &x_axis.label {
-            let font = style::Font::new(
-                missing_params::AXIS_LABEL_FONT_FAMILY.into(),
-                missing_params::AXIS_LABEL_FONT_SIZE,
-            );
             let anchor = render::TextAnchor {
                 pos: geom::Point::new(rect.center_x(), label_y),
                 align: render::TextAlign::Center,
                 baseline: render::TextBaseline::Hanging,
             };
             let text = render::Text {
-                text: label.as_str(),
-                font: &font,
+                text: label.0.as_str(),
+                font: &label.1,
                 anchor,
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: None,
@@ -477,11 +499,6 @@ where
             self.draw_y_ticks(rect, y_ticks, y_axis)?;
         }
         if let Some(label) = y_axis.label.as_ref() {
-            let font = style::Font::new(
-                missing_params::AXIS_LABEL_FONT_FAMILY.into(),
-                missing_params::AXIS_LABEL_FONT_SIZE,
-            );
-
             // we render at origin, but translate to correct position and rotate
             let anchor = render::TextAnchor {
                 pos: geom::Point::ORIGIN,
@@ -493,8 +510,8 @@ where
             let ty = rect.center_y();
             let transform = geom::Transform::from_translate(tx, ty).pre_rotate(90.0);
             let text = render::Text {
-                text: label.as_str(),
-                font: &font,
+                text: label.0.as_str(),
+                font: &label.1,
                 anchor,
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: Some(&transform),
