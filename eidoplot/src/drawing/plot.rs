@@ -1,12 +1,11 @@
 use crate::data;
-use crate::drawing::{CalcViewBounds, ctx, scale, ticks};
+use crate::drawing::{CalcViewBounds, Ctx, scale, ticks};
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
 use crate::render::{self, Surface};
 use crate::style::{self, defaults};
 
-use ctx::Ctx;
 use scale::{CoordMap, CoordMapXy};
 
 impl CalcViewBounds for ir::Plot {
@@ -161,7 +160,7 @@ where
             width += 2.0 * missing_params::AXIS_LABEL_MARGIN + missing_params::AXIS_LABEL_FONT_SIZE;
         }
         if let Some(ticks) = y_ticks {
-            let max_w = self.max_labels_width(&ticks.font, ticks.lbls.iter());
+            let max_w = self.fontdb().max_labels_width(&ticks.font, ticks.lbls.iter());
             width += missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + max_w;
         }
         width

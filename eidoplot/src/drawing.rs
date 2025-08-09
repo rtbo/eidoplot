@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use crate::{data, ir, render};
+use crate::{data, ir, render, style};
 
-mod ctx;
 mod figure;
+mod fdb;
 mod plot;
 mod scale;
 mod ticks;
 mod series;
 
-use ctx::Ctx;
+use fdb::FontDb;
 
 #[derive(Debug, Default, Clone)]
 pub struct Options {
@@ -23,6 +23,7 @@ pub trait FigureExt {
 impl FigureExt for ir::Figure {
     fn draw<S: render::Surface>(&self, surface: &mut S, opts: Options) -> Result<(), S::Error> {
         let fontdb = opts.fontdb.unwrap_or_else(crate::bundled_font_db);
+        let fontdb = FontDb::new(fontdb);
         let mut ctx = Ctx::new(surface, fontdb);
         ctx.draw_figure( self)?;
         Ok(())
@@ -31,4 +32,56 @@ impl FigureExt for ir::Figure {
 
 trait CalcViewBounds {
     fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds);
+}
+
+
+#[derive(Debug)]
+struct Ctx<'a, S> {
+    surface: &'a mut S,
+    fontdb: FontDb,
+}
+
+impl<'a, S> Ctx<'a, S> {
+    pub fn new(surface: &'a mut S, fontdb: FontDb) -> Ctx<'a, S> {
+        Ctx { surface, fontdb }
+    }
+
+    pub fn fontdb(&self) -> &FontDb {
+        &self.fontdb
+    }
+}
+
+impl<'a, S> render::Surface for Ctx<'a, S>
+where
+    S: render::Surface,
+{
+    type Error = S::Error;
+
+    fn prepare(&mut self, size: crate::geom::Size) -> Result<(), Self::Error> {
+        self.surface.prepare(size)
+    }
+
+    fn fill(&mut self, fill: style::Fill) -> Result<(), Self::Error> {
+        self.surface.fill(fill)
+    }
+
+    fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), Self::Error> {
+        self.surface.draw_rect(rect)
+    }
+
+    fn draw_path(&mut self, path: &render::Path) -> Result<(), Self::Error> {
+        self.surface.draw_path(path)
+    }
+
+    fn draw_text(&mut self, text: &render::Text) -> Result<(), Self::Error> {
+        self.surface.draw_text(text)
+    }
+
+    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), Self::Error> {
+        self.surface.push_clip(clip)
+    }
+
+    fn pop_clip(&mut self) -> Result<(), Self::Error> {
+        self.surface.pop_clip()
+    }
 }
