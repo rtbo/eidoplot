@@ -28,14 +28,14 @@ pub trait Surface {
 }
 
 #[derive(Debug, Clone)]
-pub struct Rect {
+pub struct Rect<'a> {
     pub rect: geom::Rect,
     pub fill: Option<style::Fill>,
     pub stroke: Option<style::Line>,
-    pub transform: Option<geom::Transform>,
+    pub transform: Option<&'a geom::Transform>,
 }
 
-impl Rect {
+impl<'a> Rect<'a> {
     pub fn new(rect: geom::Rect) -> Self {
         Rect {
             rect,
@@ -47,17 +47,17 @@ impl Rect {
 }
 
 #[derive(Debug, Clone)]
-pub struct Path {
-    pub path: geom::Path,
+pub struct Path<'a> {
+    pub path: &'a geom::Path,
     pub fill: Option<style::Fill>,
     pub stroke: Option<style::Line>,
-    pub transform: Option<geom::Transform>,
+    pub transform: Option<&'a geom::Transform>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Clip {
-    pub path: geom::Path,
-    pub transform: Option<geom::Transform>,
+pub struct Clip<'a> {
+    pub path: &'a geom::Path,
+    pub transform: Option<&'a geom::Transform>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -94,10 +94,10 @@ pub struct TextAnchor {
 }
 
 #[derive(Debug, Clone)]
-pub struct Text {
-    pub text: String,
-    pub font: style::Font,
+pub struct Text<'a> {
+    pub text: &'a str,
+    pub font: &'a style::Font,
     pub fill: style::Fill,
     pub anchor: TextAnchor,
-    pub transform: Option<geom::Transform>,
+    pub transform: Option<&'a geom::Transform>,
 }

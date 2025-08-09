@@ -70,7 +70,7 @@ impl Surface for SvgSurface {
         let mut node = rectangle_node(&rect.rect);
         assign_fill(&mut node, rect.fill.as_ref());
         assign_stroke(&mut node, rect.stroke.as_ref());
-        assign_transform(&mut node, rect.transform.as_ref());
+        assign_transform(&mut node, rect.transform);
         self.append_node(node);
         Ok(())
     }
@@ -79,8 +79,8 @@ impl Surface for SvgSurface {
         let mut node = element::Path::new();
         assign_fill(&mut node, path.fill.as_ref());
         assign_stroke(&mut node, path.stroke.as_ref());
-        assign_transform(&mut node, path.transform.as_ref());
-        node.assign("d", path_data(&path.path));
+        assign_transform(&mut node, path.transform);
+        node.assign("d", path_data(path.path));
         self.append_node(node);
         Ok(())
     }
@@ -91,7 +91,7 @@ impl Surface for SvgSurface {
             style::Fill::Solid(color) => color,
         };
 
-        let mut node = element::Text::new(text.text.as_str())
+        let mut node = element::Text::new(text.text)
             .set("font-family", font.family().as_str())
             .set("font-size", font.size())
             .set("fill", color.html())
@@ -101,7 +101,7 @@ impl Surface for SvgSurface {
             .set("text-anchor", text_anchor(text.anchor.align))
             .set("dominant-baseline", dominant_baseline(text.anchor.baseline));
 
-        assign_transform(&mut node, text.transform.as_ref());
+        assign_transform(&mut node, text.transform);
         self.append_node(node);
         Ok(())
     }
@@ -110,7 +110,7 @@ impl Surface for SvgSurface {
         let clip_id = self.bump_clip_id();
         let clip_id_url = format!("url(#{})", clip_id);
         let mut path_node = element::Path::new().set("d", path_data(&clip.path));
-        assign_transform(&mut path_node, clip.transform.as_ref());
+        assign_transform(&mut path_node, clip.transform);
         let node = element::ClipPath::new()
             .set("id", clip_id.clone())
             .add(path_node);

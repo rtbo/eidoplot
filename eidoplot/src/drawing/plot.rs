@@ -222,37 +222,39 @@ where
     fn draw_grid(&mut self, axes: &Axes, rect: &geom::Rect) -> Result<(), S::Error> {
         if let Some(x_ticks) = axes.x.ticks.as_ref() {
             if let Some(x_grid) = x_ticks.grid {
+                let mut pathb = geom::PathBuilder::with_capacity(2, 2);
                 for t in x_ticks.locs.iter().copied() {
                     let x = axes.x.map_coord(t) + rect.left();
-                    let mut path = geom::PathBuilder::with_capacity(2, 2);
-                    path.move_to(x, rect.top());
-                    path.line_to(x, rect.bottom());
-                    let path = path.finish().expect("Should be a valid path");
-                    let path = render::Path {
-                        path,
+                    pathb.move_to(x, rect.top());
+                    pathb.line_to(x, rect.bottom());
+                    let path = pathb.finish().expect("Should be a valid path");
+                    let rpath = render::Path {
+                        path: &path,
                         fill: None,
                         stroke: Some(x_grid.clone()),
                         transform: None,
                     };
-                    self.draw_path(&path)?;
+                    self.draw_path(&rpath)?;
+                    pathb = path.clear();
                 }
             }
         }
         if let Some(y_ticks) = axes.y.ticks.as_ref() {
             if let Some(y_grid) = y_ticks.grid {
+                    let mut pathb = geom::PathBuilder::with_capacity(2, 2);
                 for t in y_ticks.locs.iter().copied() {
                     let y = rect.bottom() - axes.y.map_coord(t);
-                    let mut path = geom::PathBuilder::with_capacity(2, 2);
-                    path.move_to(rect.left(), y);
-                    path.line_to(rect.right(), y);
-                    let path = path.finish().expect("Should be a valid path");
-                    let path = render::Path {
-                        path,
+                    pathb.move_to(rect.left(), y);
+                    pathb.line_to(rect.right(), y);
+                    let path = pathb.finish().expect("Should be a valid path");
+                    let pathr = render::Path {
+                        path: &path,
                         fill: None,
                         stroke: Some(y_grid.clone()),
                         transform: None,
                     };
-                    self.draw_path(&path)?;
+                    self.draw_path(&pathr)?;
+                    pathb = path.clear();
                 }
             }
         }
@@ -279,7 +281,7 @@ where
                 path.line_to(rect.right(), rect.bottom());
                 let path = path.finish().expect("Should be a valid path");
                 let path = render::Path {
-                    path,
+                    path: &path,
                     fill: None,
                     stroke: Some(stroke.clone()),
                     transform: None,
@@ -299,7 +301,7 @@ where
         axes: &Axes,
     ) -> Result<(), S::Error> {
         self.push_clip(&render::Clip {
-            path: rect.to_path(),
+            path: &rect.to_path(),
             transform: None,
         })?;
 
@@ -338,8 +340,8 @@ where
                 baseline: render::TextBaseline::Hanging,
             };
             let text = render::Text {
-                text: label.clone(),
-                font,
+                text: label.as_str(),
+                font: &font,
                 anchor,
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: None,
@@ -361,7 +363,6 @@ where
         let fill = x_ticks.color.into();
 
         for (xt, lbl) in x_ticks.locs.iter().copied().zip(x_ticks.lbls.iter()) {
-            let font = x_ticks.font.clone();
 
             let x = x_cm.map_coord(xt);
             let x = rect.left() + x;
@@ -375,8 +376,8 @@ where
                 baseline: render::TextBaseline::Hanging,
             };
             let text = render::Text {
-                text: lbl.clone(),
-                font,
+                text: lbl.as_str(),
+                font: &x_ticks.font,
                 anchor,
                 fill,
                 transform: None,
@@ -403,8 +404,8 @@ where
                 baseline: render::TextBaseline::Hanging,
             };
             let text = render::Text {
-                text: annot.into(),
-                font,
+                text: annot.as_str(),
+                font: &font,
                 anchor,
                 fill,
                 transform: None,
@@ -437,13 +438,13 @@ where
 
             let tx = rect.left() - y_axis.ortho_sz + missing_params::AXIS_LABEL_MARGIN;
             let ty = rect.center_y();
-            let transform = Some(geom::Transform::from_translate(tx, ty).pre_rotate(90.0));
+            let transform = geom::Transform::from_translate(tx, ty).pre_rotate(90.0);
             let text = render::Text {
-                text: label.clone(),
-                font,
+                text: label.as_str(),
+                font: &font,
                 anchor,
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
-                transform,
+                transform: Some(&transform),
             };
             self.draw_text(&text)?;
         }
@@ -466,7 +467,6 @@ where
         let fill = y_ticks.color.into();
 
         for (yt, lbl) in y_ticks.locs.iter().copied().zip(y_ticks.lbls.iter()) {
-            let font = y_ticks.font.clone();
             let x = rect.left() - missing_params::TICK_SIZE - missing_params::TICK_LABEL_MARGIN;
             let y = rect.bottom() - y_cm.map_coord(yt);
             let pos = geom::Point::new(x, y);
@@ -476,8 +476,8 @@ where
                 baseline: render::TextBaseline::Center,
             };
             let text = render::Text {
-                text: lbl.clone(),
-                font,
+                text: lbl.as_str(),
+                font: &y_ticks.font,
                 anchor,
                 fill,
                 transform: None,
@@ -498,10 +498,10 @@ where
     {
         let ticks_path = ticks_path(&ticks, cm, None);
         let ticks_path = render::Path {
-            path: ticks_path,
+            path: &ticks_path,
             fill: None,
             stroke: Some(missing_params::TICK_COLOR.into()),
-            transform: Some(*transform),
+            transform: Some(transform),
         };
         self.draw_path(&ticks_path)?;
         Ok(())

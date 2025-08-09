@@ -59,7 +59,7 @@ where
         }
         let path = pb.finish().expect("Should be a valid path");
         let path = render::Path {
-            path,
+            path: &path,
             fill: None,
             stroke: Some(xy.line.clone()),
             transform: None,

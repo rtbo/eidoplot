@@ -22,15 +22,18 @@ where
         }
 
         if let Some(title) = fig.title() {
-            let mut title = title.clone();
 
-            if title.font().is_none() {
-                title = title.with_font(style::Font::new(
+            let mut default_font = None;
+            let font = if title.font().is_none() {
+                default_font.replace(style::Font::new(
                     defaults::TITLE_FONT_FAMILY.into(),
                     defaults::TITLE_FONT_SIZE,
                 ));
-            }
-            let font = title.font().cloned().unwrap();
+                default_font.as_ref().unwrap()
+            } else {
+                title.font().unwrap()
+            };
+
             let font_size = font.size();
             let title_rect = geom::Rect::from_xywh(
                 rect.x(),
@@ -39,8 +42,8 @@ where
                 font_size + 2.0 * missing_params::FIG_TITLE_MARGIN,
             );
             let text = render::Text {
-                text: title.text().to_string(),
-                font: title.font().unwrap().clone(),
+                text: title.text(),
+                font,
                 fill: missing_params::FIG_TITLE_COLOR.into(),
                 anchor: render::TextAnchor {
                     pos: title_rect.center(),
