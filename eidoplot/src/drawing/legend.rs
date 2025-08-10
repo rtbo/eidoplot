@@ -7,7 +7,7 @@ use crate::{geom, ir, render, style};
 
 pub enum Shape {
     Line(style::Line),
-    // Rect(style::Fill, Option<style::Line>),
+    Rect(style::Fill, Option<style::Line>),
 }
 
 /// trait implemented by series, or any other item that
@@ -195,16 +195,16 @@ where
                 };
                 self.draw_path(&line)?;
             },
-            // Shape::Rect(fill, line) => {
-            //     let r = geom::Rect::from_ps(geom::Point::new(rect.left(), rect.center_y() - shape_sz.height() / 2.0), shape_sz);
-            //     let rr = render::Rect {
-            //         rect: r,
-            //         fill: Some(fill),
-            //         stroke: line,
-            //         transform: None,
-            //     };
-            //     self.draw_rect(&rr)?;
-            // }
+            Shape::Rect(fill, line) => {
+                let r = geom::Rect::from_ps(geom::Point::new(rect.left(), rect.center_y() - shape_sz.height() / 2.0), shape_sz);
+                let rr = render::Rect {
+                    rect: r,
+                    fill: Some(fill),
+                    stroke: line,
+                    transform: None,
+                };
+                self.draw_rect(&rr)?;
+            }
         };
 
         let pos = geom::Point::new(rect.left() + shape_sz.width() + defaults::LEGEND_SHAPE_SPACING, rect.center_y());

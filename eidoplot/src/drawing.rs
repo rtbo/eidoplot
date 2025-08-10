@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use crate::{data, ir, render, style};
+use crate::{ir, render, style};
 
-mod figure;
 mod fdb;
+mod figure;
 mod legend;
 mod plot;
 mod scale;
-mod ticks;
 mod series;
+mod ticks;
 
 use fdb::FontDb;
 
@@ -26,15 +26,10 @@ impl FigureExt for ir::Figure {
         let fontdb = opts.fontdb.unwrap_or_else(crate::bundled_font_db);
         let fontdb = FontDb::new(fontdb);
         let mut ctx = Ctx::new(surface, fontdb);
-        ctx.draw_figure( self)?;
+        ctx.draw_figure(self)?;
         Ok(())
     }
 }
-
-trait CalcViewBounds {
-    fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds);
-}
-
 
 #[derive(Debug)]
 struct Ctx<'a, S> {

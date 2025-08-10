@@ -1,7 +1,7 @@
 use crate::data;
 use crate::drawing::legend::Legend;
-use crate::drawing::series::series_has_legend;
-use crate::drawing::{CalcViewBounds, Ctx, scale, ticks};
+use crate::drawing::series::{series_has_legend, Series};
+use crate::drawing::{Ctx, scale, ticks};
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
@@ -9,19 +9,6 @@ use crate::render::{self, Surface};
 use crate::style::{self, defaults};
 
 use scale::{CoordMap, CoordMapXy};
-
-impl CalcViewBounds for ir::Plot {
-    fn calc_view_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
-        let mut x_bounds = data::ViewBounds::NAN;
-        let mut y_bounds = data::ViewBounds::NAN;
-        for series in &self.series {
-            let (x, y) = series.calc_view_bounds();
-            x_bounds.add_bounds(x);
-            y_bounds.add_bounds(y);
-        }
-        (x_bounds, y_bounds)
-    }
-}
 
 struct Ticks {
     locs: Vec<f64>,
@@ -70,7 +57,13 @@ fn plot_insets(plot: &ir::Plot) -> (f32, f32) {
     }
 }
 
-fn auto_insets(_plot: &ir::Plot) -> (f32, f32) {
+fn auto_insets(plot: &ir::Plot) -> (f32, f32) {
+    for s in plot.series.iter() {
+        match &s.plot {
+            ir::plot::SeriesPlot::Histogram(..) => return defaults::PLOT_HIST_AUTO_INSETS,
+            _ => (),
+        }
+    }
     defaults::PLOT_XY_AUTO_INSETS
 }
 
@@ -99,16 +92,21 @@ where
     S: render::Surface,
 {
     pub fn draw_plot(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error> {
-        let mut rect = rect.pad(&missing_params::PLOT_PADDING);
+        let rect = {
+            let mut rect = rect.pad(&missing_params::PLOT_PADDING);
 
-        // draw outer legend
-        if let Some(legend) = &plot.legend {
-            if !legend.pos().is_inside() {
-                self.draw_plot_outer_legend(plot, legend, &mut rect)?;
+            // draw outer legend and adjust rect
+            if let Some(legend) = &plot.legend {
+                if !legend.pos().is_inside() {
+                    self.draw_plot_outer_legend(plot, legend, &mut rect)?;
+                }
             }
-        }
+            rect
+        };
 
-        let axes = self.setup_plot_axes(plot, &rect);
+        let series = self.setup_plot_series(plot);
+        let vb = Series::unite_view_bounds(&series);
+        let axes = self.setup_plot_axes(plot, vb, &rect);
 
         let rect = rect
             .shifted_left_side(axes.y_width())
@@ -116,7 +114,7 @@ where
 
         self.draw_plot_background(plot, &rect)?;
         self.draw_grid(&axes, &rect)?;
-        self.draw_plot_series(plot, &rect, &axes)?;
+        self.draw_plot_series(&series, &rect, &axes)?;
         self.draw_x_axis(&axes.x, &rect)?;
         self.draw_y_axis(&axes.y, &rect)?;
         self.draw_plot_border(plot.border.as_ref(), &rect)?;
@@ -124,8 +122,7 @@ where
         Ok(())
     }
 
-    fn setup_plot_axes(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Axes {
-        let vb = plot.calc_view_bounds();
+    fn setup_plot_axes(&mut self, plot: &ir::Plot, vb: (data::ViewBounds, data::ViewBounds), rect: &geom::Rect) -> Axes {
         let insets = plot_insets(plot);
 
         // x-axis height only depends on font size, so it can be computed right-away,
@@ -153,16 +150,18 @@ where
         }
     }
 
-    pub fn calculate_x_axis_height(&self, x_axis: &ir::Axis) -> f32 {
+    fn calculate_x_axis_height(&self, x_axis: &ir::Axis) -> f32 {
         let mut height = 0.0;
         if let Some(ticks) = x_axis.ticks() {
             height +=
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size();
         }
         if let Some(label) = x_axis.label() {
-            let fs = label.font().map(|f| f.size()).unwrap_or(defaults::AXIS_LABEL_FONT_SIZE);
-            height +=
-                2.0 * missing_params::AXIS_LABEL_MARGIN + fs;
+            let fs = label
+                .font()
+                .map(|f| f.size())
+                .unwrap_or(defaults::AXIS_LABEL_FONT_SIZE);
+            height += 2.0 * missing_params::AXIS_LABEL_MARGIN + fs;
         }
         height
     }
@@ -173,7 +172,10 @@ where
     fn calculate_y_axis_width(&self, y_axis: &ir::Axis, y_ticks: Option<&Ticks>) -> f32 {
         let mut width = 0.0;
         if let Some(label) = y_axis.label() {
-            let fs = label.font().map(|f| f.size()).unwrap_or(defaults::AXIS_LABEL_FONT_SIZE);
+            let fs = label
+                .font()
+                .map(|f| f.size())
+                .unwrap_or(defaults::AXIS_LABEL_FONT_SIZE);
             width += 2.0 * missing_params::AXIS_LABEL_MARGIN + fs;
         }
         if let Some(ticks) = y_ticks {
@@ -240,6 +242,13 @@ where
             ticks,
             label,
         }
+    }
+
+    fn setup_plot_series<'b>(&mut self, plot: &'b ir::Plot) -> Vec<Series<'b>> {
+        plot.series
+            .iter()
+            .map(|s| Series::from_ir(s))
+            .collect()
     }
 }
 
@@ -374,7 +383,7 @@ where
 
     fn draw_plot_series(
         &mut self,
-        plot: &ir::Plot,
+        series: &[Series],
         rect: &geom::Rect,
         axes: &Axes,
     ) -> Result<(), S::Error> {
@@ -388,8 +397,8 @@ where
             y: &axes.y,
         };
 
-        for series in &plot.series {
-            self.draw_series_plot(&series.plot, rect, &cm)?;
+        for series in series {
+            self.draw_series_plot(series, rect, &cm)?;
         }
         self.pop_clip()?;
         Ok(())
