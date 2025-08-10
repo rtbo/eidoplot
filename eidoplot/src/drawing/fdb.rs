@@ -24,13 +24,8 @@ impl FontDb {
         I: IntoIterator<Item = L>,
         L: AsRef<str>,
     {
-        let families = parse_font_family(font.family().as_str());
-        let query = fontdb::Query {
-            families: &families,
-            ..Default::default()
-        };
         // FIXME: error mgmt
-        let id = self.0.query(&query).expect("Should find a face");
+        let id = self.query_face(font).expect("Should find a face");
         self.0
             .with_face_data(id, |data, index| {
                 let face = ttf_parser::Face::parse(data, index).unwrap();
@@ -54,6 +49,36 @@ impl FontDb {
                 max_w
             })
             .expect("Should find face data")
+    }
+}
+
+impl FontDb {
+    fn query_face(&self, font: &style::Font) -> Option<fontdb::ID> {
+        let families = parse_font_family(font.family().as_str());
+        let weight = fontdb::Weight(font.weight().0);
+        let stretch = match font.width() {
+            style::font::Width::UltraCondensed => fontdb::Stretch::UltraCondensed,
+            style::font::Width::ExtraCondensed => fontdb::Stretch::ExtraCondensed,
+            style::font::Width::Condensed => fontdb::Stretch::Condensed,
+            style::font::Width::SemiCondensed => fontdb::Stretch::SemiCondensed,
+            style::font::Width::Normal => fontdb::Stretch::Normal,
+            style::font::Width::SemiExpanded => fontdb::Stretch::SemiExpanded,
+            style::font::Width::Expanded => fontdb::Stretch::Expanded,
+            style::font::Width::ExtraExpanded => fontdb::Stretch::ExtraExpanded,
+            style::font::Width::UltraExpanded => fontdb::Stretch::UltraExpanded,
+        };
+        let style = match font.style() {
+            style::font::Style::Normal => fontdb::Style::Normal,
+            style::font::Style::Italic => fontdb::Style::Italic,
+            style::font::Style::Oblique => fontdb::Style::Oblique,
+        };
+        let query = fontdb::Query {
+            families: &families,
+            weight,
+            stretch,
+            style,
+        };
+        self.0.query(&query)
     }
 }
 

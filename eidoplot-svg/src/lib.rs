@@ -94,6 +94,9 @@ impl Surface for SvgSurface {
         let mut node = element::Text::new(text.text)
             .set("font-family", font.family().as_str())
             .set("font-size", font.size())
+            .set("font-weight", font.weight().0)
+            .set("font-style", font_style(font.style()))
+            .set("font-stretch", font_stretch(font.width()))
             .set("fill", color.html())
             .set("x", text.anchor.pos.x())
             .set("y", text.anchor.pos.y())
@@ -224,6 +227,28 @@ fn rectangle_node(rect: &geom::Rect) -> element::Rectangle {
         .set("y", rect.y())
         .set("width", rect.width())
         .set("height", rect.height())
+}
+
+fn font_style(style: style::font::Style) -> &'static str {
+    match style {
+        style::font::Style::Normal => "normal",
+        style::font::Style::Italic => "italic",
+        style::font::Style::Oblique => "oblique",
+    }
+}
+
+fn font_stretch(width: style::font::Width) -> &'static str {
+    match width {
+        style::font::Width::UltraCondensed => "ultra-condensed",
+        style::font::Width::ExtraCondensed => "extra-condensed",
+        style::font::Width::Condensed => "condensed",
+        style::font::Width::SemiCondensed => "semi-condensed",
+        style::font::Width::Normal => "normal",
+        style::font::Width::SemiExpanded => "semi-expanded",
+        style::font::Width::Expanded => "expanded",
+        style::font::Width::ExtraExpanded => "extra-expanded",
+        style::font::Width::UltraExpanded => "ultra-expanded",
+    }
 }
 
 fn text_anchor(align: render::TextAlign) -> &'static str {

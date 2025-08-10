@@ -11,6 +11,13 @@ fn main() {
         .map(|t| (t as f64 * PI / 180.0, (t as f64 * PI / 180.0).sin()))
         .collect();
 
+    let title = ir::Text::new(
+        "Sine wave",
+        style::Font::new("serif".into(), 24.0)
+            .with_style(style::font::Style::Italic)
+            .with_weight(style::font::Weight::BOLD),
+    );
+
     let x_axis = ir::Axis::new(ir::axis::Scale::default())
         .with_label("x".into())
         .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 8 }.into());
@@ -33,10 +40,13 @@ fn main() {
         x_axis,
         y_axis,
         series: vec![series],
+        legend: Some(ir::Legend::default().with_font(
+            style::Font::new("Noto Sans Math".into(), 16.0).with_style(style::font::Style::Italic),
+        )),
         ..ir::Plot::default()
     };
 
-    let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some("Sine wave".into()));
+    let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
 
     save_figure(&fig);
 }
