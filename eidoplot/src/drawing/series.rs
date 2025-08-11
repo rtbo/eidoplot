@@ -40,7 +40,9 @@ where
         cm: &CoordMapXy,
     ) -> Result<(), S::Error> {
         match (&series.ir.plot, &series.plot) {
-            (ir::plot::SeriesPlot::Xy(ir), SeriesPlot::Xy(xy)) => self.draw_series_xy(ir, xy, rect, cm),
+            (ir::plot::SeriesPlot::Xy(ir), SeriesPlot::Xy(xy)) => {
+                self.draw_series_xy(ir, xy, rect, cm)
+            }
             (ir::plot::SeriesPlot::Histogram(ir), SeriesPlot::Histogram(hist)) => {
                 self.draw_series_histogram(ir, hist, rect, cm)
             }
@@ -85,7 +87,7 @@ where
     ) -> Result<(), S::Error> {
         let mut pb = geom::PathBuilder::new();
         let mut x = rect.left() + cm.x.map_coord(hist.bins[0].range.0);
-        let mut y = rect.bottom();
+        let mut y = rect.bottom() - cm.y.map_coord(0.0);
         pb.move_to(x, y);
 
         for bin in hist.bins.iter() {
@@ -94,6 +96,9 @@ where
             x = rect.left() + cm.x.map_coord(bin.range.1);
             pb.line_to(x, y);
         }
+
+        y = rect.bottom() - cm.y.map_coord(0.0);
+        pb.line_to(x, y);
 
         let path = pb.finish().expect("Should be a valid path");
         let path = render::Path {
@@ -205,7 +210,7 @@ impl Histogram {
         };
 
         for x in hist.points.iter() {
-            let idx = ((x - x_bounds.min()) / width).floor() as usize;
+            let idx = (((x - x_bounds.min()) / width).floor() as usize).min(bins.len() - 1);
             bins[idx].value += samp_add;
         }
 
