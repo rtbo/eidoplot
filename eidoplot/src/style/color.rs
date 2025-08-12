@@ -85,6 +85,14 @@ impl Color {
         self.a
     }
 
+    pub const fn opacity(&self) -> Option<f32> {
+        if self.a == 255 {
+            None
+        } else {
+            Some(self.a as f32 / 255.0)
+        }
+    }
+
     pub fn html(&self) -> String {
         format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
     }
@@ -111,6 +119,10 @@ impl Color {
             a: (self.a as f32 * opacity) as u8,
             ..self
         }
+    }
+
+    pub const fn without_opacity(self) -> Self {
+        Color { a: 255, ..self }
     }
 }
 

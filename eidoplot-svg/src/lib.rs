@@ -177,6 +177,9 @@ where
 {
     if let Some(style::Fill::Solid(color)) = fill {
         node.assign("fill", color.html());
+        if let Some(opacity) = color.opacity() {
+            node.assign("fill-opacity", opacity);
+        }
     } else {
         node.assign("fill", "none");
     }
@@ -190,6 +193,9 @@ where
         let w = stroke.width;
         node.assign("stroke", stroke.color.html());
         node.assign("stroke-width", w);
+        if let Some(opacity) = stroke.color.opacity() {
+            node.assign("stroke-opacity", opacity);
+        }
         match stroke.pattern {
             style::LinePattern::Solid => (),
             style::LinePattern::Dot => node.assign("stroke-dasharray", (w, w)),
