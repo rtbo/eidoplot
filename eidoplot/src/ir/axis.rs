@@ -41,6 +41,7 @@ pub mod ticks {
         #[default]
         Auto,
         Prec(usize),
+        Percent,
     }
 
     #[derive(Debug, Clone)]

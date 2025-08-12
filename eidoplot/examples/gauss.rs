@@ -38,7 +38,9 @@ fn main() {
     );
 
     let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("x".into());
-    let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("population density".into());
+    let y_axis = ir::Axis::new(ir::axis::Scale::default())
+        .with_label("population density".into())
+        .with_ticks(ir::axis::Ticks::default().with_formatter(ir::axis::ticks::Formatter::Percent));
 
     let dist_series = ir::Series {
         name: Some("distribution".into()),

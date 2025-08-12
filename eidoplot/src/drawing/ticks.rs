@@ -141,6 +141,7 @@ pub fn label_formatter(ticks: &Ticks, vb: data::ViewBounds) -> Box<dyn LabelForm
     match ticks.formatter() {
         Formatter::Auto => auto_label_formatter(ticks.locator(), vb),
         Formatter::Prec(prec) => Box::new(PrecLabelFormat(*prec)),
+        Formatter::Percent => Box::new(PercentLabelFormat),
     }
 }
 
@@ -178,5 +179,13 @@ impl LabelFormatter for PiMultipleLabelFormat {
     fn format_label(&self, data: f64) -> String {
         let val = data / PI;
         format!("{val:.*}", self.prec)
+    }
+}
+
+struct PercentLabelFormat;
+
+impl LabelFormatter for PercentLabelFormat {
+    fn format_label(&self, data: f64) -> String {
+        format!("{:.0}%", data * 100.0)
     }
 }
