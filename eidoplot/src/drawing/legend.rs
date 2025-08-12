@@ -148,11 +148,11 @@ impl Legend {
     }
 }
 
-impl<'a, S> Ctx<'a, S>
+impl<'a, S, D> Ctx<'a, S, D>
 where
     S: render::Surface,
 {
-    pub fn draw_legend(&mut self, legend: &Legend, top_left: &geom::Point) -> Result<(), S::Error> {
+    pub fn draw_legend(&mut self, legend: &Legend, top_left: &geom::Point) -> Result<(), render::Error> {
         let rect = geom::Rect::from_ps(*top_left, legend.size.unwrap());
         if legend.fill.is_some() || legend.border.is_some() {
             self.draw_rect(&render::Rect {
@@ -170,7 +170,7 @@ where
         Ok(())
     }
 
-    fn draw_legend_entry(&mut self, entry: &LegendEntry, rect: &geom::Rect, font: &style::Font, label_fill: style::Fill) -> Result<(), S::Error> {
+    fn draw_legend_entry(&mut self, entry: &LegendEntry, rect: &geom::Rect, font: &style::Font, label_fill: style::Fill) -> Result<(), render::Error> {
         let rect = geom::Rect::from_xywh(
             rect.left() + entry.x,
             rect.top() + entry.y,

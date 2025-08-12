@@ -1,5 +1,5 @@
 use eidoplot::drawing::{self, FigureExt};
-use eidoplot::{ir, style};
+use eidoplot::{data, ir, style};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 
@@ -7,9 +7,12 @@ use std::sync::Arc;
 use std::{env, f64::consts::PI};
 
 fn main() {
-    let points = (0..=360)
-        .map(|t| (t as f64 * PI / 180.0, (t as f64 * PI / 180.0).sin()))
-        .collect();
+    let x: Vec<f64> = (0..=360).map(|t| t as f64 * PI / 180.0).collect();
+    let y = x.iter().map(|x| x.sin()).collect();
+
+    let data_source = data::VecMapSource::new()
+        .with_col("x".into(), x)
+        .with_col("y".into(), y);
 
     let title = ir::Text::new(
         "Sine wave",
@@ -31,7 +34,7 @@ fn main() {
                 width: 3.0,
                 pattern: style::LinePattern::Solid,
             },
-            points,
+            data: data::Xy::Src("x".to_string(), "y".to_string()),
         }),
     };
 
@@ -48,37 +51,42 @@ fn main() {
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
 
-    save_figure(&fig);
+    save_figure(&fig, &data_source);
 }
 
-fn save_figure(fig: &ir::Figure) {
+fn save_figure<D>(fig: &ir::Figure, data_source: &D) 
+where D: data::Source 
+{
     let fontdb = eidoplot::bundled_font_db();
 
     let mut written = false;
     for arg in env::args() {
         if arg == "png" {
-            write_png(&fig, fontdb.clone());
+            write_png(&fig, data_source, fontdb.clone());
             written = true;
         } else if arg == "svg" {
-            write_svg(&fig);
+            write_svg(&fig, data_source);
             written = true;
         }
     }
     if !written {
-        write_png(&fig, fontdb);
+        write_png(&fig, data_source, fontdb);
     }
 }
 
-fn write_svg(fig: &ir::Figure) {
+fn write_svg<D>(fig: &ir::Figure, data_source: &D)
+where D: data::Source {
     let mut svg = SvgSurface::new(800, 600);
-    fig.draw(&mut svg, drawing::Options::default()).unwrap();
+    fig.draw(&mut svg, data_source, drawing::Options::default()).unwrap();
     svg.save("plot.svg").unwrap();
 }
 
-fn write_png(fig: &ir::Figure, fontdb: Arc<fontdb::Database>) {
+fn write_png<D>(fig: &ir::Figure, data_source: &D, fontdb: Arc<fontdb::Database>)
+where D: data::Source {
     let mut pxl = PxlSurface::new(1600, 1200);
     fig.draw(
         &mut pxl,
+        data_source,
         drawing::Options {
             fontdb: Some(fontdb.clone()),
         },

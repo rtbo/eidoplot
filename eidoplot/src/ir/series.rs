@@ -1,4 +1,4 @@
-use crate::style;
+use crate::{data, style};
 
 #[derive(Debug, Clone)]
 pub struct Series {
@@ -17,7 +17,7 @@ pub enum SeriesPlot {
 #[derive(Debug, Clone)]
 pub struct Xy {
     pub line: style::Line,
-    pub points: Vec<(f64, f64)>,
+    pub data: data::Xy,
 }
 
 #[derive(Debug, Clone)]
@@ -26,5 +26,5 @@ pub struct Histogram {
     pub line: Option<style::Line>,
     pub bins: u32,
     pub density: bool,
-    pub points: Vec<f64>,
+    pub data: data::X,
 }

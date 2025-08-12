@@ -1,7 +1,7 @@
 use crate::data;
 use crate::drawing::legend::Legend;
 use crate::drawing::series::{series_has_legend, Series};
-use crate::drawing::{Ctx, scale, ticks};
+use crate::drawing::{scale, ticks, Ctx, Error};
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
@@ -87,11 +87,12 @@ fn setup_ticks(ticks: &ir::axis::Ticks, vb: data::ViewBounds) -> Ticks {
     }
 }
 
-impl<'a, S> Ctx<'a, S>
+impl<'a, S, D> Ctx<'a, S, D>
 where
     S: render::Surface,
+    D: data::Source,
 {
-    pub fn draw_plot(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error> {
+    pub fn draw_plot(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), Error> {
         let rect = {
             let mut rect = rect.pad(&missing_params::PLOT_PADDING);
 
@@ -104,7 +105,7 @@ where
             rect
         };
 
-        let series = self.setup_plot_series(plot);
+        let series = self.setup_plot_series(plot)?;
         let vb = Series::unite_view_bounds(&series);
         let axes = self.setup_plot_axes(plot, vb, &rect);
 
@@ -244,24 +245,25 @@ where
         }
     }
 
-    fn setup_plot_series<'b>(&mut self, plot: &'b ir::Plot) -> Vec<Series<'b>> {
+    fn setup_plot_series<'b>(&mut self, plot: &'b ir::Plot) -> Result<Vec<Series<'b>>, data::Error> {
         plot.series
             .iter()
-            .map(|s| Series::from_ir(s))
+            .map(|s| Series::from_ir(s, self.data_source()))
             .collect()
     }
 }
 
-impl<'a, S> Ctx<'a, S>
+impl<'a, S, D> Ctx<'a, S, D>
 where
     S: render::Surface,
+    D: data::Source,
 {
     fn draw_plot_outer_legend(
         &mut self,
         plot: &ir::Plot,
         legend: &ir::Legend,
         rect: &mut geom::Rect,
-    ) -> Result<(), S::Error> {
+    ) -> Result<(), render::Error> {
         let mut dlegend = Legend::from_ir(legend, rect.width(), self.fontdb().clone());
         for s in plot.series.iter() {
             if series_has_legend(s) {
@@ -294,7 +296,7 @@ where
         self.draw_legend(&dlegend, &top_left)
     }
 
-    fn draw_plot_background(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), S::Error> {
+    fn draw_plot_background(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), render::Error> {
         if let Some(fill) = plot.fill.as_ref() {
             self.draw_rect(&render::Rect {
                 rect: *rect,
@@ -306,7 +308,7 @@ where
         Ok(())
     }
 
-    fn draw_grid(&mut self, axes: &Axes, rect: &geom::Rect) -> Result<(), S::Error> {
+    fn draw_grid(&mut self, axes: &Axes, rect: &geom::Rect) -> Result<(), render::Error> {
         if let Some(x_ticks) = axes.x.ticks.as_ref() {
             if let Some(x_grid) = x_ticks.grid {
                 let mut pathb = geom::PathBuilder::with_capacity(2, 2);
@@ -352,7 +354,7 @@ where
         &mut self,
         border: Option<&ir::plot::Border>,
         rect: &geom::Rect,
-    ) -> Result<(), S::Error> {
+    ) -> Result<(), render::Error> {
         match border {
             None => Ok(()),
             Some(ir::plot::Border::Box(stroke)) => self.draw_rect(&render::Rect {
@@ -386,7 +388,7 @@ where
         series: &[Series],
         rect: &geom::Rect,
         axes: &Axes,
-    ) -> Result<(), S::Error> {
+    ) -> Result<(), Error> {
         self.push_clip(&render::Clip {
             path: &rect.to_path(),
             transform: None,
@@ -405,11 +407,11 @@ where
     }
 }
 
-impl<'a, S> Ctx<'a, S>
+impl<'a, S, D> Ctx<'a, S, D>
 where
     S: render::Surface,
 {
-    fn draw_x_axis(&mut self, x_axis: &Axis, rect: &geom::Rect) -> Result<(), S::Error> {
+    fn draw_x_axis(&mut self, x_axis: &Axis, rect: &geom::Rect) -> Result<(), render::Error> {
         let mut label_y = rect.bottom() + missing_params::AXIS_LABEL_MARGIN;
         if let Some(x_ticks) = x_axis.ticks.as_ref() {
             self.draw_x_ticks(&rect, x_ticks, x_axis)?;
@@ -439,7 +441,7 @@ where
         rect: &geom::Rect,
         x_ticks: &Ticks,
         x_cm: &dyn scale::CoordMap,
-    ) -> Result<(), S::Error> {
+    ) -> Result<(), render::Error> {
         let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
         self.draw_ticks_path(&x_ticks.locs, x_cm, &transform)?;
 
@@ -498,7 +500,7 @@ where
         Ok(())
     }
 
-    fn draw_y_axis(&mut self, y_axis: &Axis, rect: &geom::Rect) -> Result<(), S::Error>
+    fn draw_y_axis(&mut self, y_axis: &Axis, rect: &geom::Rect) -> Result<(), render::Error>
     where
         S: render::Surface,
     {
@@ -533,7 +535,7 @@ where
         rect: &geom::Rect,
         y_ticks: &Ticks,
         y_cm: &dyn CoordMap,
-    ) -> Result<(), S::Error>
+    ) -> Result<(), render::Error>
     where
         S: render::Surface,
     {
@@ -569,7 +571,7 @@ where
         ticks: &[f64],
         cm: &dyn CoordMap,
         transform: &geom::Transform,
-    ) -> Result<(), S::Error>
+    ) -> Result<(), render::Error>
     where
         S: render::Surface,
     {

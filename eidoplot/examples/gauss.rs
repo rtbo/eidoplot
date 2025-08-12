@@ -1,5 +1,5 @@
 use eidoplot::drawing::{self, FigureExt};
-use eidoplot::{ir, style};
+use eidoplot::{data, ir, style};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 
@@ -26,11 +26,11 @@ fn main() {
         .map(|&x| 1.0 / (SIGMA * (2.0 * PI).sqrt()) * (-0.5 * ((x - MU) / SIGMA).powf(2.0)).exp())
         .collect::<Vec<f64>>();
 
-    let points = x.iter().zip(y.iter()).map(|(&x, &y)| (x, y)).collect();
-
     let mut rng = predictable_rng(None);
     let normal = Normal::new(MU, SIGMA).unwrap();
     let pop = (0..N_POP).map(|_| normal.sample(&mut rng)).collect();
+
+    let data_source = data::VecMapSource::new().with_col("pop".into(), pop);
 
     let title = ir::Text::new(
         format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA),
@@ -53,7 +53,7 @@ fn main() {
                 width: 4.0,
                 pattern: style::LinePattern::Solid,
             },
-            points,
+            data: data::Xy::Inline(x, y),
         }),
     };
     let pop_series = ir::Series {
@@ -63,7 +63,7 @@ fn main() {
             line: None,
             bins: 16,
             density: true,
-            points: pop,
+            data: data::X::Src("pop".into()),
         }),
     };
 
@@ -80,7 +80,7 @@ fn main() {
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
 
-    save_figure(&fig);
+    save_figure(&fig, &data_source);
 }
 
 fn predictable_rng(seed: Option<u64>) -> impl rand::Rng {
@@ -88,34 +88,45 @@ fn predictable_rng(seed: Option<u64>) -> impl rand::Rng {
     rand_chacha::ChaCha8Rng::seed_from_u64(seed)
 }
 
-fn save_figure(fig: &ir::Figure) {
+fn save_figure<D>(fig: &ir::Figure, data_source: &D)
+where
+    D: data::Source,
+{
     let fontdb = eidoplot::bundled_font_db();
 
     let mut written = false;
     for arg in env::args() {
         if arg == "png" {
-            write_png(&fig, fontdb.clone());
+            write_png(&fig, data_source, fontdb.clone());
             written = true;
         } else if arg == "svg" {
-            write_svg(&fig);
+            write_svg(&fig, data_source);
             written = true;
         }
     }
     if !written {
-        write_png(&fig, fontdb);
+        write_png(&fig, data_source, fontdb);
     }
 }
 
-fn write_svg(fig: &ir::Figure) {
+fn write_svg<D>(fig: &ir::Figure, data_source: &D)
+where
+    D: data::Source,
+{
     let mut svg = SvgSurface::new(800, 600);
-    fig.draw(&mut svg, drawing::Options::default()).unwrap();
+    fig.draw(&mut svg, data_source, drawing::Options::default())
+        .unwrap();
     svg.save("plot.svg").unwrap();
 }
 
-fn write_png(fig: &ir::Figure, fontdb: Arc<fontdb::Database>) {
+fn write_png<D>(fig: &ir::Figure, data_source: &D, fontdb: Arc<fontdb::Database>)
+where
+    D: data::Source,
+{
     let mut pxl = PxlSurface::new(1600, 1200);
     fig.draw(
         &mut pxl,
+        data_source,
         drawing::Options {
             fontdb: Some(fontdb.clone()),
         },

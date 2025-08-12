@@ -1,15 +1,17 @@
-use crate::drawing::Ctx;
+use crate::data;
+use crate::drawing::{Ctx, Error};
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
 use crate::render::{self, Surface};
 use crate::style::{self, defaults};
 
-impl<'a, S> Ctx<'a, S>
+impl<'a, S, D> Ctx<'a, S, D>
 where
     S: render::Surface,
+    D: data::Source,
 {
-    pub fn draw_figure(&mut self, fig: &ir::Figure) -> Result<(), S::Error> {
+    pub fn draw_figure(&mut self, fig: &ir::Figure) -> Result<(), Error> {
         self.prepare(fig.size())?;
         if let Some(fill) = fig.fill() {
             self.fill(fill)?;
@@ -65,12 +67,10 @@ where
         &mut self,
         plots: &ir::figure::Plots,
         rect: &geom::Rect,
-    ) -> Result<(), S::Error>
-    where
-        S: render::Surface,
+    ) -> Result<(), Error>
     {
         match plots {
-            ir::figure::Plots::Plot(plot) => self.draw_plot(plot, rect),
+            ir::figure::Plots::Plot(plot) => Ok(self.draw_plot(plot, rect)?),
             ir::figure::Plots::Subplots(subplots) => {
                 let w = (rect.width() - subplots.space * (subplots.cols - 1) as f32)
                     / subplots.cols as f32;

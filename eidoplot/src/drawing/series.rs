@@ -1,5 +1,5 @@
-use crate::data;
-use crate::drawing::{Ctx, legend, scale};
+use crate::data::{self, SourceIterator};
+use crate::drawing::{Ctx, Error, legend, scale};
 use crate::geom;
 use crate::ir;
 use crate::render::{self, Surface};
@@ -29,22 +29,21 @@ impl legend::Entry for ir::Series {
     }
 }
 
-impl<'a, S> Ctx<'a, S>
+impl<'a, S, D> Ctx<'a, S, D>
 where
     S: render::Surface,
+    D: data::Source,
 {
     pub fn draw_series_plot(
         &mut self,
         series: &Series,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), S::Error> {
+    ) -> Result<(), Error> {
         match (&series.ir.plot, &series.plot) {
-            (ir::SeriesPlot::Xy(ir), SeriesPlot::Xy(xy)) => {
-                self.draw_series_xy(ir, xy, rect, cm)
-            }
+            (ir::SeriesPlot::Xy(ir), SeriesPlot::Xy(xy)) => self.draw_series_xy(ir, xy, rect, cm),
             (ir::SeriesPlot::Histogram(ir), SeriesPlot::Histogram(hist)) => {
-                self.draw_series_histogram(ir, hist, rect, cm)
+                Ok(self.draw_series_histogram(ir, hist, rect, cm)?)
             }
             _ => unreachable!("Should be the same plot type"),
         }
@@ -55,10 +54,11 @@ where
         _xy: &Xy,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), S::Error> {
-        let mut pb = geom::PathBuilder::with_capacity(ir.points.len() + 1, ir.points.len());
-        for (i, dp) in ir.points.iter().enumerate() {
-            let (x, y) = cm.map_coord(*dp);
+    ) -> Result<(), Error> {
+        //let mut pb = geom::PathBuilder::with_capacity(ir.points.len() + 1, ir.points.len());
+        let mut pb = geom::PathBuilder::new();
+        for (i, dp) in ir.data.iter_src(self.data_source())?.enumerate() {
+            let (x, y) = cm.map_coord(dp);
             let x = rect.left() + x;
             let y = rect.bottom() - y;
             if i == 0 {
@@ -84,7 +84,7 @@ where
         hist: &Histogram,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), S::Error> {
+    ) -> Result<(), render::Error> {
         let mut pb = geom::PathBuilder::new();
         let mut x = rect.left() + cm.x.map_coord(hist.bins[0].range.0);
         let mut y = rect.bottom() - cm.y.map_coord(0.0);
@@ -118,17 +118,20 @@ pub struct Series<'a> {
 }
 
 impl<'a> Series<'a> {
-    pub fn from_ir(series: &'a ir::Series) -> Self {
+    pub fn from_ir<D>(series: &'a ir::Series, data_source: &D) -> Result<Self, data::Error>
+    where
+        D: data::Source,
+    {
         let processed = match &series.plot {
-            ir::SeriesPlot::Xy(xy) => SeriesPlot::Xy(Xy::from_ir(xy)),
+            ir::SeriesPlot::Xy(xy) => SeriesPlot::Xy(Xy::from_ir(xy, data_source)?),
             ir::SeriesPlot::Histogram(hist) => {
-                SeriesPlot::Histogram(Histogram::from_ir(hist))
+                SeriesPlot::Histogram(Histogram::from_ir(hist, data_source)?)
             }
         };
-        Series {
+        Ok(Series {
             ir: series,
             plot: processed,
-        }
+        })
     }
 
     pub fn view_bounds(&self) -> (data::ViewBounds, data::ViewBounds) {
@@ -160,16 +163,19 @@ struct Xy {
 }
 
 impl Xy {
-    fn from_ir(xy: &ir::series::Xy) -> Self {
+    fn from_ir<D>(xy: &ir::series::Xy, data_source: &D) -> Result<Self, data::Error>
+    where
+        D: data::Source,
+    {
         let mut x_bounds = data::ViewBounds::NAN;
         let mut y_bounds = data::ViewBounds::NAN;
-        for (x, y) in &xy.points {
-            x_bounds.add_point(*x);
-            y_bounds.add_point(*y);
+        for (x, y) in xy.data.iter_src(data_source)? {
+            x_bounds.add_point(x);
+            y_bounds.add_point(y);
         }
-        Xy {
+        Ok(Xy {
             vb: (x_bounds, y_bounds),
-        }
+        })
     }
 }
 
@@ -186,12 +192,17 @@ struct Histogram {
 }
 
 impl Histogram {
-    fn from_ir(hist: &ir::series::Histogram) -> Self {
+    fn from_ir<D>(hist: &ir::series::Histogram, data_source: &D) -> Result<Self, data::Error>
+    where
+        D: data::Source,
+    {
         let mut bins = Vec::with_capacity(hist.bins as usize);
 
         let mut x_bounds = data::ViewBounds::NAN;
-        for x in hist.points.iter() {
-            x_bounds.add_point(*x);
+        let mut len = 0;
+        for x in hist.data.iter_src(data_source)? {
+            x_bounds.add_point(x);
+            len += 1;
         }
         let width = x_bounds.span() / hist.bins as f64;
         let mut val = x_bounds.min();
@@ -204,12 +215,12 @@ impl Histogram {
         }
 
         let samp_add = if hist.density {
-            1.0 / (hist.points.len() as f64 * width)
+            1.0 / (len as f64 * width)
         } else {
             1.0
         };
 
-        for x in hist.points.iter() {
+        for x in hist.data.iter_src(data_source)? {
             let idx = (((x - x_bounds.min()) / width).floor() as usize).min(bins.len() - 1);
             bins[idx].value += samp_add;
         }
@@ -219,9 +230,9 @@ impl Histogram {
             y_bounds.add_point(bin.value);
         }
 
-        Histogram {
+        Ok(Histogram {
             vb: (x_bounds, y_bounds),
             bins,
-        }
+        })
     }
 }

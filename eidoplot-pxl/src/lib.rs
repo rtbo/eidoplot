@@ -48,33 +48,32 @@ impl PxlSurface {
 }
 
 impl render::Surface for PxlSurface {
-    type Error = <SvgSurface as render::Surface>::Error;
 
-    fn prepare(&mut self, size: geom::Size) -> Result<(), Self::Error> {
+    fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
         self.svg.prepare(size)
     }
 
-    fn fill(&mut self, fill: style::Fill) -> Result<(), Self::Error> {
+    fn fill(&mut self, fill: style::Fill) -> Result<(), render::Error> {
         self.svg.fill(fill)
     }
 
-    fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), Self::Error> {
+    fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), render::Error> {
         self.svg.draw_rect(rect)
     }
 
-    fn draw_path(&mut self, path: &render::Path) -> Result<(), Self::Error> {
+    fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
         self.svg.draw_path(path)
     }
 
-    fn draw_text(&mut self, text: &render::Text) -> Result<(), Self::Error> {
+    fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
         self.svg.draw_text(text)
     }
 
-    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), Self::Error> {
+    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
         self.svg.push_clip(clip)
     }
 
-    fn pop_clip(&mut self) -> Result<(), Self::Error> {
+    fn pop_clip(&mut self) -> Result<(), render::Error> {
         self.svg.pop_clip()
     }
 }

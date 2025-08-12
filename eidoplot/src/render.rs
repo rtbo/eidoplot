@@ -1,30 +1,41 @@
+use std::fmt;
+
 use crate::{geom, style};
 
-pub trait Surface {
-    type Error;
+#[derive(Debug)]
+pub enum Error {}
 
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "render error")
+    }
+}
+
+impl std::error::Error for Error {}
+
+pub trait Surface {
     /// Prepare the surface for drawing, with the given size in plot units
-    fn prepare(&mut self, size: geom::Size) -> Result<(), Self::Error>;
+    fn prepare(&mut self, size: geom::Size) -> Result<(), Error>;
 
     /// Fill the entire surface with the given fill pattern
-    fn fill(&mut self, fill: style::Fill) -> Result<(), Self::Error>;
+    fn fill(&mut self, fill: style::Fill) -> Result<(), Error>;
 
     /// Draw a rectangle
-    fn draw_rect(&mut self, rect: &Rect) -> Result<(), Self::Error>;
+    fn draw_rect(&mut self, rect: &Rect) -> Result<(), Error>;
 
     /// Draw a path
-    fn draw_path(&mut self, path: &Path) -> Result<(), Self::Error>;
+    fn draw_path(&mut self, path: &Path) -> Result<(), Error>;
 
     /// Draw some text
-    fn draw_text(&mut self, text: &Text) -> Result<(), Self::Error>;
+    fn draw_text(&mut self, text: &Text) -> Result<(), Error>;
 
     /// Push a clipping path
     /// Subsequent draw operations will be clipped to this path,
     /// until a matching [`pop_clip`] is called
-    fn push_clip(&mut self, clip: &Clip) -> Result<(), Self::Error>;
+    fn push_clip(&mut self, clip: &Clip) -> Result<(), Error>;
 
     /// Pop a clipping path that was pushed previously with [`push_clip`]
-    fn pop_clip(&mut self) -> Result<(), Self::Error>;
+    fn pop_clip(&mut self) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone)]

@@ -1,3 +1,129 @@
+use std::{collections::HashMap, fmt};
+
+#[derive(Debug, Clone)]
+pub enum Error {
+    NoSuchColumn(Vec<String>),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::NoSuchColumn(names) => {
+                if names.len() == 1 {
+                    write!(f, "no such column: {}", names[0])
+                } else if names.len() > 1 {
+                    write!(f, "no such columns: {}", names.join(", "))
+                } else {
+                    unreachable!("names.len() == 0")
+                }
+            }
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+pub trait Source {
+    fn col(&self, name: &str) -> Option<&[f64]>;
+}
+
+pub trait SourceIterator {
+    type Item;
+    fn iter_src<'a, S>(
+        &'a self,
+        source: &'a S,
+    ) -> Result<impl Iterator<Item = Self::Item> + 'a, Error>
+    where
+        S: Source;
+}
+
+#[derive(Debug, Clone)]
+pub enum X {
+    Inline(Vec<f64>),
+    Src(String),
+}
+
+impl SourceIterator for X {
+    type Item = f64;
+
+    fn iter_src<'a, S>(&'a self, source: &'a S) -> Result<impl Iterator<Item = f64> + 'a, Error>
+    where
+        S: Source,
+    {
+        match self {
+            X::Inline(x) => Ok(x.iter().copied()),
+            X::Src(x_col) => source
+                .col(x_col)
+                .ok_or_else(|| Error::NoSuchColumn(vec![x_col.clone()]))
+                .map(|x| x.iter().copied()),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Xy {
+    Inline(Vec<f64>, Vec<f64>),
+    Src(String, String),
+}
+
+impl SourceIterator for Xy {
+    type Item = (f64, f64);
+
+    fn iter_src<'a, S>(
+        &'a self,
+        source: &'a S,
+    ) -> Result<impl Iterator<Item = (f64, f64)> + 'a, Error>
+    where
+        S: Source,
+    {
+        match self {
+            Xy::Inline(x, y) => Ok(x.iter().copied().zip(y.iter().copied())),
+            Xy::Src(x_col, y_col) => match (source.col(&x_col), source.col(&y_col)) {
+                (Some(x), Some(y)) => Ok(x.iter().copied().zip(y.iter().copied())),
+                (x, y) => {
+                    let mut cols = vec![];
+                    if x.is_none() {
+                        cols.push(x_col.clone());
+                    }
+                    if y.is_none() {
+                        cols.push(y_col.clone());
+                    }
+                    Err(Error::NoSuchColumn(cols))
+                }
+            },
+        }
+    }
+}
+
+impl Source for () {
+    fn col(&self, _name: &str) -> Option<&[f64]> {
+        None
+    }
+}
+
+pub struct VecMapSource(HashMap<String, Vec<f64>>);
+
+impl VecMapSource {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn with_col(mut self, name: String, col: Vec<f64>) -> Self {
+        self.add_col(name, col);
+        self
+    }
+
+    pub fn add_col(&mut self, name: String, col: Vec<f64>) {
+        self.0.insert(name, col);
+    }
+}
+
+impl Source for VecMapSource {
+    fn col(&self, name: &str) -> Option<&[f64]> {
+        self.0.get(name).map(Vec::as_slice)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct ViewBounds(f64, f64);
 
@@ -19,7 +145,7 @@ impl From<f64> for ViewBounds {
 
 impl From<(f64, f64)> for ViewBounds {
     fn from(value: (f64, f64)) -> Self {
-        Self(value.0, value.1)
+        Self(value.0.min(value.1), value.0.max(value.1))
     }
 }
 
