@@ -23,9 +23,9 @@ fn main() {
         .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 8 }.into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("y".into());
 
-    let series = ir::plot::Series {
+    let series = ir::Series {
         name: Some("y=sin(x)".into()),
-        plot: ir::plot::SeriesPlot::Xy(ir::plot::XySeries {
+        plot: ir::SeriesPlot::Xy(ir::series::Xy {
             line: style::Line {
                 color: style::color::BLUE,
                 width: 3.0,

@@ -45,9 +45,9 @@ fn main() {
     .with_label("x".into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("population density".into());
 
-    let dist_series = ir::plot::Series {
+    let dist_series = ir::Series {
         name: Some("distribution".into()),
-        plot: ir::plot::SeriesPlot::Xy(ir::plot::XySeries {
+        plot: ir::SeriesPlot::Xy(ir::series::Xy {
             line: style::Line {
                 color: style::color::DARKSLATEBLUE,
                 width: 4.0,
@@ -56,9 +56,9 @@ fn main() {
             points,
         }),
     };
-    let pop_series = ir::plot::Series {
+    let pop_series = ir::Series {
         name: Some("population".into()),
-        plot: ir::plot::SeriesPlot::Histogram(ir::plot::HistogramSeries {
+        plot: ir::SeriesPlot::Histogram(ir::series::Histogram {
             fill: style::color::CORNFLOWERBLUE.with_opacity(0.9).into(),
             line: None,
             bins: 16,

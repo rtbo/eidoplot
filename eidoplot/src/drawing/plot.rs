@@ -60,7 +60,7 @@ fn plot_insets(plot: &ir::Plot) -> (f32, f32) {
 fn auto_insets(plot: &ir::Plot) -> (f32, f32) {
     for s in plot.series.iter() {
         match &s.plot {
-            ir::plot::SeriesPlot::Histogram(..) => return defaults::PLOT_HIST_AUTO_INSETS,
+            ir::series::SeriesPlot::Histogram(..) => return defaults::PLOT_HIST_AUTO_INSETS,
             _ => (),
         }
     }

@@ -1,4 +1,4 @@
-use crate::ir::{Axis, Legend};
+use crate::ir::{Axis, Legend, Series};
 use crate::style;
 use crate::style::color;
 
@@ -54,33 +54,4 @@ impl Default for Plot {
             series: vec![],
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct Series {
-    pub name: Option<String>,
-    pub plot: SeriesPlot,
-}
-
-#[derive(Debug, Clone)]
-pub enum SeriesPlot {
-    /// Plots data in XY space.
-    Xy(XySeries),
-    /// Plots data in histograms
-    Histogram(HistogramSeries),
-}
-
-#[derive(Debug, Clone)]
-pub struct XySeries {
-    pub line: style::Line,
-    pub points: Vec<(f64, f64)>,
-}
-
-#[derive(Debug, Clone)]
-pub struct HistogramSeries {
-    pub fill: style::Fill,
-    pub line: Option<style::Line>,
-    pub bins: u32,
-    pub density: bool,
-    pub points: Vec<f64>,
 }

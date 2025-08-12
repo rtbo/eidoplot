@@ -23,8 +23,8 @@ impl legend::Entry for ir::Series {
 
     fn shape(&self) -> legend::Shape {
         match &self.plot {
-            ir::plot::SeriesPlot::Xy(xy) => legend::Shape::Line(xy.line),
-            ir::plot::SeriesPlot::Histogram(hist) => legend::Shape::Rect(hist.fill, hist.line),
+            ir::SeriesPlot::Xy(xy) => legend::Shape::Line(xy.line),
+            ir::SeriesPlot::Histogram(hist) => legend::Shape::Rect(hist.fill, hist.line),
         }
     }
 }
@@ -40,10 +40,10 @@ where
         cm: &CoordMapXy,
     ) -> Result<(), S::Error> {
         match (&series.ir.plot, &series.plot) {
-            (ir::plot::SeriesPlot::Xy(ir), SeriesPlot::Xy(xy)) => {
+            (ir::SeriesPlot::Xy(ir), SeriesPlot::Xy(xy)) => {
                 self.draw_series_xy(ir, xy, rect, cm)
             }
-            (ir::plot::SeriesPlot::Histogram(ir), SeriesPlot::Histogram(hist)) => {
+            (ir::SeriesPlot::Histogram(ir), SeriesPlot::Histogram(hist)) => {
                 self.draw_series_histogram(ir, hist, rect, cm)
             }
             _ => unreachable!("Should be the same plot type"),
@@ -51,7 +51,7 @@ where
     }
     fn draw_series_xy(
         &mut self,
-        ir: &ir::plot::XySeries,
+        ir: &ir::series::Xy,
         _xy: &Xy,
         rect: &geom::Rect,
         cm: &CoordMapXy,
@@ -80,7 +80,7 @@ where
 
     fn draw_series_histogram(
         &mut self,
-        ir: &ir::plot::HistogramSeries,
+        ir: &ir::series::Histogram,
         hist: &Histogram,
         rect: &geom::Rect,
         cm: &CoordMapXy,
@@ -120,8 +120,8 @@ pub struct Series<'a> {
 impl<'a> Series<'a> {
     pub fn from_ir(series: &'a ir::Series) -> Self {
         let processed = match &series.plot {
-            ir::plot::SeriesPlot::Xy(xy) => SeriesPlot::Xy(Xy::from_ir(xy)),
-            ir::plot::SeriesPlot::Histogram(hist) => {
+            ir::SeriesPlot::Xy(xy) => SeriesPlot::Xy(Xy::from_ir(xy)),
+            ir::SeriesPlot::Histogram(hist) => {
                 SeriesPlot::Histogram(Histogram::from_ir(hist))
             }
         };
@@ -160,7 +160,7 @@ struct Xy {
 }
 
 impl Xy {
-    fn from_ir(xy: &ir::plot::XySeries) -> Self {
+    fn from_ir(xy: &ir::series::Xy) -> Self {
         let mut x_bounds = data::ViewBounds::NAN;
         let mut y_bounds = data::ViewBounds::NAN;
         for (x, y) in &xy.points {
@@ -186,7 +186,7 @@ struct Histogram {
 }
 
 impl Histogram {
-    fn from_ir(hist: &ir::plot::HistogramSeries) -> Self {
+    fn from_ir(hist: &ir::series::Histogram) -> Self {
         let mut bins = Vec::with_capacity(hist.bins as usize);
 
         let mut x_bounds = data::ViewBounds::NAN;
