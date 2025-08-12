@@ -42,5 +42,10 @@ pub const LEGEND_SHAPE_SIZE: geom::Size = geom::Size::new(25.0, 14.0);
 pub const LEGEND_PADDING: f32 = 8.0;
 pub const LEGEND_SPACING: f32 = 16.0;
 
-pub const PLOT_XY_AUTO_INSETS: (f32, f32) = (15.0, 15.0);
-pub const PLOT_HIST_AUTO_INSETS: (f32, f32) = (15.0, 0.0);
+pub const PLOT_XY_AUTO_INSETS: geom::Padding = geom::Padding::Even(15.0);
+pub const PLOT_HIST_AUTO_INSETS: geom::Padding = geom::Padding::Custom {
+    t: 15.0,
+    r: 15.0,
+    b: 0.0,
+    l: 15.0,
+};

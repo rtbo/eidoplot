@@ -4,22 +4,22 @@ pub fn map_scale_coord(
     scale: &axis::Scale,
     mesh_size: f32,
     data_bounds: data::ViewBounds,
-    insets: f32,
+    insets: (f32, f32),
 ) -> Box<dyn CoordMap> {
     match scale {
         axis::Scale::Linear(axis::Range::Auto) => Box::new(LinCoordMap {
-            offset: insets,
-            scale: mesh_size - 2.0 * insets,
+            offset: insets.0,
+            scale: mesh_size - (insets.0 + insets.1),
             vb: data_bounds,
         }),
         axis::Scale::Linear(axis::Range::MinAuto(min)) => Box::new(LinCoordMap {
             offset: 0.0,
-            scale: mesh_size - insets,
+            scale: mesh_size - insets.1,
             vb: (*min, data_bounds.max()).into(),
         }),
         axis::Scale::Linear(axis::Range::AutoMax(max)) => Box::new(LinCoordMap {
-            offset: insets,
-            scale: mesh_size - insets,
+            offset: insets.0,
+            scale: mesh_size - insets.0,
             vb: (data_bounds.min(), *max).into(),
         }),
         axis::Scale::Linear(axis::Range::MinMax(min, max)) => Box::new(LinCoordMap {

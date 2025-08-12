@@ -37,10 +37,7 @@ fn main() {
             .with_weight(style::font::Weight::BOLD),
     );
 
-    let x_axis = ir::Axis::new(ir::axis::Scale::Linear(ir::axis::Range::MinMax(
-        X_MIN, X_MAX,
-    )))
-    .with_label("x".into());
+    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("x".into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("population density".into());
 
     let dist_series = ir::Series {

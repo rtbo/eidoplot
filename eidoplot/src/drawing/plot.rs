@@ -1,7 +1,7 @@
 use crate::data;
 use crate::drawing::legend::Legend;
-use crate::drawing::series::{series_has_legend, Series};
-use crate::drawing::{scale, ticks, Ctx, Error};
+use crate::drawing::series::{Series, series_has_legend};
+use crate::drawing::{Ctx, Error, scale, ticks};
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
@@ -49,15 +49,15 @@ impl Axes {
     }
 }
 
-fn plot_insets(plot: &ir::Plot) -> (f32, f32) {
+fn plot_insets(plot: &ir::Plot) -> geom::Padding {
     match plot.insets {
-        Some(ir::plot::Insets::Fixed(x, y)) => (x, y),
+        Some(ir::plot::Insets::Fixed(x, y)) => geom::Padding::Center { v: y, h: x },
         Some(ir::plot::Insets::Auto) => auto_insets(plot),
-        None => (0.0, 0.0),
+        None => geom::Padding::Even(0.0),
     }
 }
 
-fn auto_insets(plot: &ir::Plot) -> (f32, f32) {
+fn auto_insets(plot: &ir::Plot) -> geom::Padding {
     for s in plot.series.iter() {
         match &s.plot {
             ir::series::SeriesPlot::Histogram(..) => return defaults::PLOT_HIST_AUTO_INSETS,
@@ -123,7 +123,12 @@ where
         Ok(())
     }
 
-    fn setup_plot_axes(&mut self, plot: &ir::Plot, vb: (data::ViewBounds, data::ViewBounds), rect: &geom::Rect) -> Axes {
+    fn setup_plot_axes(
+        &mut self,
+        plot: &ir::Plot,
+        vb: (data::ViewBounds, data::ViewBounds),
+        rect: &geom::Rect,
+    ) -> Axes {
         let insets = plot_insets(plot);
 
         // x-axis height only depends on font size, so it can be computed right-away,
@@ -138,11 +143,21 @@ where
         let x_height = self.calculate_x_axis_height(&plot.x_axis);
         let rect = rect.shifted_bottom_side(-x_height);
 
-        let y_cm = scale::map_scale_coord(plot.y_axis.scale(), rect.height(), vb.1, insets.1);
+        let y_cm = scale::map_scale_coord(
+            plot.y_axis.scale(),
+            rect.height(),
+            vb.1,
+            (insets.bottom(), insets.top()),
+        );
         let y_axis = self.setup_y_axis(&plot.y_axis, y_cm);
         let rect = rect.shifted_left_side(y_axis.ortho_sz);
 
-        let x_cm = scale::map_scale_coord(plot.x_axis.scale(), rect.width(), vb.0, insets.0);
+        let x_cm = scale::map_scale_coord(
+            plot.x_axis.scale(),
+            rect.width(),
+            vb.0,
+            (insets.left(), insets.right()),
+        );
         let x_axis = self.setup_x_axis(&plot.x_axis, x_cm, x_height);
 
         Axes {
@@ -245,7 +260,10 @@ where
         }
     }
 
-    fn setup_plot_series<'b>(&mut self, plot: &'b ir::Plot) -> Result<Vec<Series<'b>>, data::Error> {
+    fn setup_plot_series<'b>(
+        &mut self,
+        plot: &'b ir::Plot,
+    ) -> Result<Vec<Series<'b>>, data::Error> {
         plot.series
             .iter()
             .map(|s| Series::from_ir(s, self.data_source()))
@@ -296,7 +314,11 @@ where
         self.draw_legend(&dlegend, &top_left)
     }
 
-    fn draw_plot_background(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), render::Error> {
+    fn draw_plot_background(
+        &mut self,
+        plot: &ir::Plot,
+        rect: &geom::Rect,
+    ) -> Result<(), render::Error> {
         if let Some(fill) = plot.fill.as_ref() {
             self.draw_rect(&render::Rect {
                 rect: *rect,
