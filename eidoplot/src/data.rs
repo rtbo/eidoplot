@@ -1,4 +1,5 @@
-use std::{collections::HashMap, fmt};
+use std::collections::HashMap;
+use std::fmt;
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -23,8 +24,184 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+#[derive(Debug, Clone, Copy)]
+pub enum Type {
+    F64,
+    I64,
+    Str,
+}
+
+pub trait AsType {
+    fn as_type(&self) -> Type;
+}
+
+impl AsType for f64 {
+    fn as_type(&self) -> Type {
+        Type::F64
+    }
+}
+
+impl AsType for i64 {
+    fn as_type(&self) -> Type {
+        Type::I64
+    }
+}
+
+impl AsType for String {
+    fn as_type(&self) -> Type {
+        Type::Str
+    }
+}
+
+pub trait Column {
+    fn len(&self) -> usize;
+    fn typ(&self) -> Type;
+}
+
+pub struct ArrayCol<T> {
+    data: Vec<T>,
+}
+
+impl<T> ArrayCol<T> {
+    pub fn new(data: Vec<T>) -> Self {
+        Self { data }
+    }
+}
+
+impl<T> AsRef<[T]> for ArrayCol<T> {
+    fn as_ref(&self) -> &[T] {
+        &self.data
+    }
+}
+
+impl<T> Column for ArrayCol<T>
+where
+    T: AsType,
+{
+    fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    fn typ(&self) -> Type {
+        self.data[0].as_type()
+    }
+}
+
+#[derive(Clone)]
+pub enum VecCol {
+    F64(Vec<f64>),
+    I64(Vec<i64>),
+    Str(Vec<String>),
+}
+
+impl fmt::Debug for VecCol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VecCol::F64(x) => {
+                write!(f, "Column::F64(")?;
+                debug_col_vec(f, x)?;
+                write!(f, ")")?;
+                Ok(())
+            }
+            VecCol::I64(x) => {
+                write!(f, "Column::I64(")?;
+                debug_col_vec(f, x)?;
+                write!(f, ")")?;
+                Ok(())
+            }
+            VecCol::Str(x) => {
+                write!(f, "Column::Str(")?;
+                write!(f, "[{} elements]", x.len())?;
+                write!(f, ")")?;
+                Ok(())
+            }
+        }
+    }
+}
+
+fn debug_col_vec<T>(f: &mut fmt::Formatter<'_>, x: &Vec<T>) -> fmt::Result
+where
+    T: fmt::Display + PartialOrd + Copy,
+{
+    if x.is_empty() {
+        write!(f, "[]")?;
+    } else {
+        let (min, max) = get_minmax(x).unwrap();
+        write!(f, "[{} elements, min={}, max={}]", x.len(), min, max)?;
+    }
+    Ok(())
+}
+
+fn get_minmax<T>(x: &[T]) -> Option<(T, T)>
+where
+    T: PartialOrd + Copy,
+{
+    if x.is_empty() {
+        None
+    } else {
+        let mut min = x[0];
+        let mut max = x[0];
+        for v in x[1..].iter().copied() {
+            if v < min {
+                min = v;
+            }
+            if v > max {
+                max = v;
+            }
+        }
+        Some((min, max))
+    }
+}
+
+impl From<Vec<f64>> for VecCol {
+    fn from(value: Vec<f64>) -> Self {
+        Self::F64(value)
+    }
+}
+
+impl From<Vec<i64>> for VecCol {
+    fn from(value: Vec<i64>) -> Self {
+        Self::I64(value)
+    }
+}
+
+impl From<Vec<String>> for VecCol {
+    fn from(value: Vec<String>) -> Self {
+        Self::Str(value)
+    }
+}
+
+pub enum ColumnRef<'a> {
+    F64(&'a [f64]),
+    I64(&'a [i64]),
+    Str(&'a [String]),
+}
+
 pub trait Source {
-    fn col(&self, name: &str) -> Option<&[f64]>;
+    fn col<'a>(&'a self, name: &str) -> Option<&'a [f64]>;
+}
+
+pub struct ColumnMapSource(HashMap<String, VecCol>);
+
+impl ColumnMapSource {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn with_col<C>(mut self, name: String, col: C) -> Self
+    where
+        C: Into<VecCol>,
+    {
+        self.add_col(name, col);
+        self
+    }
+
+    pub fn add_col<C>(&mut self, name: String, col: C)
+    where
+        C: Into<VecCol>,
+    {
+        self.0.insert(name, col.into());
+    }
 }
 
 pub trait SourceIterator {
