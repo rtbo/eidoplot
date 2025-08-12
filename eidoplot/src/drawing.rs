@@ -13,25 +13,22 @@ mod ticks;
 use fdb::FontDb;
 
 #[derive(Debug)]
-pub enum Error 
-{
+pub enum Error {
     Render(render::Error),
     Data(data::Error),
 }
 
-impl From<render::Error> for Error
-{
+impl From<render::Error> for Error {
     fn from(err: render::Error) -> Self {
         Error::Render(err)
     }
 }
 
-impl From<data::Error> for Error 
-{
+impl From<data::Error> for Error {
     fn from(err: data::Error) -> Self {
         Error::Data(err)
     }
-} 
+}
 
 #[derive(Debug, Default, Clone)]
 pub struct Options {

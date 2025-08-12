@@ -56,7 +56,10 @@ impl Default for Legend {
     fn default() -> Self {
         Self {
             pos: Pos::OutBottom,
-            font: style::Font::new(defaults::LEGEND_LABEL_FONT_FAMILY.into(), defaults::LEGEND_LABEL_FONT_SIZE),
+            font: style::Font::new(
+                defaults::LEGEND_LABEL_FONT_FAMILY.into(),
+                defaults::LEGEND_LABEL_FONT_SIZE,
+            ),
             fill: defaults::LEGEND_FILL,
             border: defaults::LEGEND_BORDER,
             label_fill: defaults::LEGEND_LABEL_COLOR.into(),
@@ -99,7 +102,7 @@ impl Legend {
         self.columns
     }
 
-    pub fn padding(&self) -> f32{
+    pub fn padding(&self) -> f32 {
         self.padding
     }
 

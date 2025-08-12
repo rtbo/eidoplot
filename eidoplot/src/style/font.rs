@@ -150,7 +150,13 @@ pub struct Font {
 
 impl Font {
     pub fn new(family: Family, size: f32) -> Self {
-        Font { family, size, weight: Weight::NORMAL, width: Width::Normal, style: Style::Normal }
+        Font {
+            family,
+            size,
+            weight: Weight::NORMAL,
+            width: Width::Normal,
+            style: Style::Normal,
+        }
     }
 
     pub fn with_family(self, family: Family) -> Self {

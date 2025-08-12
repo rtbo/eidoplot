@@ -152,7 +152,11 @@ impl<'a, S, D> Ctx<'a, S, D>
 where
     S: render::Surface,
 {
-    pub fn draw_legend(&mut self, legend: &Legend, top_left: &geom::Point) -> Result<(), render::Error> {
+    pub fn draw_legend(
+        &mut self,
+        legend: &Legend,
+        top_left: &geom::Point,
+    ) -> Result<(), render::Error> {
         let rect = geom::Rect::from_ps(*top_left, legend.size.unwrap());
         if legend.fill.is_some() || legend.border.is_some() {
             self.draw_rect(&render::Rect {
@@ -170,7 +174,13 @@ where
         Ok(())
     }
 
-    fn draw_legend_entry(&mut self, entry: &LegendEntry, rect: &geom::Rect, font: &style::Font, label_fill: style::Fill) -> Result<(), render::Error> {
+    fn draw_legend_entry(
+        &mut self,
+        entry: &LegendEntry,
+        rect: &geom::Rect,
+        font: &style::Font,
+        label_fill: style::Fill,
+    ) -> Result<(), render::Error> {
         let rect = geom::Rect::from_xywh(
             rect.left() + entry.x,
             rect.top() + entry.y,
@@ -183,9 +193,9 @@ where
         match entry.shape {
             Shape::Line(line) => {
                 let mut path = geom::PathBuilder::new();
-                    path.move_to(rect.left(), rect.center_y());
-                    path.line_to(rect.left() + shape_sz.width(), rect.center_y());
-                    let path = path.finish().expect("Should be a valid path");
+                path.move_to(rect.left(), rect.center_y());
+                path.line_to(rect.left() + shape_sz.width(), rect.center_y());
+                let path = path.finish().expect("Should be a valid path");
 
                 let line = render::Path {
                     path: &path,
@@ -194,9 +204,12 @@ where
                     transform: None,
                 };
                 self.draw_path(&line)?;
-            },
+            }
             Shape::Rect(fill, line) => {
-                let r = geom::Rect::from_ps(geom::Point::new(rect.left(), rect.center_y() - shape_sz.height() / 2.0), shape_sz);
+                let r = geom::Rect::from_ps(
+                    geom::Point::new(rect.left(), rect.center_y() - shape_sz.height() / 2.0),
+                    shape_sz,
+                );
                 let rr = render::Rect {
                     rect: r,
                     fill: Some(fill),
@@ -207,7 +220,10 @@ where
             }
         };
 
-        let pos = geom::Point::new(rect.left() + shape_sz.width() + defaults::LEGEND_SHAPE_SPACING, rect.center_y());
+        let pos = geom::Point::new(
+            rect.left() + shape_sz.width() + defaults::LEGEND_SHAPE_SPACING,
+            rect.center_y(),
+        );
         let anchor = render::TextAnchor {
             pos,
             align: render::TextAlign::Start,

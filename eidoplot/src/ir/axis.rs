@@ -159,7 +159,7 @@ pub mod ticks {
 
 pub use ticks::{MinorTicks, Ticks};
 
-use crate::{ir::Text};
+use crate::ir::Text;
 
 #[derive(Debug, Clone)]
 pub struct Axis {
@@ -189,7 +189,10 @@ impl Axis {
     }
 
     pub fn with_label(self, label: Text) -> Self {
-        Self { label: Some(label), ..self }
+        Self {
+            label: Some(label),
+            ..self
+        }
     }
 
     pub fn with_scale(self, scale: Scale) -> Self {
@@ -197,11 +200,17 @@ impl Axis {
     }
 
     pub fn with_ticks(self, ticks: Ticks) -> Self {
-        Self { ticks: Some(ticks), ..self }
+        Self {
+            ticks: Some(ticks),
+            ..self
+        }
     }
 
     pub fn with_minor_ticks(self, minor_ticks: MinorTicks) -> Self {
-        Self { minor_ticks: Some(minor_ticks), ..self }
+        Self {
+            minor_ticks: Some(minor_ticks),
+            ..self
+        }
     }
 
     pub fn label(&self) -> Option<&Text> {

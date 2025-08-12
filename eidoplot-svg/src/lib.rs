@@ -44,7 +44,6 @@ impl SvgSurface {
 }
 
 impl Surface for SvgSurface {
-
     /// Prepare the surface for drawing, with the given width and height in plot units
     fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
         self.doc

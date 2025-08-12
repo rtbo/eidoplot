@@ -8,8 +8,9 @@ use eidoplot_svg::SvgSurface;
 use std::env;
 use std::sync::Arc;
 
-pub fn save_figure<D>(fig: &ir::Figure, data_source: &D) 
-where D: data::Source 
+pub fn save_figure<D>(fig: &ir::Figure, data_source: &D)
+where
+    D: data::Source,
 {
     let fontdb = eidoplot::bundled_font_db();
 
@@ -29,14 +30,19 @@ where D: data::Source
 }
 
 fn write_svg<D>(fig: &ir::Figure, data_source: &D)
-where D: data::Source {
+where
+    D: data::Source,
+{
     let mut svg = SvgSurface::new(800, 600);
-    fig.draw(&mut svg, data_source, drawing::Options::default()).unwrap();
+    fig.draw(&mut svg, data_source, drawing::Options::default())
+        .unwrap();
     svg.save("plot.svg").unwrap();
 }
 
 fn write_png<D>(fig: &ir::Figure, data_source: &D, fontdb: Arc<fontdb::Database>)
-where D: data::Source {
+where
+    D: data::Source,
+{
     let mut pxl = PxlSurface::new(1600, 1200);
     fig.draw(
         &mut pxl,

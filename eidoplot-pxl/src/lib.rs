@@ -48,7 +48,6 @@ impl PxlSurface {
 }
 
 impl render::Surface for PxlSurface {
-
     fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
         self.svg.prepare(size)
     }

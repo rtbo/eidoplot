@@ -24,7 +24,6 @@ where
         }
 
         if let Some(title) = fig.title() {
-
             let mut default_font = None;
             let font = if title.font().is_none() {
                 default_font.replace(style::Font::new(
@@ -67,8 +66,7 @@ where
         &mut self,
         plots: &ir::figure::Plots,
         rect: &geom::Rect,
-    ) -> Result<(), Error>
-    {
+    ) -> Result<(), Error> {
         match plots {
             ir::figure::Plots::Plot(plot) => Ok(self.draw_plot(plot, rect)?),
             ir::figure::Plots::Subplots(subplots) => {

@@ -1,5 +1,5 @@
 use crate::geom;
-use crate::ir::{Plot, Legend, Text};
+use crate::ir::{Legend, Plot, Text};
 use crate::style::{self, color, defaults};
 
 #[derive(Debug, Clone)]
