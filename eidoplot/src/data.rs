@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+#[cfg(feature = "polars")]
+pub mod polars;
 
 /// Trait for a column of a specific type
 pub trait Column {
@@ -92,6 +94,16 @@ pub trait StrColumn {
 
     fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_>;
 }
+
+/// Trait for a table-like data source
+pub trait Source {
+    fn column_names(&self) -> Vec<&str>;
+    fn column(&self, name: &str) -> Option<&dyn Column>;
+    fn len(&self) -> usize;
+}
+
+
+// Simple vector base implementation
 
 #[derive(Debug, Clone)]
 pub enum VecColumn {
@@ -221,13 +233,6 @@ impl StrColumn for Vec<&str> {
     fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
         Box::new(self.as_slice().iter().map(|s| Some(*s)))
     }
-}
-
-/// Trait for a table-like data source
-pub trait Source {
-    fn column_names(&self) -> Vec<&str>;
-    fn column(&self, name: &str) -> Option<&dyn Column>;
-    fn len(&self) -> usize;
 }
 
 pub struct VecSource {
