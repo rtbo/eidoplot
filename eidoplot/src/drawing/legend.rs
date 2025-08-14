@@ -1,7 +1,6 @@
 use std::num::NonZeroU32;
 
 use crate::drawing::{Ctx, FontDb};
-use crate::render::Surface;
 use crate::style::defaults;
 use crate::{geom, ir, render, style};
 
@@ -148,18 +147,19 @@ impl Legend {
     }
 }
 
-impl<'a, S, D> Ctx<'a, S, D>
-where
-    S: render::Surface,
-{
-    pub fn draw_legend(
-        &mut self,
+impl<'d, D> Ctx<'d, D> {
+    pub fn draw_legend<S>(
+        &self,
+        surface: &mut S,
         legend: &Legend,
         top_left: &geom::Point,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
         let rect = geom::Rect::from_ps(*top_left, legend.size.unwrap());
         if legend.fill.is_some() || legend.border.is_some() {
-            self.draw_rect(&render::Rect {
+            surface.draw_rect(&render::Rect {
                 rect,
                 fill: legend.fill,
                 stroke: legend.border,
@@ -168,19 +168,23 @@ where
         }
 
         for entry in &legend.entries {
-            self.draw_legend_entry(entry, &rect, &legend.font, legend.label_fill)?;
+            self.draw_legend_entry(surface, entry, &rect, &legend.font, legend.label_fill)?;
         }
 
         Ok(())
     }
 
-    fn draw_legend_entry(
-        &mut self,
+    fn draw_legend_entry<S>(
+        &self,
+        surface: &mut S,
         entry: &LegendEntry,
         rect: &geom::Rect,
         font: &style::Font,
         label_fill: style::Fill,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
         let rect = geom::Rect::from_xywh(
             rect.left() + entry.x,
             rect.top() + entry.y,
@@ -203,7 +207,7 @@ where
                     stroke: Some(line),
                     transform: None,
                 };
-                self.draw_path(&line)?;
+                surface.draw_path(&line)?;
             }
             Shape::Rect(fill, line) => {
                 let r = geom::Rect::from_ps(
@@ -216,7 +220,7 @@ where
                     stroke: line,
                     transform: None,
                 };
-                self.draw_rect(&rr)?;
+                surface.draw_rect(&rr)?;
             }
         };
 
@@ -236,7 +240,7 @@ where
             fill: label_fill,
             transform: None,
         };
-        self.draw_text(&text)?;
+        surface.draw_text(&text)?;
 
         Ok(())
     }

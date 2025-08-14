@@ -1,7 +1,8 @@
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 
-use crate::{data, ir, render, style};
+use crate::{data, ir, render};
 
+mod axis;
 mod fdb;
 mod figure;
 mod legend;
@@ -15,7 +16,10 @@ use fdb::FontDb;
 #[derive(Debug)]
 pub enum Error {
     Render(render::Error),
-    Data(data::Error),
+    MissingDataSrc(String),
+    UnboundedAxis,
+    InconsistentAxisBounds(String),
+    InconsistentData(String),
 }
 
 impl From<render::Error> for Error {
@@ -24,11 +28,21 @@ impl From<render::Error> for Error {
     }
 }
 
-impl From<data::Error> for Error {
-    fn from(err: data::Error) -> Self {
-        Error::Data(err)
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::Render(err) => err.fmt(f),
+            Error::MissingDataSrc(name) => write!(f, "Missing data source: {}", name),
+            Error::UnboundedAxis => write!(f, "Unbounded axis, check data"),
+            Error::InconsistentAxisBounds(reason) => {
+                write!(f, "Inconsistent axis bounds: {}", reason)
+            }
+            Error::InconsistentData(reason) => write!(f, "Inconsistent data: {}", reason),
+        }
     }
 }
+
+impl std::error::Error for Error {}
 
 #[derive(Debug, Default, Clone)]
 pub struct Options {
@@ -50,29 +64,27 @@ impl FigureExt for ir::Figure {
     {
         let fontdb = opts.fontdb.unwrap_or_else(crate::bundled_font_db);
         let fontdb = FontDb::new(fontdb);
-        let mut ctx = Ctx::new(surface, data_source, fontdb);
-        ctx.draw_figure(self)?;
+        let ctx = Ctx::new(data_source, fontdb);
+        ctx.draw_figure(surface, self)?;
         Ok(())
     }
 }
 
 #[derive(Debug)]
-struct Ctx<'a, S, D> {
-    surface: &'a mut S,
+struct Ctx<'a, D> {
     data_source: &'a D,
     fontdb: FontDb,
 }
 
-impl<'a, S, D> Ctx<'a, S, D> {
-    pub fn new(surface: &'a mut S, data_source: &'a D, fontdb: FontDb) -> Ctx<'a, S, D> {
+impl<'a, D> Ctx<'a, D> {
+    pub fn new(data_source: &'a D, fontdb: FontDb) -> Ctx<'a, D> {
         Ctx {
-            surface,
             data_source,
             fontdb,
         }
     }
 
-    pub fn data_source(&self) -> &D {
+    pub fn data_source(&self) -> &'a D {
         self.data_source
     }
 
@@ -81,35 +93,10 @@ impl<'a, S, D> Ctx<'a, S, D> {
     }
 }
 
-impl<'a, S, D> render::Surface for Ctx<'a, S, D>
-where
-    S: render::Surface,
-{
-    fn prepare(&mut self, size: crate::geom::Size) -> Result<(), render::Error> {
-        self.surface.prepare(size)
-    }
-
-    fn fill(&mut self, fill: style::Fill) -> Result<(), render::Error> {
-        self.surface.fill(fill)
-    }
-
-    fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), render::Error> {
-        self.surface.draw_rect(rect)
-    }
-
-    fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
-        self.surface.draw_path(path)
-    }
-
-    fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
-        self.surface.draw_text(text)
-    }
-
-    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
-        self.surface.push_clip(clip)
-    }
-
-    fn pop_clip(&mut self) -> Result<(), render::Error> {
-        self.surface.pop_clip()
+trait F64ColumnExt: data::F64Column {
+    fn bounds(&self) -> Option<axis::NumBounds> {
+        self.minmax().map(|mm| mm.into())
     }
 }
+
+impl<T> F64ColumnExt for T where T: data::F64Column + ?Sized {}

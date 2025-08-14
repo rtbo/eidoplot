@@ -1,6 +1,12 @@
 use crate::{data, style};
 
 #[derive(Debug, Clone)]
+pub enum DataCol {
+    Inline(data::VecColumn),
+    SrcRef(String),
+}
+
+#[derive(Debug, Clone)]
 pub struct Series {
     pub name: Option<String>,
     pub plot: SeriesPlot,
@@ -17,7 +23,8 @@ pub enum SeriesPlot {
 #[derive(Debug, Clone)]
 pub struct Xy {
     pub line: style::Line,
-    pub data: data::Xy,
+    pub x_data: DataCol,
+    pub y_data: DataCol,
 }
 
 #[derive(Debug, Clone)]
@@ -26,5 +33,5 @@ pub struct Histogram {
     pub line: Option<style::Line>,
     pub bins: u32,
     pub density: bool,
-    pub data: data::X,
+    pub data: DataCol,
 }

@@ -8,7 +8,7 @@ authors = ["Rémi THEBAULT"]
 edition = "2024"
 
 [workspace.dependencies]
+fontdb = "0.23.0"
+rustybuzz = "0.20.1"
 tiny-skia = "0.11.4"
 tiny-skia-path = "0.11.4"
-fontdb = "0.23.0"
-
