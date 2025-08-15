@@ -1,78 +1,297 @@
 use std::{io, sync::Arc};
 
+use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
+
 use eidoplot::{geom, render, style};
 
-use eidoplot_svg::SvgSurface;
+mod font;
 
+use font::DatabaseExt;
+
+#[derive(Debug, Clone)]
 pub struct PxlSurface {
-    width: u32,
-    height: u32,
-    svg: SvgSurface,
+    pixmap: Pixmap,
+    state: State,
 }
 
 impl PxlSurface {
-    pub fn new(width: u32, height: u32) -> Self {
-        PxlSurface {
+    pub fn new(width: u32, height: u32, fontdb: Option<Arc<font::Database>>) -> Option<Self> {
+        let pixmap = Pixmap::new(width, height)?;
+        let state = State::new(width, height, fontdb);
+        Some(Self { pixmap, state })
+    }
+
+    pub fn save_png(&self, path: &str) -> io::Result<()> {
+        self.pixmap.save_png(path)?;
+        Ok(())
+    }
+}
+
+pub struct PxlSurfaceRef<'a> {
+    pixmap: PixmapMut<'a>,
+    state: State,
+}
+
+impl<'a> PxlSurfaceRef<'a> {
+    pub fn from_pixmap_mut(pixmap: PixmapMut<'a>, fontdb: Option<Arc<font::Database>>) -> Self {
+        let state = State::new(pixmap.width(), pixmap.height(), fontdb);
+        Self { pixmap, state }
+    }
+
+    pub fn from_bytes(
+        bytes: &'a mut [u8],
+        width: u32,
+        height: u32,
+        fontdb: Option<Arc<font::Database>>,
+    ) -> Option<Self> {
+        let pixmap = PixmapMut::from_bytes(bytes, width, height)?;
+        let state = State::new(pixmap.width(), pixmap.height(), fontdb);
+        Some(Self { pixmap, state })
+    }
+
+    pub fn save_png(&self, path: &str) -> io::Result<()> {
+        self.pixmap.as_ref().save_png(path)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+struct State {
+    width: u32,
+    height: u32,
+    fontdb: Arc<font::Database>,
+    transform: geom::Transform,
+    clip: Option<Mask>,
+    // to recycle text path builder allocation
+    text_pb: Option<geom::PathBuilder>,
+}
+
+impl State {
+    fn new(width: u32, height: u32, fontdb: Option<Arc<font::Database>>) -> Self {
+        let fontdb = fontdb.unwrap_or_else(eidoplot::font::bundled_db);
+        Self {
             width,
             height,
-            svg: SvgSurface::new(width, height),
+            fontdb,
+            transform: geom::Transform::identity(),
+            clip: None,
+            text_pb: None,
         }
     }
 
-    pub fn save(&self, path: &str, fontdb: Option<Arc<fontdb::Database>>) -> io::Result<()> {
-        use io::BufWriter;
+    fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
+        let sx = self.width as f32 / size.width();
+        let sy = self.height as f32 / size.height();
+        self.transform = geom::Transform::from_scale(sx, sy);
+        Ok(())
+    }
 
-        let mut buf = BufWriter::new(Vec::new());
-        self.svg.write(&mut buf)?;
-        let data = buf.into_inner()?;
-
-        let mut opt = usvg::Options::default();
-        if let Some(fontdb) = fontdb {
-            opt.fontdb = fontdb;
-        } else {
-            opt.fontdb_mut().load_system_fonts();
+    fn fill(&mut self, px: &mut PixmapMut<'_>, fill: style::Fill) -> Result<(), render::Error> {
+        match fill {
+            style::Fill::Solid(color) => {
+                let color = ts_color(color);
+                px.fill(color);
+            }
         }
+        Ok(())
+    }
 
-        let tree = usvg::Tree::from_data(&data, &opt).expect("Should be valid SVG");
+    fn draw_rect(
+        &mut self,
+        px: &mut PixmapMut<'_>,
+        rect: &render::Rect,
+    ) -> Result<(), render::Error> {
+        let path = rect.rect.to_path();
+        let path = render::Path {
+            path: &path,
+            fill: rect.fill,
+            stroke: rect.stroke,
+            transform: rect.transform,
+        };
+        self.draw_path(px, &path)?;
+        Ok(())
+    }
 
-        let mut pixmap = tiny_skia::Pixmap::new(self.width, self.height).unwrap();
-        resvg::render(
-            &tree,
-            tiny_skia::Transform::identity(),
-            &mut pixmap.as_mut(),
+    fn draw_path(
+        &mut self,
+        px: &mut PixmapMut<'_>,
+        path: &render::Path,
+    ) -> Result<(), render::Error> {
+        let transform = path
+            .transform
+            .map(|t| t.post_concat(self.transform))
+            .unwrap_or(self.transform);
+
+        if let Some(fill) = path.fill {
+            let mut paint = tiny_skia::Paint::default();
+            ts_fill(fill, &mut paint);
+            px.fill_path(
+                path.path,
+                &paint,
+                tiny_skia::FillRule::Winding,
+                transform,
+                self.clip.as_ref(),
+            );
+        }
+        if let Some(stroke) = path.stroke {
+            let mut paint = tiny_skia::Paint::default();
+            let stroke = ts_stroke(stroke, &mut paint);
+            px.stroke_path(path.path, &paint, &stroke, transform, self.clip.as_ref());
+        }
+        Ok(())
+    }
+
+    fn draw_text(
+        &mut self,
+        px: &mut PixmapMut<'_>,
+        text: &render::Text,
+    ) -> Result<(), render::Error> {
+        let ts_text = text
+            .transform
+            .map(|t| t.post_concat(self.transform))
+            .unwrap_or(self.transform);
+
+        let pb_reuse = self.text_pb.take();
+
+        let outlined = self.fontdb.outline_text(text.text, text.font, pb_reuse);
+
+        let ts_anchor = outlined.anchor_transform(text.anchor); 
+
+        let outline = outlined.into_path();
+        let outline = outline.transform(ts_anchor).unwrap();
+
+        let mut paint = tiny_skia::Paint::default();
+        ts_fill(text.fill, &mut paint);
+        px.fill_path(
+            &outline,
+            &paint,
+            tiny_skia::FillRule::Winding,
+            ts_text,
+            self.clip.as_ref(),
         );
-        pixmap.save_png(path)?;
 
+        self.text_pb.replace(outline.clear());
+
+        Ok(())
+    }
+
+    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
+        if self.clip.is_some() {
+            unimplemented!("clip with more than 1 layer");
+        } else {
+            let mut mask = Mask::new(self.width, self.height).unwrap();
+            let transform = clip
+                .transform
+                .map(|t| t.post_concat(self.transform))
+                .unwrap_or(self.transform);
+            mask.fill_path(&clip.path, FillRule::Winding, true, transform);
+            self.clip = Some(mask);
+        }
+        Ok(())
+    }
+
+    fn pop_clip(&mut self) -> Result<(), render::Error> {
+        self.clip = None;
         Ok(())
     }
 }
 
 impl render::Surface for PxlSurface {
     fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
-        self.svg.prepare(size)
+        self.state.prepare(size)
     }
 
     fn fill(&mut self, fill: style::Fill) -> Result<(), render::Error> {
-        self.svg.fill(fill)
+        let mut px = self.pixmap.as_mut();
+        self.state.fill(&mut px, fill)
     }
 
     fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), render::Error> {
-        self.svg.draw_rect(rect)
+        let mut px = self.pixmap.as_mut();
+        self.state.draw_rect(&mut px, rect)
     }
 
     fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
-        self.svg.draw_path(path)
+        let mut px = self.pixmap.as_mut();
+        self.state.draw_path(&mut px, path)
     }
 
     fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
-        self.svg.draw_text(text)
+        let mut px = self.pixmap.as_mut();
+        self.state.draw_text(&mut px, text)
     }
 
     fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
-        self.svg.push_clip(clip)
+        self.state.push_clip(clip)
     }
 
     fn pop_clip(&mut self) -> Result<(), render::Error> {
-        self.svg.pop_clip()
+        self.state.pop_clip()
     }
+}
+
+impl render::Surface for PxlSurfaceRef<'_> {
+    fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
+        self.state.prepare(size)
+    }
+
+    fn fill(&mut self, fill: style::Fill) -> Result<(), render::Error> {
+        self.state.fill(&mut self.pixmap, fill)
+    }
+
+    fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), render::Error> {
+        self.state.draw_rect(&mut self.pixmap, rect)
+    }
+
+    fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
+        self.state.draw_path(&mut self.pixmap, path)
+    }
+
+    fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
+        self.state.draw_text(&mut self.pixmap, text)
+    }
+
+    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
+        self.state.push_clip(clip)
+    }
+
+    fn pop_clip(&mut self) -> Result<(), render::Error> {
+        self.state.pop_clip()
+    }
+}
+
+fn ts_color(color: style::Color) -> tiny_skia::Color {
+    tiny_skia::Color::from_rgba8(color.red(), color.green(), color.blue(), color.alpha())
+}
+
+fn ts_fill(fill: style::Fill, paint: &mut tiny_skia::Paint) {
+    paint.colorspace = tiny_skia::ColorSpace::Linear;
+    match fill {
+        style::Fill::Solid(color) => {
+            let color = ts_color(color);
+            paint.set_color(color);
+        }
+    }
+}
+
+fn ts_stroke(stroke: style::Line, paint: &mut tiny_skia::Paint) -> tiny_skia::Stroke {
+    let color = ts_color(stroke.color);
+    paint.colorspace = tiny_skia::ColorSpace::SimpleSRGB;
+    paint.set_color(color);
+
+    let mut ts = tiny_skia::Stroke {
+        width: stroke.width,
+        ..Default::default()
+    };
+
+    match stroke.pattern {
+        style::LinePattern::Solid => (),
+        style::LinePattern::Dash(dash) => {
+            ts.dash = tiny_skia::StrokeDash::new(vec![dash.0, dash.1], 0.0);
+        }
+        style::LinePattern::Dot => {
+            ts.dash = tiny_skia::StrokeDash::new(vec![1.0, 1.0], 0.0);
+        }
+    }
+    ts
 }

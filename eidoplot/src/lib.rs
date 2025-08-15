@@ -1,14 +1,12 @@
 pub mod data;
 pub mod drawing;
+pub mod font;
 pub mod geom;
 pub mod ir;
 pub mod render;
 pub mod style;
-mod fdb;
 
-use std::{path, sync::Arc};
-
-pub use fdb::FontDb;
+use std::path;
 
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters
@@ -36,22 +34,4 @@ fn resource_folder() -> path::PathBuf {
         .parent()
         .unwrap()
         .join("share")
-}
-
-/// Loads fonts that are bundled with eidoplot
-/// and returns an Arc to the database.
-pub fn bundled_font_db() -> Arc<fontdb::Database> {
-    const FONTDB_FAMILY_SANS: &str = "Noto Sans";
-    const FONTDB_FAMILY_SERIF: &str = "Noto Serif";
-    const FONTDB_FAMILY_MONO: &str = "Noto Mono";
-
-    let res_dir = resource_folder();
-
-    let mut db = fontdb::Database::new();
-    db.load_fonts_dir(&res_dir);
-    db.set_sans_serif_family(FONTDB_FAMILY_SANS);
-    db.set_serif_family(FONTDB_FAMILY_SERIF);
-    db.set_monospace_family(FONTDB_FAMILY_MONO);
-
-    Arc::new(db)
 }

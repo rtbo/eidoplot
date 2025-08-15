@@ -1,5 +1,6 @@
 use eidoplot::data;
 use eidoplot::drawing::{self, SurfaceExt};
+use eidoplot::font;
 use eidoplot::ir;
 
 use eidoplot_pxl::PxlSurface;
@@ -12,7 +13,7 @@ pub fn save_figure<D>(fig: &ir::Figure, data_source: &D)
 where
     D: data::Source,
 {
-    let fontdb = eidoplot::bundled_font_db();
+    let fontdb = font::bundled_db();
 
     let mut written = false;
     for arg in env::args() {
@@ -39,11 +40,11 @@ where
     svg.save("plot.svg").unwrap();
 }
 
-fn write_png<D>(fig: &ir::Figure, data_source: &D, fontdb: Arc<fontdb::Database>)
+fn write_png<D>(fig: &ir::Figure, data_source: &D, fontdb: Arc<font::Database>)
 where
     D: data::Source,
 {
-    let mut pxl = PxlSurface::new(1600, 1200);
+    let mut pxl = PxlSurface::new(1600, 1200, Some(fontdb.clone())).unwrap();
     pxl.draw_figure(
         fig,
         data_source,
@@ -52,5 +53,5 @@ where
         },
     )
     .unwrap();
-    pxl.save("plot.png", Some(fontdb)).unwrap();
+    pxl.save_png("plot.png").unwrap();
 }

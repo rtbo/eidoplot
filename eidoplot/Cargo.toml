@@ -6,19 +6,9 @@ edition.workspace = true
 
 [dependencies]
 fontdb.workspace = true
-rustybuzz = "0.20.1"
-polars = { version = "0.50.0", features = ["lazy"], optional = true }
+rustybuzz.workspace = true
 tiny-skia-path.workspace = true
-
-[[example]]
-name="sine"
-
-[[example]]
-name="gauss"
-
-[[example]]
-name="polars"
-required-features = ["polars"]
+polars = { version = "0.50.0", features = ["lazy"], optional = true }
 
 [dev-dependencies]
 eidoplot-svg = { path = "../eidoplot-svg" }
@@ -29,3 +19,13 @@ rand_chacha = "0.9.0"
 
 [features]
 polars = ["dep:polars"]
+
+[[example]]
+name="sine"
+
+[[example]]
+name="gauss"
+
+[[example]]
+name="polars"
+required-features = ["polars"]

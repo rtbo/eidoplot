@@ -2,6 +2,7 @@ use crate::data;
 use crate::drawing::legend::Legend;
 use crate::drawing::series::{Series, series_has_legend};
 use crate::drawing::{Ctx, Error, SurfWrapper, axis, scale, ticks};
+use crate::font::DatabaseExt;
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
@@ -565,7 +566,7 @@ where
 
             let tx = rect.left() - y_axis.ortho_sz + missing_params::AXIS_LABEL_MARGIN;
             let ty = rect.center_y();
-            let transform = geom::Transform::from_translate(tx, ty).pre_rotate(90.0);
+            let transform = geom::Transform::from_translate(tx, ty).pre_rotate(-90.0);
             let text = render::Text {
                 text: label.0.as_str(),
                 font: &label.1,

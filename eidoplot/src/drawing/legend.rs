@@ -1,6 +1,8 @@
 use std::num::NonZeroU32;
+use std::sync::Arc;
 
-use crate::drawing::{FontDb, SurfWrapper};
+use crate::drawing::SurfWrapper;
+use crate::font::{self, DatabaseExt};
 use crate::render::{self, Surface as _};
 use crate::style::defaults;
 use crate::{geom, ir, style};
@@ -48,14 +50,14 @@ pub struct Legend {
     padding: f32,
 
     avail_width: f32,
-    fontdb: FontDb,
+    fontdb: Arc<font::Database>,
     entries: Vec<LegendEntry>,
 
     size: Option<geom::Size>,
 }
 
 impl Legend {
-    pub fn from_ir(legend: &ir::Legend, avail_width: f32, fontdb: FontDb) -> Legend {
+    pub fn from_ir(legend: &ir::Legend, avail_width: f32, fontdb: Arc<font::Database>) -> Legend {
         let mut columns = legend.columns();
         if columns.is_none() && legend.pos().prefers_vertical() {
             columns.replace(NonZeroU32::new(1).unwrap());
