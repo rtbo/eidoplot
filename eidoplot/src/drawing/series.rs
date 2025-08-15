@@ -1,8 +1,8 @@
 use crate::data;
-use crate::drawing::{Ctx, Error, F64ColumnExt, axis, legend, scale};
+use crate::drawing::{Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, scale};
 use crate::geom;
 use crate::ir;
-use crate::render;
+use crate::render::{self, Surface as _};
 
 use scale::CoordMapXy;
 
@@ -65,9 +65,7 @@ impl Series {
                 SeriesPlot::Histogram(Histogram::from_ir(hist, data_source)?)
             }
         };
-        Ok(Series {
-            plot: processed,
-        })
+        Ok(Series { plot: processed })
     }
 
     pub fn bounds(&self) -> (axis::Bounds, axis::Bounds) {
@@ -92,25 +90,27 @@ impl Series {
     }
 }
 
-impl<'d, D> Ctx<'d, D>
+impl<S: ?Sized> SurfWrapper<'_, S>
 where
-    D: data::Source,
+    S: render::Surface,
 {
-    pub fn draw_series_plot<S>(
-        &self,
-        surface: &mut S,
+    pub fn draw_series_plot<D>(
+        &mut self,
+        ctx: &Ctx<D>,
         ir_series: &ir::Series,
         series: &Series,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), Error> 
-    where 
-        S: render::Surface,
+    ) -> Result<(), Error>
+    where
+        D: data::Source,
     {
         match (&ir_series.plot, &series.plot) {
-            (ir::SeriesPlot::Xy(ir), SeriesPlot::Xy(xy)) => self.draw_series_xy(surface, ir, xy, rect, cm),
+            (ir::SeriesPlot::Xy(ir), SeriesPlot::Xy(xy)) => {
+                self.draw_series_xy(ctx, ir, xy, rect, cm)
+            }
             (ir::SeriesPlot::Histogram(ir), SeriesPlot::Histogram(hist)) => {
-                Ok(self.draw_series_histogram(surface, ir, hist, rect, cm)?)
+                Ok(self.draw_series_histogram(ir, hist, rect, cm)?)
             }
             _ => unreachable!("Should be the same plot type"),
         }
@@ -149,20 +149,20 @@ impl Xy {
         })
     }
 
-    fn build_path<D>(&self, ir: &ir::series::Xy, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy) -> geom::Path
+    fn build_path<D>(
+        &self,
+        ir: &ir::series::Xy,
+        data_source: &D,
+        rect: &geom::Rect,
+        cm: &CoordMapXy,
+    ) -> geom::Path
     where
         D: data::Source,
     {
         // unwraping here as data is checked during setup phase
-        let x_col = get_column(&ir.x_data, data_source)
-            .unwrap()
-            .f64()
-            .unwrap();
+        let x_col = get_column(&ir.x_data, data_source).unwrap().f64().unwrap();
 
-        let y_col = get_column(&ir.y_data, data_source)
-            .unwrap()
-            .f64()
-            .unwrap();
+        let y_col = get_column(&ir.y_data, data_source).unwrap().f64().unwrap();
 
         debug_assert!(x_col.len() == y_col.len());
 
@@ -189,22 +189,22 @@ impl Xy {
     }
 }
 
-impl<'d, D> Ctx<'d, D>
+impl<S: ?Sized> SurfWrapper<'_, S>
 where
-    D: data::Source,
+    S: render::Surface,
 {
-    fn draw_series_xy<S>(
-        &self,
-        surface: &mut S,
+    fn draw_series_xy<D>(
+        &mut self,
+        ctx: &Ctx<D>,
         ir: &ir::series::Xy,
         xy: &Xy,
         rect: &geom::Rect,
         cm: &CoordMapXy,
     ) -> Result<(), Error>
-    where 
-        S: render::Surface,
+    where
+        D: data::Source,
     {
-        let path = xy.build_path(ir, self.data_source(), rect, cm);
+        let path = xy.build_path(ir, ctx.data_source(), rect, cm);
 
         let path = render::Path {
             path: &path,
@@ -212,7 +212,7 @@ where
             stroke: Some(ir.line.clone()),
             transform: None,
         };
-        surface.draw_path(&path)?;
+        self.draw_path(&path)?;
         Ok(())
     }
 }
@@ -279,20 +279,17 @@ impl Histogram {
     }
 }
 
-impl<'d, D> Ctx<'d, D>
+impl<S: ?Sized> SurfWrapper<'_, S>
 where
-    D: data::Source,
+    S: render::Surface,
 {
-    fn draw_series_histogram<S>(
-        &self,
-        surface: &mut S,
+    fn draw_series_histogram(
+        &mut self,
         ir: &ir::series::Histogram,
         hist: &Histogram,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), render::Error> 
-    where S: render::Surface
-    {
+    ) -> Result<(), render::Error> {
         let mut pb = geom::PathBuilder::new();
         let mut x = rect.left() + cm.x.map_coord(hist.bins[0].range.0);
         let mut y = rect.bottom() - cm.y.map_coord(0.0);
@@ -315,7 +312,7 @@ where
             stroke: ir.line.clone(),
             transform: None,
         };
-        surface.draw_path(&path)?;
+        self.draw_path(&path)?;
         Ok(())
     }
 }

@@ -1,22 +1,22 @@
 use crate::data;
-use crate::drawing::{Ctx, Error};
+use crate::drawing::{Ctx, Error, SurfWrapper};
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
-use crate::render::{self};
+use crate::render::{self, Surface as _};
 use crate::style::{self, defaults};
 
-impl<'d, D> Ctx<'d, D>
+impl<S: ?Sized> SurfWrapper<'_, S>
 where
-    D: data::Source,
+    S: render::Surface,
 {
-    pub fn draw_figure<S>(&self, surface: &mut S, fig: &ir::Figure) -> Result<(), Error>
+    pub fn draw_toplevel_figure<D>(&mut self, ctx: &Ctx<D>, fig: &ir::Figure) -> Result<(), Error>
     where
-        S: render::Surface,
+        D: data::Source,
     {
-        surface.prepare(fig.size())?;
+        self.prepare(fig.size())?;
         if let Some(fill) = fig.fill() {
-            surface.fill(fill)?;
+            self.fill(fill)?;
         }
 
         let mut rect = geom::Rect::from_ps(geom::Point::ORIGIN, fig.size());
@@ -55,27 +55,26 @@ where
                 },
                 transform: None,
             };
-            surface.draw_text(&text)?;
+            self.draw_text(&text)?;
             rect = rect.shifted_top_side(title_rect.height());
         }
 
-        self.draw_figure_plots(surface, fig.plots(), &rect)?;
+        self.draw_figure_plots(ctx, fig.plots(), &rect)?;
 
         Ok(())
     }
 
-    fn draw_figure_plots<'c, 'i, S>(
-        &'c self,
-        surface: &mut S,
-        plots: &'i ir::figure::Plots,
+    fn draw_figure_plots<D>(
+        &mut self,
+        ctx: &Ctx<D>,
+        plots: &ir::figure::Plots,
         rect: &geom::Rect,
     ) -> Result<(), Error>
     where
-        'i: 'd,
-        S: render::Surface,
+        D: data::Source,
     {
         match plots {
-            ir::figure::Plots::Plot(plot) => Ok(self.draw_plot(surface, plot, rect)?),
+            ir::figure::Plots::Plot(plot) => Ok(self.draw_plot(ctx, plot, rect)?),
             ir::figure::Plots::Subplots(subplots) => {
                 let w = (rect.width() - subplots.space * (subplots.cols - 1) as f32)
                     / subplots.cols as f32;
@@ -88,7 +87,7 @@ where
                         let cols = subplots.cols as u32;
                         let idx = (r * cols + c) as usize;
                         let plot = &subplots.plots[idx];
-                        self.draw_plot(surface, plot, &geom::Rect::from_xywh(x, y, w, h))?;
+                        self.draw_plot(ctx, plot, &geom::Rect::from_xywh(x, y, w, h))?;
                         x += w + subplots.space;
                     }
                     y += h + subplots.space;

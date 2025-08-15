@@ -1,5 +1,5 @@
 use eidoplot::data;
-use eidoplot::drawing::{self, FigureExt};
+use eidoplot::drawing::{self, SurfaceExt};
 use eidoplot::ir;
 
 use eidoplot_pxl::PxlSurface;
@@ -34,7 +34,7 @@ where
     D: data::Source,
 {
     let mut svg = SvgSurface::new(800, 600);
-    fig.draw(&mut svg, data_source, drawing::Options::default())
+    svg.draw_figure(fig, data_source, drawing::Options::default())
         .unwrap();
     svg.save("plot.svg").unwrap();
 }
@@ -44,8 +44,8 @@ where
     D: data::Source,
 {
     let mut pxl = PxlSurface::new(1600, 1200);
-    fig.draw(
-        &mut pxl,
+    pxl.draw_figure(
+        fig,
         data_source,
         drawing::Options {
             fontdb: Some(fontdb.clone()),
