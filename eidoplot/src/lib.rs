@@ -4,8 +4,11 @@ pub mod geom;
 pub mod ir;
 pub mod render;
 pub mod style;
+mod fdb;
 
 use std::{path, sync::Arc};
+
+pub use fdb::FontDb;
 
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters

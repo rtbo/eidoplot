@@ -3,7 +3,6 @@ use std::{fmt, sync::Arc};
 use crate::{data, ir, render};
 
 mod axis;
-mod fdb;
 mod figure;
 mod legend;
 mod plot;
@@ -11,7 +10,7 @@ mod scale;
 mod series;
 mod ticks;
 
-use fdb::FontDb;
+use crate::FontDb;
 
 #[derive(Debug)]
 pub enum Error {
