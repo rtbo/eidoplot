@@ -164,7 +164,7 @@ where
     {
         node.assign(
             "transform",
-            format!("matrix({sx} {kx} {ky} {sy} {tx} {ty})"),
+            format!("matrix({sx} {ky} {kx} {sy} {tx} {ty})"),
         );
     }
 }

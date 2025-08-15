@@ -586,7 +586,7 @@ where
     ) -> Result<(), render::Error>
     {
         let transform =
-            geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(90.0);
+            geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(-90.0);
         self.draw_ticks_path(&y_ticks.locs, y_cm, &transform)?;
 
         let fill = y_ticks.color.into();
