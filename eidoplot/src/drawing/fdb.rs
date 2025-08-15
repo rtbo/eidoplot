@@ -82,7 +82,7 @@ impl FontDb {
     }
 }
 
-fn parse_font_family(input: &str) -> Vec<fontdb::Family> {
+fn parse_font_family(input: &str) -> Vec<fontdb::Family<'_>> {
     let mut families = Vec::new();
     let parts = input.split(',').map(|s| s.trim());
 
