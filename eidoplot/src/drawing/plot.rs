@@ -1,11 +1,11 @@
 use crate::data;
 use crate::drawing::legend::Legend;
 use crate::drawing::series::{Series, series_has_legend};
-use crate::drawing::{Ctx, Error, scale, ticks};
+use crate::drawing::{Ctx, Error, axis, scale, ticks};
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
-use crate::render::{self, Surface};
+use crate::render;
 use crate::style::{self, defaults};
 
 use scale::{CoordMap, CoordMapXy};
@@ -30,8 +30,8 @@ impl CoordMap for Axis {
     fn map_coord(&self, v: f64) -> f32 {
         self.coord_map.map_coord(v)
     }
-    fn view_bounds(&self) -> data::ViewBounds {
-        self.coord_map.view_bounds()
+    fn axis_bounds(&self) -> axis::NumBounds {
+        self.coord_map.axis_bounds()
     }
 }
 
@@ -67,10 +67,10 @@ fn auto_insets(plot: &ir::Plot) -> geom::Padding {
     defaults::PLOT_XY_AUTO_INSETS
 }
 
-fn setup_ticks(ticks: &ir::axis::Ticks, vb: data::ViewBounds) -> Ticks {
-    let mut locs = ticks::locate(ticks.locator(), vb);
-    locs.retain(|l| vb.contains(*l));
-    let lbl_formatter = ticks::label_formatter(ticks, vb);
+fn setup_ticks(ticks: &ir::axis::Ticks, ab: axis::NumBounds) -> Ticks {
+    let mut locs = ticks::locate(ticks.locator(), ab);
+    locs.retain(|l| ab.contains(*l));
+    let lbl_formatter = ticks::label_formatter(ticks, ab);
     let lbls = locs
         .iter()
         .copied()
@@ -87,46 +87,62 @@ fn setup_ticks(ticks: &ir::axis::Ticks, vb: data::ViewBounds) -> Ticks {
     }
 }
 
-impl<'a, S, D> Ctx<'a, S, D>
+impl<'d, D> Ctx<'d, D>
 where
-    S: render::Surface,
     D: data::Source,
 {
-    pub fn draw_plot(&mut self, plot: &ir::Plot, rect: &geom::Rect) -> Result<(), Error> {
+    pub fn draw_plot<S>(
+        &self,
+        surface: &mut S,
+        plot: &ir::Plot,
+        rect: &geom::Rect,
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
         let rect = {
             let mut rect = rect.pad(&missing_params::PLOT_PADDING);
 
             // draw outer legend and adjust rect
             if let Some(legend) = &plot.legend {
                 if !legend.pos().is_inside() {
-                    self.draw_plot_outer_legend(plot, legend, &mut rect)?;
+                    self.draw_plot_outer_legend(surface, plot, legend, &mut rect)?;
                 }
             }
             rect
         };
 
         let series = self.setup_plot_series(plot)?;
-        let vb = Series::unite_view_bounds(&series);
-        let axes = self.setup_plot_axes(plot, vb, &rect);
+        let ab = Series::unite_bounds(&series)?.ok_or(Error::UnboundedAxis)?;
+        let ab = (
+            ab.0.as_num().ok_or_else(|| {
+                Error::InconsistentAxisBounds("Only numeric axes supported".into())
+            })?,
+            ab.1.as_num().ok_or_else(|| {
+                Error::InconsistentAxisBounds("Only numeric axes supported".into())
+            })?,
+        );
+
+        let axes = self.setup_plot_axes(plot, ab, &rect);
 
         let rect = rect
             .shifted_left_side(axes.y_width())
             .shifted_bottom_side(-axes.x_height());
 
-        self.draw_plot_background(plot, &rect)?;
-        self.draw_grid(&axes, &rect)?;
-        self.draw_plot_series(&series, &rect, &axes)?;
-        self.draw_x_axis(&axes.x, &rect)?;
-        self.draw_y_axis(&axes.y, &rect)?;
-        self.draw_plot_border(plot.border.as_ref(), &rect)?;
+        self.draw_plot_background(surface, plot, &rect)?;
+        self.draw_grid(surface, &axes, &rect)?;
+        self.draw_plot_series(surface, &plot.series, &series, &rect, &axes)?;
+        self.draw_x_axis(surface, &axes.x, &rect)?;
+        self.draw_y_axis(surface, &axes.y, &rect)?;
+        self.draw_plot_border(surface, plot.border.as_ref(), &rect)?;
 
         Ok(())
     }
 
     fn setup_plot_axes(
-        &mut self,
+        &self,
         plot: &ir::Plot,
-        vb: (data::ViewBounds, data::ViewBounds),
+        ab: (axis::NumBounds, axis::NumBounds),
         rect: &geom::Rect,
     ) -> Axes {
         let insets = plot_insets(plot);
@@ -146,7 +162,7 @@ where
         let y_cm = scale::map_scale_coord(
             plot.y_axis.scale(),
             rect.height(),
-            vb.1,
+            ab.1,
             (insets.bottom(), insets.top()),
         );
         let y_axis = self.setup_y_axis(&plot.y_axis, y_cm);
@@ -155,7 +171,7 @@ where
         let x_cm = scale::map_scale_coord(
             plot.x_axis.scale(),
             rect.width(),
-            vb.0,
+            ab.0,
             (insets.left(), insets.right()),
         );
         let x_axis = self.setup_x_axis(&plot.x_axis, x_cm, x_height);
@@ -203,10 +219,10 @@ where
         width
     }
 
-    fn setup_y_axis(&mut self, y_axis: &ir::Axis, coord_map: Box<dyn CoordMap>) -> Axis {
+    fn setup_y_axis(&self, y_axis: &ir::Axis, coord_map: Box<dyn CoordMap>) -> Axis {
         let ticks = y_axis
             .ticks()
-            .map(|t| setup_ticks(t, coord_map.view_bounds()));
+            .map(|t| setup_ticks(t, coord_map.axis_bounds()));
 
         let y_width = self.calculate_y_axis_width(y_axis, ticks.as_ref());
 
@@ -230,15 +246,10 @@ where
         }
     }
 
-    fn setup_x_axis(
-        &mut self,
-        x_axis: &ir::Axis,
-        coord_map: Box<dyn CoordMap>,
-        x_height: f32,
-    ) -> Axis {
+    fn setup_x_axis(&self, x_axis: &ir::Axis, coord_map: Box<dyn CoordMap>, x_height: f32) -> Axis {
         let ticks = x_axis
             .ticks()
-            .map(|t| setup_ticks(t, coord_map.view_bounds()));
+            .map(|t| setup_ticks(t, coord_map.axis_bounds()));
 
         let label = x_axis.label().map(|l| {
             (
@@ -260,10 +271,9 @@ where
         }
     }
 
-    fn setup_plot_series<'b>(
-        &mut self,
-        plot: &'b ir::Plot,
-    ) -> Result<Vec<Series<'b>>, data::Error> {
+    fn setup_plot_series<'c, 'i>(&'c self, plot: &'i ir::Plot) -> Result<Vec<Series>, Error>
+    where 'i: 'd
+    {
         plot.series
             .iter()
             .map(|s| Series::from_ir(s, self.data_source()))
@@ -271,17 +281,20 @@ where
     }
 }
 
-impl<'a, S, D> Ctx<'a, S, D>
+impl<'d, D> Ctx<'d, D>
 where
-    S: render::Surface,
     D: data::Source,
 {
-    fn draw_plot_outer_legend(
-        &mut self,
+    fn draw_plot_outer_legend<S>(
+        &self,
+        surface: &mut S,
         plot: &ir::Plot,
         legend: &ir::Legend,
         rect: &mut geom::Rect,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
         let mut dlegend = Legend::from_ir(legend, rect.width(), self.fontdb().clone());
         for s in plot.series.iter() {
             if series_has_legend(s) {
@@ -311,16 +324,20 @@ where
             }
             _ => unreachable!(),
         };
-        self.draw_legend(&dlegend, &top_left)
+        self.draw_legend(surface, &dlegend, &top_left)
     }
 
-    fn draw_plot_background(
-        &mut self,
+    fn draw_plot_background<S>(
+        &self,
+        surface: &mut S,
         plot: &ir::Plot,
         rect: &geom::Rect,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
         if let Some(fill) = plot.fill.as_ref() {
-            self.draw_rect(&render::Rect {
+            surface.draw_rect(&render::Rect {
                 rect: *rect,
                 fill: Some(fill.clone()),
                 stroke: None,
@@ -330,7 +347,15 @@ where
         Ok(())
     }
 
-    fn draw_grid(&mut self, axes: &Axes, rect: &geom::Rect) -> Result<(), render::Error> {
+    fn draw_grid<S>(
+        &self,
+        surface: &mut S,
+        axes: &Axes,
+        rect: &geom::Rect,
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
         if let Some(x_ticks) = axes.x.ticks.as_ref() {
             if let Some(x_grid) = x_ticks.grid {
                 let mut pathb = geom::PathBuilder::with_capacity(2, 2);
@@ -345,7 +370,7 @@ where
                         stroke: Some(x_grid.clone()),
                         transform: None,
                     };
-                    self.draw_path(&rpath)?;
+                    surface.draw_path(&rpath)?;
                     pathb = path.clear();
                 }
             }
@@ -364,7 +389,7 @@ where
                         stroke: Some(y_grid.clone()),
                         transform: None,
                     };
-                    self.draw_path(&pathr)?;
+                    surface.draw_path(&pathr)?;
                     pathb = path.clear();
                 }
             }
@@ -372,14 +397,18 @@ where
         Ok(())
     }
 
-    fn draw_plot_border(
-        &mut self,
+    fn draw_plot_border<S>(
+        &self,
+        surface: &mut S,
         border: Option<&ir::plot::Border>,
         rect: &geom::Rect,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
         match border {
             None => Ok(()),
-            Some(ir::plot::Border::Box(stroke)) => self.draw_rect(&render::Rect {
+            Some(ir::plot::Border::Box(stroke)) => surface.draw_rect(&render::Rect {
                 rect: *rect,
                 fill: None,
                 stroke: Some(stroke.clone()),
@@ -397,7 +426,7 @@ where
                     stroke: Some(stroke.clone()),
                     transform: None,
                 };
-                self.draw_path(&path)
+                surface.draw_path(&path)
             }
             Some(ir::plot::Border::AxisArrow { .. }) => {
                 todo!("Draw axis arrow")
@@ -405,13 +434,19 @@ where
         }
     }
 
-    fn draw_plot_series(
-        &mut self,
+    fn draw_plot_series<'c, 'i, S>(
+        &'c self,
+        surface: &mut S,
+        ir_series: &'i [ir::Series],
         series: &[Series],
         rect: &geom::Rect,
         axes: &Axes,
-    ) -> Result<(), Error> {
-        self.push_clip(&render::Clip {
+    ) -> Result<(), Error>
+    where
+        'i: 'd,
+        S: render::Surface,
+    {
+        surface.push_clip(&render::Clip {
             path: &rect.to_path(),
             transform: None,
         })?;
@@ -421,22 +456,27 @@ where
             y: &axes.y,
         };
 
-        for series in series {
-            self.draw_series_plot(series, rect, &cm)?;
+        for (ir_series, series) in ir_series.iter().zip(series.iter()) {
+            self.draw_series_plot(surface, ir_series, series, rect, &cm)?;
         }
-        self.pop_clip()?;
+        surface.pop_clip()?;
         Ok(())
     }
 }
 
-impl<'a, S, D> Ctx<'a, S, D>
-where
-    S: render::Surface,
-{
-    fn draw_x_axis(&mut self, x_axis: &Axis, rect: &geom::Rect) -> Result<(), render::Error> {
+impl<'d, D> Ctx<'d, D> {
+    fn draw_x_axis<S>(
+        &self,
+        surface: &mut S,
+        x_axis: &Axis,
+        rect: &geom::Rect,
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
         let mut label_y = rect.bottom() + missing_params::AXIS_LABEL_MARGIN;
         if let Some(x_ticks) = x_axis.ticks.as_ref() {
-            self.draw_x_ticks(&rect, x_ticks, x_axis)?;
+            self.draw_x_ticks(surface, &rect, x_ticks, x_axis)?;
             label_y +=
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + x_ticks.font.size();
         }
@@ -453,19 +493,23 @@ where
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: None,
             };
-            self.draw_text(&text)?;
+            surface.draw_text(&text)?;
         }
         Ok(())
     }
 
-    fn draw_x_ticks(
-        &mut self,
+    fn draw_x_ticks<S>(
+        &self,
+        surface: &mut S,
         rect: &geom::Rect,
         x_ticks: &Ticks,
         x_cm: &dyn scale::CoordMap,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
         let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
-        self.draw_ticks_path(&x_ticks.locs, x_cm, &transform)?;
+        self.draw_ticks_path(surface, &x_ticks.locs, x_cm, &transform)?;
 
         let fill = x_ticks.color.into();
 
@@ -489,7 +533,7 @@ where
                 transform: None,
             };
 
-            self.draw_text(&text)?;
+            surface.draw_text(&text)?;
         }
 
         if let Some(annot) = x_ticks.annot.as_ref() {
@@ -516,18 +560,23 @@ where
                 fill,
                 transform: None,
             };
-            self.draw_text(&text)?;
+            surface.draw_text(&text)?;
         }
 
         Ok(())
     }
 
-    fn draw_y_axis(&mut self, y_axis: &Axis, rect: &geom::Rect) -> Result<(), render::Error>
+    fn draw_y_axis<S>(
+        &self,
+        surface: &mut S,
+        y_axis: &Axis,
+        rect: &geom::Rect,
+    ) -> Result<(), render::Error>
     where
         S: render::Surface,
     {
         if let Some(y_ticks) = y_axis.ticks.as_ref() {
-            self.draw_y_ticks(rect, y_ticks, y_axis)?;
+            self.draw_y_ticks(surface, rect, y_ticks, y_axis)?;
         }
         if let Some(label) = y_axis.label.as_ref() {
             // we render at origin, but translate to correct position and rotate
@@ -547,13 +596,14 @@ where
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: Some(&transform),
             };
-            self.draw_text(&text)?;
+            surface.draw_text(&text)?;
         }
         Ok(())
     }
 
-    fn draw_y_ticks(
-        &mut self,
+    fn draw_y_ticks<S>(
+        &self,
+        surface: &mut S,
         rect: &geom::Rect,
         y_ticks: &Ticks,
         y_cm: &dyn CoordMap,
@@ -563,7 +613,7 @@ where
     {
         let transform =
             geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(90.0);
-        self.draw_ticks_path(&y_ticks.locs, y_cm, &transform)?;
+        self.draw_ticks_path(surface, &y_ticks.locs, y_cm, &transform)?;
 
         let fill = y_ticks.color.into();
 
@@ -583,13 +633,14 @@ where
                 fill,
                 transform: None,
             };
-            self.draw_text(&text)?;
+            surface.draw_text(&text)?;
         }
         Ok(())
     }
 
-    fn draw_ticks_path(
-        &mut self,
+    fn draw_ticks_path<S>(
+        &self,
+        surface: &mut S,
         ticks: &[f64],
         cm: &dyn CoordMap,
         transform: &geom::Transform,
@@ -604,7 +655,7 @@ where
             stroke: Some(missing_params::TICK_COLOR.into()),
             transform: Some(transform),
         };
-        self.draw_path(&ticks_path)?;
+        surface.draw_path(&ticks_path)?;
         Ok(())
     }
 }
@@ -620,7 +671,7 @@ fn ticks_path(
     let mut path = reuse_alloc
         .map(|p| p.clear())
         .unwrap_or_else(geom::PathBuilder::new);
-    let vb = cm.view_bounds();
+    let vb = cm.axis_bounds();
     for tick in ticks {
         if !vb.contains(*tick) {
             continue;

@@ -28,7 +28,6 @@ fn main() {
     let normal = Normal::new(MU, SIGMA).unwrap();
     let pop = (0..N_POP).map(|_| normal.sample(&mut rng)).collect();
 
-    let data_source = data::VecMapSource::new().with_col("pop".into(), pop);
 
     let title = ir::Text::new(
         format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA),
@@ -50,7 +49,8 @@ fn main() {
                 width: 4.0,
                 pattern: style::LinePattern::Solid,
             },
-            data: data::Xy::Inline(x, y),
+            x_data: ir::series::DataCol::Inline(x.into()),
+            y_data: ir::series::DataCol::Inline(y.into()),
         }),
     };
     let pop_series = ir::Series {
@@ -60,7 +60,7 @@ fn main() {
             line: None,
             bins: 16,
             density: true,
-            data: data::X::Src("pop".into()),
+            data: ir::series::DataCol::SrcRef("pop".to_string()),
         }),
     };
 
@@ -76,6 +76,8 @@ fn main() {
     };
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
+
+    let data_source = data::VecSource::new().with_f64_column("pop".into(), pop);
 
     common::save_figure(&fig, &data_source);
 }

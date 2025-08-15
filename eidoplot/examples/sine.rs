@@ -5,12 +5,6 @@ use std::f64::consts::PI;
 mod common;
 
 fn main() {
-    let x: Vec<f64> = (0..=360).map(|t| t as f64 * PI / 180.0).collect();
-    let y = x.iter().map(|x| x.sin()).collect();
-
-    let data_source = data::VecMapSource::new()
-        .with_col("x".into(), x)
-        .with_col("y".into(), y);
 
     let title = ir::Text::new(
         "Sine wave",
@@ -32,7 +26,8 @@ fn main() {
                 width: 3.0,
                 pattern: style::LinePattern::Solid,
             },
-            data: data::Xy::Src("x".to_string(), "y".to_string()),
+            x_data: ir::series::DataCol::SrcRef("x".to_string()),
+            y_data: ir::series::DataCol::SrcRef("y".to_string()),
         }),
     };
 
@@ -48,6 +43,13 @@ fn main() {
     };
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
+
+    let x: Vec<f64> = (0..=360).map(|t| t as f64 * PI / 180.0).collect();
+    let y = x.iter().map(|x| x.sin()).collect();
+
+    let data_source = data::VecSource::new()
+        .with_f64_column("x".into(), x)
+        .with_f64_column("y".into(), y);
 
     common::save_figure(&fig, &data_source);
 }

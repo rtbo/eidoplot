@@ -1,31 +1,31 @@
-use crate::{data, ir::axis};
+use crate::{drawing::axis, ir};
 
 pub fn map_scale_coord(
-    scale: &axis::Scale,
+    scale: &ir::axis::Scale,
     mesh_size: f32,
-    data_bounds: data::ViewBounds,
+    axis_bounds: axis::NumBounds,
     insets: (f32, f32),
 ) -> Box<dyn CoordMap> {
     match scale {
-        axis::Scale::Linear(axis::Range::Auto) => Box::new(LinCoordMap {
+        ir::axis::Scale::Linear(ir::axis::Range::Auto) => Box::new(LinCoordMap {
             offset: insets.0,
             scale: mesh_size - (insets.0 + insets.1),
-            vb: data_bounds,
+            ab: axis_bounds,
         }),
-        axis::Scale::Linear(axis::Range::MinAuto(min)) => Box::new(LinCoordMap {
+        ir::axis::Scale::Linear(ir::axis::Range::MinAuto(min)) => Box::new(LinCoordMap {
             offset: 0.0,
             scale: mesh_size - insets.1,
-            vb: (*min, data_bounds.max()).into(),
+            ab: (*min, axis_bounds.end()).into(),
         }),
-        axis::Scale::Linear(axis::Range::AutoMax(max)) => Box::new(LinCoordMap {
+        ir::axis::Scale::Linear(ir::axis::Range::AutoMax(max)) => Box::new(LinCoordMap {
             offset: insets.0,
             scale: mesh_size - insets.0,
-            vb: (data_bounds.min(), *max).into(),
+            ab: (axis_bounds.start(), *max).into(),
         }),
-        axis::Scale::Linear(axis::Range::MinMax(min, max)) => Box::new(LinCoordMap {
+        ir::axis::Scale::Linear(ir::axis::Range::MinMax(min, max)) => Box::new(LinCoordMap {
             offset: 0.0,
             scale: mesh_size,
-            vb: (*min, *max).into(),
+            ab: (*min, *max).into(),
         }),
     }
 }
@@ -34,7 +34,7 @@ pub fn map_scale_coord(
 /// The surface space starts at zero for lowest displayed and goes up for higher data.
 pub trait CoordMap {
     fn map_coord(&self, x: f64) -> f32;
-    fn view_bounds(&self) -> data::ViewBounds;
+    fn axis_bounds(&self) -> axis::NumBounds;
 }
 
 pub struct CoordMapXy<'a> {
@@ -51,16 +51,16 @@ impl<'a> CoordMapXy<'a> {
 struct LinCoordMap {
     offset: f32,
     scale: f32,
-    vb: data::ViewBounds,
+    ab: axis::NumBounds,
 }
 
 impl CoordMap for LinCoordMap {
     fn map_coord(&self, x: f64) -> f32 {
-        let ratio = (x - self.vb.min()) / self.vb.span();
+        let ratio = (x - self.ab.start()) / self.ab.span();
         ratio as f32 * self.scale + self.offset
     }
 
-    fn view_bounds(&self) -> data::ViewBounds {
-        self.vb
+    fn axis_bounds(&self) -> axis::NumBounds {
+        self.ab
     }
 }

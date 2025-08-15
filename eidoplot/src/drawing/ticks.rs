@@ -1,16 +1,16 @@
-use crate::data;
+use crate::drawing::axis;
 use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
 
-pub fn locate(locator: &Locator, vb: data::ViewBounds) -> Vec<f64> {
+pub fn locate(locator: &Locator, ab: axis::NumBounds) -> Vec<f64> {
     match locator {
-        Locator::Auto => MaxN::new_auto().ticks(vb),
+        Locator::Auto => MaxN::new_auto().ticks(ab),
         Locator::MaxN { bins, steps } => {
             let ticker = MaxN::new(*bins, steps.as_slice());
-            ticker.ticks(vb)
+            ticker.ticks(ab)
         }
         Locator::PiMultiple { bins } => {
             let ticker = MaxN::new_pi(*bins);
-            ticker.ticks(vb)
+            ticker.ticks(ab)
         }
     }
 }
@@ -39,8 +39,8 @@ impl<'a> MaxN<'a> {
         Self::new(bins, PI_STEPS)
     }
 
-    fn ticks(&self, vb: data::ViewBounds) -> Vec<f64> {
-        let target_step = vb.span() / self.bins as f64;
+    fn ticks(&self, ab: axis::NumBounds) -> Vec<f64> {
+        let target_step = ab.span() / self.bins as f64;
 
         // getting quite about where we need to be
         let scale = 10f64.powf(target_step.log10().div_euclid(1.0));
@@ -57,11 +57,11 @@ impl<'a> MaxN<'a> {
             stepper.step()
         };
 
-        let vmin = (vb.min() / step).floor() * step;
+        let vmin = (ab.start() / step).floor() * step;
 
         let edge = MaxNEdge { step };
-        let low = edge.largest_le(vb.min() - vmin);
-        let high = edge.smallest_ge(vb.max() - vmin);
+        let low = edge.largest_le(ab.start() - vmin);
+        let high = edge.smallest_ge(ab.end() - vmin);
 
         let mut ticks = Vec::with_capacity((high - low + 1.0) as usize);
         let mut val = low;
@@ -137,15 +137,15 @@ impl MaxNEdge {
     }
 }
 
-pub fn label_formatter(ticks: &Ticks, vb: data::ViewBounds) -> Box<dyn LabelFormatter> {
+pub fn label_formatter(ticks: &Ticks, ab: axis::NumBounds) -> Box<dyn LabelFormatter> {
     match ticks.formatter() {
-        Formatter::Auto => auto_label_formatter(ticks.locator(), vb),
+        Formatter::Auto => auto_label_formatter(ticks.locator(), ab),
         Formatter::Prec(prec) => Box::new(PrecLabelFormat(*prec)),
         Formatter::Percent => Box::new(PercentLabelFormat),
     }
 }
 
-fn auto_label_formatter(locator: &Locator, _dvb: data::ViewBounds) -> Box<dyn LabelFormatter> {
+fn auto_label_formatter(locator: &Locator, _ab: axis::NumBounds) -> Box<dyn LabelFormatter> {
     match locator {
         Locator::PiMultiple { .. } => Box::new(PiMultipleLabelFormat { prec: 2 }),
         Locator::Auto => Box::new(PrecLabelFormat(2)),

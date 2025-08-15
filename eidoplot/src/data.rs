@@ -1,184 +1,280 @@
-use std::{collections::HashMap, fmt};
+use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
-pub enum Error {
-    NoSuchColumn(Vec<String>),
+#[cfg(feature = "polars")]
+pub mod polars;
+
+/// Trait for a column of a specific type
+pub trait Column {
+    fn len(&self) -> usize;
+
+    fn len_some(&self) -> usize;
+
+    fn f64(&self) -> Option<&dyn F64Column> {
+        None
+    }
+
+    fn i64(&self) -> Option<&dyn I64Column> {
+        None
+    }
+
+    fn str(&self) -> Option<&dyn StrColumn> {
+        None
+    }
+
+    fn as_f64_iter(&self) -> Option<Box<dyn Iterator<Item = Option<f64>> + '_>> {
+        self.f64().map(|c| c.iter())
+    }
+
+    fn as_i64_iter(&self) -> Option<Box<dyn Iterator<Item = Option<i64>> + '_>> {
+        self.i64().map(|c| c.iter())
+    }
+    fn as_str_iter(&self) -> Option<Box<dyn Iterator<Item = Option<&str>> + '_>> {
+        self.str().map(|c| c.iter())
+    }
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::NoSuchColumn(names) => {
-                if names.len() == 1 {
-                    write!(f, "no such column: {}", names[0])
-                } else if names.len() > 1 {
-                    write!(f, "no such columns: {}", names.join(", "))
-                } else {
-                    unreachable!("names.len() == 0")
+pub trait F64Column {
+    fn len(&self) -> usize;
+
+    fn len_some(&self) -> usize {
+        self.iter().filter(|v| v.is_some()).count()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_>;
+
+    fn minmax(&self) -> Option<(f64, f64)> {
+        let mut res: Option<(f64, f64)> = None;
+        for v in self.iter() {
+            match (v, res) {
+                (None, _) => continue,
+                (Some(v), Some((min, max))) => {
+                    res = Some((min.min(v), max.max(v)));
+                }
+                (Some(v), None) => {
+                    res = Some((v, v));
                 }
             }
         }
+        res
     }
 }
 
-impl std::error::Error for Error {}
+pub trait I64Column {
+    fn len(&self) -> usize;
 
-pub trait Source {
-    fn col(&self, name: &str) -> Option<&[f64]>;
-}
-
-pub trait SourceIterator {
-    type Item;
-    fn iter_src<'a, S>(
-        &'a self,
-        source: &'a S,
-    ) -> Result<impl Iterator<Item = Self::Item> + 'a, Error>
-    where
-        S: Source;
-}
-
-#[derive(Debug, Clone)]
-pub enum X {
-    Inline(Vec<f64>),
-    Src(String),
-}
-
-impl SourceIterator for X {
-    type Item = f64;
-
-    fn iter_src<'a, S>(&'a self, source: &'a S) -> Result<impl Iterator<Item = f64> + 'a, Error>
-    where
-        S: Source,
-    {
-        match self {
-            X::Inline(x) => Ok(x.iter().copied()),
-            X::Src(x_col) => source
-                .col(x_col)
-                .ok_or_else(|| Error::NoSuchColumn(vec![x_col.clone()]))
-                .map(|x| x.iter().copied()),
-        }
+    fn len_some(&self) -> usize {
+        self.iter().filter(|v| v.is_some()).count()
     }
-}
 
-#[derive(Debug, Clone)]
-pub enum Xy {
-    Inline(Vec<f64>, Vec<f64>),
-    Src(String, String),
-}
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_>;
 
-impl SourceIterator for Xy {
-    type Item = (f64, f64);
-
-    fn iter_src<'a, S>(
-        &'a self,
-        source: &'a S,
-    ) -> Result<impl Iterator<Item = (f64, f64)> + 'a, Error>
-    where
-        S: Source,
-    {
-        match self {
-            Xy::Inline(x, y) => Ok(x.iter().copied().zip(y.iter().copied())),
-            Xy::Src(x_col, y_col) => match (source.col(&x_col), source.col(&y_col)) {
-                (Some(x), Some(y)) => Ok(x.iter().copied().zip(y.iter().copied())),
-                (x, y) => {
-                    let mut cols = vec![];
-                    if x.is_none() {
-                        cols.push(x_col.clone());
-                    }
-                    if y.is_none() {
-                        cols.push(y_col.clone());
-                    }
-                    Err(Error::NoSuchColumn(cols))
+    fn minmax(&self) -> Option<(i64, i64)> {
+        let mut res: Option<(i64, i64)> = None;
+        for v in self.iter() {
+            match (v, res) {
+                (None, _) => continue,
+                (Some(v), Some((min, max))) => {
+                    res = Some((min.min(v), max.max(v)));
                 }
-            },
+                (Some(v), None) => {
+                    res = Some((v, v));
+                }
+            }
+        }
+        res
+    }
+}
+
+pub trait StrColumn {
+    fn len(&self) -> usize;
+
+    fn len_some(&self) -> usize {
+        self.iter().filter(|v| v.is_some()).count()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_>;
+}
+
+/// Trait for a table-like data source
+pub trait Source {
+    fn column_names(&self) -> Vec<&str>;
+    fn column(&self, name: &str) -> Option<&dyn Column>;
+    fn len(&self) -> usize;
+}
+
+
+// Simple vector base implementation
+
+#[derive(Debug, Clone)]
+pub enum VecColumn {
+    F64(Vec<f64>),
+    I64(Vec<i64>),
+    Str(Vec<String>),
+}
+
+impl From<Vec<f64>> for VecColumn {
+    fn from(v: Vec<f64>) -> Self {
+        VecColumn::F64(v)
+    }
+}
+
+impl From<Vec<i64>> for VecColumn {
+    fn from(v: Vec<i64>) -> Self {
+        VecColumn::I64(v)
+    }
+}
+
+impl From<Vec<String>> for VecColumn {
+    fn from(v: Vec<String>) -> Self {
+        VecColumn::Str(v)
+    }
+}
+
+impl Column for VecColumn {
+    fn len(&self) -> usize {
+        match self {
+            VecColumn::F64(v) => v.len(),
+            VecColumn::I64(v) => v.len(),
+            VecColumn::Str(v) => v.len(),
+        }
+    }
+
+    fn len_some(&self) -> usize {
+        match self {
+            VecColumn::F64(v) => v.len_some(),
+            VecColumn::I64(v) => v.len(),
+            VecColumn::Str(v) => v.len_some(),
+        }
+    }
+
+    fn f64(&self) -> Option<&dyn F64Column> {
+        match self {
+            VecColumn::F64(v) => Some(v),
+            VecColumn::I64(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    fn i64(&self) -> Option<&dyn I64Column> {
+        match self {
+            VecColumn::I64(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    fn str(&self) -> Option<&dyn StrColumn> {
+        match self {
+            VecColumn::Str(v) => Some(v),
+            _ => None,
         }
     }
 }
 
-impl Source for () {
-    fn col(&self, _name: &str) -> Option<&[f64]> {
-        None
+impl F64Column for Vec<f64> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_finite()).count()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(
+            self.as_slice()
+                .iter()
+                .copied()
+                .map(|f| if f.is_finite() { Some(f) } else { None }),
+        )
     }
 }
 
-pub struct VecMapSource(HashMap<String, Vec<f64>>);
-
-impl VecMapSource {
-    pub fn new() -> Self {
-        Self(HashMap::new())
+impl F64Column for Vec<i64> {
+    fn len(&self) -> usize {
+        self.len()
     }
 
-    pub fn with_col(mut self, name: String, col: Vec<f64>) -> Self {
-        self.add_col(name, col);
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(self.as_slice().iter().copied().map(|i| Some(i as f64)))
+    }
+}
+
+impl I64Column for Vec<i64> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
+        Box::new(self.as_slice().iter().copied().map(Some))
+    }
+}
+
+impl StrColumn for Vec<String> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+        Box::new(self.as_slice().iter().map(|s| Some(s.as_str())))
+    }
+}
+
+impl StrColumn for Vec<&str> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+        Box::new(self.as_slice().iter().map(|s| Some(*s)))
+    }
+}
+
+pub struct VecSource {
+    columns: HashMap<String, Box<dyn Column>>,
+    len: usize,
+}
+
+impl VecSource {
+    pub fn new() -> Self {
+        Self {
+            columns: HashMap::new(),
+            len: 0,
+        }
+    }
+
+    pub fn add_column(&mut self, name: &str, col: Box<dyn Column>) {
+        self.len = self.len.max(col.len());
+        self.columns.insert(name.to_string(), col);
+    }
+
+    pub fn with_column(mut self, name: &str, col: Box<dyn Column>) -> Self {
+        self.add_column(name, col); 
         self
     }
 
-    pub fn add_col(&mut self, name: String, col: Vec<f64>) {
-        self.0.insert(name, col);
+    pub fn with_f64_column(mut self, name: &str, col: Vec<f64>) -> Self {
+        self.add_column(name, Box::new(VecColumn::F64(col)));
+        self
     }
 }
 
-impl Source for VecMapSource {
-    fn col(&self, name: &str) -> Option<&[f64]> {
-        self.0.get(name).map(Vec::as_slice)
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct ViewBounds(f64, f64);
-
-impl ViewBounds {
-    pub const NAN: Self = Self(f64::NAN, f64::NAN);
-}
-
-impl Default for ViewBounds {
-    fn default() -> Self {
-        Self::NAN
-    }
-}
-
-impl From<f64> for ViewBounds {
-    fn from(value: f64) -> Self {
-        Self(value, value)
-    }
-}
-
-impl From<(f64, f64)> for ViewBounds {
-    fn from(value: (f64, f64)) -> Self {
-        Self(value.0.min(value.1), value.0.max(value.1))
-    }
-}
-
-impl ViewBounds {
-    pub fn min(&self) -> f64 {
-        self.0
+impl Source for VecSource {
+    fn column_names(&self) -> Vec<&str> {
+        self.columns.keys().map(|k| k.as_str()).collect()
     }
 
-    pub fn max(&self) -> f64 {
-        self.1
+    fn column(&self, name: &str) -> Option<&dyn Column> 
+    {
+        self.columns.get(name).map(|c| &**c)
     }
 
-    pub fn span(&self) -> f64 {
-        self.1 - self.0
-    }
-
-    pub fn center(&self) -> f64 {
-        (self.0 + self.1) / 2.0
-    }
-
-    pub fn contains(&self, point: f64) -> bool {
-        // TODO: handle very large and very low values
-        const EPS: f64 = 1e-10;
-        point >= (self.0 - EPS) && point <= (self.1 + EPS)
-    }
-
-    pub fn add_point(&mut self, point: f64) {
-        self.0 = self.0.min(point);
-        self.1 = self.1.max(point);
-    }
-
-    pub fn add_bounds(&mut self, bounds: ViewBounds) {
-        self.0 = self.0.min(bounds.0);
-        self.1 = self.1.max(bounds.1);
+    fn len(&self) -> usize {
+        self.len
     }
 }
