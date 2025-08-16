@@ -105,6 +105,7 @@ pub(crate) struct FaceMetrics {
     descent: i16,
     x_height: i16,
     cap_height: i16,
+    line_gap: i16,
 }
 
 impl FaceMetrics {
@@ -127,6 +128,14 @@ impl FaceMetrics {
     pub(crate) fn cap_height(&self, size: f32) -> f32 {
         self.cap_height as f32 * self.scale(size)
     }
+
+    pub(crate) fn height(&self, size: f32) -> f32 {
+        (self.ascent - self.descent) as f32 * self.scale(size)
+    }
+
+    pub(crate) fn line_gap(&self, size: f32) -> f32 {
+        self.line_gap as f32 * self.scale(size)
+    }
 }
 
 pub(crate) fn face_metrics(face: &ttf::Face) -> FaceMetrics {
@@ -139,6 +148,7 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> FaceMetrics {
     let cap_height = face
         .capital_height()
         .unwrap_or(((ascent - descent) as f32 * 0.8) as i16);
+    let line_gap = face.line_gap();
 
     FaceMetrics {
         units_per_em,
@@ -146,6 +156,7 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> FaceMetrics {
         descent,
         x_height,
         cap_height,
+        line_gap,
     }
 }
 

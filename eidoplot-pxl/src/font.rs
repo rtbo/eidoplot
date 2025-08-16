@@ -52,15 +52,15 @@ impl DatabaseExt for Database {
                 // the path builder for each glyph
                 let mut gl_pb = geom::PathBuilder::new();
 
-                let mut x_advance = 0.0;
-                let mut y_advance = 0.0;
+                let mut x_cursor = 0.0;
+                let mut y_cursor = 0.0;
 
                 for (gp, gi) in gps.iter().zip(gis.iter()) {
 
                     let glyph_id = ttf::GlyphId(gi.glyph_id as u16);
 
-                    let tx = gp.x_offset as f32 + x_advance;
-                    let ty = gp.y_offset as f32 + y_advance;
+                    let tx = gp.x_offset as f32 + x_cursor;
+                    let ty = gp.y_offset as f32 + y_cursor;
 
                     {
                         let mut builder = Outliner(&mut gl_pb);
@@ -85,8 +85,8 @@ impl DatabaseExt for Database {
                         gl_pb = geom::PathBuilder::new();
                     }
 
-                    x_advance += gp.x_advance as f32;
-                    y_advance += gp.y_advance as f32;
+                    x_cursor += gp.x_advance as f32;
+                    y_cursor += gp.y_advance as f32;
                 }
 
                 // println!("Finished {:?}", text);
@@ -103,7 +103,7 @@ impl DatabaseExt for Database {
 
                 OutlinedText {
                     path,
-                    w: x_advance * scale,
+                    w: x_cursor * scale,
                     xh: xh * scale,
                     cap: cap * scale,
                 }

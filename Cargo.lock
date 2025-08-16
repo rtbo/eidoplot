@@ -555,6 +555,8 @@ dependencies = [
  "eidoplot",
  "fontdb",
  "rustybuzz",
+ "tiny-skia",
+ "tiny-skia-path",
  "ttf-parser",
  "unicode-bidi",
 ]

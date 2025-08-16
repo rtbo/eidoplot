@@ -7,11 +7,14 @@ edition.workspace = true
 [dependencies]
 fontdb.workspace = true
 rustybuzz.workspace = true
+tiny-skia.workspace = true
+tiny-skia-path.workspace = true
 ttf-parser.workspace = true
 unicode-bidi = "0.3.18"
 
 [dev-dependencies]
 eidoplot = { path = "../eidoplot" }
+tiny-skia.workspace = true
 
 [[example]]
 name="shape"
