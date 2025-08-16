@@ -1,0 +1,17 @@
+[package]
+name = "eidoplot-text"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+fontdb.workspace = true
+rustybuzz.workspace = true
+ttf-parser.workspace = true
+unicode-bidi = "0.3.18"
+
+[dev-dependencies]
+eidoplot = { path = "../eidoplot" }
+
+[[example]]
+name="shape"
