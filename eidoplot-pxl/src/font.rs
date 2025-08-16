@@ -1,3 +1,4 @@
+use ttf_parser as ttf;
 use eidoplot::{geom, render, style, font};
 
 use font::DatabaseExt as _;
@@ -23,14 +24,14 @@ impl DatabaseExt for Database {
         let id = self.query_face(font).expect("Should find a face");
 
         self.with_face_data(id, |data, index| {
-                let mut face = ttf_parser::Face::parse(data, index).unwrap();
+                let mut face = ttf::Face::parse(data, index).unwrap();
                 if face.is_variable() {
                     let _ = face.set_variation(
-                        ttf_parser::Tag::from_bytes(b"wght"),
+                        ttf::Tag::from_bytes(b"wght"),
                         font.weight().0 as f32,
                     );
                     let _ = face.set_variation(
-                        ttf_parser::Tag::from_bytes(b"wdth"),
+                        ttf::Tag::from_bytes(b"wdth"),
                         font::width_to_percent(font.width()),
                     );
                 }
@@ -56,7 +57,7 @@ impl DatabaseExt for Database {
 
                 for (gp, gi) in gps.iter().zip(gis.iter()) {
 
-                    let glyph_id = ttf_parser::GlyphId(gi.glyph_id as u16);
+                    let glyph_id = ttf::GlyphId(gi.glyph_id as u16);
 
                     let tx = gp.x_offset as f32 + x_advance;
                     let ty = gp.y_offset as f32 + y_advance;
@@ -151,7 +152,7 @@ impl OutlinedText {
 
 struct Outliner<'a>(&'a mut geom::PathBuilder);
 
-impl ttf_parser::OutlineBuilder for Outliner<'_> {
+impl ttf::OutlineBuilder for Outliner<'_> {
     fn move_to(&mut self, x: f32, y: f32) {
         self.0.move_to(x, y);
     }

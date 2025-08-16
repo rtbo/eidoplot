@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rustybuzz::ttf_parser;
+use ttf_parser as ttf;
 
 use crate::{style};
 
@@ -79,12 +79,12 @@ impl DatabaseExt for Database {
         let id = self.query_face(font).expect("Should find a face");
 
         self.with_face_data(id, |data, index| {
-            let mut face = ttf_parser::Face::parse(data, index).unwrap();
+            let mut face = ttf::Face::parse(data, index).unwrap();
             if face.is_variable() {
                 let _ = face
-                    .set_variation(ttf_parser::Tag::from_bytes(b"wght"), font.weight().0 as f32);
+                    .set_variation(ttf::Tag::from_bytes(b"wght"), font.weight().0 as f32);
                 let _ = face.set_variation(
-                    ttf_parser::Tag::from_bytes(b"wdth"),
+                    ttf::Tag::from_bytes(b"wdth"),
                     width_to_percent(font.width()),
                 );
             }

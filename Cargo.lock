@@ -525,6 +525,7 @@ dependencies = [
  "rand_distr",
  "rustybuzz",
  "tiny-skia-path",
+ "ttf-parser",
 ]
 
 [[package]]
