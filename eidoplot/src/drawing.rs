@@ -80,7 +80,7 @@ pub trait SurfaceExt: render::Surface {
     where
         D: data::Source,
     {
-        let fontdb = opts.fontdb.unwrap_or_else(font::bundled_db);
+        let fontdb = opts.fontdb.unwrap_or_else(|| Arc::new(font::bundled_db()));
         let ctx = Ctx::new(data_source, fontdb);
         let mut wrapper = SurfWrapper { surface: self };
         wrapper.draw_toplevel_figure(&ctx, figure)?;

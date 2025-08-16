@@ -13,7 +13,7 @@ pub fn save_figure<D>(fig: &ir::Figure, data_source: &D)
 where
     D: data::Source,
 {
-    let fontdb = font::bundled_db();
+    let fontdb = Arc::new(font::bundled_db());
 
     let mut written = false;
     for arg in env::args() {

@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use ttf_parser as ttf;
 
-use crate::{style};
+use crate::style;
 
 pub use fontdb::{Database, ID};
 
 /// Loads fonts that are bundled with eidoplot
 /// and returns an Arc to the database.
-pub fn bundled_db() -> Arc<Database> {
+pub fn bundled_db() -> Database {
     const FONTDB_FAMILY_SANS: &str = "Noto Sans";
     const FONTDB_FAMILY_SERIF: &str = "Noto Serif";
     const FONTDB_FAMILY_MONO: &str = "Noto Mono";
@@ -17,14 +17,12 @@ pub fn bundled_db() -> Arc<Database> {
 
     let mut db = Database::new();
 
-    // db.load_system_fonts();
-
     db.load_fonts_dir(&res_dir);
     db.set_sans_serif_family(FONTDB_FAMILY_SANS);
     db.set_serif_family(FONTDB_FAMILY_SERIF);
     db.set_monospace_family(FONTDB_FAMILY_MONO);
 
-    Arc::new(db)
+    db
 }
 
 pub trait DatabaseExt {
@@ -38,7 +36,6 @@ pub trait DatabaseExt {
     where
         I: IntoIterator<Item = L>,
         L: AsRef<str>;
-
 }
 
 impl DatabaseExt for Database {
@@ -81,8 +78,7 @@ impl DatabaseExt for Database {
         self.with_face_data(id, |data, index| {
             let mut face = ttf::Face::parse(data, index).unwrap();
             if face.is_variable() {
-                let _ = face
-                    .set_variation(ttf::Tag::from_bytes(b"wght"), font.weight().0 as f32);
+                let _ = face.set_variation(ttf::Tag::from_bytes(b"wght"), font.weight().0 as f32);
                 let _ = face.set_variation(
                     ttf::Tag::from_bytes(b"wdth"),
                     width_to_percent(font.width()),
