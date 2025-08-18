@@ -1,7 +1,8 @@
 use tiny_skia_path::{PathBuilder, Transform};
 use ttf_parser as ttf;
 
-use crate::{font, shape, style};
+use crate::shape;
+use crate::font::{self, Font};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub enum HorAlign {
@@ -224,7 +225,7 @@ fn render_line_at_y(
             &glyphs_buf[r.0..r.1],
             transform,
             r.2,
-            line.style(),
+            line.font(),
             db,
             pixmap,
         );
@@ -235,7 +236,7 @@ fn render_glyphs(
     glyphs: &[Glyph],
     transform: tiny_skia_path::Transform,
     font_id: font::ID,
-    style: &style::Font,
+    font: &Font,
     db: &font::Database,
     pixmap: &mut tiny_skia::PixmapMut<'_>,
 ) {
@@ -243,7 +244,7 @@ fn render_glyphs(
 
     db.with_face_data(font_id, |data, index| {
         let mut face = ttf::Face::parse(data, index).unwrap();
-        font::apply_variations(&mut face, style);
+        font::apply_variations(&mut face, font);
 
         // the path builder for the entire string
         let mut str_pb = PathBuilder::new();

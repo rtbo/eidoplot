@@ -1,8 +1,7 @@
 use ttf_parser as ttf;
 
 use crate::Error;
-use crate::font;
-use crate::style;
+use crate::font::{self, Font};
 
 #[derive(Debug, Clone, Copy)]
 enum ResolvedGlyphId {
@@ -21,6 +20,7 @@ pub struct Glyph {
     font_id: font::ID,
     metrics: font::FaceMetrics,
 }
+
 impl Glyph {
     pub fn id(&self) -> Option<ttf::GlyphId> {
         match self.resolved_id {
@@ -95,7 +95,7 @@ impl Glyph {
 #[derive(Debug, Clone)]
 pub struct Line {
     glyphs: Vec<Glyph>,
-    style: style::Font,
+    font: Font,
     rtl: bool,
 }
 
@@ -104,8 +104,8 @@ impl Line {
         &self.glyphs
     }
 
-    pub fn style(&self) -> &style::Font {
-        &self.style
+    pub fn font(&self) -> &Font {
+        &self.font
     }
 
     pub fn rtl(&self) -> bool {
@@ -170,12 +170,20 @@ impl Line {
 pub struct Text {
     lines: Vec<Line>,
     text: String,
-    style: style::Font,
+    font: Font,
 }
 
 impl Text {
     pub fn lines(&self) -> &[Line] {
         &self.lines
+    }
+
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
+    pub fn font(&self) -> &Font {
+        &self.font
     }
 
     pub fn width(&self, font_size: f32) -> f32 {
@@ -197,7 +205,7 @@ impl Text {
         h
     }
 
-    pub fn baseline_of_line(&self, line: usize, font_size: f32) -> f32 {
+    pub(crate) fn baseline_of_line(&self, line: usize, font_size: f32) -> f32 {
         let mut h = 0.0;
         let mut l = 0;
         while l < line {
@@ -246,9 +254,9 @@ impl Text {
     }
 }
 
-pub fn shape_text(text: &str, style: &style::Font, db: &font::Database) -> Result<Text, Error> {
-    let base_face_id = font::select_face(db, style).ok_or(Error::NoSuchFont(style.clone()))?;
-    let mut shape = shape_text_with_font(text, base_face_id, style, db)?;
+pub fn shape_text(text: &str, font: &Font, db: &font::Database) -> Result<Text, Error> {
+    let base_face_id = font::select_face(db, font).ok_or(Error::NoSuchFont(font.clone()))?;
+    let mut shape = shape_text_with_font(text, base_face_id, font, db)?;
 
     let mut missing = shape.first_missing_char();
     if missing.is_none() {
@@ -262,7 +270,7 @@ pub fn shape_text(text: &str, style: &style::Font, db: &font::Database) -> Resul
             break;
         };
 
-        let fallback_shape = shape_text_with_font(text, fallback_id, style, db)?;
+        let fallback_shape = shape_text_with_font(text, fallback_id, font, db)?;
         if fallback_shape.first_missing_char().is_none() {
             // we replace the shape entirely with the fallback
             shape = fallback_shape;
@@ -288,12 +296,12 @@ pub fn shape_text(text: &str, style: &style::Font, db: &font::Database) -> Resul
 fn shape_text_with_font(
     text: &str,
     font_id: font::ID,
-    style: &style::Font,
+    font: &Font,
     db: &font::Database,
 ) -> Result<Text, Error> {
     db.with_face_data(font_id, |data, index| -> Result<Text, Error> {
         let mut face = ttf::Face::parse(data, index)?;
-        font::apply_variations(&mut face, style);
+        font::apply_variations(&mut face, font);
 
         let metrics = font::face_metrics(&face);
 
@@ -304,13 +312,13 @@ fn shape_text_with_font(
 
         for line in text.lines() {
             buffer =
-                shape_lines_with_font(line, font_id, &hbface, metrics, buffer, style, &mut lines)?;
+                shape_lines_with_font(line, font_id, &hbface, metrics, buffer, font, &mut lines)?;
         }
 
         Ok(Text {
             lines,
             text: text.to_string(),
-            style: style.clone(),
+            font: font.clone(),
         })
     })
     .expect("Should be able to load that font")
@@ -323,7 +331,7 @@ fn shape_lines_with_font(
     hbface: &rustybuzz::Face,
     metrics: font::FaceMetrics,
     mut buffer: rustybuzz::UnicodeBuffer,
-    style: &style::Font,
+    font: &Font,
     lines: &mut Vec<Line>,
 ) -> Result<rustybuzz::UnicodeBuffer, Error> {
     let bidi = unicode_bidi::BidiInfo::new(text, None);
@@ -402,7 +410,7 @@ fn shape_lines_with_font(
 
         lines.push(Line {
             glyphs,
-            style: style.clone(),
+            font: font.clone(),
             rtl: rtl.unwrap_or_default(),
             // range: line.clone(),
         });

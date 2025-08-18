@@ -1,3 +1,4 @@
+
 const ENGLISH_TEXT: &str = "Hello, world!
 How are you?";
 
@@ -13,9 +14,9 @@ const MIXED_TEXT_RTL: &str = "مرحبا، world!
 fn main() {
     let mut db = fontdb::Database::new();
     db.load_system_fonts();
+    db.set_serif_family("Noto Serif");
 
-    let style =
-        eidoplot_text::style::Font::default().with_family("'Noto Sans','DejaVu Sans',sans-serif".into());
+    let font = eidoplot_text::Font::default();
     let font_size: f32 = 36.0;
 
     let renders = &[
@@ -62,7 +63,7 @@ fn main() {
     pxl_mut.fill(tiny_skia::Color::WHITE);
 
     for (text, align, (x, y)) in renders {
-        let shape = eidoplot_text::shape_text(text, &style, &db).unwrap();
+        let shape = eidoplot_text::shape_text(text, &font, &db).unwrap();
 
         let width = shape.width(font_size);
         let height = shape.height(font_size);
