@@ -130,6 +130,10 @@ impl Weight {
         self.0
     }
 
+    fn to_fontdb(self) -> fontdb::Weight {
+        fontdb::Weight(self.0)
+    }
+
     /// Returns a numeric representation of a weight suitable for font variations
     pub fn to_var_value(&self) -> f32 {
         self.0 as f32
@@ -150,6 +154,16 @@ pub enum Style {
 impl Default for Style {
     fn default() -> Style {
         Style::Normal
+    }
+}
+
+impl Style {
+    fn to_fontdb(self) -> fontdb::Style {
+        match self {
+            Style::Normal => fontdb::Style::Normal,
+            Style::Italic => fontdb::Style::Italic,
+            Style::Oblique => fontdb::Style::Oblique,
+        }
     }
 }
 
@@ -201,6 +215,20 @@ impl Width {
     /// Get the width as a value suitable for font variations
     pub fn to_var_value(self) -> f32 {
         self.to_percent()
+    }
+
+    fn to_fontdb(self) -> fontdb::Stretch {
+        match self {
+            Width::UltraCondensed => fontdb::Stretch::UltraCondensed,
+            Width::ExtraCondensed => fontdb::Stretch::ExtraCondensed,
+            Width::Condensed => fontdb::Stretch::Condensed,
+            Width::SemiCondensed => fontdb::Stretch::SemiCondensed,
+            Width::Normal => fontdb::Stretch::Normal,
+            Width::SemiExpanded => fontdb::Stretch::SemiExpanded,
+            Width::Expanded => fontdb::Stretch::Expanded,
+            Width::ExtraExpanded => fontdb::Stretch::ExtraExpanded,
+            Width::UltraExpanded => fontdb::Stretch::UltraExpanded,
+        }
     }
 }
 
@@ -272,6 +300,13 @@ pub trait DatabaseExt {
     fn has_chars<C>(&self, id: ID, chars: C) -> bool
     where
         C: Iterator<Item = char>;
+
+    /// Perform a CSS-like query for the provided font spec.
+    fn select_face(&self, font: &Font) -> Option<ID>;
+
+    /// Perform a CSS-like query for the provided font spec with a filter to ensure
+    /// that the returned face can render all characters of the string
+    fn select_face_for_str(&self, font: &Font, s: &str) -> Option<ID>;
 }
 
 impl DatabaseExt for Database {
@@ -297,6 +332,58 @@ impl DatabaseExt for Database {
         });
         res == Some(Some(true))
     }
+
+    fn select_face(&self, font: &Font) -> Option<ID> {
+        let families: Vec<_> = font.families.iter().map(to_fontdb_family).collect();
+        let query = fontdb::Query {
+            families: families.as_slice(),
+            weight: font.weight().to_fontdb(),
+            stretch: font.width().to_fontdb(),
+            style: font.style().to_fontdb(),
+        };
+
+        self.query(&query)
+    }
+
+    fn select_face_for_str(&self, font: &Font, s: &str) -> Option<ID> {
+        // same as query implementation of fontdb with the additional unicode_ranges filter
+        let ur = unicode_ranges_for_str(s); 
+
+        for family in &font.families {
+            let fdbfamily = to_fontdb_family(family);
+            let name = self.family_name(&fdbfamily);
+            let candidates: Vec<_> = self
+                .faces()
+                .filter(|f| {
+                    if let Some(fur) = f.unicode_ranges {
+                        if unicode_ranges_contains(fur, ur) {
+                            println!("{:?} is OK", f.families);
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                })
+                .filter(|face| face.families.iter().any(|family| family.0 == name))
+                .collect();
+
+            if !candidates.is_empty() {
+                let query = fontdb::Query {
+                    families: &[fdbfamily],
+                    weight: fontdb::Weight(font.weight().0),
+                    stretch: font.width().to_fontdb(),
+                    style: font.style().to_fontdb(),
+                };
+                if let Some(index) = find_best_match(&candidates, &query) {
+                    println!("Main algo found a match: {:?}", candidates[index].id);
+                    return Some(candidates[index].id);
+                }
+            }
+        }
+        None
+    }
 }
 
 fn to_fontdb_family(family: &Family) -> fontdb::Family<'_> {
@@ -310,35 +397,321 @@ fn to_fontdb_family(family: &Family) -> fontdb::Family<'_> {
     } 
 }
 
-pub fn select_face(db: &Database, font: &Font) -> Option<ID> {
-    let families: Vec<_> = font.families.iter().map(to_fontdb_family).collect();
-    let weight = fontdb::Weight(font.weight().0);
-    let stretch = match font.width() {
-        Width::UltraCondensed => fontdb::Stretch::UltraCondensed,
-        Width::ExtraCondensed => fontdb::Stretch::ExtraCondensed,
-        Width::Condensed => fontdb::Stretch::Condensed,
-        Width::SemiCondensed => fontdb::Stretch::SemiCondensed,
-        Width::Normal => fontdb::Stretch::Normal,
-        Width::SemiExpanded => fontdb::Stretch::SemiExpanded,
-        Width::Expanded => fontdb::Stretch::Expanded,
-        Width::ExtraExpanded => fontdb::Stretch::ExtraExpanded,
-        Width::UltraExpanded => fontdb::Stretch::UltraExpanded,
+pub fn unicode_ranges_for_str(s: &str) -> ttf::UnicodeRanges {
+    let mut ranges = 0u128;
+    for c in s.chars() {
+        let index = char_range_index(c);
+        ranges |= 1 << index;
+    }
+    ttf::UnicodeRanges(ranges)
+}
+
+/// Check whether `ranges` contains all the characters in `sample`
+pub fn unicode_ranges_contains(ranges: ttf::UnicodeRanges, sample: ttf::UnicodeRanges) -> bool {
+    (ranges.0 & sample.0) == sample.0
+}
+
+// Function copied from ttf-parser
+fn char_range_index(c: char) -> i8 {
+    match c as u32 {
+        0x0000..=0x007F => 0,
+        0x0080..=0x00FF => 1,
+        0x0100..=0x017F => 2,
+        0x0180..=0x024F => 3,
+        0x0250..=0x02AF => 4,
+        0x1D00..=0x1DBF => 4,
+        0x02B0..=0x02FF => 5,
+        0xA700..=0xA71F => 5,
+        0x0300..=0x036F => 6,
+        0x1DC0..=0x1DFF => 6,
+        0x0370..=0x03FF => 7,
+        0x2C80..=0x2CFF => 8,
+        0x0400..=0x052F => 9,
+        0x2DE0..=0x2DFF => 9,
+        0xA640..=0xA69F => 9,
+        0x0530..=0x058F => 10,
+        0x0590..=0x05FF => 11,
+        0xA500..=0xA63F => 12,
+        0x0600..=0x06FF => 13,
+        0x0750..=0x077F => 13,
+        0x07C0..=0x07FF => 14,
+        0x0900..=0x097F => 15,
+        0x0980..=0x09FF => 16,
+        0x0A00..=0x0A7F => 17,
+        0x0A80..=0x0AFF => 18,
+        0x0B00..=0x0B7F => 19,
+        0x0B80..=0x0BFF => 20,
+        0x0C00..=0x0C7F => 21,
+        0x0C80..=0x0CFF => 22,
+        0x0D00..=0x0D7F => 23,
+        0x0E00..=0x0E7F => 24,
+        0x0E80..=0x0EFF => 25,
+        0x10A0..=0x10FF => 26,
+        0x2D00..=0x2D2F => 26,
+        0x1B00..=0x1B7F => 27,
+        0x1100..=0x11FF => 28,
+        0x1E00..=0x1EFF => 29,
+        0x2C60..=0x2C7F => 29,
+        0xA720..=0xA7FF => 29,
+        0x1F00..=0x1FFF => 30,
+        0x2000..=0x206F => 31,
+        0x2E00..=0x2E7F => 31,
+        0x2070..=0x209F => 32,
+        0x20A0..=0x20CF => 33,
+        0x20D0..=0x20FF => 34,
+        0x2100..=0x214F => 35,
+        0x2150..=0x218F => 36,
+        0x2190..=0x21FF => 37,
+        0x27F0..=0x27FF => 37,
+        0x2900..=0x297F => 37,
+        0x2B00..=0x2BFF => 37,
+        0x2200..=0x22FF => 38,
+        0x2A00..=0x2AFF => 38,
+        0x27C0..=0x27EF => 38,
+        0x2980..=0x29FF => 38,
+        0x2300..=0x23FF => 39,
+        0x2400..=0x243F => 40,
+        0x2440..=0x245F => 41,
+        0x2460..=0x24FF => 42,
+        0x2500..=0x257F => 43,
+        0x2580..=0x259F => 44,
+        0x25A0..=0x25FF => 45,
+        0x2600..=0x26FF => 46,
+        0x2700..=0x27BF => 47,
+        0x3000..=0x303F => 48,
+        0x3040..=0x309F => 49,
+        0x30A0..=0x30FF => 50,
+        0x31F0..=0x31FF => 50,
+        0x3100..=0x312F => 51,
+        0x31A0..=0x31BF => 51,
+        0x3130..=0x318F => 52,
+        0xA840..=0xA87F => 53,
+        0x3200..=0x32FF => 54,
+        0x3300..=0x33FF => 55,
+        0xAC00..=0xD7AF => 56,
+        // Ignore Non-Plane 0 (57), since this is not a real range.
+        0x10900..=0x1091F => 58,
+        0x4E00..=0x9FFF => 59,
+        0x2E80..=0x2FDF => 59,
+        0x2FF0..=0x2FFF => 59,
+        0x3400..=0x4DBF => 59,
+        0x20000..=0x2A6DF => 59,
+        0x3190..=0x319F => 59,
+        0xE000..=0xF8FF => 60,
+        0x31C0..=0x31EF => 61,
+        0xF900..=0xFAFF => 61,
+        0x2F800..=0x2FA1F => 61,
+        0xFB00..=0xFB4F => 62,
+        0xFB50..=0xFDFF => 63,
+        0xFE20..=0xFE2F => 64,
+        0xFE10..=0xFE1F => 65,
+        0xFE30..=0xFE4F => 65,
+        0xFE50..=0xFE6F => 66,
+        0xFE70..=0xFEFF => 67,
+        0xFF00..=0xFFEF => 68,
+        0xFFF0..=0xFFFF => 69,
+        0x0F00..=0x0FFF => 70,
+        0x0700..=0x074F => 71,
+        0x0780..=0x07BF => 72,
+        0x0D80..=0x0DFF => 73,
+        0x1000..=0x109F => 74,
+        0x1200..=0x139F => 75,
+        0x2D80..=0x2DDF => 75,
+        0x13A0..=0x13FF => 76,
+        0x1400..=0x167F => 77,
+        0x1680..=0x169F => 78,
+        0x16A0..=0x16FF => 79,
+        0x1780..=0x17FF => 80,
+        0x19E0..=0x19FF => 80,
+        0x1800..=0x18AF => 81,
+        0x2800..=0x28FF => 82,
+        0xA000..=0xA48F => 83,
+        0xA490..=0xA4CF => 83,
+        0x1700..=0x177F => 84,
+        0x10300..=0x1032F => 85,
+        0x10330..=0x1034F => 86,
+        0x10400..=0x1044F => 87,
+        0x1D000..=0x1D24F => 88,
+        0x1D400..=0x1D7FF => 89,
+        0xF0000..=0xFFFFD => 90,
+        0x100000..=0x10FFFD => 90,
+        0xFE00..=0xFE0F => 91,
+        0xE0100..=0xE01EF => 91,
+        0xE0000..=0xE007F => 92,
+        0x1900..=0x194F => 93,
+        0x1950..=0x197F => 94,
+        0x1980..=0x19DF => 95,
+        0x1A00..=0x1A1F => 96,
+        0x2C00..=0x2C5F => 97,
+        0x2D30..=0x2D7F => 98,
+        0x4DC0..=0x4DFF => 99,
+        0xA800..=0xA82F => 100,
+        0x10000..=0x1013F => 101,
+        0x10140..=0x1018F => 102,
+        0x10380..=0x1039F => 103,
+        0x103A0..=0x103DF => 104,
+        0x10450..=0x1047F => 105,
+        0x10480..=0x104AF => 106,
+        0x10800..=0x1083F => 107,
+        0x10A00..=0x10A5F => 108,
+        0x1D300..=0x1D35F => 109,
+        0x12000..=0x123FF => 110,
+        0x12400..=0x1247F => 110,
+        0x1D360..=0x1D37F => 111,
+        0x1B80..=0x1BBF => 112,
+        0x1C00..=0x1C4F => 113,
+        0x1C50..=0x1C7F => 114,
+        0xA880..=0xA8DF => 115,
+        0xA900..=0xA92F => 116,
+        0xA930..=0xA95F => 117,
+        0xAA00..=0xAA5F => 118,
+        0x10190..=0x101CF => 119,
+        0x101D0..=0x101FF => 120,
+        0x102A0..=0x102DF => 121,
+        0x10280..=0x1029F => 121,
+        0x10920..=0x1093F => 121,
+        0x1F030..=0x1F09F => 122,
+        0x1F000..=0x1F02F => 122,
+        _ => -1,
+    }
+}
+
+// https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#font-style-matching
+// Based on https://github.com/servo/font-kit
+// Function copied from fontdb
+#[inline(never)]
+fn find_best_match(candidates: &[&fontdb::FaceInfo], query: &fontdb::Query) -> Option<usize> {
+    debug_assert!(!candidates.is_empty());
+
+    // Step 4.
+    let mut matching_set: Vec<usize> = (0..candidates.len()).collect();
+
+    // Step 4a (`font-stretch`).
+    let matches = matching_set
+        .iter()
+        .any(|&index| candidates[index].stretch == query.stretch);
+    let matching_stretch = if matches {
+        // Exact match.
+        query.stretch
+    } else if query.stretch <= fontdb::Stretch::Normal {
+        // Closest stretch, first checking narrower values and then wider values.
+        let stretch = matching_set
+            .iter()
+            .filter(|&&index| candidates[index].stretch < query.stretch)
+            .min_by_key(|&&index| {
+                query.stretch.to_number() - candidates[index].stretch.to_number()
+            });
+
+        match stretch {
+            Some(&matching_index) => candidates[matching_index].stretch,
+            None => {
+                let matching_index = *matching_set.iter().min_by_key(|&&index| {
+                    candidates[index].stretch.to_number() - query.stretch.to_number()
+                })?;
+
+                candidates[matching_index].stretch
+            }
+        }
+    } else {
+        // Closest stretch, first checking wider values and then narrower values.
+        let stretch = matching_set
+            .iter()
+            .filter(|&&index| candidates[index].stretch > query.stretch)
+            .min_by_key(|&&index| {
+                candidates[index].stretch.to_number() - query.stretch.to_number()
+            });
+
+        match stretch {
+            Some(&matching_index) => candidates[matching_index].stretch,
+            None => {
+                let matching_index = *matching_set.iter().min_by_key(|&&index| {
+                    query.stretch.to_number() - candidates[index].stretch.to_number()
+                })?;
+
+                candidates[matching_index].stretch
+            }
+        }
     };
-    let style = match font.style() {
-        Style::Normal => fontdb::Style::Normal,
-        Style::Italic => fontdb::Style::Italic,
-        Style::Oblique => fontdb::Style::Oblique,
+    matching_set.retain(|&index| candidates[index].stretch == matching_stretch);
+
+    // Step 4b (`font-style`).
+    let style_preference = match query.style {
+        fontdb::Style::Italic => [fontdb::Style::Italic, fontdb::Style::Oblique, fontdb::Style::Normal],
+        fontdb::Style::Oblique => [fontdb::Style::Oblique, fontdb::Style::Italic, fontdb::Style::Normal],
+        fontdb::Style::Normal => [fontdb::Style::Normal, fontdb::Style::Oblique, fontdb::Style::Italic],
     };
-    let query = fontdb::Query {
-        families: families.as_slice(),
-        weight,
-        stretch,
-        style,
+    let matching_style = *style_preference.iter().find(|&query_style| {
+        matching_set
+            .iter()
+            .any(|&index| candidates[index].style == *query_style)
+    })?;
+
+    matching_set.retain(|&index| candidates[index].style == matching_style);
+
+    // Step 4c (`font-weight`).
+    //
+    // The spec doesn't say what to do if the weight is between 400 and 500 exclusive, so we
+    // just use 450 as the cutoff.
+    let weight = query.weight.0;
+
+    let matching_weight = if matching_set
+        .iter()
+        .any(|&index| candidates[index].weight.0 == weight)
+    {
+        fontdb::Weight(weight)
+    } else if (400..450).contains(&weight)
+        && matching_set
+            .iter()
+            .any(|&index| candidates[index].weight.0 == 500)
+    {
+        // Check 500 first.
+        fontdb::Weight::MEDIUM
+    } else if (450..=500).contains(&weight)
+        && matching_set
+            .iter()
+            .any(|&index| candidates[index].weight.0 == 400)
+    {
+        // Check 400 first.
+        fontdb::Weight::NORMAL
+    } else if weight <= 500 {
+        // Closest weight, first checking thinner values and then fatter ones.
+        let idx = matching_set
+            .iter()
+            .filter(|&&index| candidates[index].weight.0 <= weight)
+            .min_by_key(|&&index| weight - candidates[index].weight.0);
+
+        match idx {
+            Some(&matching_index) => candidates[matching_index].weight,
+            None => {
+                let matching_index = *matching_set
+                    .iter()
+                    .min_by_key(|&&index| candidates[index].weight.0 - weight)?;
+                candidates[matching_index].weight
+            }
+        }
+    } else {
+        // Closest weight, first checking fatter values and then thinner ones.
+        let idx = matching_set
+            .iter()
+            .filter(|&&index| candidates[index].weight.0 >= weight)
+            .min_by_key(|&&index| candidates[index].weight.0 - weight);
+
+        match idx {
+            Some(&matching_index) => candidates[matching_index].weight,
+            None => {
+                let matching_index = *matching_set
+                    .iter()
+                    .min_by_key(|&&index| weight - candidates[index].weight.0)?;
+                candidates[matching_index].weight
+            }
+        }
     };
-    println!("Performing query {:?}", query);
-    let res = db.query(&query);
-    println!("Obtained result: {:#?}", res.map(|id| db.face(id).unwrap()));
-    res
+    matching_set.retain(|&index| candidates[index].weight == matching_weight);
+
+    // Ignore step 4d (`font-size`).
+
+    // Return the result.
+    matching_set.into_iter().next()
 }
 
 pub fn select_face_fallback(db: &Database, c: char, already_tried: &[ID]) -> Option<ID> {

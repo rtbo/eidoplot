@@ -1,7 +1,7 @@
 use ttf_parser as ttf;
 
 use crate::Error;
-use crate::font::{self, Font};
+use crate::font::{self, DatabaseExt, Font};
 
 #[derive(Debug, Clone, Copy)]
 enum ResolvedGlyphId {
@@ -210,7 +210,7 @@ impl Text {
         let mut l = 0;
         while l < line {
             h += self.lines[l].gap(font_size);
-            h += self.lines[l+1].height(font_size);
+            h += self.lines[l + 1].height(font_size);
             l += 1;
         }
         h
@@ -255,7 +255,10 @@ impl Text {
 }
 
 pub fn shape_text(text: &str, font: &Font, db: &font::Database) -> Result<Text, Error> {
-    let base_face_id = font::select_face(db, font).ok_or(Error::NoSuchFont(font.clone()))?;
+    let base_face_id = db
+        .select_face_for_str(font, text)
+        .or_else(|| db.select_face(font))
+        .ok_or(Error::NoSuchFont(font.clone()))?;
     let mut shape = shape_text_with_font(text, base_face_id, font, db)?;
 
     let mut missing = shape.first_missing_char();

@@ -1,15 +1,46 @@
 use tiny_skia_path::{PathBuilder, Transform};
 use ttf_parser as ttf;
 
-use crate::shape;
 use crate::font::{self, Font};
+use crate::shape;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub enum HorAlign {
     #[default]
     Start,
+    Left,
     Center,
     End,
+    Right,
+}
+
+/// Anchor where to align the text horizontally
+/// By default it is a point at (X = 0)
+/// Note that the transform applies on top of this anchor
+#[derive(Debug, Clone, Copy)]
+pub enum HorAnchor {
+    /// Anchor at a X coordinate
+    /// The LTR text with HorAlign::Start will start at this point and span to the right
+    /// The RTL text with HorAlign::Start will start at this point and span to the left
+    X(f32),
+    /// Anchor in a horizontal window
+    /// The following cases will be align at x_left and span to the right:
+    ///     - Any text with [HorAlign::Left]
+    ///     - LTR text with [HorAlign::Start]
+    ///     - RTL text with [HorAlign::End]
+    /// The following cases will be align at x_right and span to the left:
+    ///     - Any text with [HorAlign::Right]
+    ///     - LTR text with [HorAlign::End]
+    ///     - RTL text with [HorAlign::Start]
+    /// Centered text will be centered between x_left and x_right
+    /// No check is made that the text fits in the window, and no shrinking is done
+    Window { x_left: f32, x_right: f32 },
+}
+
+impl Default for HorAnchor {
+    fn default() -> Self {
+        HorAnchor::X(0.0)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -19,7 +50,7 @@ pub enum LineVerAlign {
     /// Align the baseline
     #[default]
     Baseline,
-    /// Align the middle of the x-height
+    /// Align at middle of the x-height
     Middle,
     /// Align at capital height
     Hanging,
@@ -27,24 +58,15 @@ pub enum LineVerAlign {
     Top,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct LineAlign(pub HorAlign, pub LineVerAlign);
-
-impl LineAlign {
-    pub fn hor(&self) -> HorAlign {
-        self.0
-    }
-
-    pub fn ver(&self) -> LineVerAlign {
-        self.1
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub enum TextVerAlign {
+    /// Align at the specified line
     Line(usize, LineVerAlign),
+    /// Align at the top (ascender) of the first line
     Top,
+    /// Align at the center, that is (top + bottom) / 2
     Center,
+    /// Align at the bottom (descender) of the last line
     Bottom,
 }
 
@@ -54,11 +76,34 @@ impl Default for TextVerAlign {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct VerAnchor(pub f32);
+
+impl Default for VerAnchor {
+    fn default() -> Self {
+        VerAnchor(0.0)
+    }
+}
+
 #[derive(Debug, Clone, Copy, Default)]
-pub struct TextAlign {
-    pub hor: HorAlign,
-    pub ver: TextVerAlign,
-    pub justify: bool,
+pub struct LayoutOptions {
+    pub hor_align: HorAlign,
+    pub hor_anchor: HorAnchor,
+    /// Justify the text horizontally
+    /// For point anchor, justifies to the maximum line width (equals text width)
+    /// For window anchor, justifies to the window width (overrules hor_align)
+    pub hor_justify: bool,
+
+    pub ver_align: TextVerAlign,
+    pub ver_anchor: VerAnchor,
+}
+
+#[derive(Debug, Clone)]
+pub struct RenderOptions<'a> {
+    pub fill: Option<tiny_skia::Paint<'a>>,
+    pub outline: Option<(tiny_skia::Paint<'a>, tiny_skia::Stroke)>,
+    pub mask: Option<&'a tiny_skia::Mask>,
+    pub transform: tiny_skia_path::Transform,
 }
 
 #[derive(Debug, Clone)]
@@ -68,14 +113,14 @@ struct Glyph {
 }
 
 pub fn render_text(
-    text: &shape::Text,
-    transform: tiny_skia_path::Transform,
-    align: TextAlign,
+    text_shape: &shape::Text,
     font_size: f32,
+    layout_opts: &LayoutOptions,
+    render_opts: &RenderOptions<'_>,
     db: &font::Database,
     pixmap: &mut tiny_skia::PixmapMut<'_>,
 ) {
-    let lines = text.lines();
+    let lines = text_shape.lines();
     if lines.is_empty() {
         return;
     }
@@ -83,34 +128,45 @@ pub fn render_text(
     let fst = &lines[0];
     let lst = &lines[lines.len() - 1];
 
-    let mut y_cursor = match align.ver {
-        TextVerAlign::Top => -fst.ascent(font_size),
-        TextVerAlign::Bottom => {
-            text.baseline_of_line(lines.len() - 1, font_size) - lst.descent(font_size)
-        }
-        TextVerAlign::Center => {
-            let top = -fst.ascent(font_size);
-            let bottom = text.baseline_of_line(lines.len() - 1, font_size) - lst.descent(font_size);
-            (top + bottom) / 2.0
-        }
-        TextVerAlign::Line(line, align) => {
-            let baseline = text.baseline_of_line(line, font_size);
-            match align {
-                LineVerAlign::Bottom => baseline - lst.descent(font_size),
-                LineVerAlign::Baseline => baseline,
-                LineVerAlign::Middle => baseline - lst.x_height(font_size) / 2.0,
-                LineVerAlign::Hanging => baseline - lst.cap_height(font_size),
-                LineVerAlign::Top => baseline - lst.ascent(font_size),
+    let mut y_cursor = -layout_opts.ver_anchor.0
+        + match layout_opts.ver_align {
+            TextVerAlign::Top => -fst.ascent(font_size),
+            TextVerAlign::Bottom => {
+                text_shape.baseline_of_line(lines.len() - 1, font_size) - lst.descent(font_size)
             }
+            TextVerAlign::Center => {
+                let top = -fst.ascent(font_size);
+                let bottom = text_shape.baseline_of_line(lines.len() - 1, font_size)
+                    - lst.descent(font_size);
+                (top + bottom) / 2.0
+            }
+            TextVerAlign::Line(line, align) => {
+                let baseline = text_shape.baseline_of_line(line, font_size);
+                match align {
+                    LineVerAlign::Bottom => baseline - lst.descent(font_size),
+                    LineVerAlign::Baseline => baseline,
+                    LineVerAlign::Middle => baseline - lst.x_height(font_size) / 2.0,
+                    LineVerAlign::Hanging => baseline - lst.cap_height(font_size),
+                    LineVerAlign::Top => baseline - lst.ascent(font_size),
+                }
+            }
+        };
+
+    let justify = if layout_opts.hor_justify {
+        match layout_opts.hor_anchor {
+            HorAnchor::X(..) => Some(text_shape.width(font_size)),
+            HorAnchor::Window {
+                x_left, x_right, ..
+            } => Some(x_right - x_left),
         }
-    };
-
-    let line_align = LineAlign(align.hor, LineVerAlign::Baseline);
-
-    let justify = if align.justify {
-        Some(text.width(font_size))
     } else {
         None
+    };
+
+    let line_align = LineAlign {
+        hor_align: layout_opts.hor_align,
+        hor_anchor: layout_opts.hor_anchor,
+        justify,
     };
 
     for (i, line) in lines.iter().enumerate() {
@@ -118,37 +174,37 @@ pub fn render_text(
             y_cursor -= line.height(font_size);
         }
         render_line_at_y(
-            y_cursor, line, transform, line_align, font_size, justify, db, pixmap,
+            y_cursor,
+            line,
+            font_size,
+            line_align,
+            render_opts,
+            db,
+            pixmap,
         );
         y_cursor -= line.gap(font_size);
     }
 }
 
-pub fn render_line(
-    line: &shape::Line,
-    transform: tiny_skia_path::Transform,
-    align: LineAlign,
-    font_size: f32,
+#[derive(Debug, Clone, Copy, Default)]
+struct LineAlign {
+    hor_align: HorAlign,
+    hor_anchor: HorAnchor,
     justify: Option<f32>,
-    db: &font::Database,
-    pixmap: &mut tiny_skia::PixmapMut<'_>,
-) {
-    render_line_at_y(0.0, line, transform, align, font_size, justify, db, pixmap);
 }
 
 fn render_line_at_y(
-    y_start: f32,
+    y_cursor: f32,
     line: &shape::Line,
-    transform: tiny_skia_path::Transform,
-    align: LineAlign,
     font_size: f32,
-    justify: Option<f32>,
+    align: LineAlign,
+    render_opts: &RenderOptions<'_>,
     db: &font::Database,
     pixmap: &mut tiny_skia::PixmapMut<'_>,
 ) {
     let width = line.width(font_size);
 
-    let (width, justify_gap) = match justify {
+    let (width, justify_gap) = match align.justify {
         Some(justify) => {
             if justify <= width {
                 (width, None)
@@ -159,26 +215,24 @@ fn render_line_at_y(
                 } else {
                     0.0
                 };
-                (justify, Some(gap)) 
+                (justify, Some(gap))
             }
-        },
+        }
         None => (width, None),
     };
 
-    let mut x_cursor = match (align.hor(), line.rtl()) {
-        (HorAlign::Start, false) | (HorAlign::End, true) => 0.0,
-        (HorAlign::Center, _) => -width / 2.0,
-        (HorAlign::Start, true) | (HorAlign::End, false) => -width,
+    let (left, right) = match align.hor_anchor {
+        HorAnchor::X(x) => (x, x),
+        HorAnchor::Window { x_left, x_right } => (x_left, x_right),
     };
 
-    let mut y_cursor = y_start
-        + match align.ver() {
-            LineVerAlign::Bottom => -line.descent(font_size),
-            LineVerAlign::Baseline => 0.0,
-            LineVerAlign::Middle => -line.x_height(font_size) / 2.0,
-            LineVerAlign::Hanging => -line.cap_height(font_size),
-            LineVerAlign::Top => -line.ascent(font_size),
-        };
+    let mut x_cursor = match (align.hor_align, line.rtl()) {
+        (HorAlign::Start, false) | (HorAlign::End, true) | (HorAlign::Left, _) => left,
+        (HorAlign::Center, _) => (left + right) / 2.0 - width / 2.0,
+        (HorAlign::Start, true) | (HorAlign::End, false) | (HorAlign::Right, _) => right - width,
+    };
+
+    let mut y_cursor = y_cursor;
 
     // grouping by font-id in order to avoid loading the same font on every glyph
     let mut runs = Vec::new();
@@ -223,7 +277,7 @@ fn render_line_at_y(
     for r in runs {
         render_glyphs(
             &glyphs_buf[r.0..r.1],
-            transform,
+            render_opts,
             r.2,
             line.font(),
             db,
@@ -234,7 +288,7 @@ fn render_line_at_y(
 
 fn render_glyphs(
     glyphs: &[Glyph],
-    transform: tiny_skia_path::Transform,
+    render_opts: &RenderOptions<'_>,
     font_id: font::ID,
     font: &Font,
     db: &font::Database,
@@ -270,10 +324,27 @@ fn render_glyphs(
                 gl_pb = PathBuilder::new();
             }
         }
-        let paint = tiny_skia::Paint::default();
+
         if let Some(path) = str_pb.finish() {
             let path = path.transform(Transform::from_scale(1.0, -1.0)).unwrap();
-            pixmap.fill_path(&path, &paint, tiny_skia::FillRule::Winding, transform, None);
+            if let Some(paint) = render_opts.fill.as_ref() {
+                pixmap.fill_path(
+                    &path,
+                    &paint,
+                    tiny_skia::FillRule::Winding,
+                    render_opts.transform,
+                    render_opts.mask,
+                );
+            }
+            if let Some((paint, stroke)) = render_opts.outline.as_ref() {
+                pixmap.stroke_path(
+                    &path,
+                    &paint,
+                    &stroke,
+                    render_opts.transform,
+                    render_opts.mask,
+                );
+            }
         }
     })
     .unwrap();

@@ -13,4 +13,4 @@ ttf-parser.workspace = true
 unicode-bidi = "0.3.18"
 
 [[example]]
-name="shape"
+name="bidi_layout"

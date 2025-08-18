@@ -8,7 +8,8 @@ pub mod shape;
 
 pub use font::Font;
 pub use render::{
-    HorAlign, LineAlign, LineVerAlign, TextAlign, TextVerAlign, render_line, render_text,
+    HorAlign, HorAnchor, LayoutOptions, LineVerAlign, RenderOptions, TextVerAlign, VerAnchor,
+    render_text,
 };
 pub use shape::shape_text;
 
