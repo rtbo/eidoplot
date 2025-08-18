@@ -60,15 +60,23 @@ impl Glyph {
     pub fn height(&self, font_size: f32) -> f32 {
         self.metrics.height(font_size)
     }
-    
+
     pub fn x_height(&self, font_size: f32) -> f32 {
         self.metrics.x_height(font_size)
     }
-    
+
     pub fn cap_height(&self, font_size: f32) -> f32 {
         self.metrics.cap_height(font_size)
     }
-    
+
+    pub fn ascent(&self, font_size: f32) -> f32 {
+        self.metrics.ascent(font_size)
+    }
+
+    pub fn descent(&self, font_size: f32) -> f32 {
+        self.metrics.descent(font_size)
+    }
+
     pub fn line_gap(&self, font_size: f32) -> f32 {
         self.metrics.line_gap(font_size)
     }
@@ -88,6 +96,7 @@ impl Glyph {
 pub struct Line {
     glyphs: Vec<Glyph>,
     style: style::Font,
+    rtl: bool,
 }
 
 impl Line {
@@ -99,6 +108,10 @@ impl Line {
         &self.style
     }
 
+    pub fn rtl(&self) -> bool {
+        self.rtl
+    }
+
     pub fn width(&self, font_size: f32) -> f32 {
         self.glyphs.iter().map(|g| g.x_advance(font_size)).sum()
     }
@@ -107,6 +120,22 @@ impl Line {
         self.glyphs
             .iter()
             .map(|g| g.height(font_size))
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
+
+    pub fn ascent(&self, font_size: f32) -> f32 {
+        self.glyphs
+            .iter()
+            .map(|g| g.ascent(font_size))
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
+
+    pub fn descent(&self, font_size: f32) -> f32 {
+        self.glyphs
+            .iter()
+            .map(|g| g.descent(font_size))
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap_or(0.0)
     }
@@ -167,6 +196,17 @@ impl Text {
         }
         h
     }
+
+    pub fn baseline_of_line(&self, line: usize, font_size: f32) -> f32 {
+        let mut h = 0.0;
+        let mut l = 0;
+        while l < line {
+            h += self.lines[l].gap(font_size);
+            h += self.lines[l+1].height(font_size);
+            l += 1;
+        }
+        h
+    }
 }
 
 impl Text {
@@ -206,11 +246,7 @@ impl Text {
     }
 }
 
-pub fn shape_text(
-    text: &str,
-    style: &style::Font,
-    db: &font::Database,
-) -> Result<Text, Error> {
+pub fn shape_text(text: &str, style: &style::Font, db: &font::Database) -> Result<Text, Error> {
     let base_face_id = font::select_face(db, style).ok_or(Error::NoSuchFont(style.clone()))?;
     let mut shape = shape_text_with_font(text, base_face_id, style, db)?;
 
@@ -267,7 +303,8 @@ fn shape_text_with_font(
         let mut lines = Vec::new();
 
         for line in text.lines() {
-            buffer = shape_lines_with_font(line, font_id, &hbface, metrics, buffer, style, &mut lines)?;
+            buffer =
+                shape_lines_with_font(line, font_id, &hbface, metrics, buffer, style, &mut lines)?;
         }
 
         Ok(Text {
@@ -293,6 +330,7 @@ fn shape_lines_with_font(
     if bidi.paragraphs.len() > 1 {
         println!("Multiple paragraphs on the same line. Issueing multiple lines!");
     }
+    let mut rtl = None;
     for para in bidi.paragraphs.iter() {
         let line = para.range.clone();
         let (levels, runs) = bidi.visual_runs(para, line.clone());
@@ -311,6 +349,9 @@ fn shape_lines_with_font(
             } else {
                 rustybuzz::Direction::RightToLeft
             };
+            if rtl.is_none() {
+                rtl = Some(!ltr);
+            }
 
             buffer.push_str(sub_text);
             buffer.set_direction(hb_direction);
@@ -362,6 +403,7 @@ fn shape_lines_with_font(
         lines.push(Line {
             glyphs,
             style: style.clone(),
+            rtl: rtl.unwrap_or_default(),
             // range: line.clone(),
         });
     }

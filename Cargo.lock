@@ -552,7 +552,6 @@ dependencies = [
 name = "eidoplot-text"
 version = "0.1.0"
 dependencies = [
- "eidoplot",
  "fontdb",
  "rustybuzz",
  "tiny-skia",

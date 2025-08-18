@@ -1,4 +1,4 @@
-use std::{fmt};
+use std::fmt;
 
 use ttf_parser as ttf;
 
@@ -7,8 +7,8 @@ pub mod render;
 pub mod shape;
 pub mod style;
 
+pub use render::{HorAlign, LineAlign, LineVerAlign, TextAlign, TextVerAlign, render_line, render_text};
 pub use shape::shape_text;
-pub use render::{render_line, Align, HorAlign, VerAlign};
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -32,4 +32,3 @@ impl From<ttf::FaceParsingError> for Error {
 }
 
 impl std::error::Error for Error {}
-

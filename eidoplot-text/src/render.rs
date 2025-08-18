@@ -12,36 +12,134 @@ pub enum HorAlign {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub enum VerAlign {
+pub enum LineVerAlign {
+    /// Align the bottom of the descender
+    Bottom,
+    /// Align the baseline
     #[default]
     Baseline,
+    /// Align the middle of the x-height
     Middle,
+    /// Align at capital height
     Hanging,
+    /// Align at the top of the ascender
+    Top,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Align(pub HorAlign, pub VerAlign);
+pub struct LineAlign(pub HorAlign, pub LineVerAlign);
 
-impl Align {
+impl LineAlign {
     pub fn hor(&self) -> HorAlign {
         self.0
     }
 
-    pub fn ver(&self) -> VerAlign {
+    pub fn ver(&self) -> LineVerAlign {
         self.1
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum TextVerAlign {
+    Line(usize, LineVerAlign),
+    Top,
+    Center,
+    Bottom,
+}
+
+impl Default for TextVerAlign {
+    fn default() -> Self {
+        TextVerAlign::Line(0, LineVerAlign::default())
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TextAlign {
+    pub hor: HorAlign,
+    pub ver: TextVerAlign,
+    pub justify: bool,
+}
+
 #[derive(Debug, Clone)]
-pub struct Glyph {
-    pub id: Option<ttf::GlyphId>,
-    pub ts: Transform,
+struct Glyph {
+    id: Option<ttf::GlyphId>,
+    ts: Transform,
+}
+
+pub fn render_text(
+    text: &shape::Text,
+    transform: tiny_skia_path::Transform,
+    align: TextAlign,
+    font_size: f32,
+    db: &font::Database,
+    pixmap: &mut tiny_skia::PixmapMut<'_>,
+) {
+    let lines = text.lines();
+    if lines.is_empty() {
+        return;
+    }
+
+    let fst = &lines[0];
+    let lst = &lines[lines.len() - 1];
+
+    let mut y_cursor = match align.ver {
+        TextVerAlign::Top => -fst.ascent(font_size),
+        TextVerAlign::Bottom => {
+            text.baseline_of_line(lines.len() - 1, font_size) - lst.descent(font_size)
+        }
+        TextVerAlign::Center => {
+            let top = -fst.ascent(font_size);
+            let bottom = text.baseline_of_line(lines.len() - 1, font_size) - lst.descent(font_size);
+            (top + bottom) / 2.0
+        }
+        TextVerAlign::Line(line, align) => {
+            let baseline = text.baseline_of_line(line, font_size);
+            match align {
+                LineVerAlign::Bottom => baseline - lst.descent(font_size),
+                LineVerAlign::Baseline => baseline,
+                LineVerAlign::Middle => baseline - lst.x_height(font_size) / 2.0,
+                LineVerAlign::Hanging => baseline - lst.cap_height(font_size),
+                LineVerAlign::Top => baseline - lst.ascent(font_size),
+            }
+        }
+    };
+
+    let line_align = LineAlign(align.hor, LineVerAlign::Baseline);
+
+    let justify = if align.justify {
+        Some(text.width(font_size))
+    } else {
+        None
+    };
+
+    for (i, line) in lines.iter().enumerate() {
+        if i != 0 {
+            y_cursor -= line.height(font_size);
+        }
+        render_line_at_y(
+            y_cursor, line, transform, line_align, font_size, justify, db, pixmap,
+        );
+        y_cursor -= line.gap(font_size);
+    }
 }
 
 pub fn render_line(
     line: &shape::Line,
     transform: tiny_skia_path::Transform,
-    align: Align,
+    align: LineAlign,
+    font_size: f32,
+    justify: Option<f32>,
+    db: &font::Database,
+    pixmap: &mut tiny_skia::PixmapMut<'_>,
+) {
+    render_line_at_y(0.0, line, transform, align, font_size, justify, db, pixmap);
+}
+
+fn render_line_at_y(
+    y_start: f32,
+    line: &shape::Line,
+    transform: tiny_skia_path::Transform,
+    align: LineAlign,
     font_size: f32,
     justify: Option<f32>,
     db: &font::Database,
@@ -49,21 +147,37 @@ pub fn render_line(
 ) {
     let width = line.width(font_size);
 
-    let mut x_cursor = match align.hor() {
-        HorAlign::Start => 0.0,
-        HorAlign::Center => -width / 2.0,
-        HorAlign::End => -width,
+    let (width, justify_gap) = match justify {
+        Some(justify) => {
+            if justify <= width {
+                (width, None)
+            } else {
+                let adv_count = line.glyphs().iter().filter(|g| g.has_x_advance()).count();
+                let gap = if adv_count > 1 {
+                    (justify - width) / (adv_count as f32 - 1.0)
+                } else {
+                    0.0
+                };
+                (justify, Some(gap)) 
+            }
+        },
+        None => (width, None),
     };
 
-    let mut y_cursor = match align.ver() {
-        VerAlign::Baseline => 0.0,
-        VerAlign::Middle => -line.x_height(font_size) / 2.0,
-        VerAlign::Hanging => -line.cap_height(font_size),
+    let mut x_cursor = match (align.hor(), line.rtl()) {
+        (HorAlign::Start, false) | (HorAlign::End, true) => 0.0,
+        (HorAlign::Center, _) => -width / 2.0,
+        (HorAlign::Start, true) | (HorAlign::End, false) => -width,
     };
 
-    println!("origin is ({}, {})", x_cursor, y_cursor);
-
-    let justify_gap = justify.map(|j| justify_gap(line, width, j));
+    let mut y_cursor = y_start
+        + match align.ver() {
+            LineVerAlign::Bottom => -line.descent(font_size),
+            LineVerAlign::Baseline => 0.0,
+            LineVerAlign::Middle => -line.x_height(font_size) / 2.0,
+            LineVerAlign::Hanging => -line.cap_height(font_size),
+            LineVerAlign::Top => -line.ascent(font_size),
+        };
 
     // grouping by font-id in order to avoid loading the same font on every glyph
     let mut runs = Vec::new();
@@ -78,8 +192,6 @@ pub fn render_line(
         let x = x_cursor + sh_gl.x_offset(font_size);
         let y = y_cursor + sh_gl.y_offset(font_size);
         let pos_ts = Transform::from_translate(x, y);
-
-        println!("translating glyph {:?} at ({}, {})", sh_gl.id(), x, y);
 
         let gl = Glyph {
             id: sh_gl.id(),
@@ -119,18 +231,6 @@ pub fn render_line(
     }
 }
 
-fn justify_gap(line: &shape::Line, width: f32, justify: f32) -> f32 {
-    if justify <= width {
-        return 0.0;
-    }
-    let adv_count = line.glyphs().iter().filter(|g| g.has_x_advance()).count();
-    if adv_count > 1 {
-        (justify - width) / (adv_count as f32 - 1.0)
-    } else {
-        0.0
-    }
-}
-
 fn render_glyphs(
     glyphs: &[Glyph],
     transform: tiny_skia_path::Transform,
@@ -139,6 +239,8 @@ fn render_glyphs(
     db: &font::Database,
     pixmap: &mut tiny_skia::PixmapMut<'_>,
 ) {
+    println!("rendering with {:?}", db.face(font_id).unwrap());
+
     db.with_face_data(font_id, |data, index| {
         let mut face = ttf::Face::parse(data, index).unwrap();
         font::apply_variations(&mut face, style);
