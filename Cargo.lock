@@ -518,6 +518,7 @@ version = "0.1.0"
 dependencies = [
  "eidoplot-pxl",
  "eidoplot-svg",
+ "eidoplot-text",
  "fontdb",
  "polars",
  "rand",
@@ -533,6 +534,7 @@ name = "eidoplot-pxl"
 version = "0.1.0"
 dependencies = [
  "eidoplot",
+ "eidoplot-text",
  "fontdb",
  "rustybuzz",
  "tiny-skia",
@@ -545,6 +547,7 @@ name = "eidoplot-svg"
 version = "0.1.0"
 dependencies = [
  "eidoplot",
+ "eidoplot-text",
  "svg",
 ]
 

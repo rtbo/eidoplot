@@ -84,14 +84,15 @@ impl Surface for SvgSurface {
     }
 
     fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
-        let font = &text.font;
+        let font = text.font;
         let color = match text.fill {
             style::Fill::Solid(color) => color,
         };
+        let family = eidoplot_text::font::font_families_to_string(font.families());
 
         let mut node = element::Text::new(text.text)
-            .set("font-family", font.family().as_str())
-            .set("font-size", font.size())
+            .set("font-family", family.as_str())
+            .set("font-size", text.font_size)
             .set("font-weight", font.weight().0)
             .set("font-style", font_style(font.style()))
             .set("font-stretch", font_stretch(font.width()))

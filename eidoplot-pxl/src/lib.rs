@@ -4,10 +4,6 @@ use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 use eidoplot::{geom, render, style};
 
-mod font;
-
-use font::DatabaseExt;
-
 #[derive(Debug, Clone)]
 pub struct PxlSurface {
     pixmap: Pixmap,
@@ -15,7 +11,7 @@ pub struct PxlSurface {
 }
 
 impl PxlSurface {
-    pub fn new(width: u32, height: u32, fontdb: Option<Arc<font::Database>>) -> Option<Self> {
+    pub fn new(width: u32, height: u32, fontdb: Option<Arc<fontdb::Database>>) -> Option<Self> {
         let pixmap = Pixmap::new(width, height)?;
         let state = State::new(width, height, fontdb);
         Some(Self { pixmap, state })
@@ -33,7 +29,7 @@ pub struct PxlSurfaceRef<'a> {
 }
 
 impl<'a> PxlSurfaceRef<'a> {
-    pub fn from_pixmap_mut(pixmap: PixmapMut<'a>, fontdb: Option<Arc<font::Database>>) -> Self {
+    pub fn from_pixmap_mut(pixmap: PixmapMut<'a>, fontdb: Option<Arc<fontdb::Database>>) -> Self {
         let state = State::new(pixmap.width(), pixmap.height(), fontdb);
         Self { pixmap, state }
     }
@@ -42,7 +38,7 @@ impl<'a> PxlSurfaceRef<'a> {
         bytes: &'a mut [u8],
         width: u32,
         height: u32,
-        fontdb: Option<Arc<font::Database>>,
+        fontdb: Option<Arc<fontdb::Database>>,
     ) -> Option<Self> {
         let pixmap = PixmapMut::from_bytes(bytes, width, height)?;
         let state = State::new(pixmap.width(), pixmap.height(), fontdb);
@@ -59,23 +55,20 @@ impl<'a> PxlSurfaceRef<'a> {
 struct State {
     width: u32,
     height: u32,
-    fontdb: Arc<font::Database>,
+    fontdb: Arc<fontdb::Database>,
     transform: geom::Transform,
     clip: Option<Mask>,
-    // to recycle text path builder allocation
-    text_pb: Option<geom::PathBuilder>,
 }
 
 impl State {
-    fn new(width: u32, height: u32, fontdb: Option<Arc<font::Database>>) -> Self {
-        let fontdb = fontdb.unwrap_or_else(|| Arc::new(eidoplot::font::bundled_db()));
+    fn new(width: u32, height: u32, fontdb: Option<Arc<fontdb::Database>>) -> Self {
+        let fontdb = fontdb.unwrap_or_else(|| Arc::new(eidoplot::bundled_font_db()));
         Self {
             width,
             height,
             fontdb,
             transform: geom::Transform::identity(),
             clip: None,
-            text_pb: None,
         }
     }
 
@@ -151,26 +144,39 @@ impl State {
             .map(|t| t.post_concat(self.transform))
             .unwrap_or(self.transform);
 
-        let pb_reuse = self.text_pb.take();
+        // FIXME: error management
+        let shape = eidoplot_text::shape_text(text.text, text.font, &self.fontdb).unwrap();
 
-        let outlined = self.fontdb.outline_text(text.text, text.font, pb_reuse);
+        let hor_align = match text.anchor.align {
+            render::TextAlign::Start => eidoplot_text::HorAlign::Start,
+            render::TextAlign::Center => eidoplot_text::HorAlign::Center,
+            render::TextAlign::End => eidoplot_text::HorAlign::End,
+        };
+        let ver_align = match text.anchor.baseline {
+            render::TextBaseline::Base => eidoplot_text::TextVerAlign::Line(0, eidoplot_text::LineVerAlign::Baseline),
+            render::TextBaseline::Center => eidoplot_text::TextVerAlign::Line(0, eidoplot_text::LineVerAlign::Middle),
+            render::TextBaseline::Hanging => eidoplot_text::TextVerAlign::Line(0, eidoplot_text::LineVerAlign::Hanging),
+        };
+        let hor_anchor = eidoplot_text::HorAnchor::X(text.anchor.pos.x());
+        let ver_anchor = eidoplot_text::VerAnchor(text.anchor.pos.y());
 
-        let ts_anchor = outlined.anchor_transform(text.anchor); 
-
-        let outline = outlined.into_path();
-        let outline = outline.transform(ts_anchor).unwrap();
-
+        let layout_opts = eidoplot_text::LayoutOptions {
+            hor_align,
+            hor_anchor,
+            hor_justify: false,
+            ver_align,
+            ver_anchor,
+        };
         let mut paint = tiny_skia::Paint::default();
         ts_fill(text.fill, &mut paint);
-        px.fill_path(
-            &outline,
-            &paint,
-            tiny_skia::FillRule::Winding,
-            ts_text,
-            self.clip.as_ref(),
-        );
-
-        self.text_pb.replace(outline.clear());
+        let render_opts = eidoplot_text::RenderOptions {
+            fill: Some(paint),
+            outline: None,
+            transform: ts_text,
+            mask: self.clip.as_ref(),
+        };
+        let db = &self.fontdb;
+        eidoplot_text::render_text(&shape, text.font_size, &layout_opts, &render_opts, db, px);
 
         Ok(())
     }
@@ -265,7 +271,7 @@ fn ts_color(color: style::Color) -> tiny_skia::Color {
 }
 
 fn ts_fill(fill: style::Fill, paint: &mut tiny_skia::Paint) {
-    paint.colorspace = tiny_skia::ColorSpace::Linear;
+    paint.colorspace = tiny_skia::ColorSpace::Gamma2;
     match fill {
         style::Fill::Solid(color) => {
             let color = ts_color(color);
@@ -276,7 +282,7 @@ fn ts_fill(fill: style::Fill, paint: &mut tiny_skia::Paint) {
 
 fn ts_stroke(stroke: style::Line, paint: &mut tiny_skia::Paint) -> tiny_skia::Stroke {
     let color = ts_color(stroke.color);
-    paint.colorspace = tiny_skia::ColorSpace::SimpleSRGB;
+    paint.colorspace = tiny_skia::ColorSpace::Gamma2;
     paint.set_color(color);
 
     let mut ts = tiny_skia::Stroke {

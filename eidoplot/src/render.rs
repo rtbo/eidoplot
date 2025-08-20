@@ -107,7 +107,8 @@ pub struct TextAnchor {
 #[derive(Debug, Clone)]
 pub struct Text<'a> {
     pub text: &'a str,
-    pub font: &'a style::Font,
+    pub font: &'a eidoplot_text::Font,
+    pub font_size: f32,
     pub fill: style::Fill,
     pub anchor: TextAnchor,
     pub transform: Option<&'a geom::Transform>,

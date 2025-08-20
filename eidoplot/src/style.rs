@@ -1,8 +1,17 @@
 pub mod color;
 pub mod defaults;
-pub mod font;
 
 pub use color::Color;
+
+pub mod font {
+    pub use eidoplot_text::font::Family;
+    pub use eidoplot_text::font::Font;
+    pub use eidoplot_text::font::Style;
+    pub use eidoplot_text::font::Weight;
+    pub use eidoplot_text::font::Width;
+    pub use eidoplot_text::font::parse_font_families;
+}
+
 pub use font::Font;
 
 #[derive(Debug, Clone, Copy)]

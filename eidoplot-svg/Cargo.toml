@@ -6,4 +6,5 @@ edition.workspace = true
 
 [dependencies]
 eidoplot = { path = "../eidoplot" }
+eidoplot-text = { path = "../eidoplot-text" }
 svg = "0.18.0"

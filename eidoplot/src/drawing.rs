@@ -1,6 +1,6 @@
 use std::{fmt, sync::Arc};
 
-use crate::{data, ir, render, font};
+use crate::{data, ir, render};
 
 mod axis;
 mod figure;
@@ -44,17 +44,17 @@ impl std::error::Error for Error {}
 
 #[derive(Debug, Default, Clone)]
 pub struct Options {
-    pub fontdb: Option<Arc<font::Database>>,
+    pub fontdb: Option<Arc<fontdb::Database>>,
 }
 
 #[derive(Debug)]
 struct Ctx<'a, D> {
     data_source: &'a D,
-    fontdb: Arc<font::Database>,
+    fontdb: Arc<fontdb::Database>,
 }
 
 impl<'a, D> Ctx<'a, D> {
-    pub fn new(data_source: &'a D, fontdb: Arc<font::Database>) -> Ctx<'a, D> {
+    pub fn new(data_source: &'a D, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D> {
         Ctx {
             data_source,
             fontdb,
@@ -65,7 +65,7 @@ impl<'a, D> Ctx<'a, D> {
         self.data_source
     }
 
-    pub fn fontdb(&self) -> &Arc<font::Database> {
+    pub fn fontdb(&self) -> &Arc<fontdb::Database> {
         &self.fontdb
     }
 }
@@ -80,7 +80,7 @@ pub trait SurfaceExt: render::Surface {
     where
         D: data::Source,
     {
-        let fontdb = opts.fontdb.unwrap_or_else(|| Arc::new(font::bundled_db()));
+        let fontdb = opts.fontdb.unwrap_or_else(|| Arc::new(crate::bundled_font_db()));
         let ctx = Ctx::new(data_source, fontdb);
         let mut wrapper = SurfWrapper { surface: self };
         wrapper.draw_toplevel_figure(&ctx, figure)?;

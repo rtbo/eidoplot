@@ -29,12 +29,7 @@ fn main() {
     let pop = (0..N_POP).map(|_| normal.sample(&mut rng)).collect();
 
 
-    let title = ir::Text::new(
-        format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA),
-        style::Font::new("serif".into(), 24.0)
-            .with_style(style::font::Style::Italic)
-            .with_weight(style::font::Weight::BOLD),
-    );
+    let title: ir::figure::Title = format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA).into();
 
     let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("x".into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default())
@@ -69,9 +64,7 @@ fn main() {
         x_axis,
         y_axis,
         series: vec![pop_series, dist_series],
-        legend: Some(ir::Legend::default().with_font(
-            style::Font::new("Noto Sans Math".into(), 16.0).with_style(style::font::Style::Italic),
-        )),
+        legend: Some(ir::Legend::default()),
         ..ir::Plot::default()
     };
 

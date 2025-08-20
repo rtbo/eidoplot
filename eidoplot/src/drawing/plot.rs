@@ -2,29 +2,39 @@ use crate::data;
 use crate::drawing::legend::Legend;
 use crate::drawing::series::{Series, series_has_legend};
 use crate::drawing::{Ctx, Error, SurfWrapper, axis, scale, ticks};
-use crate::font::DatabaseExt;
 use crate::geom;
 use crate::ir;
 use crate::missing_params;
 use crate::render::{self, Surface as _};
 use crate::style::{self, defaults};
 
+use eidoplot_text::shape;
 use scale::{CoordMap, CoordMapXy};
 
 struct Ticks {
     locs: Vec<f64>,
-    lbls: Vec<String>,
+    lbls: Vec<shape::Text>,
     annot: Option<String>,
-    font: style::Font,
+    font: ir::axis::TicksFont,
     color: style::Color,
     grid: Option<style::Line>,
+}
+
+impl Ticks {
+    fn lbl_width(&self) -> f32 {
+        self.lbls
+            .iter()
+            .map(|l| l.width(self.font.size))
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
 }
 
 struct Axis {
     ortho_sz: f32,
     coord_map: Box<dyn CoordMap>,
     ticks: Option<Ticks>,
-    label: Option<(String, style::Font)>,
+    label: Option<(shape::Text, f32)>,
 }
 
 impl CoordMap for Axis {
@@ -68,14 +78,16 @@ fn auto_insets(plot: &ir::Plot) -> geom::Padding {
     defaults::PLOT_XY_AUTO_INSETS
 }
 
-fn setup_ticks(ticks: &ir::axis::Ticks, ab: axis::NumBounds) -> Ticks {
+fn setup_ticks(ticks: &ir::axis::Ticks, ab: axis::NumBounds, fontdb: &fontdb::Database) -> Ticks {
     let mut locs = ticks::locate(ticks.locator(), ab);
     locs.retain(|l| ab.contains(*l));
     let lbl_formatter = ticks::label_formatter(ticks, ab);
+    // FIXME: error management
     let lbls = locs
         .iter()
         .copied()
         .map(|l| lbl_formatter.format_label(l))
+        .map(|l| eidoplot_text::shape_text(&l, &ticks.font().font, fontdb).unwrap())
         .collect();
     let annot = lbl_formatter.axis_annotation().map(String::from);
     Ticks {
@@ -136,14 +148,10 @@ impl<D> Ctx<'_, D> {
         let mut height = 0.0;
         if let Some(ticks) = x_axis.ticks() {
             height +=
-                missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size();
+                missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size;
         }
         if let Some(label) = x_axis.label() {
-            let fs = label
-                .font()
-                .map(|f| f.size())
-                .unwrap_or(defaults::AXIS_LABEL_FONT_SIZE);
-            height += 2.0 * missing_params::AXIS_LABEL_MARGIN + fs;
+            height += 2.0 * missing_params::AXIS_LABEL_MARGIN + label.font.size;
         }
         height
     }
@@ -154,17 +162,11 @@ impl<D> Ctx<'_, D> {
     fn calculate_y_axis_width(&self, y_axis: &ir::Axis, y_ticks: Option<&Ticks>) -> f32 {
         let mut width = 0.0;
         if let Some(label) = y_axis.label() {
-            let fs = label
-                .font()
-                .map(|f| f.size())
-                .unwrap_or(defaults::AXIS_LABEL_FONT_SIZE);
-            width += 2.0 * missing_params::AXIS_LABEL_MARGIN + fs;
+            width += 2.0 * missing_params::AXIS_LABEL_MARGIN + label.font.size;
         }
         if let Some(ticks) = y_ticks {
-            let max_w = self
-                .fontdb()
-                .max_labels_width(ticks.lbls.iter(), &ticks.font);
-            width += missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + max_w;
+            width +=
+                missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.lbl_width();
         }
         width
     }
@@ -172,19 +174,15 @@ impl<D> Ctx<'_, D> {
     fn setup_y_axis(&self, y_axis: &ir::Axis, coord_map: Box<dyn CoordMap>) -> Axis {
         let ticks = y_axis
             .ticks()
-            .map(|t| setup_ticks(t, coord_map.axis_bounds()));
+            .map(|t| setup_ticks(t, coord_map.axis_bounds(), &self.fontdb));
 
         let y_width = self.calculate_y_axis_width(y_axis, ticks.as_ref());
 
+        // FIXME: error management
         let label = y_axis.label().map(|l| {
             (
-                l.text().to_string(),
-                l.font().cloned().unwrap_or_else(|| {
-                    style::Font::new(
-                        defaults::AXIS_LABEL_FONT_FAMILY.into(),
-                        defaults::AXIS_LABEL_FONT_SIZE,
-                    )
-                }),
+                eidoplot_text::shape_text(&l.text, &l.font.font, &self.fontdb).unwrap(),
+                l.font.size,
             )
         });
 
@@ -199,17 +197,13 @@ impl<D> Ctx<'_, D> {
     fn setup_x_axis(&self, x_axis: &ir::Axis, coord_map: Box<dyn CoordMap>, x_height: f32) -> Axis {
         let ticks = x_axis
             .ticks()
-            .map(|t| setup_ticks(t, coord_map.axis_bounds()));
+            .map(|t| setup_ticks(t, coord_map.axis_bounds(), &self.fontdb));
 
+        // FIXME: error management
         let label = x_axis.label().map(|l| {
             (
-                l.text().to_string(),
-                l.font().cloned().unwrap_or_else(|| {
-                    style::Font::new(
-                        defaults::AXIS_LABEL_FONT_FAMILY.into(),
-                        defaults::AXIS_LABEL_FONT_SIZE,
-                    )
-                }),
+                eidoplot_text::shape_text(&l.text, &l.font.font, &self.fontdb).unwrap(),
+                l.font.size,
             )
         });
 
@@ -292,8 +286,7 @@ where
         plot: &ir::Plot,
         legend: &ir::Legend,
         rect: &mut geom::Rect,
-    ) -> Result<(), render::Error>
-    {
+    ) -> Result<(), render::Error> {
         let mut dlegend = Legend::from_ir(legend, rect.width(), ctx.fontdb().clone());
         for s in plot.series.iter() {
             if series_has_legend(s) {
@@ -330,8 +323,7 @@ where
         &mut self,
         plot: &ir::Plot,
         rect: &geom::Rect,
-    ) -> Result<(), render::Error>
-    {
+    ) -> Result<(), render::Error> {
         if let Some(fill) = plot.fill.as_ref() {
             self.draw_rect(&render::Rect {
                 rect: *rect,
@@ -343,12 +335,7 @@ where
         Ok(())
     }
 
-    fn draw_grid(
-        &mut self,
-        axes: &Axes,
-        rect: &geom::Rect,
-    ) -> Result<(), render::Error>
-    {
+    fn draw_grid(&mut self, axes: &Axes, rect: &geom::Rect) -> Result<(), render::Error> {
         if let Some(x_ticks) = axes.x.ticks.as_ref() {
             if let Some(x_grid) = x_ticks.grid {
                 let mut pathb = geom::PathBuilder::with_capacity(2, 2);
@@ -394,8 +381,7 @@ where
         &mut self,
         border: Option<&ir::plot::Border>,
         rect: &geom::Rect,
-    ) -> Result<(), render::Error>
-    {
+    ) -> Result<(), render::Error> {
         match border {
             None => Ok(()),
             Some(ir::plot::Border::Box(stroke)) => self.draw_rect(&render::Rect {
@@ -452,17 +438,12 @@ where
         Ok(())
     }
 
-    fn draw_x_axis(
-        &mut self,
-        x_axis: &Axis,
-        rect: &geom::Rect,
-    ) -> Result<(), render::Error>
-    {
+    fn draw_x_axis(&mut self, x_axis: &Axis, rect: &geom::Rect) -> Result<(), render::Error> {
         let mut label_y = rect.bottom() + missing_params::AXIS_LABEL_MARGIN;
         if let Some(x_ticks) = x_axis.ticks.as_ref() {
             self.draw_x_ticks(&rect, x_ticks, x_axis)?;
             label_y +=
-                missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + x_ticks.font.size();
+                missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + x_ticks.font.size;
         }
         if let Some(label) = &x_axis.label {
             let anchor = render::TextAnchor {
@@ -471,8 +452,9 @@ where
                 baseline: render::TextBaseline::Hanging,
             };
             let text = render::Text {
-                text: label.0.as_str(),
-                font: &label.1,
+                text: label.0.text(),
+                font: label.0.font(),
+                font_size: label.1,
                 anchor,
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: None,
@@ -487,8 +469,7 @@ where
         rect: &geom::Rect,
         x_ticks: &Ticks,
         x_cm: &dyn scale::CoordMap,
-    ) -> Result<(), render::Error>
-    {
+    ) -> Result<(), render::Error> {
         let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
         self.draw_ticks_path(&x_ticks.locs, x_cm, &transform)?;
 
@@ -507,8 +488,9 @@ where
                 baseline: render::TextBaseline::Hanging,
             };
             let text = render::Text {
-                text: lbl.as_str(),
-                font: &x_ticks.font,
+                text: lbl.text(),
+                font: &x_ticks.font.font,
+                font_size: x_ticks.font.size,
                 anchor,
                 fill,
                 transform: None,
@@ -518,16 +500,15 @@ where
         }
 
         if let Some(annot) = x_ticks.annot.as_ref() {
-            let font = x_ticks
-                .font
-                .clone()
-                .with_family(missing_params::AXIS_ANNOT_FONT_FAMILY.into());
+            let font = x_ticks.font.font.clone().with_families(
+                style::font::parse_font_families(missing_params::AXIS_ANNOT_FONT_FAMILY).unwrap(),
+            );
             let pos = geom::Point::new(
                 rect.right(),
                 rect.bottom()
                     + missing_params::TICK_SIZE
                     + missing_params::TICK_LABEL_MARGIN
-                    + font.size(),
+                    + x_ticks.font.size,
             );
             let anchor = render::TextAnchor {
                 pos,
@@ -537,6 +518,7 @@ where
             let text = render::Text {
                 text: annot.as_str(),
                 font: &font,
+                font_size: x_ticks.font.size,
                 anchor,
                 fill,
                 transform: None,
@@ -547,12 +529,7 @@ where
         Ok(())
     }
 
-    fn draw_y_axis(
-        &mut self,
-        y_axis: &Axis,
-        rect: &geom::Rect,
-    ) -> Result<(), render::Error>
-    {
+    fn draw_y_axis(&mut self, y_axis: &Axis, rect: &geom::Rect) -> Result<(), render::Error> {
         if let Some(y_ticks) = y_axis.ticks.as_ref() {
             self.draw_y_ticks(rect, y_ticks, y_axis)?;
         }
@@ -568,8 +545,9 @@ where
             let ty = rect.center_y();
             let transform = geom::Transform::from_translate(tx, ty).pre_rotate(-90.0);
             let text = render::Text {
-                text: label.0.as_str(),
-                font: &label.1,
+                text: label.0.text(),
+                font: label.0.font(),
+                font_size: label.1,
                 anchor,
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: Some(&transform),
@@ -584,8 +562,7 @@ where
         rect: &geom::Rect,
         y_ticks: &Ticks,
         y_cm: &dyn CoordMap,
-    ) -> Result<(), render::Error>
-    {
+    ) -> Result<(), render::Error> {
         let transform =
             geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(-90.0);
         self.draw_ticks_path(&y_ticks.locs, y_cm, &transform)?;
@@ -602,8 +579,9 @@ where
                 baseline: render::TextBaseline::Center,
             };
             let text = render::Text {
-                text: lbl.as_str(),
-                font: &y_ticks.font,
+                text: lbl.text(),
+                font: lbl.font(),
+                font_size: y_ticks.font.size,
                 anchor,
                 fill,
                 transform: None,
@@ -618,8 +596,7 @@ where
         ticks: &[f64],
         cm: &dyn CoordMap,
         transform: &geom::Transform,
-    ) -> Result<(), render::Error>
-    {
+    ) -> Result<(), render::Error> {
         let ticks_path = ticks_path(&ticks, cm, None);
         let ticks_path = render::Path {
             path: &ticks_path,

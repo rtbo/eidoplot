@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, str};
 
 pub use fontdb::{Database, ID};
 use ttf_parser as ttf;
@@ -94,6 +94,32 @@ fn parse_single_font_family(family: &str) -> Result<Family, FamilyError> {
         "fantasy" => Ok(Family::Fantasy),
         _ => Ok(Family::Named(family.to_string())),
     }
+}
+
+pub fn font_families_to_string(families: &[Family]) -> String {
+    let mut result = String::new();
+    for (i, f) in families.iter().enumerate() {
+        if i != 0 {
+            result.push(',');
+        }
+        match f {
+            Family::SansSerif => result.push_str("sans-serif"),
+            Family::Serif => result.push_str("serif"),
+            Family::Monospace => result.push_str("monospace"),
+            Family::Cursive => result.push_str("cursive"),
+            Family::Fantasy => result.push_str("fantasy"),
+            Family::Named(name) => {
+                if name.chars().any(char::is_whitespace) {
+                    result.push('"');
+                    result.push_str(name);
+                    result.push('"');
+                } else {
+                    result.push_str(name);
+                }
+            }
+        }
+    }
+    result
 }
 
 /// Specifies the weight of glyphs in the font, their degree of blackness or stroke thickness.
@@ -246,9 +272,18 @@ pub struct Font {
     style: Style,
 }
 
+impl str::FromStr for Font {
+    type Err = FamilyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let families = parse_font_families(s)?;
+        Ok(Font::new(families))
+    }
+}
+
 impl Default for Font {
     fn default() -> Self {
-        Font::new(vec![Family::Serif])
+        Font::new(vec![Family::SansSerif])
     }
 }
 
@@ -347,7 +382,7 @@ impl DatabaseExt for Database {
 
     fn select_face_for_str(&self, font: &Font, s: &str) -> Option<ID> {
         // same as query implementation of fontdb with the additional unicode_ranges filter
-        let ur = unicode_ranges_for_str(s); 
+        let ur = unicode_ranges_for_str(s);
 
         for family in &font.families {
             let fdbfamily = to_fontdb_family(family);
@@ -356,12 +391,7 @@ impl DatabaseExt for Database {
                 .faces()
                 .filter(|f| {
                     if let Some(fur) = f.unicode_ranges {
-                        if unicode_ranges_contains(fur, ur) {
-                            println!("{:?} is OK", f.families);
-                            true
-                        } else {
-                            false
-                        }
+                        unicode_ranges_contains(fur, ur)
                     } else {
                         false
                     }
@@ -377,7 +407,6 @@ impl DatabaseExt for Database {
                     style: font.style().to_fontdb(),
                 };
                 if let Some(index) = find_best_match(&candidates, &query) {
-                    println!("Main algo found a match: {:?}", candidates[index].id);
                     return Some(candidates[index].id);
                 }
             }
@@ -394,7 +423,7 @@ fn to_fontdb_family(family: &Family) -> fontdb::Family<'_> {
         Family::Monospace => fontdb::Family::Monospace,
         Family::Cursive => fontdb::Family::Cursive,
         Family::Fantasy => fontdb::Family::Fantasy,
-    } 
+    }
 }
 
 pub fn unicode_ranges_for_str(s: &str) -> ttf::UnicodeRanges {
@@ -636,9 +665,21 @@ fn find_best_match(candidates: &[&fontdb::FaceInfo], query: &fontdb::Query) -> O
 
     // Step 4b (`font-style`).
     let style_preference = match query.style {
-        fontdb::Style::Italic => [fontdb::Style::Italic, fontdb::Style::Oblique, fontdb::Style::Normal],
-        fontdb::Style::Oblique => [fontdb::Style::Oblique, fontdb::Style::Italic, fontdb::Style::Normal],
-        fontdb::Style::Normal => [fontdb::Style::Normal, fontdb::Style::Oblique, fontdb::Style::Italic],
+        fontdb::Style::Italic => [
+            fontdb::Style::Italic,
+            fontdb::Style::Oblique,
+            fontdb::Style::Normal,
+        ],
+        fontdb::Style::Oblique => [
+            fontdb::Style::Oblique,
+            fontdb::Style::Italic,
+            fontdb::Style::Normal,
+        ],
+        fontdb::Style::Normal => [
+            fontdb::Style::Normal,
+            fontdb::Style::Oblique,
+            fontdb::Style::Italic,
+        ],
     };
     let matching_style = *style_preference.iter().find(|&query_style| {
         matching_set

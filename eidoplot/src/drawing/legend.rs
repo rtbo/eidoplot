@@ -2,7 +2,6 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 
 use crate::drawing::SurfWrapper;
-use crate::font::{self, DatabaseExt};
 use crate::render::{self, Surface as _};
 use crate::style::defaults;
 use crate::{geom, ir, style};
@@ -16,14 +15,14 @@ pub enum Shape {
 /// has to populate the legend
 pub trait Entry {
     fn label(&self) -> &str;
-    fn font(&self) -> Option<&style::Font>;
+    fn font(&self) -> Option<&ir::legend::EntryFont>;
     fn shape(&self) -> Shape;
 }
 
 struct LegendEntry {
     shape: Shape,
-    label: String,
-    font: Option<style::Font>,
+    text: eidoplot_text::shape::Text,
+    font: Option<ir::legend::EntryFont>,
     label_width: f32,
     label_height: f32,
     x: f32,
@@ -41,7 +40,7 @@ impl LegendEntry {
 }
 
 pub struct Legend {
-    font: style::Font,
+    font: ir::legend::EntryFont,
     fill: Option<style::Fill>,
     border: Option<style::Line>,
     label_fill: style::Fill,
@@ -50,14 +49,14 @@ pub struct Legend {
     padding: f32,
 
     avail_width: f32,
-    fontdb: Arc<font::Database>,
+    fontdb: Arc<fontdb::Database>,
     entries: Vec<LegendEntry>,
 
     size: Option<geom::Size>,
 }
 
 impl Legend {
-    pub fn from_ir(legend: &ir::Legend, avail_width: f32, fontdb: Arc<font::Database>) -> Legend {
+    pub fn from_ir(legend: &ir::Legend, avail_width: f32, fontdb: Arc<fontdb::Database>) -> Legend {
         let mut columns = legend.columns();
         if columns.is_none() && legend.pos().prefers_vertical() {
             columns.replace(NonZeroU32::new(1).unwrap());
@@ -84,14 +83,17 @@ impl Legend {
         E: Entry,
     {
         let shape = entry.shape();
-        let label = entry.label().to_string();
-        let font = entry.font().unwrap_or(&self.font);
-        let label_width = self.fontdb.label_width(&label, font);
-        let label_height = font.size();
+        let label = entry.label();
+        let entry_font = entry.font();
+        let font = entry_font.unwrap_or(&self.font);
+        // FIXME: error management
+        let text = eidoplot_text::shape_text(label, &font.font, &self.fontdb).unwrap();
+        let label_width = text.width(font.size);
+        let label_height = text.height(font.size);
         self.entries.push(LegendEntry {
             shape,
-            label,
-            font: entry.font().cloned(),
+            text,
+            font: entry_font.cloned(),
             label_width,
             label_height,
             x: f32::NAN,
@@ -180,7 +182,7 @@ where
         &mut self,
         entry: &LegendEntry,
         rect: &geom::Rect,
-        font: &style::Font,
+        font: &ir::legend::EntryFont,
         label_fill: style::Fill,
     ) -> Result<(), render::Error> {
         let rect = geom::Rect::from_xywh(
@@ -231,9 +233,11 @@ where
             align: render::TextAlign::Start,
             baseline: render::TextBaseline::Center,
         };
+        let font = entry.font.as_ref().unwrap_or(font);
         let text = render::Text {
-            text: &entry.label,
-            font: entry.font.as_ref().unwrap_or(font),
+            text: &entry.text.text(),
+            font: &font.font,
+            font_size: font.size,
             anchor,
             fill: label_fill,
             transform: None,

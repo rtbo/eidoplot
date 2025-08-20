@@ -76,6 +76,12 @@ impl Default for TextVerAlign {
     }
 }
 
+impl From<LineVerAlign> for TextVerAlign {
+    fn from(l: LineVerAlign) -> Self {
+        TextVerAlign::Line(0, l)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct VerAnchor(pub f32);
 
@@ -294,7 +300,6 @@ fn render_glyphs(
     db: &font::Database,
     pixmap: &mut tiny_skia::PixmapMut<'_>,
 ) {
-    println!("rendering with {:?}", db.face(font_id).unwrap());
 
     db.with_face_data(font_id, |data, index| {
         let mut face = ttf::Face::parse(data, index).unwrap();

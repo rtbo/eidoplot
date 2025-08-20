@@ -6,7 +6,7 @@ pub mod font;
 pub mod render;
 pub mod shape;
 
-pub use font::Font;
+pub use font::{Font, parse_font_families};
 pub use render::{
     HorAlign, HorAnchor, LayoutOptions, LineVerAlign, RenderOptions, TextVerAlign, VerAnchor,
     render_text,

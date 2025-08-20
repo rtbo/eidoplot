@@ -1,11 +1,41 @@
 use crate::geom;
-use crate::ir::{Legend, Plot, Text};
+use crate::ir::{Legend, Plot};
 use crate::style::{self, color, defaults};
+
+#[derive(Debug, Clone)]
+pub struct TitleFont {
+    pub font: style::Font,
+    pub size: f32,
+}
+
+impl Default for TitleFont {
+    fn default() -> Self {
+        TitleFont {
+            font: defaults::TITLE_FONT_FAMILY.parse().unwrap(),
+            size: defaults::TITLE_FONT_SIZE,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Title {
+    pub text: String,
+    pub font: TitleFont,
+}
+
+impl<S: Into<String>> From<S> for Title {
+    fn from(text: S) -> Self {
+        Title {
+            text: text.into(),
+            font: TitleFont::default(),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Figure {
     size: geom::Size,
-    title: Option<Text>,
+    title: Option<Title>,
     plots: Plots,
     legend: Option<Legend>,
     fill: Option<style::Fill>,
@@ -28,7 +58,7 @@ impl Figure {
         Figure { size: size, ..self }
     }
 
-    pub fn with_title(self, title: Option<Text>) -> Self {
+    pub fn with_title(self, title: Option<Title>) -> Self {
         Figure {
             title: title,
             ..self
@@ -51,7 +81,7 @@ impl Figure {
         self.size
     }
 
-    pub fn title(&self) -> Option<&Text> {
+    pub fn title(&self) -> Option<&Title> {
         self.title.as_ref()
     }
 

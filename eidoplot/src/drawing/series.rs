@@ -17,7 +17,7 @@ impl legend::Entry for ir::Series {
             .expect("Should have a name, or not used as legend entry")
     }
 
-    fn font(&self) -> Option<&crate::style::Font> {
+    fn font(&self) -> Option<&ir::legend::EntryFont> {
         None
     }
 

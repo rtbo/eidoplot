@@ -21,7 +21,8 @@ impl Default for Scale {
 
 pub mod ticks {
     use crate::style::{self, defaults};
-    use crate::style::{Color, Font};
+    use crate::style::{Color};
+    use eidoplot_text::Font;
 
     #[derive(Debug, Default, Clone)]
     pub enum Locator {
@@ -45,13 +46,28 @@ pub mod ticks {
     }
 
     #[derive(Debug, Clone)]
+    pub struct TicksFont {
+        pub font: Font,
+        pub size: f32,
+    }
+
+    impl Default for TicksFont {
+        fn default() -> Self {
+            TicksFont {
+                font: defaults::TICKS_LABEL_FONT_FAMILY.parse().unwrap(),
+                size: defaults::TICKS_LABEL_FONT_SIZE,
+            }
+        }
+    }
+
+    #[derive(Debug, Clone)]
     pub struct Ticks {
         /// Generates the ticks at the specified locations
         locator: Locator,
         /// Formats the ticks labels
         formatter: Formatter,
         /// Font for the ticks labels
-        font: Font,
+        font: TicksFont,
         /// Color for the ticks and the labels
         color: Color,
         /// Gridline style
@@ -63,10 +79,7 @@ pub mod ticks {
             Ticks {
                 locator: Locator::default(),
                 formatter: Formatter::default(),
-                font: Font::new(
-                    defaults::TICKS_LABEL_FONT_FAMILY.into(),
-                    defaults::TICKS_LABEL_FONT_SIZE,
-                ),
+                font: TicksFont::default(),
                 color: defaults::TICKS_LABEL_COLOR,
                 grid: defaults::TICKS_GRID_LINE,
             }
@@ -80,7 +93,7 @@ pub mod ticks {
         pub fn with_formatter(self, formatter: Formatter) -> Self {
             Self { formatter, ..self }
         }
-        pub fn with_font(self, font: Font) -> Self {
+        pub fn with_font(self, font: TicksFont) -> Self {
             Self { font, ..self }
         }
         pub fn with_color(self, color: Color) -> Self {
@@ -96,7 +109,7 @@ pub mod ticks {
         pub fn formatter(&self) -> &Formatter {
             &self.formatter
         }
-        pub fn font(&self) -> &Font {
+        pub fn font(&self) -> &TicksFont {
             &self.font
         }
         pub fn color(&self) -> Color {
@@ -157,14 +170,45 @@ pub mod ticks {
     }
 }
 
-pub use ticks::{MinorTicks, Ticks};
+pub use ticks::{MinorTicks, Ticks, TicksFont};
 
-use crate::ir::Text;
+use crate::style::{self, defaults};
+
+
+#[derive(Debug, Clone)]
+pub struct LabelFont {
+    pub font: style::Font,
+    pub size: f32,
+}
+
+impl Default for LabelFont {
+    fn default() -> Self {
+        LabelFont {
+            font: defaults::AXIS_LABEL_FONT_FAMILY.parse().unwrap(),
+            size: defaults::AXIS_LABEL_FONT_SIZE,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Label {
+    pub text: String,
+    pub font: LabelFont,
+}
+
+impl From<&str> for Label {
+    fn from(value: &str) -> Self {
+        Label {
+            text: value.to_string(),
+            font: LabelFont::default(),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Axis {
     scale: Scale,
-    label: Option<Text>,
+    label: Option<Label>,
     ticks: Option<Ticks>,
     minor_ticks: Option<MinorTicks>,
 }
@@ -188,7 +232,7 @@ impl Axis {
         }
     }
 
-    pub fn with_label(self, label: Text) -> Self {
+    pub fn with_label(self, label: Label) -> Self {
         Self {
             label: Some(label),
             ..self
@@ -213,7 +257,7 @@ impl Axis {
         }
     }
 
-    pub fn label(&self) -> Option<&Text> {
+    pub fn label(&self) -> Option<&Label> {
         self.label.as_ref()
     }
     pub fn scale(&self) -> &Scale {

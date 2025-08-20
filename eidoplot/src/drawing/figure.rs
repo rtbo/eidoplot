@@ -4,7 +4,6 @@ use crate::geom;
 use crate::ir;
 use crate::missing_params;
 use crate::render::{self, Surface as _};
-use crate::style::{self, defaults};
 
 impl<S: ?Sized> SurfWrapper<'_, S>
 where
@@ -26,27 +25,16 @@ where
         }
 
         if let Some(title) = fig.title() {
-            let mut default_font = None;
-            let font = if title.font().is_none() {
-                default_font.replace(style::Font::new(
-                    defaults::TITLE_FONT_FAMILY.into(),
-                    defaults::TITLE_FONT_SIZE,
-                ));
-                default_font.as_ref().unwrap()
-            } else {
-                title.font().unwrap()
-            };
-
-            let font_size = font.size();
             let title_rect = geom::Rect::from_xywh(
                 rect.x(),
                 rect.y(),
                 rect.width(),
-                font_size + 2.0 * missing_params::FIG_TITLE_MARGIN,
+                title.font.size + 2.0 * missing_params::FIG_TITLE_MARGIN,
             );
             let text = render::Text {
-                text: title.text(),
-                font,
+                text: &title.text,
+                font: &title.font.font,
+                font_size: title.font.size,
                 fill: missing_params::FIG_TITLE_COLOR.into(),
                 anchor: render::TextAnchor {
                     pos: title_rect.center(),

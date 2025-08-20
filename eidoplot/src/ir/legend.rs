@@ -41,9 +41,26 @@ impl Pos {
 }
 
 #[derive(Debug, Clone)]
+pub struct EntryFont {
+    pub size: f32,
+    pub font: style::Font,
+    pub color: style::Color,
+}
+
+impl Default for EntryFont {
+    fn default() -> Self {
+        Self {
+            size: defaults::LEGEND_LABEL_FONT_SIZE,
+            font: style::Font::default(),
+            color: defaults::LEGEND_LABEL_COLOR,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Legend {
     pos: Pos,
-    font: style::Font,
+    font: EntryFont,
     fill: Option<style::Fill>,
     border: Option<style::Line>,
     label_fill: style::Fill,
@@ -56,10 +73,7 @@ impl Default for Legend {
     fn default() -> Self {
         Self {
             pos: Pos::OutBottom,
-            font: style::Font::new(
-                defaults::LEGEND_LABEL_FONT_FAMILY.into(),
-                defaults::LEGEND_LABEL_FONT_SIZE,
-            ),
+            font: EntryFont::default(),
             fill: defaults::LEGEND_FILL,
             border: defaults::LEGEND_BORDER,
             label_fill: defaults::LEGEND_LABEL_COLOR.into(),
@@ -82,7 +96,7 @@ impl Legend {
         self.pos
     }
 
-    pub fn font(&self) -> &style::Font {
+    pub fn font(&self) -> &EntryFont {
         &self.font
     }
 
@@ -114,7 +128,7 @@ impl Legend {
         Self { pos, ..self }
     }
 
-    pub fn with_font(self, font: style::Font) -> Self {
+    pub fn with_font(self, font: EntryFont) -> Self {
         Self { font, ..self }
     }
 
