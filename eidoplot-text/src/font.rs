@@ -342,6 +342,8 @@ pub trait DatabaseExt {
     /// Perform a CSS-like query for the provided font spec with a filter to ensure
     /// that the returned face can render all characters of the string
     fn select_face_for_str(&self, font: &Font, s: &str) -> Option<ID>;
+
+    fn select_face_fallback(&self, s: &str, already_tried: &[ID]) -> Option<ID>;
 }
 
 impl DatabaseExt for Database {
@@ -410,6 +412,30 @@ impl DatabaseExt for Database {
                     return Some(candidates[index].id);
                 }
             }
+        }
+        None
+    }
+
+    fn select_face_fallback(&self, s: &str, already_tried: &[ID]) -> Option<ID> {
+        let base_face = self.face(already_tried[0])?;
+
+        for face in self.faces() {
+            if already_tried.contains(&face.id) {
+                continue;
+            }
+            if face.style != base_face.style {
+                continue;
+            }
+            if face.weight != base_face.weight {
+                continue;
+            }
+            if face.stretch != base_face.stretch {
+                continue;
+            }
+            if !self.has_chars(face.id, s.chars()) {
+                continue;
+            }
+            return Some(face.id);
         }
         None
     }
@@ -828,6 +854,17 @@ impl FaceMetrics {
     pub(crate) fn line_gap(&self, size: f32) -> f32 {
         self.line_gap as f32 * self.scale(size)
     }
+
+    pub(crate) fn scaled(&self, size: f32) -> ScaledFaceMetrics {
+        let scale = self.scale(size);
+        ScaledFaceMetrics {
+            ascent: self.ascent as f32 * scale,
+            descent: self.descent as f32 * scale,
+            x_height: self.x_height as f32 * scale,
+            cap_height: self.cap_height as f32 * scale,
+            line_gap: self.line_gap as f32 * scale,
+        }
+    }
 }
 
 pub(crate) fn face_metrics(face: &ttf::Face) -> FaceMetrics {
@@ -849,6 +886,26 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> FaceMetrics {
         x_height,
         cap_height,
         line_gap,
+    }
+}
+
+pub(crate) struct ScaledFaceMetrics {
+    pub(crate) ascent: f32,
+    pub(crate) descent: f32,
+    pub(crate) x_height: f32,
+    pub(crate) cap_height: f32,
+    pub(crate) line_gap: f32,
+}
+
+impl ScaledFaceMetrics {
+    pub(crate) const fn null() -> ScaledFaceMetrics {
+        ScaledFaceMetrics {
+            ascent: 0.0,
+            descent: 0.0,
+            x_height: 0.0,
+            cap_height: 0.0,
+            line_gap: 0.0,
+        }
     }
 }
 

@@ -16,8 +16,19 @@
                 ]
             },
             "args": []
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "bidi_layout example",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example",
+                    "bidi_layout"
+                ]
+            },
+            "args": []
         }
-
-
     ]
 }

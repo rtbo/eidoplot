@@ -1,4 +1,3 @@
-
 const ENGLISH_TEXT: &str = "Hello, world!
 How are you?";
 
@@ -29,123 +28,191 @@ fn main() {
     let renders = &[
         (
             ENGLISH_TEXT,
-            eidoplot_text::LayoutOptions {
-                hor_align: eidoplot_text::HorAlign::Start,
-                hor_anchor: eidoplot_text::HorAnchor::X(20.0),
+            eidoplot_text::layout::Options {
+                anchor: eidoplot_text::layout::Anchor::X,
+                hor_align: eidoplot_text::layout::HorAlign::Start,
                 hor_justify: false,
-                ver_align: eidoplot_text::TextVerAlign::Top,
-                ver_anchor: eidoplot_text::VerAnchor(20.0), 
+                ver_align: eidoplot_text::layout::VerAlign::Top,
             },
-            (0.0, 0.0),
+            (20.0, 20.0),
         ),
         (
             ARABIC_TEXT,
-            eidoplot_text::LayoutOptions {
-                hor_align: eidoplot_text::HorAlign::Start,
-                hor_anchor: Default::default(),
+            eidoplot_text::layout::Options {
+                anchor: Default::default(),
+                hor_align: eidoplot_text::layout::HorAlign::Start,
                 hor_justify: false,
-                ver_align: eidoplot_text::TextVerAlign::Top,
-                ver_anchor: Default::default(), 
+                ver_align: eidoplot_text::layout::VerAlign::Top,
             },
-            (580.0, 20.0)
+            (580.0, 20.0),
         ),
         (
             MIXED_TEXT_LTR,
-            eidoplot_text::LayoutOptions {
-                hor_align: eidoplot_text::HorAlign::Start,
-                hor_anchor: eidoplot_text::HorAnchor::X(20.0),
+            eidoplot_text::layout::Options {
+                anchor: eidoplot_text::layout::Anchor::X,
+                hor_align: eidoplot_text::layout::HorAlign::Start,
                 hor_justify: false,
-                ver_align: eidoplot_text::TextVerAlign::Line(0, eidoplot_text::LineVerAlign::Baseline),
-                ver_anchor: Default::default(), 
+                ver_align: eidoplot_text::layout::LineVerAlign::Baseline.into(),
             },
-            (0.0, 236.0),
+            (20.0, 236.0),
         ),
         (
             MIXED_TEXT_RTL,
-            eidoplot_text::LayoutOptions {
-                hor_align: eidoplot_text::HorAlign::Start,
-                hor_anchor: Default::default(),
+            eidoplot_text::layout::Options {
+                anchor: Default::default(),
+                hor_align: eidoplot_text::layout::HorAlign::Start,
                 hor_justify: false,
-                ver_align: eidoplot_text::TextVerAlign::Line(0, eidoplot_text::LineVerAlign::Hanging),
-                ver_anchor: Default::default(), 
+                ver_align: eidoplot_text::layout::LineVerAlign::Hanging.into(),
             },
             (580.0, 236.0),
         ),
         (
             ENGLISH_THEN_ARABIC_TEXT,
-            eidoplot_text::LayoutOptions {
-                hor_align: eidoplot_text::HorAlign::Start,
-                hor_anchor: eidoplot_text::HorAnchor::Window {
-                    x_left: 100.0,
-                    x_right: 350.0,
-                },
+            eidoplot_text::layout::Options {
+                anchor: eidoplot_text::layout::Anchor::Window(250.0),
+                hor_align: eidoplot_text::layout::HorAlign::Start,
                 hor_justify: false,
-                ver_align: eidoplot_text::TextVerAlign::Line(1, eidoplot_text::LineVerAlign::Middle),
-                ver_anchor: eidoplot_text::VerAnchor(400.0), 
+                ver_align: eidoplot_text::layout::VerAlign::Line(
+                    1,
+                    eidoplot_text::layout::LineVerAlign::Middle,
+                ),
             },
-            (0.0, 0.0),
+            (100.0, 400.0),
         ),
     ];
 
-    let mut pxl = tiny_skia::Pixmap::new(600, 500).unwrap();
-    let mut pxl_mut = pxl.as_mut();
-    pxl_mut.fill(tiny_skia::Color::WHITE);
-
+    let mut pm = tiny_skia::Pixmap::new(600, 500).unwrap();
+    let mut pm_mut = pm.as_mut();
+    pm_mut.fill(tiny_skia::Color::WHITE);
 
     for (text, layout_opts, (x, y)) in renders {
-        let shape = eidoplot_text::shape_text(text, &font, &db).unwrap();
+        let shape = eidoplot_text::shape2::TextShape::shape_str(text, &font, &db).unwrap();
+        let layout = eidoplot_text::layout::TextLayout::from_shape(&shape, font_size, &layout_opts);
 
-        let render_opts = eidoplot_text::RenderOptions {
+        let (tx, ty) = (*x, *y);
+        let render_opts = eidoplot_text::render2::Options {
             fill: Some(tiny_skia::Paint::default()),
             outline: None,
-            transform: tiny_skia::Transform::from_translate(*x, *y),
+            transform: tiny_skia::Transform::from_translate(tx, ty),
             mask: None,
         };
 
-        eidoplot_text::render_text(
-            &shape,
-            font_size,
-            layout_opts,
-            &render_opts,
-            &db,
-            &mut pxl_mut,
-        );
+        eidoplot_text::render2::render_text_tiny_skia(&layout, &render_opts, &db, &mut pm_mut);
 
-        let y = *y + layout_opts.ver_anchor.0;
-
-        let p1x = match layout_opts.hor_anchor {
-            eidoplot_text::HorAnchor::X(xx) => x + xx,
-            eidoplot_text::HorAnchor::Window { x_left, .. } => x + x_left,
-        };
-
-        let p2 = match layout_opts.hor_anchor {
-            eidoplot_text::HorAnchor::X(..) => None,
-            eidoplot_text::HorAnchor::Window { x_right, .. } => Some(x + x_right),
-        };
-
-        let mut pb = tiny_skia_path::PathBuilder::new();
-        pb.move_to(p1x-10.0, y);
-        pb.line_to(p1x+10.0, y);
-        pb.move_to(p1x, y - 10.0);
-        pb.line_to(p1x, y + 10.0);
-
-        if let Some(p2x) = p2 {
-            pb.move_to(p2x - 10.0, y);
-            pb.line_to(p2x + 10.0, y);
-            pb.move_to(p2x,  y - 10.0);
-            pb.line_to(p2x , y + 10.0);
-        }
-        let path = pb.finish().unwrap();
-
-        let paint = tiny_skia::Paint {
-            shader: tiny_skia::Shader::SolidColor(tiny_skia::Color::from_rgba8(255, 50, 50, 255)),
-            ..tiny_skia::Paint::default()
-        };
-        let stroke = tiny_skia::Stroke::default();
-        let transform = tiny_skia::Transform::identity();
-        let mask = None;
-        pxl_mut.stroke_path(&path, &paint, &stroke, transform, mask);
+        draw_layout_bboxes(&layout, (tx, ty), &mut pm_mut);
+        draw_anchor_cross(&layout, (tx, ty), &mut pm_mut);
     }
 
-    pxl.save_png("out.png").unwrap();
+    pm.save_png("out.png").unwrap();
+}
+
+fn draw_anchor_cross(
+    layout: &eidoplot_text::layout::TextLayout,
+    (tx, ty): (f32, f32),
+    pm_mut: &mut tiny_skia::PixmapMut,
+) {
+    let anchor1 = (tx, ty);
+    let anchor2 = match layout.options().anchor {
+        eidoplot_text::layout::Anchor::X => None,
+        eidoplot_text::layout::Anchor::Window(width) => Some((tx + width, ty)),
+    };
+
+    let mut pb = tiny_skia_path::PathBuilder::new();
+    push_anchor_cross(&mut pb, anchor1);
+    if let Some(anchor2) = anchor2 {
+        push_anchor_cross(&mut pb, anchor2);
+    }
+    let path = pb.finish().unwrap();
+
+    let paint = tiny_skia::Paint {
+        shader: tiny_skia::Shader::SolidColor(tiny_skia::Color::from_rgba8(255, 50, 50, 255)),
+        ..tiny_skia::Paint::default()
+    };
+    let stroke = tiny_skia::Stroke::default();
+    pm_mut.stroke_path(
+        &path,
+        &paint,
+        &stroke,
+        tiny_skia::Transform::identity(),
+        None,
+    );
+}
+
+fn push_anchor_cross(pb: &mut tiny_skia_path::PathBuilder, anchor: (f32, f32)) {
+    pb.move_to(anchor.0 - 10.0, anchor.1);
+    pb.line_to(anchor.0 + 10.0, anchor.1);
+    pb.move_to(anchor.0, anchor.1 - 10.0);
+    pb.line_to(anchor.0, anchor.1 + 10.0);
+}
+
+fn draw_layout_bboxes(
+    layout: &eidoplot_text::layout::TextLayout,
+    (tx, ty): (f32, f32),
+    pm_mut: &mut tiny_skia::PixmapMut,
+) {
+    let tr = tiny_skia::Transform::from_translate(tx, ty);
+    draw_bbox(
+        layout.bbox().transform(&tr),
+        tiny_skia::Color::from_rgba8(50, 255, 50, 255),
+        2.0,
+        false,
+        pm_mut,
+    );
+    for lidx in 0..layout.lines_len() {
+        let bbox = layout.line_bbox(lidx).transform(&tr);
+        draw_bbox(
+            bbox,
+            tiny_skia::Color::from_rgba8(50, 50, 255, 255),
+            1.0,
+            true,
+            pm_mut,
+        );
+    }
+}
+
+fn bbox_rect_path(bbox: eidoplot_text::layout::BBox) -> tiny_skia_path::Path {
+    let mut pb = tiny_skia_path::PathBuilder::new();
+    pb.move_to(bbox.left, bbox.top);
+    pb.line_to(bbox.right, bbox.top);
+    pb.line_to(bbox.right, bbox.bottom);
+    pb.line_to(bbox.left, bbox.bottom);
+    pb.line_to(bbox.left, bbox.top);
+    pb.finish().unwrap()
+}
+
+fn draw_bbox(
+    bbox: eidoplot_text::layout::BBox,
+    color: tiny_skia::Color,
+    width: f32,
+    dash: bool,
+    pm_mut: &mut tiny_skia::PixmapMut,
+) {
+    let path = bbox_rect_path(bbox);
+    draw_path_stroke(&path, color, width, dash, pm_mut);
+}
+
+fn draw_path_stroke(
+    path: &tiny_skia::Path,
+    color: tiny_skia::Color,
+    width: f32,
+    dash: bool,
+    pm_mut: &mut tiny_skia::PixmapMut,
+) {
+    let paint = tiny_skia::Paint {
+        shader: tiny_skia::Shader::SolidColor(color),
+        ..tiny_skia::Paint::default()
+    };
+    let dash = if dash {
+        tiny_skia::StrokeDash::new(vec![width * 2.0, width * 2.0], 0.0)
+    } else {
+        None
+    };
+    let stroke = tiny_skia::Stroke {
+        width,
+        dash,
+        ..Default::default()
+    };
+    let transform = tiny_skia::Transform::identity();
+    let mask = None;
+    pm_mut.stroke_path(path, &paint, &stroke, transform, mask);
 }
