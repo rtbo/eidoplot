@@ -122,6 +122,10 @@ where
         self.surface.draw_text(text)
     }
 
+    fn draw_text_layout(&mut self, text: &render::TextLayout) -> Result<(), render::Error> {
+        self.surface.draw_text_layout(text)
+    }
+
     fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
         self.surface.draw_path(path)
     }

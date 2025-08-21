@@ -29,6 +29,9 @@ pub trait Surface {
     /// Draw some text
     fn draw_text(&mut self, text: &Text) -> Result<(), Error>;
 
+    /// Draw some text that has already been layed out
+    fn draw_text_layout(&mut self, text: &TextLayout) -> Result<(), Error>;
+
     /// Push a clipping path
     /// Subsequent draw operations will be clipped to this path,
     /// until a matching [`pop_clip`] is called
@@ -71,45 +74,19 @@ pub struct Clip<'a> {
     pub transform: Option<&'a geom::Transform>,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum TextAlign {
-    Start,
-    Center,
-    End,
-}
-
-impl Default for TextAlign {
-    fn default() -> Self {
-        TextAlign::Center
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum TextBaseline {
-    Base,
-    Center,
-    Hanging,
-}
-
-impl Default for TextBaseline {
-    fn default() -> Self {
-        TextBaseline::Base
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct TextAnchor {
-    pub pos: geom::Point,
-    pub align: TextAlign,
-    pub baseline: TextBaseline,
-}
-
 #[derive(Debug, Clone)]
 pub struct Text<'a> {
     pub text: &'a str,
     pub font: &'a eidoplot_text::Font,
     pub font_size: f32,
     pub fill: style::Fill,
-    pub anchor: TextAnchor,
+    pub options: eidoplot_text::layout::Options,
+    pub transform: Option<&'a geom::Transform>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TextLayout<'a> {
+    pub layout: &'a eidoplot_text::TextLayout,
+    pub fill: style::Fill,
     pub transform: Option<&'a geom::Transform>,
 }

@@ -8,8 +8,10 @@ use crate::missing_params;
 use crate::render::{self, Surface as _};
 use crate::style::{self, defaults};
 
-use eidoplot_text::TextLayout;
+use eidoplot_text::{self as text, font};
 use scale::{CoordMap, CoordMapXy};
+use text::TextLayout;
+use tiny_skia_path::Transform;
 
 struct Ticks {
     locs: Vec<f64>,
@@ -76,36 +78,6 @@ fn auto_insets(plot: &ir::Plot) -> geom::Padding {
         }
     }
     defaults::PLOT_XY_AUTO_INSETS
-}
-
-fn setup_ticks(ticks: &ir::axis::Ticks, ab: axis::NumBounds, fontdb: &fontdb::Database) -> Ticks {
-    let mut locs = ticks::locate(ticks.locator(), ab);
-    locs.retain(|l| ab.contains(*l));
-    let lbl_formatter = ticks::label_formatter(ticks, ab);
-    let font = ticks.font();
-    let opts = eidoplot_text::layout::Options {
-        hor_align: eidoplot_text::layout::HorAlign::Right,
-        ver_align: eidoplot_text::layout::LineVerAlign::Middle.into(),
-        ..Default::default()
-    };
-    // FIXME: error management
-    let lbls = locs
-        .iter()
-        .copied()
-        .map(|l| lbl_formatter.format_label(l))
-        .map(|l| {
-            eidoplot_text::shape_and_layout_str(&l, &font.font, fontdb, font.size, &opts).unwrap()
-        })
-        .collect();
-    let annot = lbl_formatter.axis_annotation().map(String::from);
-    Ticks {
-        locs,
-        lbls,
-        annot,
-        font: ticks.font().clone(),
-        color: ticks.color(),
-        grid: ticks.grid().copied(),
-    }
 }
 
 impl<D> Ctx<'_, D> {
@@ -182,25 +154,19 @@ impl<D> Ctx<'_, D> {
     fn setup_y_axis(&self, y_axis: &ir::Axis, coord_map: Box<dyn CoordMap>) -> Axis {
         let ticks = y_axis
             .ticks()
-            .map(|t| setup_ticks(t, coord_map.axis_bounds(), &self.fontdb));
+            .map(|t| self.setup_y_ticks(t, coord_map.axis_bounds()));
 
         let y_width = self.calculate_y_axis_width(y_axis, ticks.as_ref());
 
-        let opts = eidoplot_text::layout::Options {
-            hor_align: eidoplot_text::layout::HorAlign::Center,
-            ver_align: eidoplot_text::layout::LineVerAlign::Middle.into(),
+        let opts = text::layout::Options {
+            hor_align: text::layout::HorAlign::Center,
+            ver_align: text::layout::LineVerAlign::Hanging.into(),
             ..Default::default()
         };
         // FIXME: error management
         let label = y_axis.label().map(|l| {
-            eidoplot_text::shape_and_layout_str(
-                &l.text,
-                &l.font.font,
-                &self.fontdb,
-                l.font.size,
-                &opts,
-            )
-            .unwrap()
+            text::shape_and_layout_str(&l.text, &l.font.font, &self.fontdb, l.font.size, &opts)
+                .unwrap()
         });
 
         Axis {
@@ -214,24 +180,17 @@ impl<D> Ctx<'_, D> {
     fn setup_x_axis(&self, x_axis: &ir::Axis, coord_map: Box<dyn CoordMap>, x_height: f32) -> Axis {
         let ticks = x_axis
             .ticks()
-            .map(|t| setup_ticks(t, coord_map.axis_bounds(), &self.fontdb));
+            .map(|t| self.setup_x_ticks(t, coord_map.axis_bounds()));
 
-
-        let opts = eidoplot_text::layout::Options {
-            hor_align: eidoplot_text::layout::HorAlign::Center,
-            ver_align: eidoplot_text::layout::LineVerAlign::Middle.into(),
+        let opts = text::layout::Options {
+            hor_align: text::layout::HorAlign::Center,
+            ver_align: text::layout::LineVerAlign::Hanging.into(),
             ..Default::default()
         };
         // FIXME: error management
         let label = x_axis.label().map(|l| {
-            eidoplot_text::shape_and_layout_str(
-                &l.text,
-                &l.font.font,
-                &self.fontdb,
-                l.font.size,
-                &opts,
-            )
-            .unwrap()
+            text::shape_and_layout_str(&l.text, &l.font.font, &self.fontdb, l.font.size, &opts)
+                .unwrap()
         });
 
         Axis {
@@ -239,6 +198,53 @@ impl<D> Ctx<'_, D> {
             coord_map,
             ticks,
             label,
+        }
+    }
+
+    fn setup_x_ticks(&self, ticks: &ir::axis::Ticks, ab: axis::NumBounds) -> Ticks {
+        let opts = text::layout::Options {
+            hor_align: text::layout::HorAlign::Center,
+            ver_align: text::layout::LineVerAlign::Hanging.into(),
+            ..Default::default()
+        };
+        self.setup_ticks(ticks, ab, opts)
+    }
+
+    fn setup_y_ticks(&self, ticks: &ir::axis::Ticks, ab: axis::NumBounds) -> Ticks {
+        let opts = text::layout::Options {
+            hor_align: text::layout::HorAlign::Right,
+            ver_align: text::layout::LineVerAlign::Middle.into(),
+            ..Default::default()
+        };
+        self.setup_ticks(ticks, ab, opts)
+    }
+
+    fn setup_ticks(
+        &self,
+        ticks: &ir::axis::Ticks,
+        ab: axis::NumBounds,
+        opts: text::layout::Options,
+    ) -> Ticks {
+        let mut locs = ticks::locate(ticks.locator(), ab);
+        locs.retain(|l| ab.contains(*l));
+        let lbl_formatter = ticks::label_formatter(ticks, ab);
+        let font = ticks.font();
+        let db: &font::Database = self.fontdb();
+        // FIXME: error management
+        let lbls = locs
+            .iter()
+            .copied()
+            .map(|l| lbl_formatter.format_label(l))
+            .map(|l| text::shape_and_layout_str(&l, &font.font, db, font.size, &opts).unwrap())
+            .collect();
+        let annot = lbl_formatter.axis_annotation().map(String::from);
+        Ticks {
+            locs,
+            lbls,
+            annot,
+            font: ticks.font().clone(),
+            color: ticks.color(),
+            grid: ticks.grid().copied(),
         }
     }
 }
@@ -473,20 +479,12 @@ where
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + x_ticks.font.size;
         }
         if let Some(label) = &x_axis.label {
-            let anchor = render::TextAnchor {
-                pos: geom::Point::new(rect.center_x(), label_y),
-                align: render::TextAlign::Center,
-                baseline: render::TextBaseline::Hanging,
-            };
-            let text = render::Text {
-                text: label.text(),
-                font: label.font(),
-                font_size: label.font_size(),
-                anchor,
+            let text = render::TextLayout {
+                layout: label,
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
-                transform: None,
+                transform: Some(&Transform::from_translate(rect.center_x(), label_y)),
             };
-            self.draw_text(&text)?;
+            self.draw_text_layout(&text)?;
         }
         Ok(())
     }
@@ -503,27 +501,14 @@ where
         let fill = x_ticks.color.into();
 
         for (xt, lbl) in x_ticks.locs.iter().copied().zip(x_ticks.lbls.iter()) {
-            let x = x_cm.map_coord(xt);
-            let x = rect.left() + x;
-            let pos = geom::Point::new(
-                x,
-                rect.bottom() + missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN,
-            );
-            let anchor = render::TextAnchor {
-                pos,
-                align: render::TextAlign::Center,
-                baseline: render::TextBaseline::Hanging,
-            };
-            let text = render::Text {
-                text: lbl.text(),
-                font: &x_ticks.font.font,
-                font_size: x_ticks.font.size,
-                anchor,
+            let x = rect.left() + x_cm.map_coord(xt);
+            let y = rect.bottom() + missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN;
+            let text = render::TextLayout {
+                layout: lbl,
                 fill,
-                transform: None,
+                transform: Some(&Transform::from_translate(x, y)),
             };
-
-            self.draw_text(&text)?;
+            self.draw_text_layout(&text)?;
         }
 
         if let Some(annot) = x_ticks.annot.as_ref() {
@@ -537,18 +522,18 @@ where
                     + missing_params::TICK_LABEL_MARGIN
                     + x_ticks.font.size,
             );
-            let anchor = render::TextAnchor {
-                pos,
-                align: render::TextAlign::End,
-                baseline: render::TextBaseline::Hanging,
+            let options = text::layout::Options {
+                hor_align: text::HorAlign::Right,
+                ver_align: text::LineVerAlign::Hanging.into(),
+                ..Default::default()
             };
             let text = render::Text {
                 text: annot.as_str(),
                 font: &font,
                 font_size: x_ticks.font.size,
-                anchor,
                 fill,
-                transform: None,
+                options,
+                transform: Some(&pos.translation()),
             };
             self.draw_text(&text)?;
         }
@@ -562,24 +547,15 @@ where
         }
         if let Some(label) = y_axis.label.as_ref() {
             // we render at origin, but translate to correct position and rotate
-            let anchor = render::TextAnchor {
-                pos: geom::Point::ORIGIN,
-                align: render::TextAlign::Center,
-                baseline: render::TextBaseline::Hanging,
-            };
-
             let tx = rect.left() - y_axis.ortho_sz + missing_params::AXIS_LABEL_MARGIN;
             let ty = rect.center_y();
             let transform = geom::Transform::from_translate(tx, ty).pre_rotate(-90.0);
-            let text = render::Text {
-                text: label.text(),
-                font: label.font(),
-                font_size: label.font_size(),
-                anchor,
+            let text = render::TextLayout {
+                layout: label,
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: Some(&transform),
             };
-            self.draw_text(&text)?;
+            self.draw_text_layout(&text)?;
         }
         Ok(())
     }
@@ -600,20 +576,12 @@ where
             let x = rect.left() - missing_params::TICK_SIZE - missing_params::TICK_LABEL_MARGIN;
             let y = rect.bottom() - y_cm.map_coord(yt);
             let pos = geom::Point::new(x, y);
-            let anchor = render::TextAnchor {
-                pos,
-                align: render::TextAlign::End,
-                baseline: render::TextBaseline::Center,
-            };
-            let text = render::Text {
-                text: lbl.text(),
-                font: lbl.font(),
-                font_size: y_ticks.font.size,
-                anchor,
+            let text = render::TextLayout {
+                layout: lbl,
                 fill,
-                transform: None,
+                transform: Some(&pos.translation()),
             };
-            self.draw_text(&text)?;
+            self.draw_text_layout(&text)?;
         }
         Ok(())
     }

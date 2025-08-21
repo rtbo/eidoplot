@@ -193,6 +193,7 @@ pub(crate) struct GlyphRun {
 pub(crate) struct LineLayout {
     pub(crate) runs: Vec<GlyphRun>,
     bbox: BBox,
+    direction: Direction,
 }
 
 #[derive(Debug, Clone)]
@@ -237,8 +238,17 @@ impl TextLayout {
         self.bbox
     }
 
+
     pub fn line_bbox(&self, lidx: usize) -> BBox {
         self.lines[lidx].bbox
+    }
+
+    pub fn direction(&self) -> Direction {
+        self.lines.first().map(|l| l.direction).unwrap_or_default()
+    }
+
+    pub fn line_direction(&self, lidx: usize) -> Direction {
+        self.lines[lidx].direction
     }
 
     /// Options used to build this layout
@@ -689,5 +699,6 @@ where
     LineLayout {
         runs: glyph_runs,
         bbox,
+        direction: line.main_direction(),
     }
 }

@@ -3,9 +3,10 @@ use ttf_parser as ttf;
 use crate::Error;
 use crate::font::{self, DatabaseExt, Font};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 /// Text direction
 pub enum Direction {
+    #[default]
     LTR,
     RTL,
 }
@@ -390,7 +391,7 @@ fn shape_text_with_font(
 fn empty_line(previous_dir: Option<Direction>) -> single_font::Line {
     // empty lines defaults to the previous line direction
     // or LTR if the first line is empty
-    let main_dir = previous_dir.unwrap_or(Direction::LTR);
+    let main_dir = previous_dir.unwrap_or_default();
     single_font::Line {
         glyphs: Vec::new(),
         main_dir,
@@ -492,6 +493,6 @@ fn shape_lines_with_font(
 
     // empty lines defaults to the previous line direction
     // or LTR if the first line is empty
-    let main_dir = main_dir.or(previous_dir).unwrap_or(Direction::LTR);
+    let main_dir = main_dir.or(previous_dir).unwrap_or_default();
     Ok((single_font::Line { glyphs, main_dir }, buffer))
 }

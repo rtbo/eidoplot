@@ -36,12 +36,12 @@ where
                 font: &title.font.font,
                 font_size: title.font.size,
                 fill: missing_params::FIG_TITLE_COLOR.into(),
-                anchor: render::TextAnchor {
-                    pos: title_rect.center(),
-                    align: render::TextAlign::Center,
-                    baseline: render::TextBaseline::Center,
+                options: eidoplot_text::layout::Options {
+                    hor_align: eidoplot_text::layout::HorAlign::Center,
+                    ver_align: eidoplot_text::layout::VerAlign::Center,
+                    ..Default::default()
                 },
-                transform: None,
+                transform: Some(&title_rect.center().translation()),
             };
             self.draw_text(&text)?;
             rect = rect.shifted_top_side(title_rect.height());

@@ -24,7 +24,6 @@ pub trait Entry {
 struct LegendEntry {
     shape: Shape,
     text: TextLayout,
-    font: Option<ir::legend::EntryFont>,
     label_width: f32,
     label_height: f32,
     x: f32,
@@ -102,7 +101,6 @@ impl Legend {
         self.entries.push(LegendEntry {
             shape,
             text,
-            font: entry_font.cloned(),
             label_width,
             label_height,
             x: f32::NAN,
@@ -181,7 +179,7 @@ where
         }
 
         for entry in &legend.entries {
-            self.draw_legend_entry(entry, &rect, &legend.font, legend.label_fill)?;
+            self.draw_legend_entry(entry, &rect, legend.label_fill)?;
         }
 
         Ok(())
@@ -191,7 +189,6 @@ where
         &mut self,
         entry: &LegendEntry,
         rect: &geom::Rect,
-        font: &ir::legend::EntryFont,
         label_fill: style::Fill,
     ) -> Result<(), render::Error> {
         let rect = geom::Rect::from_xywh(
@@ -237,21 +234,12 @@ where
             rect.left() + shape_sz.width() + defaults::LEGEND_SHAPE_SPACING,
             rect.center_y(),
         );
-        let anchor = render::TextAnchor {
-            pos,
-            align: render::TextAlign::Start,
-            baseline: render::TextBaseline::Center,
-        };
-        let font = entry.font.as_ref().unwrap_or(font);
-        let text = render::Text {
-            text: &entry.text.text(),
-            font: &font.font,
-            font_size: font.size,
-            anchor,
+        let text = render::TextLayout {
+            layout: &entry.text,
             fill: label_fill,
-            transform: None,
+            transform: Some(&pos.translation()),
         };
-        self.draw_text(&text)?;
+        self.draw_text_layout(&text)?;
 
         Ok(())
     }

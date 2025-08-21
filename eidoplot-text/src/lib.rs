@@ -9,7 +9,7 @@ pub mod shape;
 
 pub use font::{Font, parse_font_families};
 pub use layout::{Anchor, HorAlign, LineVerAlign, TextLayout, VerAlign};
-pub use shape::TextShape;
+pub use shape::{TextShape, Direction};
 
 #[derive(Debug, Clone)]
 pub enum Error {

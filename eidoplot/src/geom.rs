@@ -20,6 +20,10 @@ impl Point {
     pub const fn y(&self) -> f32 {
         self.y
     }
+
+    pub fn translation(&self) -> Transform {
+        Transform::from_translate(self.x, self.y)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

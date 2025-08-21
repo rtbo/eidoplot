@@ -1,6 +1,6 @@
 use std::{io, sync::Arc};
 
-use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut, Transform};
+use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 use eidoplot::{geom, render, style};
 
@@ -143,33 +143,13 @@ impl State {
             .transform
             .map(|t| t.post_concat(self.transform))
             .unwrap_or(self.transform);
-
-        let hor_align = match text.anchor.align {
-            render::TextAlign::Start => eidoplot_text::HorAlign::Start,
-            render::TextAlign::Center => eidoplot_text::HorAlign::Center,
-            render::TextAlign::End => eidoplot_text::HorAlign::End,
-        };
-        let ver_align = match text.anchor.baseline {
-            render::TextBaseline::Base => eidoplot_text::LineVerAlign::Baseline.into(),
-            render::TextBaseline::Center => eidoplot_text::LineVerAlign::Middle.into(),
-            render::TextBaseline::Hanging => eidoplot_text::LineVerAlign::Hanging.into(),
-        };
-        let anchor = eidoplot_text::Anchor::X;
-        let ts = text.anchor.pos;
-
-        let layout_opts = eidoplot_text::layout::Options {
-            anchor,
-            hor_align,
-            hor_justify: false,
-            ver_align,
-        };
         // FIXME: error management
         let layout = eidoplot_text::shape_and_layout_str(
             text.text,
             text.font,
             &self.fontdb,
             text.font_size,
-            &layout_opts,
+            &text.options,
         )
         .unwrap();
 
@@ -178,11 +158,35 @@ impl State {
         let render_opts = eidoplot_text::render::Options {
             fill: Some(paint),
             outline: None,
-            transform: ts_text.pre_concat(Transform::from_translate(ts.x(), ts.y())),
+            transform: ts_text,
             mask: self.clip.as_ref(),
         };
         let db = &self.fontdb;
         eidoplot_text::render::render_text_tiny_skia(&layout, &render_opts, db, px);
+
+        Ok(())
+    }
+
+    fn draw_text_layout(
+        &mut self,
+        px: &mut PixmapMut<'_>,
+        text: &render::TextLayout,
+    ) -> Result<(), render::Error> {
+        let ts_text = text
+            .transform
+            .map(|t| t.post_concat(self.transform))
+            .unwrap_or(self.transform);
+
+        let mut paint = tiny_skia::Paint::default();
+        ts_fill(text.fill, &mut paint);
+        let render_opts = eidoplot_text::render::Options {
+            fill: Some(paint),
+            outline: None,
+            transform: ts_text,
+            mask: self.clip.as_ref(),
+        };
+        let db = &self.fontdb;
+        eidoplot_text::render::render_text_tiny_skia(&text.layout, &render_opts, db, px);
 
         Ok(())
     }
@@ -233,6 +237,11 @@ impl render::Surface for PxlSurface {
         self.state.draw_text(&mut px, text)
     }
 
+    fn draw_text_layout(&mut self, text: &render::TextLayout) -> Result<(), render::Error> {
+        let mut px = self.pixmap.as_mut();
+        self.state.draw_text_layout(&mut px, text)
+    }
+
     fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
         self.state.push_clip(clip)
     }
@@ -261,6 +270,10 @@ impl render::Surface for PxlSurfaceRef<'_> {
 
     fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
         self.state.draw_text(&mut self.pixmap, text)
+    }
+
+    fn draw_text_layout(&mut self, text: &render::TextLayout) -> Result<(), render::Error> {
+        self.state.draw_text_layout(&mut self.pixmap, text)
     }
 
     fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {

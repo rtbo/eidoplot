@@ -3,6 +3,7 @@ use std::io;
 use eidoplot::geom::Transform;
 use eidoplot::render::Surface;
 use eidoplot::{geom, render, style};
+use eidoplot_text as text;
 
 use svg::Node;
 use svg::node::element;
@@ -84,27 +85,49 @@ impl Surface for SvgSurface {
     }
 
     fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
-        let font = text.font;
-        let color = match text.fill {
-            style::Fill::Solid(color) => color,
-        };
-        let family = eidoplot_text::font::font_families_to_string(font.families());
-
         let mut node = element::Text::new(text.text)
-            .set("font-family", family.as_str())
-            .set("font-size", text.font_size)
-            .set("font-weight", font.weight().0)
-            .set("font-style", font_style(font.style()))
-            .set("font-stretch", font_stretch(font.width()))
-            .set("fill", color.html())
-            .set("x", text.anchor.pos.x())
-            .set("y", text.anchor.pos.y())
             .set("text-rendering", "optimizeLegibility")
-            .set("text-anchor", text_anchor(text.anchor.align))
-            .set("dominant-baseline", dominant_baseline(text.anchor.baseline));
+            // have to assume LTR as no shaping is done
+            .set(
+                "text-anchor",
+                text_anchor(text.options.hor_align, text::Direction::LTR),
+            )
+            .set(
+                "dominant-baseline",
+                dominant_baseline(text.options.ver_align),
+            );
 
+        assign_font(&mut node, &text.font, text.font_size);
+        assign_fill(&mut node, Some(&text.fill));
         assign_transform(&mut node, text.transform);
+
         self.append_node(node);
+
+        Ok(())
+    }
+
+    fn draw_text_layout(&mut self, text: &render::TextLayout) -> Result<(), render::Error> {
+        let layout = text.layout;
+        let options = layout.options();
+
+        let mut node = element::Text::new(layout.text())
+            .set("text-rendering", "optimizeLegibility")
+            // have to assume LTR as no shaping is done
+            .set(
+                "text-anchor",
+                text_anchor(options.hor_align, text::Direction::LTR),
+            )
+            .set(
+                "dominant-baseline",
+                dominant_baseline(options.ver_align),
+            );
+
+        assign_font(&mut node, layout.font(), layout.font_size());
+        assign_fill(&mut node, Some(&text.fill));
+        assign_transform(&mut node, text.transform);
+
+        self.append_node(node);
+
         Ok(())
     }
 
@@ -207,6 +230,18 @@ where
     }
 }
 
+fn assign_font<N>(node: &mut N, font: &text::Font, font_size: f32)
+where
+    N: Node,
+{
+    let family = eidoplot_text::font::font_families_to_string(font.families());
+    node.assign("font-size", font_size);
+    node.assign("font-family", family.as_str());
+    node.assign("font-weight", font.weight().0);
+    node.assign("font-style", font_style(font.style()));
+    node.assign("font-stretch", font_stretch(font.width()));
+}
+
 fn path_data(path: &geom::Path) -> element::path::Data {
     let mut data = element::path::Data::new();
     for segment in path.segments() {
@@ -256,18 +291,30 @@ fn font_stretch(width: style::font::Width) -> &'static str {
     }
 }
 
-fn text_anchor(align: render::TextAlign) -> &'static str {
-    match align {
-        render::TextAlign::Start => "start",
-        render::TextAlign::Center => "middle",
-        render::TextAlign::End => "end",
+fn text_anchor(align: text::HorAlign, direction: text::Direction) -> &'static str {
+    match (align, direction) {
+        (text::HorAlign::Start, _) => "start",
+        (text::HorAlign::Center, _) => "middle",
+        (text::HorAlign::End, _) => "end",
+        (text::HorAlign::Left, text::Direction::LTR) => "start",
+        (text::HorAlign::Left, text::Direction::RTL) => "end",
+        (text::HorAlign::Right, text::Direction::LTR) => "end",
+        (text::HorAlign::Right, text::Direction::RTL) => "start",
     }
 }
 
-fn dominant_baseline(baseline: render::TextBaseline) -> &'static str {
-    match baseline {
-        render::TextBaseline::Base => "alphabetic",
-        render::TextBaseline::Center => "middle",
-        render::TextBaseline::Hanging => "hanging",
+fn dominant_baseline(align: text::VerAlign) -> &'static str {
+    if let text::VerAlign::Line(lidx, _) = align {
+        assert!(lidx == 0, "Only single line is supported");
+    }
+    match align {
+        text::VerAlign::Center => "center",
+        text::VerAlign::Top => "text-top",
+        text::VerAlign::Bottom => "text-bottom",
+        text::VerAlign::Line(_, text::LineVerAlign::Top) => "text-top",
+        text::VerAlign::Line(_, text::LineVerAlign::Hanging) => "hanging",
+        text::VerAlign::Line(_, text::LineVerAlign::Middle) => "middle",
+        text::VerAlign::Line(_, text::LineVerAlign::Baseline) => "alphabetic",
+        text::VerAlign::Line(_, text::LineVerAlign::Bottom) => "text-bottom",
     }
 }
