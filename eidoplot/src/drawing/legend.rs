@@ -1,6 +1,8 @@
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
+use eidoplot_text::TextLayout;
+
 use crate::drawing::SurfWrapper;
 use crate::render::{self, Surface as _};
 use crate::style::defaults;
@@ -21,7 +23,7 @@ pub trait Entry {
 
 struct LegendEntry {
     shape: Shape,
-    text: eidoplot_text::shape::Text,
+    text: TextLayout,
     font: Option<ir::legend::EntryFont>,
     label_width: f32,
     label_height: f32,
@@ -86,10 +88,17 @@ impl Legend {
         let label = entry.label();
         let entry_font = entry.font();
         let font = entry_font.unwrap_or(&self.font);
+        let opts = eidoplot_text::layout::Options {
+            hor_align: eidoplot_text::layout::HorAlign::Start,
+            ver_align: eidoplot_text::layout::LineVerAlign::Middle.into(),
+            ..Default::default()
+        };
         // FIXME: error management
-        let text = eidoplot_text::shape_text(label, &font.font, &self.fontdb).unwrap();
-        let label_width = text.width(font.size);
-        let label_height = text.height(font.size);
+        let text =
+            eidoplot_text::shape_and_layout_str(label, &font.font, &self.fontdb, font.size, &opts)
+                .unwrap();
+        let label_width = text.bbox().width();
+        let label_height = text.bbox().height();
         self.entries.push(LegendEntry {
             shape,
             text,

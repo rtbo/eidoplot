@@ -5,16 +5,11 @@ use ttf_parser as ttf;
 pub mod font;
 pub mod layout;
 pub mod render;
-pub mod render2;
 pub mod shape;
-pub mod shape2;
 
 pub use font::{Font, parse_font_families};
-pub use render::{
-    HorAlign, HorAnchor, LayoutOptions, LineVerAlign, RenderOptions, TextVerAlign, VerAnchor,
-    render_text,
-};
-pub use shape::shape_text;
+pub use layout::{Anchor, HorAlign, LineVerAlign, TextLayout, VerAlign};
+pub use shape::TextShape;
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -38,3 +33,15 @@ impl From<ttf::FaceParsingError> for Error {
 }
 
 impl std::error::Error for Error {}
+
+/// A shorthand function that shape a text and create a layout of a string
+pub fn shape_and_layout_str(
+    text: &str,
+    font: &Font,
+    db: &font::Database,
+    font_size: f32,
+    opts: &layout::Options,
+) -> Result<TextLayout, Error> {
+    let shape = TextShape::shape_str(text, font, db)?;
+    Ok(TextLayout::from_shape(&shape, font_size, opts))
+}

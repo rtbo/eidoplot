@@ -819,39 +819,43 @@ pub(crate) fn apply_variations(face: &mut ttf::Face, font: &Font) {
 pub(crate) struct FaceMetrics {
     // all values in font units
     units_per_em: u16,
-    ascent: i16,
-    descent: i16,
-    x_height: i16,
-    cap_height: i16,
-    line_gap: i16,
+    pub(crate) ascent: i16,
+    pub(crate) descent: i16,
+    pub(crate) x_height: i16,
+    pub(crate) cap_height: i16,
+    pub(crate) line_gap: i16,
 }
 
 impl FaceMetrics {
+    pub(crate) fn height(&self) -> i16 {
+        self.ascent - self.descent
+    }
+
     pub(crate) fn scale(&self, size: f32) -> f32 {
         size / self.units_per_em as f32
     }
 
-    pub(crate) fn ascent(&self, size: f32) -> f32 {
-        self.ascent as f32 * self.scale(size)
-    }
+    // pub(crate) fn scaled_ascent(&self, size: f32) -> f32 {
+    //     self.ascent as f32 * self.scale(size)
+    // }
 
-    pub(crate) fn descent(&self, size: f32) -> f32 {
-        self.descent as f32 * self.scale(size)
-    }
+    // pub(crate) fn scaled_descent(&self, size: f32) -> f32 {
+    //     self.descent as f32 * self.scale(size)
+    // }
 
-    pub(crate) fn x_height(&self, size: f32) -> f32 {
-        self.x_height as f32 * self.scale(size)
-    }
+    // pub(crate) fn scaled_x_height(&self, size: f32) -> f32 {
+    //     self.x_height as f32 * self.scale(size)
+    // }
 
-    pub(crate) fn cap_height(&self, size: f32) -> f32 {
-        self.cap_height as f32 * self.scale(size)
-    }
+    // pub(crate) fn scaled_cap_height(&self, size: f32) -> f32 {
+    //     self.cap_height as f32 * self.scale(size)
+    // }
 
-    pub(crate) fn height(&self, size: f32) -> f32 {
+    pub(crate) fn scaled_height(&self, size: f32) -> f32 {
         (self.ascent - self.descent) as f32 * self.scale(size)
     }
 
-    pub(crate) fn line_gap(&self, size: f32) -> f32 {
+    pub(crate) fn scaled_line_gap(&self, size: f32) -> f32 {
         self.line_gap as f32 * self.scale(size)
     }
 

@@ -2,7 +2,7 @@ use tiny_skia_path::Transform;
 use ttf_parser as ttf;
 
 use crate::font::{self, Font};
-use crate::shape2::{self, Direction, MainDirection, TextShape};
+use crate::shape::{self, Direction, MainDirection, TextShape};
 
 /// Bounding box of text layout.
 /// It is expressed relatively to the anchor (or left of anchor when [Anchor::Window] is used)
@@ -42,6 +42,14 @@ impl BBox {
             bottom: self.bottom + y,
             left: self.left + x,
         }
+    }
+
+    pub const fn width(&self) -> f32 {
+        self.right - self.left
+    }
+
+    pub const fn height(&self) -> f32 {
+        self.bottom - self.top
     }
 
     pub fn transform(self, transform: &Transform) -> BBox {
@@ -163,7 +171,7 @@ pub struct Options {
 pub struct Glyph {
     pub id: ttf::GlyphId,
     pub ts: tiny_skia_path::Transform,
-    dbg: shape2::GlyphDbg,
+    dbg: shape::GlyphDbg,
 }
 
 impl Glyph {
@@ -190,21 +198,35 @@ pub(crate) struct LineLayout {
 #[derive(Debug, Clone)]
 pub struct TextLayout {
     pub(crate) lines: Vec<LineLayout>,
+    text: String,
+    font: Font,
+    font_size: f32,
     opts: Options,
     bbox: BBox,
-    font: Font,
 }
 
 impl TextLayout {
     pub fn from_shape(text_shape: &TextShape, font_size: f32, opts: &Options) -> Self {
         match &text_shape.lines {
-            shape2::Lines::SingleFont(lines) => {
-                layout_text(lines, font_size, text_shape.font(), opts)
+            shape::Lines::SingleFont(lines) => {
+                layout_text(lines, text_shape.text(), text_shape.font(), font_size, opts)
             }
-            shape2::Lines::Fallback(lines) => {
-                layout_text(lines, font_size, text_shape.font(), opts)
+            shape::Lines::Fallback(lines) => {
+                layout_text(lines, text_shape.text(), text_shape.font(), font_size, opts)
             }
         }
+    }
+
+    pub fn text(&self) -> &str {
+        self.text.as_str()
+    }
+
+    pub fn font(&self) -> &Font {
+        &self.font
+    }
+
+    pub fn font_size(&self) -> f32 {
+        self.font_size
     }
 
     pub fn lines_len(&self) -> usize {
@@ -217,10 +239,6 @@ impl TextLayout {
 
     pub fn line_bbox(&self, lidx: usize) -> BBox {
         self.lines[lidx].bbox
-    }
-
-    pub fn font(&self) -> &Font {
-        &self.font
     }
 
     /// Options used to build this layout
@@ -243,8 +261,8 @@ struct ScaledGlyph {
     y_advance: f32,
 }
 
-impl From<(shape2::Glyph, f32)> for ScaledGlyph {
-    fn from((glyph, scale): (shape2::Glyph, f32)) -> Self {
+impl From<(shape::Glyph, f32)> for ScaledGlyph {
+    fn from((glyph, scale): (shape::Glyph, f32)) -> Self {
         Self {
             id: glyph.id,
             x_offset: glyph.x_offset as f32 * scale,
@@ -256,11 +274,11 @@ impl From<(shape2::Glyph, f32)> for ScaledGlyph {
 }
 trait LineTrait {
     fn glyphs_len(&self) -> usize;
-    fn glyph(&self, gidx: usize) -> Option<shape2::Glyph>;
+    fn glyph(&self, gidx: usize) -> Option<shape::Glyph>;
 }
 
 trait LinesTrait {
-    type Line: LineTrait + shape2::MainDirection;
+    type Line: LineTrait + shape::MainDirection;
 
     fn lines(&self) -> &[Self::Line];
 
@@ -283,15 +301,15 @@ trait LinesTrait {
 
 mod single_font {
     use crate::font;
-    use crate::shape2;
-    use crate::shape2::single_font::{Line, Lines};
+    use crate::shape;
+    use crate::shape::single_font::{Line, Lines};
 
     impl super::LineTrait for Line {
         fn glyphs_len(&self) -> usize {
             self.glyphs.len()
         }
 
-        fn glyph(&self, gidx: usize) -> Option<shape2::Glyph> {
+        fn glyph(&self, gidx: usize) -> Option<shape::Glyph> {
             Some(self.glyphs[gidx])
         }
     }
@@ -320,17 +338,18 @@ mod single_font {
         }
 
         fn line_scaled_baseline(&self, lidx: usize, font_size: f32) -> f32 {
-            let gap = self.metrics.line_gap(font_size);
-            let height = self.metrics.height(font_size);
-            (gap + height) * lidx as f32
+            let scale = self.metrics.scale(font_size);
+            let gap = self.metrics.line_gap;
+            let height = self.metrics.height();
+            (gap + height) as f32 * scale * lidx as f32
         }
 
         fn line_scaled_height(&self, _lidx: usize, font_size: f32) -> f32 {
-            self.metrics.height(font_size)
+            self.metrics.scaled_height(font_size)
         }
 
         fn line_scaled_gap(&self, _lidx: usize, font_size: f32) -> f32 {
-            self.metrics.line_gap(font_size)
+            self.metrics.scaled_line_gap(font_size)
         }
 
         fn line_scaled_width(&self, lidx: usize, font_size: f32) -> f32 {
@@ -345,20 +364,20 @@ mod single_font {
 
 mod fallback_font {
     use crate::font;
-    use crate::shape2;
-    use crate::shape2::fallback::{Glyph, Line, Lines};
+    use crate::shape;
+    use crate::shape::fallback::{Glyph, Line, Lines};
 
     fn glyph_scaled_height(glyph: &Glyph, font_size: f32) -> f32 {
         match glyph {
             Glyph::Missing(..) => 0.0,
-            Glyph::Resolved(_, _, metrics) => metrics.height(font_size),
+            Glyph::Resolved(_, _, metrics) => metrics.scaled_height(font_size),
         }
     }
 
     fn glyph_scaled_line_gap(glyph: &Glyph, font_size: f32) -> f32 {
         match glyph {
             Glyph::Missing(..) => 0.0,
-            Glyph::Resolved(_, _, metrics) => metrics.line_gap(font_size),
+            Glyph::Resolved(_, _, metrics) => metrics.scaled_line_gap(font_size),
         }
     }
 
@@ -391,7 +410,7 @@ mod fallback_font {
             self.glyphs.len()
         }
 
-        fn glyph(&self, gidx: usize) -> Option<shape2::Glyph> {
+        fn glyph(&self, gidx: usize) -> Option<shape::Glyph> {
             match &self.glyphs[gidx] {
                 Glyph::Missing(..) => None,
                 Glyph::Resolved(glyph, _, _) => Some(*glyph),
@@ -477,7 +496,7 @@ mod fallback_font {
     }
 }
 
-fn layout_text<L>(lines: &L, font_size: f32, font: &Font, opts: &Options) -> TextLayout
+fn layout_text<L>(lines: &L, text: &str, font: &Font, font_size: f32, opts: &Options) -> TextLayout
 where
     L: LinesTrait,
 {
@@ -549,8 +568,10 @@ where
 
     TextLayout {
         lines: line_vec,
-        bbox,
+        text: text.to_string(),
         font: font.clone(),
+        font_size,
+        bbox,
         opts: *opts,
     }
 }

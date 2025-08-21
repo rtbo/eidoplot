@@ -1,3 +1,5 @@
+use eidoplot_text::{Font, TextLayout, TextShape, font, layout, render};
+
 const ENGLISH_TEXT: &str = "Hello, world!
 How are you?";
 
@@ -14,68 +16,65 @@ const ENGLISH_THEN_ARABIC_TEXT: &str = "Hello, world!
 كيف حالك؟";
 
 fn main() {
-    let mut db = fontdb::Database::new();
+    let mut db = font::Database::new();
     db.load_system_fonts();
 
-    let font = eidoplot_text::Font::default().with_families(vec![
-        eidoplot_text::font::Family::Named("Noto Sans".to_string()),
-        eidoplot_text::font::Family::Named("DejaVu Sans".to_string()),
-        eidoplot_text::font::Family::SansSerif,
+    let font = Font::default().with_families(vec![
+        font::Family::Named("Noto Sans".to_string()),
+        font::Family::Named("DejaVu Sans".to_string()),
+        font::Family::SansSerif,
     ]);
 
     let font_size: f32 = 36.0;
 
-    let renders = &[
+    let texts = &[
         (
             ENGLISH_TEXT,
-            eidoplot_text::layout::Options {
-                anchor: eidoplot_text::layout::Anchor::X,
-                hor_align: eidoplot_text::layout::HorAlign::Start,
+            layout::Options {
+                anchor: layout::Anchor::X,
+                hor_align: layout::HorAlign::Start,
                 hor_justify: false,
-                ver_align: eidoplot_text::layout::VerAlign::Top,
+                ver_align: layout::VerAlign::Top,
             },
             (20.0, 20.0),
         ),
         (
             ARABIC_TEXT,
-            eidoplot_text::layout::Options {
+            layout::Options {
                 anchor: Default::default(),
-                hor_align: eidoplot_text::layout::HorAlign::Start,
+                hor_align: layout::HorAlign::Start,
                 hor_justify: false,
-                ver_align: eidoplot_text::layout::VerAlign::Top,
+                ver_align: layout::VerAlign::Top,
             },
             (580.0, 20.0),
         ),
         (
             MIXED_TEXT_LTR,
-            eidoplot_text::layout::Options {
-                anchor: eidoplot_text::layout::Anchor::X,
-                hor_align: eidoplot_text::layout::HorAlign::Start,
+            layout::Options {
+                anchor: layout::Anchor::X,
+                hor_align: layout::HorAlign::Start,
                 hor_justify: false,
-                ver_align: eidoplot_text::layout::LineVerAlign::Baseline.into(),
+                ver_align: layout::LineVerAlign::Baseline.into(),
             },
             (20.0, 236.0),
         ),
         (
             MIXED_TEXT_RTL,
-            eidoplot_text::layout::Options {
+            layout::Options {
                 anchor: Default::default(),
-                hor_align: eidoplot_text::layout::HorAlign::Start,
+                hor_align: layout::HorAlign::Start,
                 hor_justify: false,
-                ver_align: eidoplot_text::layout::LineVerAlign::Hanging.into(),
+                ver_align: layout::LineVerAlign::Hanging.into(),
             },
             (580.0, 236.0),
         ),
         (
             ENGLISH_THEN_ARABIC_TEXT,
-            eidoplot_text::layout::Options {
-                anchor: eidoplot_text::layout::Anchor::Window(250.0),
-                hor_align: eidoplot_text::layout::HorAlign::Start,
+            layout::Options {
+                anchor: layout::Anchor::Window(250.0),
+                hor_align: layout::HorAlign::Start,
                 hor_justify: false,
-                ver_align: eidoplot_text::layout::VerAlign::Line(
-                    1,
-                    eidoplot_text::layout::LineVerAlign::Middle,
-                ),
+                ver_align: layout::VerAlign::Line(1, layout::LineVerAlign::Middle),
             },
             (100.0, 400.0),
         ),
@@ -85,19 +84,19 @@ fn main() {
     let mut pm_mut = pm.as_mut();
     pm_mut.fill(tiny_skia::Color::WHITE);
 
-    for (text, layout_opts, (x, y)) in renders {
-        let shape = eidoplot_text::shape2::TextShape::shape_str(text, &font, &db).unwrap();
-        let layout = eidoplot_text::layout::TextLayout::from_shape(&shape, font_size, &layout_opts);
+    for (text, layout_opts, (x, y)) in texts {
+        let shape = TextShape::shape_str(text, &font, &db).unwrap();
+        let layout = TextLayout::from_shape(&shape, font_size, &layout_opts);
 
         let (tx, ty) = (*x, *y);
-        let render_opts = eidoplot_text::render2::Options {
+        let render_opts = render::Options {
             fill: Some(tiny_skia::Paint::default()),
             outline: None,
             transform: tiny_skia::Transform::from_translate(tx, ty),
             mask: None,
         };
 
-        eidoplot_text::render2::render_text_tiny_skia(&layout, &render_opts, &db, &mut pm_mut);
+        render::render_text_tiny_skia(&layout, &render_opts, &db, &mut pm_mut);
 
         draw_layout_bboxes(&layout, (tx, ty), &mut pm_mut);
         draw_anchor_cross(&layout, (tx, ty), &mut pm_mut);
@@ -107,14 +106,14 @@ fn main() {
 }
 
 fn draw_anchor_cross(
-    layout: &eidoplot_text::layout::TextLayout,
+    layout: &layout::TextLayout,
     (tx, ty): (f32, f32),
     pm_mut: &mut tiny_skia::PixmapMut,
 ) {
     let anchor1 = (tx, ty);
     let anchor2 = match layout.options().anchor {
-        eidoplot_text::layout::Anchor::X => None,
-        eidoplot_text::layout::Anchor::Window(width) => Some((tx + width, ty)),
+        layout::Anchor::X => None,
+        layout::Anchor::Window(width) => Some((tx + width, ty)),
     };
 
     let mut pb = tiny_skia_path::PathBuilder::new();
@@ -146,7 +145,7 @@ fn push_anchor_cross(pb: &mut tiny_skia_path::PathBuilder, anchor: (f32, f32)) {
 }
 
 fn draw_layout_bboxes(
-    layout: &eidoplot_text::layout::TextLayout,
+    layout: &layout::TextLayout,
     (tx, ty): (f32, f32),
     pm_mut: &mut tiny_skia::PixmapMut,
 ) {
@@ -170,7 +169,7 @@ fn draw_layout_bboxes(
     }
 }
 
-fn bbox_rect_path(bbox: eidoplot_text::layout::BBox) -> tiny_skia_path::Path {
+fn bbox_rect_path(bbox: layout::BBox) -> tiny_skia_path::Path {
     let mut pb = tiny_skia_path::PathBuilder::new();
     pb.move_to(bbox.left, bbox.top);
     pb.line_to(bbox.right, bbox.top);
@@ -181,7 +180,7 @@ fn bbox_rect_path(bbox: eidoplot_text::layout::BBox) -> tiny_skia_path::Path {
 }
 
 fn draw_bbox(
-    bbox: eidoplot_text::layout::BBox,
+    bbox: layout::BBox,
     color: tiny_skia::Color,
     width: f32,
     dash: bool,

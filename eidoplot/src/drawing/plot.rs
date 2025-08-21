@@ -8,12 +8,12 @@ use crate::missing_params;
 use crate::render::{self, Surface as _};
 use crate::style::{self, defaults};
 
-use eidoplot_text::shape;
+use eidoplot_text::TextLayout;
 use scale::{CoordMap, CoordMapXy};
 
 struct Ticks {
     locs: Vec<f64>,
-    lbls: Vec<shape::Text>,
+    lbls: Vec<TextLayout>,
     annot: Option<String>,
     font: ir::axis::TicksFont,
     color: style::Color,
@@ -24,7 +24,7 @@ impl Ticks {
     fn lbl_width(&self) -> f32 {
         self.lbls
             .iter()
-            .map(|l| l.width(self.font.size))
+            .map(|l| l.bbox().width())
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap_or(0.0)
     }
@@ -34,7 +34,7 @@ struct Axis {
     ortho_sz: f32,
     coord_map: Box<dyn CoordMap>,
     ticks: Option<Ticks>,
-    label: Option<(shape::Text, f32)>,
+    label: Option<TextLayout>,
 }
 
 impl CoordMap for Axis {
@@ -82,12 +82,20 @@ fn setup_ticks(ticks: &ir::axis::Ticks, ab: axis::NumBounds, fontdb: &fontdb::Da
     let mut locs = ticks::locate(ticks.locator(), ab);
     locs.retain(|l| ab.contains(*l));
     let lbl_formatter = ticks::label_formatter(ticks, ab);
+    let font = ticks.font();
+    let opts = eidoplot_text::layout::Options {
+        hor_align: eidoplot_text::layout::HorAlign::Right,
+        ver_align: eidoplot_text::layout::LineVerAlign::Middle.into(),
+        ..Default::default()
+    };
     // FIXME: error management
     let lbls = locs
         .iter()
         .copied()
         .map(|l| lbl_formatter.format_label(l))
-        .map(|l| eidoplot_text::shape_text(&l, &ticks.font().font, fontdb).unwrap())
+        .map(|l| {
+            eidoplot_text::shape_and_layout_str(&l, &font.font, fontdb, font.size, &opts).unwrap()
+        })
         .collect();
     let annot = lbl_formatter.axis_annotation().map(String::from);
     Ticks {
@@ -178,12 +186,21 @@ impl<D> Ctx<'_, D> {
 
         let y_width = self.calculate_y_axis_width(y_axis, ticks.as_ref());
 
+        let opts = eidoplot_text::layout::Options {
+            hor_align: eidoplot_text::layout::HorAlign::Center,
+            ver_align: eidoplot_text::layout::LineVerAlign::Middle.into(),
+            ..Default::default()
+        };
         // FIXME: error management
         let label = y_axis.label().map(|l| {
-            (
-                eidoplot_text::shape_text(&l.text, &l.font.font, &self.fontdb).unwrap(),
+            eidoplot_text::shape_and_layout_str(
+                &l.text,
+                &l.font.font,
+                &self.fontdb,
                 l.font.size,
+                &opts,
             )
+            .unwrap()
         });
 
         Axis {
@@ -199,12 +216,22 @@ impl<D> Ctx<'_, D> {
             .ticks()
             .map(|t| setup_ticks(t, coord_map.axis_bounds(), &self.fontdb));
 
+
+        let opts = eidoplot_text::layout::Options {
+            hor_align: eidoplot_text::layout::HorAlign::Center,
+            ver_align: eidoplot_text::layout::LineVerAlign::Middle.into(),
+            ..Default::default()
+        };
         // FIXME: error management
         let label = x_axis.label().map(|l| {
-            (
-                eidoplot_text::shape_text(&l.text, &l.font.font, &self.fontdb).unwrap(),
+            eidoplot_text::shape_and_layout_str(
+                &l.text,
+                &l.font.font,
+                &self.fontdb,
                 l.font.size,
+                &opts,
             )
+            .unwrap()
         });
 
         Axis {
@@ -452,9 +479,9 @@ where
                 baseline: render::TextBaseline::Hanging,
             };
             let text = render::Text {
-                text: label.0.text(),
-                font: label.0.font(),
-                font_size: label.1,
+                text: label.text(),
+                font: label.font(),
+                font_size: label.font_size(),
                 anchor,
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: None,
@@ -545,9 +572,9 @@ where
             let ty = rect.center_y();
             let transform = geom::Transform::from_translate(tx, ty).pre_rotate(-90.0);
             let text = render::Text {
-                text: label.0.text(),
-                font: label.0.font(),
-                font_size: label.1,
+                text: label.text(),
+                font: label.font(),
+                font_size: label.font_size(),
                 anchor,
                 fill: missing_params::AXIS_LABEL_COLOR.into(),
                 transform: Some(&transform),

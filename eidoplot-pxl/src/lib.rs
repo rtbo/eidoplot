@@ -1,6 +1,6 @@
 use std::{io, sync::Arc};
 
-use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
+use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut, Transform};
 
 use eidoplot::{geom, render, style};
 
@@ -144,39 +144,45 @@ impl State {
             .map(|t| t.post_concat(self.transform))
             .unwrap_or(self.transform);
 
-        // FIXME: error management
-        let shape = eidoplot_text::shape_text(text.text, text.font, &self.fontdb).unwrap();
-
         let hor_align = match text.anchor.align {
             render::TextAlign::Start => eidoplot_text::HorAlign::Start,
             render::TextAlign::Center => eidoplot_text::HorAlign::Center,
             render::TextAlign::End => eidoplot_text::HorAlign::End,
         };
         let ver_align = match text.anchor.baseline {
-            render::TextBaseline::Base => eidoplot_text::TextVerAlign::Line(0, eidoplot_text::LineVerAlign::Baseline),
-            render::TextBaseline::Center => eidoplot_text::TextVerAlign::Line(0, eidoplot_text::LineVerAlign::Middle),
-            render::TextBaseline::Hanging => eidoplot_text::TextVerAlign::Line(0, eidoplot_text::LineVerAlign::Hanging),
+            render::TextBaseline::Base => eidoplot_text::LineVerAlign::Baseline.into(),
+            render::TextBaseline::Center => eidoplot_text::LineVerAlign::Middle.into(),
+            render::TextBaseline::Hanging => eidoplot_text::LineVerAlign::Hanging.into(),
         };
-        let hor_anchor = eidoplot_text::HorAnchor::X(text.anchor.pos.x());
-        let ver_anchor = eidoplot_text::VerAnchor(text.anchor.pos.y());
+        let anchor = eidoplot_text::Anchor::X;
+        let ts = text.anchor.pos;
 
-        let layout_opts = eidoplot_text::LayoutOptions {
+        let layout_opts = eidoplot_text::layout::Options {
+            anchor,
             hor_align,
-            hor_anchor,
             hor_justify: false,
             ver_align,
-            ver_anchor,
         };
+        // FIXME: error management
+        let layout = eidoplot_text::shape_and_layout_str(
+            text.text,
+            text.font,
+            &self.fontdb,
+            text.font_size,
+            &layout_opts,
+        )
+        .unwrap();
+
         let mut paint = tiny_skia::Paint::default();
         ts_fill(text.fill, &mut paint);
-        let render_opts = eidoplot_text::RenderOptions {
+        let render_opts = eidoplot_text::render::Options {
             fill: Some(paint),
             outline: None,
-            transform: ts_text,
+            transform: ts_text.pre_concat(Transform::from_translate(ts.x(), ts.y())),
             mask: self.clip.as_ref(),
         };
         let db = &self.fontdb;
-        eidoplot_text::render_text(&shape, text.font_size, &layout_opts, &render_opts, db, px);
+        eidoplot_text::render::render_text_tiny_skia(&layout, &render_opts, db, px);
 
         Ok(())
     }

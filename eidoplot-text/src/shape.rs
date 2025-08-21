@@ -4,178 +4,308 @@ use crate::Error;
 use crate::font::{self, DatabaseExt, Font};
 
 #[derive(Debug, Clone, Copy)]
-enum ResolvedGlyphId {
-    Missing(char),
-    Resolved(ttf::GlyphId),
+/// Text direction
+pub enum Direction {
+    LTR,
+    RTL,
 }
 
-/// A glyph positioned in a text shape
+pub(crate) trait MainDirection {
+    fn main_direction(&self) -> Direction;
+}
+
+#[cfg(debug_assertions)]
+mod glyph_dbg {
+    use std::fmt;
+
+    const MAX_BYTES_PER_GLYPH: usize = 40;
+
+    #[derive(Clone, Copy)]
+    pub(crate) struct GlyphDbg {
+        /// data storage for glyph character sequence
+        chars_bytes: [u8; MAX_BYTES_PER_GLYPH],
+        /// length of the character sequence
+        chars_bytes_len: usize,
+    }
+
+    impl GlyphDbg {
+        pub(super) fn new(chars: &str) -> Self {
+            let mut chars_bytes_len = chars.len().min(MAX_BYTES_PER_GLYPH);
+            while !chars.is_char_boundary(chars_bytes_len) {
+                chars_bytes_len -= 1;
+            }
+            let mut chars_bytes = [0u8; MAX_BYTES_PER_GLYPH];
+            chars_bytes[..chars_bytes_len].copy_from_slice(chars.as_bytes());
+            Self {
+                chars_bytes,
+                chars_bytes_len,
+            }
+        }
+
+        pub(crate) fn chars(&self) -> Option<&str> {
+            // SAFETY: `chars_bytes` is valid UTF-8 as char boundaries are checked
+            unsafe {
+                Some(std::str::from_utf8_unchecked(
+                    &self.chars_bytes[..self.chars_bytes_len],
+                ))
+            }
+        }
+    }
+
+    impl fmt::Debug for GlyphDbg {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            let chars = self.chars().unwrap();
+            write!(f, "GlyphDbg(\"{}\")", chars)
+        }
+    }
+}
+
+#[cfg(not(debug_assertions))]
+mod glyph_dbg {
+    #[derive(Debug, Clone, Copy)]
+    pub(crate) struct GlyphDbg;
+    impl GlyphDbg {
+        pub(super) fn new(chars: &str) -> Self {
+            GlyphDbg
+        }
+        pub(super) fn chars(&self) -> Option<&str> {
+            None
+        }
+    }
+}
+
+pub(crate) use glyph_dbg::GlyphDbg;
+
+/// Glyph info for a text shape
 #[derive(Debug, Clone, Copy)]
-pub struct Glyph {
-    resolved_id: ResolvedGlyphId,
-    x_offset: i32,
-    y_offset: i32,
-    x_advance: i32,
-    y_advance: i32,
-    font_id: font::ID,
-    metrics: font::FaceMetrics,
+pub(crate) struct Glyph {
+    /// The id of the glyph in the font face
+    pub(crate) id: ttf::GlyphId,
+    /// The x-offset of the glyph in font units
+    pub(crate) x_offset: i32,
+    /// The y-offset of the glyph in font units
+    pub(crate) y_offset: i32,
+    /// The x-advance of the glyph in font units
+    pub(crate) x_advance: i32,
+    /// The y-advance of the glyph in font units
+    pub(crate) y_advance: i32,
+    /// The character of the glyph
+    /// If the glyph is missing, this will be `None`
+    pub(crate) dbg: GlyphDbg,
 }
 
-impl Glyph {
-    pub fn id(&self) -> Option<ttf::GlyphId> {
-        match self.resolved_id {
-            ResolvedGlyphId::Missing(_) => None,
-            ResolvedGlyphId::Resolved(id) => Some(id),
+pub(crate) mod single_font {
+    use super::{Direction, Glyph};
+    use crate::font;
+
+    /// Line info for a text shape
+    #[derive(Debug, Clone)]
+    pub(crate) struct Line {
+        pub(crate) glyphs: Vec<Glyph>,
+        /// The main direction of the line
+        /// Most often a line has one unique direction.
+        /// But if a line is bidirectional, this field is set to the first direction
+        /// encountered, which will influence how the line is layed out.
+        pub(super) main_dir: Direction,
+    }
+
+    impl super::MainDirection for Line {
+        fn main_direction(&self) -> super::Direction {
+            self.main_dir
         }
     }
 
-    pub fn font_id(&self) -> font::ID {
-        self.font_id
-    }
-
-    pub fn scale(&self, font_size: f32) -> f32 {
-        self.metrics.scale(font_size)
-    }
-
-    pub fn x_offset(&self, font_size: f32) -> f32 {
-        self.x_offset as f32 * self.metrics.scale(font_size)
-    }
-
-    pub fn y_offset(&self, font_size: f32) -> f32 {
-        self.y_offset as f32 * self.metrics.scale(font_size)
-    }
-
-    pub fn x_advance(&self, font_size: f32) -> f32 {
-        self.x_advance as f32 * self.metrics.scale(font_size)
-    }
-
-    pub fn has_x_advance(&self) -> bool {
-        self.x_advance != 0
-    }
-
-    pub fn y_advance(&self, font_size: f32) -> f32 {
-        self.y_advance as f32 * self.metrics.scale(font_size)
-    }
-
-    pub fn height(&self, font_size: f32) -> f32 {
-        self.metrics.height(font_size)
-    }
-
-    pub fn x_height(&self, font_size: f32) -> f32 {
-        self.metrics.x_height(font_size)
-    }
-
-    pub fn cap_height(&self, font_size: f32) -> f32 {
-        self.metrics.cap_height(font_size)
-    }
-
-    pub fn ascent(&self, font_size: f32) -> f32 {
-        self.metrics.ascent(font_size)
-    }
-
-    pub fn descent(&self, font_size: f32) -> f32 {
-        self.metrics.descent(font_size)
-    }
-
-    pub fn line_gap(&self, font_size: f32) -> f32 {
-        self.metrics.line_gap(font_size)
+    #[derive(Debug, Clone)]
+    pub(crate) struct Lines {
+        pub(crate) lines: Vec<Line>,
+        pub(crate) font: font::ID,
+        pub(crate) metrics: font::FaceMetrics,
     }
 }
 
-impl Glyph {
-    fn missing_char(&self) -> Option<char> {
-        match self.resolved_id {
-            ResolvedGlyphId::Missing(c) => Some(c),
-            ResolvedGlyphId::Resolved(_) => None,
+pub(crate) mod fallback {
+    use super::Direction;
+    use crate::font;
+
+    #[derive(Debug, Clone)]
+    pub(crate) enum Glyph {
+        Missing(String),
+        Resolved(super::Glyph, font::ID, font::FaceMetrics),
+    }
+
+    impl Glyph {
+        pub(super) fn missing_glyph(&self) -> Option<&str> {
+            match self {
+                Glyph::Missing(c) => Some(c.as_str()),
+                Glyph::Resolved(..) => None,
+            }
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub(crate) struct Line {
+        pub(crate) glyphs: Vec<Glyph>,
+        pub(super) main_dir: Direction,
+    }
+
+    impl Line {
+        pub(super) fn fill_missing_chars(&mut self, other: &Line) {
+            for (g1, g2) in self.glyphs.iter_mut().zip(other.glyphs.iter()) {
+                let replace = match (&g1, &g2) {
+                    (Glyph::Missing(_), Glyph::Resolved(..)) => true,
+                    _ => false,
+                };
+                if replace {
+                    *g1 = g2.clone();
+                }
+            }
+        }
+    }
+
+    impl super::MainDirection for Line {
+        fn main_direction(&self) -> super::Direction {
+            self.main_dir
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub(crate) struct Lines {
+        pub(crate) lines: Vec<Line>,
+    }
+
+    impl Lines {
+        pub(super) fn replace_missing_chars(&mut self, other: &Lines) {
+            for (l1, l2) in self.lines.iter_mut().zip(other.lines.iter()) {
+                l1.fill_missing_chars(l2);
+            }
         }
     }
 }
 
-/// A single line of text, layed-out in font units
 #[derive(Debug, Clone)]
-pub struct Line {
-    glyphs: Vec<Glyph>,
-    font: Font,
-    rtl: bool,
+pub(crate) enum Lines {
+    /// There is a single font used for all lines
+    /// This is the most common case and allows optimizations
+    SingleFont(single_font::Lines),
+    /// The text could not be handled in a single font, and each glyph
+    /// can have its own font
+    Fallback(fallback::Lines),
 }
 
-impl Line {
-    pub fn glyphs(&self) -> &[Glyph] {
-        &self.glyphs
+impl Lines {
+    fn have_fallback(&self) -> bool {
+        matches!(self, Lines::Fallback { .. })
     }
 
-    pub fn font(&self) -> &Font {
-        &self.font
+    fn first_missing_glyph(&self) -> Option<&str> {
+        match self {
+            Lines::SingleFont(..) => None,
+            Lines::Fallback(text) => text
+                .lines
+                .iter()
+                .find_map(|l| l.glyphs.iter().find_map(|g| g.missing_glyph())),
+        }
     }
 
-    pub fn rtl(&self) -> bool {
-        self.rtl
+    /// Checks whether `self` and `other` have the same shape,
+    /// i.e. same number of lines and same number of glyphs per line
+    fn same_shape(&self, other: &Lines) -> bool {
+        match (self, other) {
+            (Lines::SingleFont(ls1), Lines::SingleFont(ls2)) => {
+                ls1.lines.len() == ls2.lines.len()
+                    && ls1
+                        .lines
+                        .iter()
+                        .zip(ls2.lines.iter())
+                        .all(|(l1, l2)| l1.glyphs.len() == l2.glyphs.len())
+            }
+            (Lines::Fallback(ls1), Lines::Fallback(ls2)) => {
+                ls1.lines.len() == ls2.lines.len()
+                    && ls1
+                        .lines
+                        .iter()
+                        .zip(ls2.lines.iter())
+                        .all(|(l1, l2)| l1.glyphs.len() == l2.glyphs.len())
+            }
+            (Lines::SingleFont(ls1), Lines::Fallback(ls2)) => {
+                ls1.lines.len() == ls2.lines.len()
+                    && ls1
+                        .lines
+                        .iter()
+                        .zip(ls2.lines.iter())
+                        .all(|(l1, l2)| l1.glyphs.len() == l2.glyphs.len())
+            }
+            (Lines::Fallback(ls1), Lines::SingleFont(ls2)) => {
+                ls1.lines.len() == ls2.lines.len()
+                    && ls1
+                        .lines
+                        .iter()
+                        .zip(ls2.lines.iter())
+                        .all(|(l1, l2)| l1.glyphs.len() == l2.glyphs.len())
+            }
+        }
     }
 
-    pub fn width(&self, font_size: f32) -> f32 {
-        self.glyphs.iter().map(|g| g.x_advance(font_size)).sum()
-    }
+    fn replace_missing_chars(&mut self, other: &Lines) {
+        debug_assert!(self.same_shape(other));
 
-    pub fn height(&self, font_size: f32) -> f32 {
-        self.glyphs
-            .iter()
-            .map(|g| g.height(font_size))
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    pub fn ascent(&self, font_size: f32) -> f32 {
-        self.glyphs
-            .iter()
-            .map(|g| g.ascent(font_size))
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    pub fn descent(&self, font_size: f32) -> f32 {
-        self.glyphs
-            .iter()
-            .map(|g| g.descent(font_size))
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    pub fn x_height(&self, font_size: f32) -> f32 {
-        self.glyphs
-            .iter()
-            .map(|g| g.x_height(font_size))
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    pub fn cap_height(&self, font_size: f32) -> f32 {
-        self.glyphs
-            .iter()
-            .map(|g| g.x_height(font_size))
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    pub fn gap(&self, font_size: f32) -> f32 {
-        self.glyphs
-            .iter()
-            .map(|g| g.line_gap(font_size))
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
+        match (self, other) {
+            (Lines::Fallback(t1), Lines::Fallback(t2)) => {
+                t1.replace_missing_chars(t2);
+            }
+            _ => unreachable!(),
+        }
     }
 }
 
-/// A text shape that is layed-out in font units
 #[derive(Debug, Clone)]
-pub struct Text {
-    lines: Vec<Line>,
+pub struct TextShape {
+    pub(crate) lines: Lines,
     text: String,
     font: Font,
 }
 
-impl Text {
-    pub fn lines(&self) -> &[Line] {
-        &self.lines
+impl TextShape {
+    pub fn shape_str(
+        text: &str,
+        font: &font::Font,
+        db: &font::Database,
+    ) -> Result<TextShape, Error> {
+        let base_face_id = db
+            .select_face_for_str(font, text)
+            .or_else(|| db.select_face(font))
+            .ok_or(Error::NoSuchFont(font.clone()))?;
+
+        let mut shape = shape_text_with_font(text, base_face_id, font, db)?;
+
+        if !shape.lines.have_fallback() {
+            return Ok(shape);
+        }
+
+        let mut already_tried = Vec::new();
+
+        loop {
+            let Some(fallback_face_id) =
+                db.select_face_fallback(shape.lines.first_missing_glyph().unwrap(), &already_tried)
+            else {
+                break;
+            };
+
+            let fallback_shape = shape_text_with_font(text, fallback_face_id, font, db)?;
+            if fallback_shape.lines.first_missing_glyph().is_none() {
+                // we replace the shape entirely with the fallback
+                shape = fallback_shape;
+                break;
+            } else if fallback_shape.lines.same_shape(&shape.lines) {
+                shape.lines.replace_missing_chars(&fallback_shape.lines);
+                if !shape.lines.have_fallback() {
+                    break;
+                }
+            }
+            already_tried.push(fallback_face_id);
+        }
+
+        Ok(shape)
     }
 
     pub fn text(&self) -> &str {
@@ -185,115 +315,6 @@ impl Text {
     pub fn font(&self) -> &Font {
         &self.font
     }
-
-    pub fn width(&self, font_size: f32) -> f32 {
-        self.lines
-            .iter()
-            .map(|l| l.width(font_size))
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    pub fn height(&self, font_size: f32) -> f32 {
-        let mut h = 0.0;
-        for l in self.lines.iter().take(self.lines.len() - 1) {
-            h += l.height(font_size) + l.gap(font_size);
-        }
-        if let Some(l) = self.lines.last() {
-            h += l.height(font_size);
-        }
-        h
-    }
-
-    pub(crate) fn baseline_of_line(&self, line: usize, font_size: f32) -> f32 {
-        let mut h = 0.0;
-        let mut l = 0;
-        while l < line {
-            h += self.lines[l].gap(font_size);
-            h += self.lines[l + 1].height(font_size);
-            l += 1;
-        }
-        h
-    }
-}
-
-impl Text {
-    fn first_missing_char(&self) -> Option<char> {
-        self.lines
-            .iter()
-            .find_map(|l| l.glyphs.iter().find_map(|g| g.missing_char()))
-    }
-
-    fn missing_chars(&self) -> impl Iterator<Item = char> {
-        self.lines
-            .iter()
-            .flat_map(|l| l.glyphs.iter().filter_map(|g| g.missing_char()))
-    }
-
-    fn same_shape(&self, other: &Text) -> bool {
-        self.lines.len() == other.lines.len()
-            && self
-                .lines
-                .iter()
-                .zip(other.lines.iter())
-                .all(|(a, b)| a.glyphs.len() == b.glyphs.len())
-    }
-
-    fn fill_missing_chars(&mut self, other: &Text) {
-        for (l, ol) in self.lines.iter_mut().zip(other.lines.iter()) {
-            for (g, og) in l.glyphs.iter_mut().zip(ol.glyphs.iter()) {
-                let replace = match (g.resolved_id, og.resolved_id) {
-                    (ResolvedGlyphId::Missing(_), ResolvedGlyphId::Resolved(_)) => true,
-                    _ => false,
-                };
-                if replace {
-                    *g = *og;
-                }
-            }
-        }
-    }
-}
-
-pub fn shape_text(text: &str, font: &Font, db: &font::Database) -> Result<Text, Error> {
-    let base_face_id = db
-        .select_face_for_str(font, text)
-        .or_else(|| db.select_face(font))
-        .ok_or(Error::NoSuchFont(font.clone()))?;
-    let mut shape = shape_text_with_font(text, base_face_id, font, db)?;
-
-    let mut missing = shape.first_missing_char();
-    if missing.is_none() {
-        return Ok(shape);
-    }
-
-    let mut already_tried = vec![base_face_id];
-
-    while let Some(c) = missing {
-        let Some(fallback_id) = font::select_face_fallback(db, c, &already_tried) else {
-            break;
-        };
-
-        let fallback_shape = shape_text_with_font(text, fallback_id, font, db)?;
-        if fallback_shape.first_missing_char().is_none() {
-            // we replace the shape entirely with the fallback
-            shape = fallback_shape;
-            break;
-        } else if fallback_shape.same_shape(&shape) {
-            // we replace the shape with the fallback
-            shape.fill_missing_chars(&fallback_shape);
-            missing = shape.first_missing_char();
-        }
-        already_tried.push(fallback_id);
-    }
-
-    for (i, c) in shape.missing_chars().enumerate() {
-        if i == 0 {
-            println!("text {:?} has missing chars:", text);
-        }
-        println!("  missing char: '{}' ({})", c, c as u32);
-    }
-
-    Ok(shape)
 }
 
 fn shape_text_with_font(
@@ -301,24 +322,63 @@ fn shape_text_with_font(
     font_id: font::ID,
     font: &Font,
     db: &font::Database,
-) -> Result<Text, Error> {
-    db.with_face_data(font_id, |data, index| -> Result<Text, Error> {
+) -> Result<TextShape, Error> {
+    db.with_face_data(font_id, |data, index| -> Result<TextShape, Error> {
         let mut face = ttf::Face::parse(data, index)?;
         font::apply_variations(&mut face, font);
 
         let metrics = font::face_metrics(&face);
 
         let hbface = rustybuzz::Face::from_face(face);
+        let mut direction = None;
+        let mut lines = Vec::new();
+        let mut missing_glyphs = Vec::new();
         let mut buffer = rustybuzz::UnicodeBuffer::new();
 
-        let mut lines = Vec::new();
-
         for line in text.lines() {
-            buffer =
-                shape_lines_with_font(line, font_id, &hbface, metrics, buffer, font, &mut lines)?;
+            let (line, buf) =
+                shape_lines_with_font(line, &hbface, direction, &mut missing_glyphs, buffer)?;
+            buffer = buf;
+
+            direction = Some(line.main_dir);
+            lines.push(line);
         }
 
-        Ok(Text {
+        let lines = if missing_glyphs.is_empty() {
+            Lines::SingleFont(single_font::Lines {
+                lines: lines,
+                font: font_id,
+                metrics,
+            })
+        } else {
+            // We have to switch to fallback mode.
+            // There is exactly one glyph with id 0 per missing_glyphs entry.
+            // Here we only switch the data structure, the fallback is implemented on
+            // higher level.
+            let mut fallback_lines = Vec::new();
+
+            for l in lines {
+                let mut fallback_glyphs = Vec::new();
+                for g in l.glyphs {
+                    if g.id.0 == 0 {
+                        fallback_glyphs
+                            .push(fallback::Glyph::Missing(missing_glyphs.pop().unwrap()));
+                    } else {
+                        fallback_glyphs.push(fallback::Glyph::Resolved(g, font_id, metrics));
+                    }
+                }
+                fallback_lines.push(fallback::Line {
+                    glyphs: fallback_glyphs,
+                    main_dir: l.main_dir,
+                });
+            }
+
+            Lines::Fallback(fallback::Lines {
+                lines: fallback_lines,
+            })
+        };
+
+        Ok(TextShape {
             lines,
             text: text.to_string(),
             font: font.clone(),
@@ -327,96 +387,111 @@ fn shape_text_with_font(
     .expect("Should be able to load that font")
 }
 
+fn empty_line(previous_dir: Option<Direction>) -> single_font::Line {
+    // empty lines defaults to the previous line direction
+    // or LTR if the first line is empty
+    let main_dir = previous_dir.unwrap_or(Direction::LTR);
+    single_font::Line {
+        glyphs: Vec::new(),
+        main_dir,
+    }
+}
+
 // passing the rustybuzz buffer around is a bit hacky but allows us to reuse it
 fn shape_lines_with_font(
     text: &str,
-    font_id: font::ID,
     hbface: &rustybuzz::Face,
-    metrics: font::FaceMetrics,
+    previous_dir: Option<Direction>,
+    missing_glyphs: &mut Vec<String>,
     mut buffer: rustybuzz::UnicodeBuffer,
-    font: &Font,
-    lines: &mut Vec<Line>,
-) -> Result<rustybuzz::UnicodeBuffer, Error> {
+) -> Result<(single_font::Line, rustybuzz::UnicodeBuffer), Error> {
     let bidi = unicode_bidi::BidiInfo::new(text, None);
-    if bidi.paragraphs.len() > 1 {
-        println!("Multiple paragraphs on the same line. Issueing multiple lines!");
-    }
-    let mut rtl = None;
-    for para in bidi.paragraphs.iter() {
-        let line = para.range.clone();
-        let (levels, runs) = bidi.visual_runs(para, line.clone());
+    assert!(
+        bidi.paragraphs.len() <= 1,
+        "Multiple paragraphs on the same line!"
+    );
 
-        let mut glyphs = Vec::new();
+    let mut main_dir = None;
 
-        for run in runs.iter() {
-            let sub_text = &text[run.clone()];
-            if sub_text.is_empty() {
-                continue;
-            }
+    let Some(para) = bidi.paragraphs.first() else {
+        return Ok((empty_line(previous_dir), buffer));
+    };
 
-            let ltr = levels[run.start].is_ltr();
-            let hb_direction = if ltr {
-                rustybuzz::Direction::LeftToRight
-            } else {
-                rustybuzz::Direction::RightToLeft
-            };
-            if rtl.is_none() {
-                rtl = Some(!ltr);
-            }
+    let line = para.range.clone();
+    let (levels, runs) = bidi.visual_runs(para, line.clone());
 
-            buffer.push_str(sub_text);
-            buffer.set_direction(hb_direction);
+    let mut glyphs = Vec::new();
 
-            let features = &[rustybuzz::Feature::new(
-                ttf::Tag::from_bytes(b"kern"),
-                1,
-                ..,
-            )];
-
-            let output = rustybuzz::shape(&hbface, features, buffer);
-
-            let positions = output.glyph_positions();
-            let infos = output.glyph_infos();
-
-            for i in 0..output.len() {
-                let pos = positions[i];
-                let info = infos[i];
-
-                let start = info.cluster as usize;
-                let end = if ltr {
-                    i.checked_add(1)
-                } else {
-                    i.checked_sub(1)
-                }
-                .and_then(|last| infos.get(last))
-                .map_or(sub_text.len(), |info| info.cluster as usize);
-
-                let resolved_id = if info.glyph_id == 0 {
-                    ResolvedGlyphId::Missing(sub_text[start..end].chars().next().unwrap())
-                } else {
-                    ResolvedGlyphId::Resolved(ttf::GlyphId(info.glyph_id as u16))
-                };
-
-                glyphs.push(Glyph {
-                    resolved_id,
-                    x_offset: pos.x_offset,
-                    y_offset: pos.y_offset,
-                    x_advance: pos.x_advance,
-                    y_advance: pos.y_advance,
-                    font_id,
-                    metrics,
-                });
-            }
-
-            buffer = output.clear();
+    for run in runs.iter() {
+        let sub_text = &text[run.clone()];
+        if sub_text.is_empty() {
+            continue;
         }
 
-        lines.push(Line {
-            glyphs,
-            font: font.clone(),
-            rtl: rtl.unwrap_or_default(),
-            // range: line.clone(),
-        });
+        let ltr = levels[run.start].is_ltr();
+        let hb_direction = if ltr {
+            rustybuzz::Direction::LeftToRight
+        } else {
+            rustybuzz::Direction::RightToLeft
+        };
+        if main_dir.is_none() {
+            main_dir = Some(if ltr { Direction::LTR } else { Direction::RTL });
+        }
+
+        buffer.push_str(sub_text);
+        buffer.set_direction(hb_direction);
+
+        let features = &[rustybuzz::Feature::new(
+            ttf::Tag::from_bytes(b"kern"),
+            1,
+            ..,
+        )];
+
+        let output = rustybuzz::shape(&hbface, features, buffer);
+
+        let positions = output.glyph_positions();
+        let infos = output.glyph_infos();
+
+        for i in 0..output.len() {
+            let pos = positions[i];
+            let info = infos[i];
+
+            let start = info.cluster as usize;
+            let end = if ltr {
+                i.checked_add(1)
+            } else {
+                i.checked_sub(1)
+            }
+            .and_then(|last| infos.get(last))
+            .map_or(sub_text.len(), |info| info.cluster as usize);
+
+            // FIXME: clusters should never be broken.
+            // If a glyph is missing within a cluster, the
+            // whole cluster should be excluded.
+            // This case should be rare though, it can reasonably be assumed
+            // that a face provides all the glyphs of a cluster.
+            if info.glyph_id == 0 {
+                missing_glyphs.push(sub_text[start..end].to_string());
+            }
+            let dbg = GlyphDbg::new(&sub_text[start..end]);
+
+            assert!(info.glyph_id < 0x10000);
+
+            glyphs.push(Glyph {
+                id: ttf_parser::GlyphId(info.glyph_id as u16),
+                x_offset: pos.x_offset,
+                y_offset: pos.y_offset,
+                x_advance: pos.x_advance,
+                y_advance: pos.y_advance,
+                dbg,
+            });
+        }
+
+        buffer = output.clear();
     }
-    Ok(buffer)
+
+    // empty lines defaults to the previous line direction
+    // or LTR if the first line is empty
+    let main_dir = main_dir.or(previous_dir).unwrap_or(Direction::LTR);
+    Ok((single_font::Line { glyphs, main_dir }, buffer))
 }
