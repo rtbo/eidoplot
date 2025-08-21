@@ -3,6 +3,7 @@ use std::{io, sync::Arc};
 use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 use eidoplot::{geom, render, style};
+use eidoplot_text as text;
 
 #[derive(Debug, Clone)]
 pub struct PxlSurface {
@@ -144,7 +145,7 @@ impl State {
             .map(|t| t.post_concat(self.transform))
             .unwrap_or(self.transform);
         // FIXME: error management
-        let layout = eidoplot_text::shape_and_layout_str(
+        let layout = text::shape_and_layout_str(
             text.text,
             text.font,
             &self.fontdb,
@@ -155,14 +156,14 @@ impl State {
 
         let mut paint = tiny_skia::Paint::default();
         ts_fill(text.fill, &mut paint);
-        let render_opts = eidoplot_text::render::Options {
+        let render_opts = text::render::Options {
             fill: Some(paint),
             outline: None,
             transform: ts_text,
             mask: self.clip.as_ref(),
         };
         let db = &self.fontdb;
-        eidoplot_text::render::render_text_tiny_skia(&layout, &render_opts, db, px);
+        text::render::render_text_tiny_skia(&layout, &render_opts, db, px);
 
         Ok(())
     }
@@ -179,14 +180,14 @@ impl State {
 
         let mut paint = tiny_skia::Paint::default();
         ts_fill(text.fill, &mut paint);
-        let render_opts = eidoplot_text::render::Options {
+        let render_opts = text::render::Options {
             fill: Some(paint),
             outline: None,
             transform: ts_text,
             mask: self.clip.as_ref(),
         };
         let db = &self.fontdb;
-        eidoplot_text::render::render_text_tiny_skia(&text.layout, &render_opts, db, px);
+        text::render_text_tiny_skia(&text.layout, &render_opts, db, px);
 
         Ok(())
     }

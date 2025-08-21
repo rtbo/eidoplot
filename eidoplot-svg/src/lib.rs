@@ -4,6 +4,7 @@ use eidoplot::geom::Transform;
 use eidoplot::render::Surface;
 use eidoplot::{geom, render, style};
 use eidoplot_text as text;
+use text::font;
 
 use svg::Node;
 use svg::node::element;
@@ -234,7 +235,7 @@ fn assign_font<N>(node: &mut N, font: &text::Font, font_size: f32)
 where
     N: Node,
 {
-    let family = eidoplot_text::font::font_families_to_string(font.families());
+    let family = font::font_families_to_string(font.families());
     node.assign("font-size", font_size);
     node.assign("font-family", family.as_str());
     node.assign("font-weight", font.weight().0);

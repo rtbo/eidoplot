@@ -1,7 +1,8 @@
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
-use eidoplot_text::TextLayout;
+use eidoplot_text as text;
+use text::TextLayout;
 
 use crate::drawing::SurfWrapper;
 use crate::render::{self, Surface as _};
@@ -87,14 +88,14 @@ impl Legend {
         let label = entry.label();
         let entry_font = entry.font();
         let font = entry_font.unwrap_or(&self.font);
-        let opts = eidoplot_text::layout::Options {
-            hor_align: eidoplot_text::layout::HorAlign::Start,
-            ver_align: eidoplot_text::layout::LineVerAlign::Middle.into(),
+        let opts = text::layout::Options {
+            hor_align: text::layout::HorAlign::Start,
+            ver_align: text::layout::LineVerAlign::Middle.into(),
             ..Default::default()
         };
         // FIXME: error management
         let text =
-            eidoplot_text::shape_and_layout_str(label, &font.font, &self.fontdb, font.size, &opts)
+            text::shape_and_layout_str(label, &font.font, &self.fontdb, font.size, &opts)
                 .unwrap();
         let label_width = text.bbox().width();
         let label_height = text.bbox().height();

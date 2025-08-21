@@ -1,3 +1,5 @@
+use eidoplot_text as text;
+
 use crate::data;
 use crate::drawing::{Ctx, Error, SurfWrapper};
 use crate::geom;
@@ -36,9 +38,9 @@ where
                 font: &title.font.font,
                 font_size: title.font.size,
                 fill: missing_params::FIG_TITLE_COLOR.into(),
-                options: eidoplot_text::layout::Options {
-                    hor_align: eidoplot_text::layout::HorAlign::Center,
-                    ver_align: eidoplot_text::layout::VerAlign::Center,
+                options: text::layout::Options {
+                    hor_align: text::layout::HorAlign::Center,
+                    ver_align: text::layout::VerAlign::Center,
                     ..Default::default()
                 },
                 transform: Some(&title_rect.center().translation()),

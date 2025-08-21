@@ -1,4 +1,5 @@
-use eidoplot_text::{Font, TextLayout, TextShape, font, layout, render};
+use eidoplot_text as text;
+use text::{Font, TextLayout, TextShape, font, layout, render};
 
 const ENGLISH_TEXT: &str = "Hello, world!
 How are you?";

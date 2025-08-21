@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::{geom, style};
+use eidoplot_text as text;
 
 #[derive(Debug)]
 pub enum Error {}
@@ -77,16 +78,16 @@ pub struct Clip<'a> {
 #[derive(Debug, Clone)]
 pub struct Text<'a> {
     pub text: &'a str,
-    pub font: &'a eidoplot_text::Font,
+    pub font: &'a text::Font,
     pub font_size: f32,
     pub fill: style::Fill,
-    pub options: eidoplot_text::layout::Options,
+    pub options: text::layout::Options,
     pub transform: Option<&'a geom::Transform>,
 }
 
 #[derive(Debug, Clone)]
 pub struct TextLayout<'a> {
-    pub layout: &'a eidoplot_text::TextLayout,
+    pub layout: &'a text::TextLayout,
     pub fill: style::Fill,
     pub transform: Option<&'a geom::Transform>,
 }
