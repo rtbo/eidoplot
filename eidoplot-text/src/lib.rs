@@ -2,6 +2,7 @@ use std::fmt;
 
 use ttf_parser as ttf;
 
+pub mod fontdb;
 pub mod font;
 pub mod layout;
 pub mod render;

@@ -519,7 +519,6 @@ dependencies = [
  "eidoplot-pxl",
  "eidoplot-svg",
  "eidoplot-text",
- "fontdb",
  "polars",
  "rand",
  "rand_chacha",
@@ -535,7 +534,6 @@ version = "0.1.0"
 dependencies = [
  "eidoplot",
  "eidoplot-text",
- "fontdb",
  "rustybuzz",
  "tiny-skia",
  "tiny-skia-path",
@@ -555,10 +553,14 @@ dependencies = [
 name = "eidoplot-text"
 version = "0.1.0"
 dependencies = [
- "fontdb",
+ "fontconfig-parser",
+ "log",
+ "memmap2",
  "rustybuzz",
+ "slotmap",
  "tiny-skia",
  "tiny-skia-path",
+ "tinyvec",
  "ttf-parser",
  "unicode-bidi",
 ]
@@ -662,18 +664,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbc773e24e02d4ddd8395fd30dc147524273a83e54e0f312d986ea30de5f5646"
 dependencies = [
  "roxmltree",
-]
-
-[[package]]
-name = "fontdb"
-version = "0.23.0"
-dependencies = [
- "fontconfig-parser",
- "log",
- "memmap2",
- "slotmap",
- "tinyvec",
- "ttf-parser",
 ]
 
 [[package]]

@@ -2,6 +2,8 @@ use std::{fmt, sync::Arc};
 
 use crate::{data, ir, render};
 
+use eidoplot_text::fontdb;
+
 mod axis;
 mod figure;
 mod legend;

@@ -1,11 +1,13 @@
+use std::path;
+
+use eidoplot_text::fontdb;
+
 pub mod data;
 pub mod drawing;
 pub mod geom;
 pub mod ir;
 pub mod render;
 pub mod style;
-
-use std::path;
 
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters

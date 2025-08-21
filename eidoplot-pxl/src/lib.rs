@@ -4,6 +4,7 @@ use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 use eidoplot::{geom, render, style};
 use eidoplot_text as text;
+use text::fontdb;
 
 #[derive(Debug, Clone)]
 pub struct PxlSurface {

@@ -6,7 +6,6 @@ edition.workspace = true
 
 [dependencies]
 eidoplot-text = { path = "../eidoplot-text" }
-fontdb.workspace = true
 rustybuzz.workspace = true
 ttf-parser.workspace = true
 tiny-skia-path.workspace = true

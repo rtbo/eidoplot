@@ -1,7 +1,9 @@
 use std::{fmt, str};
 
-pub use fontdb::{Database, ID};
 use ttf_parser as ttf;
+
+use crate::fontdb;
+pub use fontdb::{Database, ID};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Family {

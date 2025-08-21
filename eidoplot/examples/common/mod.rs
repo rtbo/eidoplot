@@ -4,6 +4,7 @@ use eidoplot::ir;
 
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
+use eidoplot_text::fontdb;
 
 use std::env;
 use std::sync::Arc;

@@ -2,7 +2,7 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 
 use eidoplot_text as text;
-use text::TextLayout;
+use text::{TextLayout, fontdb};
 
 use crate::drawing::SurfWrapper;
 use crate::render::{self, Surface as _};
@@ -95,8 +95,7 @@ impl Legend {
         };
         // FIXME: error management
         let text =
-            text::shape_and_layout_str(label, &font.font, &self.fontdb, font.size, &opts)
-                .unwrap();
+            text::shape_and_layout_str(label, &font.font, &self.fontdb, font.size, &opts).unwrap();
         let label_width = text.bbox().width();
         let label_height = text.bbox().height();
         self.entries.push(LegendEntry {
