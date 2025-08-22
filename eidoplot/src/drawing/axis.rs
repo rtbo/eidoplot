@@ -49,7 +49,7 @@ impl Bounds {
     }
 } 
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NumBounds(f64, f64);
 
 impl NumBounds {

@@ -19,7 +19,7 @@ const AUTO_BINS: u32 = 10;
 const AUTO_STEPS: &[f64] = &[1.0, 2.0, 2.5, 5.0];
 
 const PI: f64 = std::f64::consts::PI;
-const PI_STEPS: &[f64] = &[PI / 8.0, PI / 6.0, PI / 4.0, PI / 3.0, PI / 2.0];
+const PI_STEPS: &[f64] = &[PI / 8.0, PI / 6.0, PI / 4.0, PI / 3.0, PI / 2.0, PI];
 
 struct MaxN<'a> {
     bins: u32,
@@ -120,7 +120,7 @@ fn is_close(a: f64, b: f64) -> bool {
 
 impl MaxNEdge {
     fn largest_le(&self, value: f64) -> f64 {
-        let (d, m) = (value / self.step, value % self.step);
+        let (d, m) = (value.div_euclid(self.step), value % self.step);
         if is_close(m / self.step, 1.0) {
             d + 1.0
         } else {
@@ -128,7 +128,7 @@ impl MaxNEdge {
         }
     }
     fn smallest_ge(&self, value: f64) -> f64 {
-        let (d, m) = (value / self.step, value % self.step);
+        let (d, m) = (value.div_euclid(self.step), value % self.step);
         if is_close(m / self.step, 0.0) {
             d
         } else {
@@ -187,5 +187,92 @@ struct PercentLabelFormat;
 impl LabelFormatter for PercentLabelFormat {
     fn format_label(&self, data: f64) -> String {
         format!("{:.0}%", data * 100.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::drawing::axis;
+
+    fn is_close(a: f64, b: f64, tol: f64) -> bool {
+        (a - b).abs() < tol
+    }
+
+    fn slice_contains_sample_f64(slice: &[f64], sample: &[f64], tol: f64) -> bool {
+        let fst_sample = sample[0];
+        let idx = slice.iter().position(|x| is_close(*x, fst_sample, tol));
+        if idx.is_none() {
+            return false;
+        }
+        let idx = idx.unwrap();
+        if slice.len() - idx < sample.len() {
+            return false;
+        }
+        slice
+            .iter()
+            .skip(idx)
+            .zip(sample.iter())
+            .all(|(a, b)| is_close(*a, *b, tol))
+    }
+
+    macro_rules! assert_contains_f64 {
+        ($slice:expr, $sample:expr, $tol:expr) => {
+            assert!(
+                slice_contains_sample_f64(&$slice, &$sample, $tol),
+                "Assertion failed: Slice doesn't contain sample.\nSlice:  {:?}\nSample: {:?}",
+                $slice,
+                $sample
+            );
+        };
+        ($slice:expr, $sample:expr) => {
+            assert_contains_f64!($slice, $sample, 1e-8);
+        };
+    }
+
+    #[test]
+    fn test_ticks_loc_auto() {
+        let locator = MaxN::new_auto();
+
+        let ticks = locator.ticks(axis::NumBounds::from((-1.0, 1.0)));
+        let expected = vec![-1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
+        assert_contains_f64!(ticks, expected);
+
+        let ticks = locator.ticks(axis::NumBounds::from((0.0, 0.195)));
+        let expected = vec![
+            0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2,
+        ];
+        assert_contains_f64!(ticks, expected);
+
+        let ticks = locator.ticks(axis::NumBounds::from((0.005, 0.195)));
+        let expected = vec![
+            0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2,
+        ];
+        assert_contains_f64!(ticks, expected);
+    }
+
+    #[test]
+    fn test_ticks_loc_pi_multiple() {
+        use std::f64::consts::PI;
+
+        let locator = MaxN::new_pi(8);
+        let ticks = locator.ticks(axis::NumBounds::from((0.0, 2.0 * PI)));
+        let expected = vec![
+            0.0,
+            0.25 * PI,
+            0.5 * PI,
+            0.75 * PI,
+            1.0 * PI,
+            1.25 * PI,
+            1.5 * PI,
+            1.75 * PI,
+            2.0 * PI,
+        ];
+        assert_contains_f64!(ticks, expected);
+
+        let locator = MaxN::new_pi(4);
+        let ticks = locator.ticks(axis::NumBounds::from((0.0, 2.0 * PI)));
+        let expected = vec![0.0, 0.5 * PI, 1.0 * PI, 1.5 * PI, 2.0 * PI];
+        assert_contains_f64!(ticks, expected);
     }
 }
