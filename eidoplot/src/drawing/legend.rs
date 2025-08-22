@@ -4,7 +4,7 @@ use std::sync::Arc;
 use eidoplot_text as text;
 use text::{TextLayout, fontdb};
 
-use crate::drawing::SurfWrapper;
+use crate::drawing::{self, SurfWrapper};
 use crate::render::{self, Surface as _};
 use crate::style::defaults;
 use crate::{geom, ir, style};
@@ -80,7 +80,7 @@ impl Legend {
         }
     }
 
-    pub fn add_entry<E>(&mut self, entry: &E)
+    pub fn add_entry<E>(&mut self, entry: &E) -> Result<(), drawing::Error>
     where
         E: Entry,
     {
@@ -93,9 +93,7 @@ impl Legend {
             ver_align: text::layout::LineVerAlign::Middle.into(),
             ..Default::default()
         };
-        // FIXME: error management
-        let text =
-            text::shape_and_layout_str(label, &font.font, &self.fontdb, font.size, &opts).unwrap();
+        let text = text::shape_and_layout_str(label, &font.font, &self.fontdb, font.size, &opts)?;
         let label_width = text.bbox().width();
         let label_height = text.bbox().height();
         self.entries.push(LegendEntry {
@@ -106,6 +104,7 @@ impl Legend {
             x: f32::NAN,
             y: f32::NAN,
         });
+        Ok(())
     }
 
     pub fn layout(&mut self) -> geom::Size {

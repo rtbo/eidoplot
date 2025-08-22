@@ -86,7 +86,7 @@ impl<D> Ctx<'_, D> {
         plot: &ir::Plot,
         ab: (axis::NumBounds, axis::NumBounds),
         rect: &geom::Rect,
-    ) -> Axes {
+    ) -> Result<Axes, Error> {
         let insets = plot_insets(plot);
 
         // x-axis height only depends on font size, so it can be computed right-away,
@@ -107,7 +107,7 @@ impl<D> Ctx<'_, D> {
             ab.1,
             (insets.bottom(), insets.top()),
         );
-        let y_axis = self.setup_y_axis(&plot.y_axis, y_cm);
+        let y_axis = self.setup_y_axis(&plot.y_axis, y_cm)?;
         let rect = rect.shifted_left_side(y_axis.ortho_sz);
 
         let x_cm = scale::map_scale_coord(
@@ -116,12 +116,12 @@ impl<D> Ctx<'_, D> {
             ab.0,
             (insets.left(), insets.right()),
         );
-        let x_axis = self.setup_x_axis(&plot.x_axis, x_cm, x_height);
+        let x_axis = self.setup_x_axis(&plot.x_axis, x_cm, x_height)?;
 
-        Axes {
+        Ok(Axes {
             x: x_axis,
             y: y_axis,
-        }
+        })
     }
 
     fn calculate_x_axis_height(&self, x_axis: &ir::Axis) -> f32 {
@@ -151,10 +151,11 @@ impl<D> Ctx<'_, D> {
         width
     }
 
-    fn setup_y_axis(&self, y_axis: &ir::Axis, coord_map: Box<dyn CoordMap>) -> Axis {
+    fn setup_y_axis(&self, y_axis: &ir::Axis, coord_map: Box<dyn CoordMap>) -> Result<Axis, Error> {
         let ticks = y_axis
             .ticks()
-            .map(|t| self.setup_y_ticks(t, coord_map.axis_bounds()));
+            .map(|t| self.setup_y_ticks(t, coord_map.axis_bounds()))
+            .transpose()?;
 
         let y_width = self.calculate_y_axis_width(y_axis, ticks.as_ref());
 
@@ -163,45 +164,53 @@ impl<D> Ctx<'_, D> {
             ver_align: text::layout::LineVerAlign::Hanging.into(),
             ..Default::default()
         };
-        // FIXME: error management
-        let label = y_axis.label().map(|l| {
-            text::shape_and_layout_str(&l.text, &l.font.font, &self.fontdb, l.font.size, &opts)
-                .unwrap()
-        });
+        let label = y_axis
+            .label()
+            .map(|l| {
+                text::shape_and_layout_str(&l.text, &l.font.font, &self.fontdb, l.font.size, &opts)
+            })
+            .transpose()?;
 
-        Axis {
+        Ok(Axis {
             ortho_sz: y_width,
             coord_map,
             ticks,
             label,
-        }
+        })
     }
 
-    fn setup_x_axis(&self, x_axis: &ir::Axis, coord_map: Box<dyn CoordMap>, x_height: f32) -> Axis {
+    fn setup_x_axis(
+        &self,
+        x_axis: &ir::Axis,
+        coord_map: Box<dyn CoordMap>,
+        x_height: f32,
+    ) -> Result<Axis, Error> {
         let ticks = x_axis
             .ticks()
-            .map(|t| self.setup_x_ticks(t, coord_map.axis_bounds()));
+            .map(|t| self.setup_x_ticks(t, coord_map.axis_bounds()))
+            .transpose()?;
 
         let opts = text::layout::Options {
             hor_align: text::layout::HorAlign::Center,
             ver_align: text::layout::LineVerAlign::Hanging.into(),
             ..Default::default()
         };
-        // FIXME: error management
-        let label = x_axis.label().map(|l| {
-            text::shape_and_layout_str(&l.text, &l.font.font, &self.fontdb, l.font.size, &opts)
-                .unwrap()
-        });
+        let label = x_axis
+            .label()
+            .map(|l| {
+                text::shape_and_layout_str(&l.text, &l.font.font, &self.fontdb, l.font.size, &opts)
+            })
+            .transpose()?;
 
-        Axis {
+        Ok(Axis {
             ortho_sz: x_height,
             coord_map,
             ticks,
             label,
-        }
+        })
     }
 
-    fn setup_x_ticks(&self, ticks: &ir::axis::Ticks, ab: axis::NumBounds) -> Ticks {
+    fn setup_x_ticks(&self, ticks: &ir::axis::Ticks, ab: axis::NumBounds) -> Result<Ticks, Error> {
         let opts = text::layout::Options {
             hor_align: text::layout::HorAlign::Center,
             ver_align: text::layout::LineVerAlign::Hanging.into(),
@@ -210,7 +219,7 @@ impl<D> Ctx<'_, D> {
         self.setup_ticks(ticks, ab, opts)
     }
 
-    fn setup_y_ticks(&self, ticks: &ir::axis::Ticks, ab: axis::NumBounds) -> Ticks {
+    fn setup_y_ticks(&self, ticks: &ir::axis::Ticks, ab: axis::NumBounds) -> Result<Ticks, Error> {
         let opts = text::layout::Options {
             hor_align: text::layout::HorAlign::Right,
             ver_align: text::layout::LineVerAlign::Middle.into(),
@@ -224,28 +233,28 @@ impl<D> Ctx<'_, D> {
         ticks: &ir::axis::Ticks,
         ab: axis::NumBounds,
         opts: text::layout::Options,
-    ) -> Ticks {
+    ) -> Result<Ticks, Error> {
         let mut locs = ticks::locate(ticks.locator(), ab);
         locs.retain(|l| ab.contains(*l));
         let lbl_formatter = ticks::label_formatter(ticks, ab);
         let font = ticks.font();
         let db: &font::Database = self.fontdb();
-        // FIXME: error management
-        let lbls = locs
+        let lbls: Result<Vec<TextLayout>, _> = locs
             .iter()
             .copied()
             .map(|l| lbl_formatter.format_label(l))
-            .map(|l| text::shape_and_layout_str(&l, &font.font, db, font.size, &opts).unwrap())
+            .map(|l| text::shape_and_layout_str(&l, &font.font, db, font.size, &opts))
             .collect();
+        let lbls = lbls?;
         let annot = lbl_formatter.axis_annotation().map(String::from);
-        Ticks {
+        Ok(Ticks {
             locs,
             lbls,
             annot,
             font: ticks.font().clone(),
             color: ticks.color(),
             grid: ticks.grid().copied(),
-        }
+        })
     }
 }
 
@@ -297,7 +306,7 @@ where
             })?,
         );
 
-        let axes = ctx.setup_plot_axes(plot, ab, &rect);
+        let axes = ctx.setup_plot_axes(plot, ab, &rect)?;
 
         let rect = rect
             .shifted_left_side(axes.y_width())
@@ -319,11 +328,11 @@ where
         plot: &ir::Plot,
         legend: &ir::Legend,
         rect: &mut geom::Rect,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), Error> {
         let mut dlegend = Legend::from_ir(legend, rect.width(), ctx.fontdb().clone());
         for s in plot.series.iter() {
             if series_has_legend(s) {
-                dlegend.add_entry(s);
+                dlegend.add_entry(s)?;
             }
         }
         let sz = dlegend.layout();
@@ -349,7 +358,8 @@ where
             }
             _ => unreachable!(),
         };
-        self.draw_legend(&dlegend, &top_left)
+        self.draw_legend(&dlegend, &top_left)?;
+        Ok(())
     }
 
     fn draw_plot_background(

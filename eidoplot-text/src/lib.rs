@@ -17,6 +17,7 @@ pub use shape::{TextShape, Direction};
 pub enum Error {
     NoSuchFont(Font),
     FaceParsingError(ttf::FaceParsingError),
+    BadLayoutParamsError,
 }
 
 impl fmt::Display for Error {
@@ -24,6 +25,7 @@ impl fmt::Display for Error {
         match self {
             Error::NoSuchFont(font) => write!(f, "Could not find a face for {:?}", font),
             Error::FaceParsingError(err) => err.fmt(f),
+            Error::BadLayoutParamsError => write!(f, "Bad text layout parameters"),  
         }
     }
 }
@@ -31,6 +33,12 @@ impl fmt::Display for Error {
 impl From<ttf::FaceParsingError> for Error {
     fn from(err: ttf::FaceParsingError) -> Self {
         Error::FaceParsingError(err)
+    }
+}
+
+impl From<layout::BadLayoutParamsError> for Error {
+    fn from(_err: layout::BadLayoutParamsError) -> Self {
+        Error::BadLayoutParamsError
     }
 }
 
@@ -45,5 +53,5 @@ pub fn shape_and_layout_str(
     opts: &layout::Options,
 ) -> Result<TextLayout, Error> {
     let shape = TextShape::shape_str(text, font, db)?;
-    Ok(TextLayout::from_shape(&shape, font_size, opts))
+    Ok(TextLayout::from_shape(&shape, font_size, opts)?)
 }

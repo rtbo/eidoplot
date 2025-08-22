@@ -4,11 +4,21 @@ use crate::{geom, style};
 use eidoplot_text as text;
 
 #[derive(Debug)]
-pub enum Error {}
+pub enum Error {
+    FontOrText(text::Error),
+}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "render error")
+        match self {
+            Error::FontOrText(err) => err.fmt(f),
+        }
+    }
+}
+
+impl From<text::Error> for Error {
+    fn from(err: text::Error) -> Self {
+        Error::FontOrText(err)
     }
 }
 

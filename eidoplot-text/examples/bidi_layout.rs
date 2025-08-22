@@ -87,7 +87,7 @@ fn main() {
 
     for (text, layout_opts, (x, y)) in texts {
         let shape = TextShape::shape_str(text, &font, &db).unwrap();
-        let layout = TextLayout::from_shape(&shape, font_size, &layout_opts);
+        let layout = TextLayout::from_shape(&shape, font_size, &layout_opts).unwrap();
 
         let (tx, ty) = (*x, *y);
         let render_opts = render::Options {

@@ -145,15 +145,13 @@ impl State {
             .transform
             .map(|t| t.post_concat(self.transform))
             .unwrap_or(self.transform);
-        // FIXME: error management
         let layout = text::shape_and_layout_str(
             text.text,
             text.font,
             &self.fontdb,
             text.font_size,
             &text.options,
-        )
-        .unwrap();
+        )?;
 
         let mut paint = tiny_skia::Paint::default();
         ts_fill(text.fill, &mut paint);

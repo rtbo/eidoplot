@@ -2,7 +2,8 @@ use std::{fmt, sync::Arc};
 
 use crate::{data, ir, render};
 
-use eidoplot_text::fontdb;
+use eidoplot_text as text;
+use text::fontdb;
 
 mod axis;
 mod figure;
@@ -20,11 +21,18 @@ pub enum Error {
     UnboundedAxis,
     InconsistentAxisBounds(String),
     InconsistentData(String),
+    FontOrText(text::Error),
 }
 
 impl From<render::Error> for Error {
     fn from(err: render::Error) -> Self {
         Error::Render(err)
+    }
+}
+
+impl From<text::Error> for Error {
+    fn from(err: text::Error) -> Self {
+        Error::FontOrText(err)
     }
 }
 
@@ -38,6 +46,7 @@ impl fmt::Display for Error {
                 write!(f, "Inconsistent axis bounds: {}", reason)
             }
             Error::InconsistentData(reason) => write!(f, "Inconsistent data: {}", reason),
+            Error::FontOrText(err) => err.fmt(f),
         }
     }
 }

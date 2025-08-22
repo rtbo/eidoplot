@@ -1,8 +1,24 @@
+use std::fmt;
+
 use tiny_skia_path::Transform;
 use ttf_parser as ttf;
 
 use crate::font::{self, Font};
 use crate::shape::{self, Direction, MainDirection, TextShape};
+
+
+/// Error returned when the layout options or font size
+/// are inconsistent (e.g. negative font size)
+#[derive(Debug, Clone, Copy)]
+pub struct BadLayoutParamsError;
+
+impl fmt::Display for BadLayoutParamsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Bad text layout parameters")
+    }
+}
+
+impl std::error::Error for BadLayoutParamsError {}
 
 /// Bounding box of text layout.
 /// It is expressed relatively to the anchor (or left of anchor when [Anchor::Window] is used)
@@ -223,13 +239,15 @@ pub struct TextLayout {
 }
 
 impl TextLayout {
-    pub fn from_shape(text_shape: &TextShape, font_size: f32, opts: &Options) -> Self {
+    pub fn from_shape(text_shape: &TextShape, font_size: f32, opts: &Options) -> Result<Self, BadLayoutParamsError> {
+        check_params(font_size, opts)?;
+
         match &text_shape.lines {
             shape::Lines::SingleFont(lines) => {
-                layout_text(lines, text_shape.text(), text_shape.font(), font_size, opts)
+                Ok(layout_text(lines, text_shape.text(), text_shape.font(), font_size, opts))
             }
             shape::Lines::Fallback(lines) => {
-                layout_text(lines, text_shape.text(), text_shape.font(), font_size, opts)
+                Ok(layout_text(lines, text_shape.text(), text_shape.font(), font_size, opts))
             }
         }
     }
@@ -271,6 +289,17 @@ impl TextLayout {
     pub fn options(&self) -> &Options {
         &self.opts
     }
+}
+
+fn check_params(font_size: f32, opts: &Options) -> Result<(), BadLayoutParamsError> {
+    if font_size <= 0.0 {
+        return Err(BadLayoutParamsError);
+    }
+    match opts.anchor {
+        Anchor::Window(width) if width <= 0.0 => return Err(BadLayoutParamsError),
+        _ => (),
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, Copy)]
