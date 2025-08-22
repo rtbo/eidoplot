@@ -169,8 +169,12 @@ pub mod ticks {
 
     #[derive(Debug, Clone)]
     pub struct MinorTicks {
+        /// Minor ticks locator
         pub locator: Locator,
+        /// Ticks color
         pub color: Color,
+        /// Gridline style
+        grid: Option<style::Line>,
     }
 
     impl Default for MinorTicks {
@@ -178,6 +182,7 @@ pub mod ticks {
             MinorTicks {
                 locator: Locator::default(),
                 color: defaults::TICKS_LABEL_COLOR,
+                grid: defaults::MINOR_TICKS_GRID_LINE,
             }
         }
     }
@@ -198,12 +203,18 @@ pub mod ticks {
         pub fn with_color(self, color: Color) -> Self {
             Self { color, ..self }
         }
+        pub fn with_grid(self, grid: Option<style::Line>) -> Self {
+            Self { grid, ..self }
+        }   
 
         pub fn locator(&self) -> &Locator {
             &self.locator
         }
         pub fn color(&self) -> Color {
             self.color
+        }
+        pub fn grid(&self) -> Option<&style::Line> {
+            self.grid.as_ref()
         }
     }
 }

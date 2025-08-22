@@ -15,7 +15,15 @@ pub fn locate(locator: &Locator, ab: axis::NumBounds) -> Vec<f64> {
     }
 }
 
+pub fn locate_minor(locator: &Locator, ab: axis::NumBounds) -> Vec<f64> {
+    match locator {
+        Locator::Auto => MaxN::new_auto_minor().ticks(ab),
+        _ => todo!("minor locators"),
+    }
+}
+
 const AUTO_BINS: u32 = 10;
+const AUTO_BINS_MINOR: u32 = 50;
 const AUTO_STEPS: &[f64] = &[1.0, 2.0, 2.5, 5.0];
 
 const PI: f64 = std::f64::consts::PI;
@@ -33,6 +41,10 @@ impl<'a> MaxN<'a> {
 
     fn new_auto() -> Self {
         Self::new(AUTO_BINS, AUTO_STEPS)
+    }
+
+    fn new_auto_minor() -> Self {
+        Self::new(AUTO_BINS_MINOR, AUTO_STEPS)
     }
 
     fn new_pi(bins: u32) -> Self {

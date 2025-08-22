@@ -24,6 +24,13 @@ pub const TICKS_GRID_LINE: Option<style::Line> = Some({
         pattern: style::LinePattern::Dash(DASH_PATTERN),
     }
 });
+pub const MINOR_TICKS_GRID_LINE: Option<style::Line> = Some({
+    style::Line {
+        width: 0.5,
+        color: color::GRAY,
+        pattern: style::LinePattern::Dash(DASH_PATTERN),
+    }
+});
 
 pub const LEGEND_LABEL_FONT_FAMILY: &str = "Noto Sans Math";
 pub const LEGEND_LABEL_FONT_SIZE: f32 = 16.0;

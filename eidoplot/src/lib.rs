@@ -55,8 +55,8 @@ mod missing_params {
     pub const AXIS_ANNOT_FONT_FAMILY: &str = "Noto Sans Math";
 
     pub const TICK_SIZE: f32 = 4.0;
-    pub const TICK_COLOR: Color = color::BLACK;
     pub const TICK_LABEL_MARGIN: f32 = 4.0;
+    pub const MINOR_TICK_SIZE: f32 = 2.0;
 }
 
 fn resource_folder() -> path::PathBuf {

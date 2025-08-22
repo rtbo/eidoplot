@@ -29,11 +29,12 @@ pub fn map_scale_coord(
 
 /// Maps and unmaps coordinates between data space and surface space.
 /// The surface space starts at zero for lowest displayed and goes up for higher data.
-pub trait CoordMap {
+pub trait CoordMap: std::fmt::Debug {
     fn map_coord(&self, x: f64) -> f32;
     fn axis_bounds(&self) -> axis::NumBounds;
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct CoordMapXy<'a> {
     pub x: &'a dyn CoordMap,
     pub y: &'a dyn CoordMap,
@@ -45,6 +46,7 @@ impl<'a> CoordMapXy<'a> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 struct LinCoordMap {
     plot_size: f32,
     ab: axis::NumBounds,

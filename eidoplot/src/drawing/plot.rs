@@ -10,6 +10,7 @@ use crate::render::{self, Surface as _};
 use crate::style::{self, defaults};
 use crate::{data, geom, ir, missing_params};
 
+#[derive(Debug, Clone)]
 struct Ticks {
     locs: Vec<f64>,
     lbls: Vec<TextLayout>,
@@ -29,10 +30,19 @@ impl Ticks {
     }
 }
 
+#[derive(Debug, Clone)]
+struct MinorTicks {
+    locs: Vec<f64>,
+    color: style::Color,
+    grid: Option<style::Line>,
+}
+
+#[derive(Debug)]
 struct Axis {
     ortho_sz: f32,
     coord_map: Box<dyn CoordMap>,
     ticks: Option<Ticks>,
+    minor_ticks: Option<MinorTicks>,
     label: Option<TextLayout>,
 }
 
@@ -154,6 +164,13 @@ impl<D> Ctx<'_, D> {
             .map(|t| self.setup_y_ticks(t, coord_map.axis_bounds()))
             .transpose()?;
 
+        let major_locs = ticks.as_ref().map(|t| t.locs.as_slice()).unwrap_or(&[]);
+
+        let minor_ticks = y_axis
+            .minor_ticks()
+            .map(|t| self.setup_minor_ticks(t, major_locs, coord_map.axis_bounds()))
+            .transpose()?;
+
         let y_width = self.calculate_y_axis_width(y_axis, ticks.as_ref());
 
         let opts = text::layout::Options {
@@ -172,6 +189,7 @@ impl<D> Ctx<'_, D> {
             ortho_sz: y_width,
             coord_map,
             ticks,
+            minor_ticks,
             label,
         })
     }
@@ -185,6 +203,13 @@ impl<D> Ctx<'_, D> {
         let ticks = x_axis
             .ticks()
             .map(|t| self.setup_x_ticks(t, coord_map.axis_bounds()))
+            .transpose()?;
+
+        let major_locs = ticks.as_ref().map(|t| t.locs.as_slice()).unwrap_or(&[]);
+
+        let minor_ticks = x_axis
+            .minor_ticks()
+            .map(|t| self.setup_minor_ticks(t, major_locs, coord_map.axis_bounds()))
             .transpose()?;
 
         let opts = text::layout::Options {
@@ -203,6 +228,7 @@ impl<D> Ctx<'_, D> {
             ortho_sz: x_height,
             coord_map,
             ticks,
+            minor_ticks,
             label,
         })
     }
@@ -253,6 +279,30 @@ impl<D> Ctx<'_, D> {
             grid: ticks.grid().copied(),
         })
     }
+
+    fn setup_minor_ticks(
+        &self,
+        minor_ticks: &ir::axis::MinorTicks,
+        major_locs: &[f64],
+        ab: axis::NumBounds,
+    ) -> Result<MinorTicks, Error> {
+        let mut locs = ticks::locate_minor(minor_ticks.locator(), ab);
+        locs.retain(|l| ab.contains(*l) && !ticks_locs_contain(major_locs, *l));
+        Ok(MinorTicks {
+            locs,
+            color: minor_ticks.color(),
+            grid: minor_ticks.grid().copied(),
+        })
+    }
+}
+
+fn ticks_locs_contain(locs: &[f64], t: f64) -> bool {
+    locs.iter().find(|&l| tick_loc_is_close(*l, t)).is_some()
+}
+
+fn tick_loc_is_close(a: f64, b: f64) -> bool {
+    let ratio = a / b;
+    ratio.is_finite() && (ratio - 1.0).abs() < 1e-8
 }
 
 impl<D> Ctx<'_, D>
@@ -451,9 +501,34 @@ where
     }
 
     fn draw_grid(&mut self, axes: &Axes, rect: &geom::Rect) -> Result<(), render::Error> {
+        if let Some(x_min_ticks) = axes.x.minor_ticks.as_ref() {
+            if let Some(grid) = x_min_ticks.grid {
+                let mut pathb = geom::PathBuilder::with_capacity(
+                    2 * x_min_ticks.locs.len(),
+                    2 * x_min_ticks.locs.len(),
+                );
+                for t in x_min_ticks.locs.iter().copied() {
+                    let x = axes.x.map_coord(t) + rect.left();
+                    pathb.move_to(x, rect.top());
+                    pathb.line_to(x, rect.bottom());
+                    let path = pathb.finish().expect("Should be a valid path");
+                    let rpath = render::Path {
+                        path: &path,
+                        fill: None,
+                        stroke: Some(grid.clone()),
+                        transform: None,
+                    };
+                    self.draw_path(&rpath)?;
+                    pathb = path.clear();
+                }
+            }
+        }
         if let Some(x_ticks) = axes.x.ticks.as_ref() {
             if let Some(x_grid) = x_ticks.grid {
-                let mut pathb = geom::PathBuilder::with_capacity(2, 2);
+                let mut pathb = geom::PathBuilder::with_capacity(
+                    2 * x_ticks.locs.len(),
+                    2 * x_ticks.locs.len(),
+                );
                 for t in x_ticks.locs.iter().copied() {
                     let x = axes.x.map_coord(t) + rect.left();
                     pathb.move_to(x, rect.top());
@@ -470,9 +545,34 @@ where
                 }
             }
         }
+        if let Some(y_min_ticks) = axes.y.minor_ticks.as_ref() {
+            if let Some(grid) = y_min_ticks.grid {
+                let mut pathb = geom::PathBuilder::with_capacity(
+                    2 * y_min_ticks.locs.len(),
+                    2 * y_min_ticks.locs.len(),
+                );
+                for t in y_min_ticks.locs.iter().copied() {
+                    let y = rect.bottom() - axes.y.map_coord(t);
+                    pathb.move_to(rect.left(), y);
+                    pathb.line_to(rect.right(), y);
+                    let path = pathb.finish().expect("Should be a valid path");
+                    let pathr = render::Path {
+                        path: &path,
+                        fill: None,
+                        stroke: Some(grid.clone()),
+                        transform: None,
+                    };
+                    self.draw_path(&pathr)?;
+                    pathb = path.clear();
+                }
+            }
+        }
         if let Some(y_ticks) = axes.y.ticks.as_ref() {
             if let Some(y_grid) = y_ticks.grid {
-                let mut pathb = geom::PathBuilder::with_capacity(2, 2);
+                let mut pathb = geom::PathBuilder::with_capacity(
+                    2 * y_ticks.locs.len(),
+                    2 * y_ticks.locs.len(),
+                );
                 for t in y_ticks.locs.iter().copied() {
                     let y = rect.bottom() - axes.y.map_coord(t);
                     pathb.move_to(rect.left(), y);
@@ -554,6 +654,16 @@ where
     }
 
     fn draw_x_axis(&mut self, x_axis: &Axis, rect: &geom::Rect) -> Result<(), render::Error> {
+        if let Some(x_min_ticks) = x_axis.minor_ticks.as_ref() {
+            let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
+            self.draw_ticks_path(
+                &x_min_ticks.locs,
+                missing_params::MINOR_TICK_SIZE,
+                &x_min_ticks.color.into(),
+                x_axis,
+                &transform,
+            )?;
+        }
         let mut label_y = rect.bottom() + missing_params::AXIS_LABEL_MARGIN;
         if let Some(x_ticks) = x_axis.ticks.as_ref() {
             self.draw_x_ticks(&rect, x_ticks, x_axis)?;
@@ -578,7 +688,13 @@ where
         x_cm: &dyn scale::CoordMap,
     ) -> Result<(), render::Error> {
         let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
-        self.draw_ticks_path(&x_ticks.locs, x_cm, &transform)?;
+        self.draw_ticks_path(
+            &x_ticks.locs,
+            missing_params::TICK_SIZE,
+            &x_ticks.color.into(),
+            x_cm,
+            &transform,
+        )?;
 
         let fill = x_ticks.color.into();
 
@@ -624,6 +740,17 @@ where
     }
 
     fn draw_y_axis(&mut self, y_axis: &Axis, rect: &geom::Rect) -> Result<(), render::Error> {
+        if let Some(y_min_ticks) = y_axis.minor_ticks.as_ref() {
+            let transform =
+                geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(-90.0);
+            self.draw_ticks_path(
+                &y_min_ticks.locs,
+                missing_params::MINOR_TICK_SIZE,
+                &y_min_ticks.color.into(),
+                y_axis,
+                &transform,
+            )?;
+        }
         if let Some(y_ticks) = y_axis.ticks.as_ref() {
             self.draw_y_ticks(rect, y_ticks, y_axis)?;
         }
@@ -650,7 +777,13 @@ where
     ) -> Result<(), render::Error> {
         let transform =
             geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(-90.0);
-        self.draw_ticks_path(&y_ticks.locs, y_cm, &transform)?;
+        self.draw_ticks_path(
+            &y_ticks.locs,
+            missing_params::TICK_SIZE,
+            &y_ticks.color.into(),
+            y_cm,
+            &transform,
+        )?;
 
         let fill = y_ticks.color.into();
 
@@ -671,14 +804,16 @@ where
     fn draw_ticks_path(
         &mut self,
         ticks: &[f64],
+        size: f32,
+        stroke: &style::Line,
         cm: &dyn CoordMap,
         transform: &geom::Transform,
     ) -> Result<(), render::Error> {
-        let ticks_path = ticks_path(&ticks, cm, None);
+        let ticks_path = ticks_path(&ticks, size, cm);
         let ticks_path = render::Path {
             path: &ticks_path,
             fill: None,
-            stroke: Some(missing_params::TICK_COLOR.into()),
+            stroke: Some(stroke.clone()),
             transform: Some(transform),
         };
         self.draw_path(&ticks_path)?;
@@ -688,23 +823,16 @@ where
 
 /// Build the ticks path along X axis.
 /// Y axis will use the same function and rotate 90°
-fn ticks_path(
-    ticks: &[f64],
-    cm: &dyn scale::CoordMap,
-    reuse_alloc: Option<geom::Path>,
-) -> geom::Path {
-    let sz = missing_params::TICK_SIZE;
-    let mut path = reuse_alloc
-        .map(|p| p.clear())
-        .unwrap_or_else(geom::PathBuilder::new);
+fn ticks_path(ticks: &[f64], size: f32, cm: &dyn scale::CoordMap) -> geom::Path {
+    let mut path = geom::PathBuilder::new();
     let vb = cm.axis_bounds();
     for tick in ticks {
         if !vb.contains(*tick) {
             continue;
         }
         let x = cm.map_coord(*tick);
-        path.move_to(x, -sz);
-        path.line_to(x, sz);
+        path.move_to(x, -size);
+        path.line_to(x, size);
     }
     path.finish().expect("Should be a valid path")
 }
