@@ -6,7 +6,6 @@ use ttf_parser as ttf;
 use crate::font::{self, Font};
 use crate::shape::{self, Direction, MainDirection, TextShape};
 
-
 /// Error returned when the layout options or font size
 /// are inconsistent (e.g. negative font size)
 #[derive(Debug, Clone, Copy)]
@@ -110,8 +109,8 @@ pub enum HorAlign {
     Right,
 }
 
-/// Anchor where to align the text 
-/// By default it is a point (0, 0) 
+/// Anchor where to align the text
+/// By default it is a point (0, 0)
 /// Keep in mind that the anchor is relative and that a transform applies on top of it
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Anchor {
@@ -175,7 +174,7 @@ impl Default for VerAlign {
 }
 
 /// Convert a LineVerAlign to a VerAlign at line 0 (or for a single line of text)
-/// 
+///
 /// # Example
 /// ```
 /// use eidoplot_text::{LineVerAlign, VerAlign};
@@ -239,16 +238,28 @@ pub struct TextLayout {
 }
 
 impl TextLayout {
-    pub fn from_shape(text_shape: &TextShape, font_size: f32, opts: &Options) -> Result<Self, BadLayoutParamsError> {
+    pub fn from_shape(
+        text_shape: &TextShape,
+        font_size: f32,
+        opts: &Options,
+    ) -> Result<Self, BadLayoutParamsError> {
         check_params(font_size, opts)?;
 
         match &text_shape.lines {
-            shape::Lines::SingleFont(lines) => {
-                Ok(layout_text(lines, text_shape.text(), text_shape.font(), font_size, opts))
-            }
-            shape::Lines::Fallback(lines) => {
-                Ok(layout_text(lines, text_shape.text(), text_shape.font(), font_size, opts))
-            }
+            shape::Lines::SingleFont(lines) => Ok(layout_text(
+                lines,
+                text_shape.text(),
+                text_shape.font(),
+                font_size,
+                opts,
+            )),
+            shape::Lines::Fallback(lines) => Ok(layout_text(
+                lines,
+                text_shape.text(),
+                text_shape.font(),
+                font_size,
+                opts,
+            )),
         }
     }
 
@@ -271,7 +282,6 @@ impl TextLayout {
     pub fn bbox(&self) -> BBox {
         self.bbox
     }
-
 
     pub fn line_bbox(&self, lidx: usize) -> BBox {
         self.lines[lidx].bbox
@@ -355,9 +365,8 @@ trait LinesTrait {
 }
 
 mod single_font {
-    use crate::font;
-    use crate::shape;
     use crate::shape::single_font::{Line, Lines};
+    use crate::{font, shape};
 
     impl super::LineTrait for Line {
         fn glyphs_len(&self) -> usize {
@@ -418,9 +427,8 @@ mod single_font {
 }
 
 mod fallback_font {
-    use crate::font;
-    use crate::shape;
     use crate::shape::fallback::{Glyph, Line, Lines};
+    use crate::{font, shape};
 
     fn glyph_scaled_height(glyph: &Glyph, font_size: f32) -> f32 {
         match glyph {

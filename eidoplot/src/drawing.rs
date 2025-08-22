@@ -1,9 +1,10 @@
-use std::{fmt, sync::Arc};
-
-use crate::{data, ir, render};
+use std::fmt;
+use std::sync::Arc;
 
 use eidoplot_text as text;
 use text::fontdb;
+
+use crate::{data, ir, render};
 
 mod axis;
 mod figure;
@@ -12,7 +13,6 @@ mod plot;
 mod scale;
 mod series;
 mod ticks;
-
 
 #[derive(Debug)]
 pub enum Error {
@@ -91,7 +91,9 @@ pub trait SurfaceExt: render::Surface {
     where
         D: data::Source,
     {
-        let fontdb = opts.fontdb.unwrap_or_else(|| Arc::new(crate::bundled_font_db()));
+        let fontdb = opts
+            .fontdb
+            .unwrap_or_else(|| Arc::new(crate::bundled_font_db()));
         let ctx = Ctx::new(data_source, fontdb);
         let mut wrapper = SurfWrapper { surface: self };
         wrapper.draw_toplevel_figure(&ctx, figure)?;

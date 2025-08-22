@@ -20,9 +20,9 @@ impl Default for Scale {
 }
 
 pub mod ticks {
-    use crate::style::{self, defaults};
-    use crate::style::{Color};
     use eidoplot_text::Font;
+
+    use crate::style::{self, Color, defaults};
 
     #[derive(Debug, Default, Clone)]
     pub enum Locator {
@@ -173,7 +173,6 @@ pub mod ticks {
 pub use ticks::{MinorTicks, Ticks, TicksFont};
 
 use crate::style::{self, defaults};
-
 
 #[derive(Debug, Clone)]
 pub struct LabelFont {

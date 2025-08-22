@@ -1,4 +1,5 @@
-use crate::{drawing::axis, ir};
+use crate::drawing::axis;
+use crate::ir;
 
 pub fn map_scale_coord(
     scale: &ir::axis::Scale,

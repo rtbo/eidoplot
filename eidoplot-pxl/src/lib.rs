@@ -1,10 +1,10 @@
-use std::{io, sync::Arc};
-
-use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
+use std::io;
+use std::sync::Arc;
 
 use eidoplot::{geom, render, style};
 use eidoplot_text as text;
 use text::fontdb;
+use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 #[derive(Debug, Clone)]
 pub struct PxlSurface {

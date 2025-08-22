@@ -4,10 +4,9 @@ use eidoplot::geom::Transform;
 use eidoplot::render::Surface;
 use eidoplot::{geom, render, style};
 use eidoplot_text as text;
-use text::font;
-
 use svg::Node;
 use svg::node::element;
+use text::font;
 
 pub struct SvgSurface {
     doc: svg::Document,
@@ -118,10 +117,7 @@ impl Surface for SvgSurface {
                 "text-anchor",
                 text_anchor(options.hor_align, text::Direction::LTR),
             )
-            .set(
-                "dominant-baseline",
-                dominant_baseline(options.ver_align),
-            );
+            .set("dominant-baseline", dominant_baseline(options.ver_align));
 
         assign_font(&mut node, layout.font(), layout.font_size());
         assign_fill(&mut node, Some(&text.fill));

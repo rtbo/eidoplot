@@ -1,6 +1,7 @@
+use std::f64::consts::PI;
+
 use eidoplot::{ir, style};
 use polars::prelude::*;
-use std::f64::consts::PI;
 
 mod common;
 

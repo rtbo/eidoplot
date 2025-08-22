@@ -97,12 +97,9 @@ use alloc::{
     vec::Vec,
 };
 
-pub use ttf_parser::Language;
-pub use ttf_parser::UnicodeRanges;
-pub use ttf_parser::Width as Stretch;
-
 use slotmap::SlotMap;
 use tinyvec::TinyVec;
+pub use ttf_parser::{Language, UnicodeRanges, Width as Stretch};
 
 /// A unique per database face ID.
 ///

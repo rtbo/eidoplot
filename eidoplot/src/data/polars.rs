@@ -1,6 +1,6 @@
-use crate::data;
-
 use polars::prelude::*;
+
+use crate::data;
 
 impl data::F64Column for Float64Chunked {
     fn len(&self) -> usize {
@@ -65,8 +65,10 @@ impl data::Source for DataFrame {
     }
 
     fn column(&self, name: &str) -> Option<&dyn data::Column> {
-        self.column(name).map(|c| c.as_materialized_series() as &dyn data::Column).ok()
-    } 
+        self.column(name)
+            .map(|c| c.as_materialized_series() as &dyn data::Column)
+            .ok()
+    }
 
     fn len(&self) -> usize {
         self.height()

@@ -1,17 +1,14 @@
-use crate::data;
-use crate::drawing::legend::Legend;
-use crate::drawing::series::{Series, series_has_legend};
-use crate::drawing::{Ctx, Error, SurfWrapper, axis, scale, ticks};
-use crate::geom;
-use crate::ir;
-use crate::missing_params;
-use crate::render::{self, Surface as _};
-use crate::style::{self, defaults};
-
 use eidoplot_text::{self as text, font};
 use scale::{CoordMap, CoordMapXy};
 use text::TextLayout;
 use tiny_skia_path::Transform;
+
+use crate::drawing::legend::Legend;
+use crate::drawing::series::{Series, series_has_legend};
+use crate::drawing::{Ctx, Error, SurfWrapper, axis, scale, ticks};
+use crate::render::{self, Surface as _};
+use crate::style::{self, defaults};
+use crate::{data, geom, ir, missing_params};
 
 struct Ticks {
     locs: Vec<f64>,

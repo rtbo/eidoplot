@@ -1,10 +1,8 @@
-use crate::data;
-use crate::drawing::{Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, scale};
-use crate::geom;
-use crate::ir;
-use crate::render::{self, Surface as _};
-
 use scale::CoordMapXy;
+
+use crate::drawing::{Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, scale};
+use crate::render::{self, Surface as _};
+use crate::{data, geom, ir};
 
 pub fn series_has_legend(series: &ir::Series) -> bool {
     series.name.is_some()

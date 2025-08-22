@@ -1,11 +1,10 @@
-use eidoplot::{data, ir, style};
-
 use std::f64::consts::PI;
+
+use eidoplot::{data, ir, style};
 
 mod common;
 
 fn main() {
-
     let title = "Sine wave".into();
 
     let x_axis = ir::Axis::new(ir::axis::Scale::default())

@@ -102,7 +102,6 @@ pub trait Source {
     fn len(&self) -> usize;
 }
 
-
 // Simple vector base implementation
 
 #[derive(Debug, Clone)]
@@ -254,7 +253,7 @@ impl VecSource {
     }
 
     pub fn with_column(mut self, name: &str, col: Box<dyn Column>) -> Self {
-        self.add_column(name, col); 
+        self.add_column(name, col);
         self
     }
 
@@ -269,8 +268,7 @@ impl Source for VecSource {
         self.columns.keys().map(|k| k.as_str()).collect()
     }
 
-    fn column(&self, name: &str) -> Option<&dyn Column> 
-    {
+    fn column(&self, name: &str) -> Option<&dyn Column> {
         self.columns.get(name).map(|c| &**c)
     }
 

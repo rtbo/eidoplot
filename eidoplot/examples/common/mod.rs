@@ -1,13 +1,11 @@
-use eidoplot::data;
-use eidoplot::drawing::{self, SurfaceExt};
-use eidoplot::ir;
+use std::env;
+use std::sync::Arc;
 
+use eidoplot::drawing::{self, SurfaceExt};
+use eidoplot::{data, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 use eidoplot_text::fontdb;
-
-use std::env;
-use std::sync::Arc;
 
 pub fn save_figure<D>(fig: &ir::Figure, data_source: &D)
 where

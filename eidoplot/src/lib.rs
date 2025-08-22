@@ -12,10 +12,8 @@ pub mod style;
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters
 mod missing_params {
-    use crate::{
-        geom,
-        style::{Color, color},
-    };
+    use crate::geom;
+    use crate::style::{Color, color};
 
     pub const FIG_TITLE_MARGIN: f32 = 6.0;
     pub const FIG_TITLE_COLOR: Color = color::BLACK;

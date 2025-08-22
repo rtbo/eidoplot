@@ -2,8 +2,8 @@ use std::fmt;
 
 use ttf_parser as ttf;
 
-pub mod fontdb;
 pub mod font;
+pub mod fontdb;
 pub mod layout;
 pub mod render;
 pub mod shape;
@@ -11,7 +11,7 @@ pub mod shape;
 pub use font::{Font, parse_font_families};
 pub use layout::{Anchor, HorAlign, LineVerAlign, TextLayout, VerAlign};
 pub use render::{render_text, render_text_tiny_skia};
-pub use shape::{TextShape, Direction};
+pub use shape::{Direction, TextShape};
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -25,7 +25,7 @@ impl fmt::Display for Error {
         match self {
             Error::NoSuchFont(font) => write!(f, "Could not find a face for {:?}", font),
             Error::FaceParsingError(err) => err.fmt(f),
-            Error::BadLayoutParamsError => write!(f, "Bad text layout parameters"),  
+            Error::BadLayoutParamsError => write!(f, "Bad text layout parameters"),
         }
     }
 }

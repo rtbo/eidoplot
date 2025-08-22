@@ -1,6 +1,5 @@
 use crate::drawing::Error;
 
-
 /// Bounds of an axis
 #[derive(Debug, Clone)]
 pub enum Bounds {
@@ -37,7 +36,9 @@ impl Bounds {
                 }
                 Ok(())
             }
-            _ => Err(Error::InconsistentAxisBounds("Cannot unite numerical and categorical axis bounds".into())),
+            _ => Err(Error::InconsistentAxisBounds(
+                "Cannot unite numerical and categorical axis bounds".into(),
+            )),
         }
     }
 
@@ -47,7 +48,7 @@ impl Bounds {
             _ => None,
         }
     }
-} 
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NumBounds(f64, f64);

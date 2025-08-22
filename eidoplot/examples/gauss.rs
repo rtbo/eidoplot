@@ -1,9 +1,8 @@
-use eidoplot::{data, ir, style};
+use std::f64::consts::PI;
 
+use eidoplot::{data, ir, style};
 use rand::SeedableRng;
 use rand_distr::{Distribution, Normal};
-
-use std::f64::consts::PI;
 
 mod common;
 
@@ -28,8 +27,8 @@ fn main() {
     let normal = Normal::new(MU, SIGMA).unwrap();
     let pop = (0..N_POP).map(|_| normal.sample(&mut rng)).collect();
 
-
-    let title: ir::figure::Title = format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA).into();
+    let title: ir::figure::Title =
+        format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA).into();
 
     let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("x".into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default())
