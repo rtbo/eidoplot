@@ -58,7 +58,7 @@ pub mod ticks {
 
 
     /// Describes how to format the ticks labels
-    #[derive(Debug, Default, Clone)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub enum Formatter {
         /// Automatic tick formatting
         #[default]

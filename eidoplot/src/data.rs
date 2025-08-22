@@ -4,7 +4,7 @@ use std::collections::HashMap;
 pub mod polars;
 
 /// Trait for a column of a specific type
-pub trait Column {
+pub trait Column: std::fmt::Debug {
     fn len(&self) -> usize;
 
     fn len_some(&self) -> usize;
@@ -234,6 +234,7 @@ impl StrColumn for Vec<&str> {
     }
 }
 
+#[derive(Debug)]
 pub struct VecSource {
     columns: HashMap<String, Box<dyn Column>>,
     len: usize,

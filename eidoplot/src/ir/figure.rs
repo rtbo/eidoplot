@@ -116,7 +116,7 @@ pub struct Subplots {
     pub plots: Vec<Plot>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Layout {
     padding: Option<geom::Padding>,
 }
