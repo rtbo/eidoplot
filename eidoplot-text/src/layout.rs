@@ -78,25 +78,31 @@ impl Default for BBox {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+/// Horizontal alignment
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum HorAlign {
+    /// Align the start of the text (left or right depending on the direction)
     #[default]
     Start,
+    /// Left align the text (independently of the direction)
     Left,
+    /// Center align the text
     Center,
+    /// Align the end of the text (left or right depending on the direction)
     End,
+    /// Right align the text (independently of the direction)
     Right,
 }
 
-/// Anchor where to align the text horizontally
-/// By default it is a point at (X = 0)
-/// Note that the transform applies on top of this anchor
-#[derive(Debug, Clone, Copy)]
+/// Anchor where to align the text 
+/// By default it is a point (0, 0) 
+/// Keep in mind that the anchor is relative and that a transform applies on top of it
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Anchor {
-    /// Anchor at a X coordinate
+    /// Anchor at a point
     /// The LTR text with HorAlign::Start will start at this point and span to the right
     /// The RTL text with HorAlign::Start will start at this point and span to the left
-    X,
+    Point,
     /// Anchor in a horizontal window defined by its width
     /// The following cases will be align at the left of the window and span to the right:
     ///     - Any text with [HorAlign::Left]
@@ -113,11 +119,12 @@ pub enum Anchor {
 
 impl Default for Anchor {
     fn default() -> Self {
-        Anchor::X
+        Anchor::Point
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+/// Vertical alignment for a single line of text
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum LineVerAlign {
     /// Align the bottom of the descender
     Bottom,
@@ -132,7 +139,8 @@ pub enum LineVerAlign {
     Top,
 }
 
-#[derive(Debug, Clone, Copy)]
+/// Vertical alignment for a whole text
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VerAlign {
     /// Align at the specified line
     Line(usize, LineVerAlign),
@@ -150,13 +158,21 @@ impl Default for VerAlign {
     }
 }
 
+/// Convert a LineVerAlign to a VerAlign at line 0 (or for a single line of text)
+/// 
+/// # Example
+/// ```
+/// use eidoplot_text::{LineVerAlign, VerAlign};
+/// let align: VerAlign = LineVerAlign::Hanging.into();
+/// assert_eq!(align, VerAlign::Line(0, LineVerAlign::Hanging));
+/// ```
 impl From<LineVerAlign> for VerAlign {
     fn from(l: LineVerAlign) -> Self {
         VerAlign::Line(0, l)
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Options {
     pub anchor: Anchor,
     pub hor_align: HorAlign,
@@ -544,7 +560,7 @@ where
 
     let justify = if opts.hor_justify {
         match opts.anchor {
-            Anchor::X => Some(lines.scaled_width(font_size)),
+            Anchor::Point => Some(lines.scaled_width(font_size)),
             Anchor::Window(width) => Some(width),
         }
     } else {
@@ -618,7 +634,7 @@ where
     };
 
     let (anchor_left, anchor_right) = match align.anchor {
-        Anchor::X => (0.0, 0.0),
+        Anchor::Point => (0.0, 0.0),
         Anchor::Window(width) => (0.0, width),
     };
 

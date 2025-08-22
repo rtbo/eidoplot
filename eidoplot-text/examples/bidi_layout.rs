@@ -32,7 +32,7 @@ fn main() {
         (
             ENGLISH_TEXT,
             layout::Options {
-                anchor: layout::Anchor::X,
+                anchor: layout::Anchor::Point,
                 hor_align: layout::HorAlign::Start,
                 hor_justify: false,
                 ver_align: layout::VerAlign::Top,
@@ -52,7 +52,7 @@ fn main() {
         (
             MIXED_TEXT_LTR,
             layout::Options {
-                anchor: layout::Anchor::X,
+                anchor: layout::Anchor::Point,
                 hor_align: layout::HorAlign::Start,
                 hor_justify: false,
                 ver_align: layout::LineVerAlign::Baseline.into(),
@@ -113,7 +113,7 @@ fn draw_anchor_cross(
 ) {
     let anchor1 = (tx, ty);
     let anchor2 = match layout.options().anchor {
-        layout::Anchor::X => None,
+        layout::Anchor::Point => None,
         layout::Anchor::Window(width) => Some((tx + width, ty)),
     };
 
