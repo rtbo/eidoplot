@@ -20,6 +20,19 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "gauss example",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example",
+                    "gauss"
+                ]
+            },
+            "args": []
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "bidi_layout example",
             "cargo": {
                 "args": [
