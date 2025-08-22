@@ -1,3 +1,8 @@
+/*!
+ * # Intermediate representation (IR) for eidoplot
+ * 
+ * This module contains all data structures for the design of plotting figures.
+ */
 pub mod axis;
 pub mod figure;
 pub mod legend;

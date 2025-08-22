@@ -1,15 +1,24 @@
+/*!
+ * Axis design module
+ */
+
 /// Describe the bounds of an axis in data space
 #[derive(Debug, Clone, Copy)]
 pub enum Range {
+    /// Auto determine the bounds
     Auto,
+    /// Lower bound defined, and upper bound automatic
     MinAuto(f64),
+    /// Higher bound defined, and upper bound automatic
     AutoMax(f64),
+    /// Lower and higher bound defined
     MinMax(f64, f64),
 }
 
 /// Describes the type of an axis
 #[derive(Debug, Clone, Copy)]
 pub enum Scale {
+    /// Linear axis
     Linear(Range),
 }
 
@@ -19,35 +28,53 @@ impl Default for Scale {
     }
 }
 
+/// Describe the ticks of an axis
 pub mod ticks {
     use eidoplot_text::Font;
 
     use crate::style::{self, Color, defaults};
 
+    /// Describes how to locate the ticks of an axis
     #[derive(Debug, Default, Clone)]
     pub enum Locator {
+        /// Automatic tick placement. This is equvalent to `MaxN { bins: 10 }` with relevant decimal steps
         #[default]
         Auto,
+        /// Places ticks automatically, using the specified number of bins and steps
         MaxN {
+            /// Number of bins (that is number of ticks - 1)
             bins: u32,
+            /// List of steps multiple to the scale
+            /// The locator will pick one of the steps, multiplying it by a power of 10 scale
             steps: Vec<f64>,
         },
+        /// Places the ticks automatically, using the specified number of bins and multiples of PI.
+        /// The axis will be annotated with `× π`
         PiMultiple {
+            /// Number of bins (that is number of ticks - 1)
             bins: u32,
         },
     }
 
+
+    /// Describes how to format the ticks labels
     #[derive(Debug, Default, Clone)]
     pub enum Formatter {
+        /// Automatic tick formatting
         #[default]
         Auto,
+        /// Format the ticks with decimal precision
         Prec(usize),
+        /// The labels are percentages (E.g. `0.5` will be formatted as `50%`)
         Percent,
     }
 
+    /// Describes the font of the ticks labels
     #[derive(Debug, Clone)]
     pub struct TicksFont {
+        /// The font of the ticks labels
         pub font: Font,
+        /// The font size of the ticks labels
         pub size: f32,
     }
 
@@ -60,6 +87,7 @@ pub mod ticks {
         }
     }
 
+    /// Describes the ticks of an axis
     #[derive(Debug, Clone)]
     pub struct Ticks {
         /// Generates the ticks at the specified locations
@@ -87,34 +115,44 @@ pub mod ticks {
     }
 
     impl Ticks {
+        /// Returns a new `Ticks` with the specified locator
         pub fn with_locator(self, locator: Locator) -> Self {
             Self { locator, ..self }
         }
+        /// Returns a new `Ticks` with the specified formatter
         pub fn with_formatter(self, formatter: Formatter) -> Self {
             Self { formatter, ..self }
         }
+        /// Returns a new ticks with the specified font
         pub fn with_font(self, font: TicksFont) -> Self {
             Self { font, ..self }
         }
+        /// Returns a new ticks with the specified color
         pub fn with_color(self, color: Color) -> Self {
             Self { color, ..self }
         }
+        /// Returns a new ticks with the specified grid
         pub fn with_grid(self, grid: Option<style::Line>) -> Self {
             Self { grid, ..self }
         }
 
+        /// The locator
         pub fn locator(&self) -> &Locator {
             &self.locator
         }
+        /// The formatter
         pub fn formatter(&self) -> &Formatter {
             &self.formatter
         }
+        /// The font
         pub fn font(&self) -> &TicksFont {
             &self.font
         }
+        /// The color
         pub fn color(&self) -> Color {
             self.color
         }
+        /// The grid
         pub fn grid(&self) -> Option<&style::Line> {
             self.grid.as_ref()
         }
