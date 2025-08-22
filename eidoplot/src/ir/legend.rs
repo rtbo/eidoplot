@@ -67,6 +67,7 @@ pub struct Legend {
     columns: Option<NonZeroU32>,
     padding: f32,
     spacing: f32,
+    margin: f32,
 }
 
 impl Default for Legend {
@@ -80,6 +81,7 @@ impl Default for Legend {
             columns: None,
             padding: defaults::LEGEND_PADDING,
             spacing: defaults::LEGEND_SPACING,
+            margin: defaults::LEGEND_MARGIN,
         }
     }
 }
@@ -124,6 +126,11 @@ impl Legend {
         self.spacing
     }
 
+    /// Margin separating the legend from the plot area
+    pub fn margin(&self) -> f32 {
+        self.margin
+    }
+
     pub fn with_pos(self, pos: Pos) -> Self {
         Self { pos, ..self }
     }
@@ -154,5 +161,10 @@ impl Legend {
 
     pub fn with_spacing(self, spacing: f32) -> Self {
         Self { spacing, ..self }
+    }
+
+    /// Set the margin separating the legend from the plot area
+    pub fn with_margin(self, margin: f32) -> Self {
+        Self { margin, ..self }
     }
 }

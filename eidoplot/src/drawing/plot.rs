@@ -335,23 +335,22 @@ where
         let sz = dlegend.layout();
         let top_left = match legend.pos() {
             ir::legend::Pos::OutTop => {
-                rect.shift_top_side(sz.height());
-                geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.top() - sz.height())
+                let tl = geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.top());
+                rect.shift_top_side(sz.height() + legend.margin());
+                tl
             }
             ir::legend::Pos::OutRight => {
-                rect.shift_right_side(-sz.width());
-                geom::Point::new(rect.right(), rect.center_y() - sz.height() / 2.0)
+                rect.shift_right_side(-sz.width()-legend.margin());
+                geom::Point::new(rect.right()+legend.margin(), rect.center_y() - sz.height() / 2.0)
             }
             ir::legend::Pos::OutBottom => {
-                rect.shift_bottom_side(-sz.height());
-                geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.bottom())
+                rect.shift_bottom_side(-sz.height()-legend.margin());
+                geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.bottom() + legend.margin())
             }
             ir::legend::Pos::OutLeft => {
-                rect.shift_left_side(sz.width());
-                geom::Point::new(
-                    rect.left() - sz.width(),
-                    rect.center_y() - sz.height() / 2.0,
-                )
+                let tl = geom::Point::new(rect.left(), rect.center_y() - sz.height() / 2.0);
+                rect.shift_left_side(sz.width() + legend.margin());
+                tl
             }
             _ => unreachable!(),
         };

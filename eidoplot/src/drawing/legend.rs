@@ -133,7 +133,10 @@ impl Legend {
                 x += e.width() + self.spacing;
             }
         }
-        let sz = geom::Size::new(w + self.padding, h + self.padding);
+        let sz = geom::Size::new(
+            w + self.padding,
+            h + self.padding,
+        );
         self.size.replace(sz);
         sz
     }

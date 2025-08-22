@@ -63,7 +63,7 @@ fn main() {
         x_axis,
         y_axis,
         series: vec![pop_series, dist_series],
-        legend: Some(ir::Legend::default()),
+        legend: Some(ir::Legend::new(ir::legend::Pos::OutRight)),
         ..ir::Plot::default()
     };
 

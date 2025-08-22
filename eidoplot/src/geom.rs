@@ -21,6 +21,10 @@ impl Point {
         self.y
     }
 
+    pub const fn translate(self, x: f32, y: f32) -> Point {
+        Point { x: self.x + x, y: self.y + y }
+    }
+
     pub fn translation(&self) -> Transform {
         Transform::from_translate(self.x, self.y)
     }
@@ -43,6 +47,13 @@ impl Size {
 
     pub const fn height(&self) -> f32 {
         self.h
+    }
+
+    pub const fn expand(&self, x: f32, y: f32) -> Size {
+        Size {
+            w: self.w + x,
+            h: self.h + y,
+        }
     }
 }
 
@@ -293,5 +304,84 @@ impl From<(f32, f32)> for Padding {
 impl From<(f32, f32, f32, f32)> for Padding {
     fn from((t, r, b, l): (f32, f32, f32, f32)) -> Self {
         Padding::Custom { t, r, b, l }
+    }
+}
+
+/// Margin around a graphical element
+#[derive(Debug, Clone, Copy)]
+pub enum Margin {
+    /// Uniform padding in all directions
+    Even(f32),
+    /// Vertical and horizontal padding
+    Center { v: f32, h: f32 },
+    /// Top, right, bottom and left padding
+    Custom { t: f32, r: f32, b: f32, l: f32 },
+}
+
+impl Margin {
+    pub const fn top(&self) -> f32 {
+        match self {
+            Margin::Even(p) => *p,
+            Margin::Center { v, .. } => *v,
+            Margin::Custom { t, .. } => *t,
+        }
+    }
+
+    pub const fn right(&self) -> f32 {
+        match self {
+            Margin::Even(p) => *p,
+            Margin::Center { h, .. } => *h,
+            Margin::Custom { r, .. } => *r,
+        }
+    }
+
+    pub const fn bottom(&self) -> f32 {
+        match self {
+            Margin::Even(p) => *p,
+            Margin::Center { v, .. } => *v,
+            Margin::Custom { b, .. } => *b,
+        }
+    }
+
+    pub const fn left(&self) -> f32 {
+        match self {
+            Margin::Even(p) => *p,
+            Margin::Center { h, .. } => *h,
+            Margin::Custom { l, .. } => *l,
+        }
+    }
+
+    pub const fn sum_ver(&self) -> f32 {
+        match self {
+            Margin::Even(p) => *p * 2.0,
+            Margin::Center { v, .. } => *v * 2.0,
+            Margin::Custom { t, b, .. } => *t + *b,
+        }
+    }
+
+    pub const fn sum_hor(&self) -> f32 {
+        match self {
+            Margin::Even(p) => *p * 2.0,
+            Margin::Center { h, .. } => *h * 2.0,
+            Margin::Custom { l, r, .. } => *l + *r,
+        }
+    }
+}
+
+impl From<f32> for Margin {
+    fn from(value: f32) -> Self {
+        Margin::Even(value)
+    }
+}
+
+impl From<(f32, f32)> for Margin {
+    fn from((v, h): (f32, f32)) -> Self {
+        Margin::Center { v, h }
+    }
+}
+
+impl From<(f32, f32, f32, f32)> for Margin {
+    fn from((t, r, b, l): (f32, f32, f32, f32)) -> Self {
+        Margin::Custom { t, r, b, l }
     }
 }
