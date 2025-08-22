@@ -315,6 +315,12 @@ where
         self.draw_x_axis(&axes.x, &rect)?;
         self.draw_y_axis(&axes.y, &rect)?;
         self.draw_plot_border(plot.border.as_ref(), &rect)?;
+        
+        if let Some(legend) = &plot.legend {
+            if legend.pos().is_inside() {
+                self.draw_plot_inner_legend(ctx, plot, legend, &rect)?;
+            }
+        }
 
         Ok(())
     }
@@ -351,6 +357,53 @@ where
                 let tl = geom::Point::new(rect.left(), rect.center_y() - sz.height() / 2.0);
                 rect.shift_left_side(sz.width() + legend.margin());
                 tl
+            }
+            _ => unreachable!(),
+        };
+        self.draw_legend(&dlegend, &top_left)?;
+        Ok(())
+    }
+
+    fn draw_plot_inner_legend<D>(
+        &mut self,
+        ctx: &Ctx<D>,
+        plot: &ir::Plot,
+        legend: &ir::Legend,
+        rect: &geom::Rect,
+    ) -> Result<(), Error> {
+        let mut dlegend = Legend::from_ir(legend, rect.width(), ctx.fontdb().clone());
+        for s in plot.series.iter() {
+            if series_has_legend(s) {
+                dlegend.add_entry(s)?;
+            }
+        }
+
+        let sz = dlegend.layout();
+
+        let top_left = match legend.pos() {
+            ir::legend::Pos::InTop => {
+                geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.top() + legend.margin())
+            }
+            ir::legend::Pos::InTopRight => {
+                geom::Point::new(rect.right() - sz.width() - legend.margin(), rect.top() + legend.margin())
+            }
+            ir::legend::Pos::InRight => {
+                geom::Point::new(rect.right() - sz.width() - legend.margin(), rect.center_y() - sz.height()/2.0)
+            }
+            ir::legend::Pos::InBottomRight => {
+                geom::Point::new(rect.right() - sz.width() - legend.margin(), rect.bottom() - sz.height() - legend.margin())
+            }
+            ir::legend::Pos::InBottom => {
+                geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.bottom() - sz.height() - legend.margin())
+            }
+            ir::legend::Pos::InBottomLeft => {
+                geom::Point::new(rect.left() + legend.margin(), rect.bottom() - sz.height() - legend.margin())
+            }
+            ir::legend::Pos::InLeft => {
+                geom::Point::new(rect.left() + legend.margin() , rect.center_y() - sz.height()/2.0)
+            }
+            ir::legend::Pos::InTopLeft => {
+                geom::Point::new(rect.left() + legend.margin(), rect.top() + legend.margin())
             }
             _ => unreachable!(),
         };
