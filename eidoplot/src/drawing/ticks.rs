@@ -59,7 +59,7 @@ impl<'a> MaxN<'a> {
 
         let vmin = (ab.start() / step).floor() * step;
 
-        let edge = MaxNEdge { step };
+        let edge = MaxNEdgeInteger { step };
         let low = edge.largest_le(ab.start() - vmin);
         let high = edge.smallest_ge(ab.end() - vmin);
 
@@ -110,7 +110,7 @@ impl<'a> MaxNStepper<'a> {
     }
 }
 
-struct MaxNEdge {
+struct MaxNEdgeInteger {
     step: f64,
 }
 
@@ -118,7 +118,7 @@ fn is_close(a: f64, b: f64) -> bool {
     (a - b).abs() < 1e-10
 }
 
-impl MaxNEdge {
+impl MaxNEdgeInteger {
     fn largest_le(&self, value: f64) -> f64 {
         let (d, m) = (value.div_euclid(self.step), value % self.step);
         if is_close(m / self.step, 1.0) {
