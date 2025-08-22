@@ -39,11 +39,17 @@ pub fn parse_font_families(input: &str) -> Result<Vec<Family>, FamilyError> {
     let mut current = String::new();
     let mut in_quotes = false;
     let mut quote_char = '\0';
+    let mut had_quotes = false;
 
     for c in input.chars() {
         match c {
             '"' | '\'' if !in_quotes => {
+                if !current.trim().is_empty() {
+                    // quote char in the middle of the name
+                    return Err(FamilyError::InvalidCharacterInName);
+                }
                 in_quotes = true;
+                had_quotes = true;
                 quote_char = c;
             }
             q if q == quote_char && in_quotes => {
@@ -57,9 +63,16 @@ pub fn parse_font_families(input: &str) -> Result<Vec<Family>, FamilyError> {
                 } else if !current.is_empty() {
                     return Err(FamilyError::EmptyFamilyName);
                 }
+                had_quotes = false;
                 current.clear();
             }
-            _ => current.push(c),
+            _ => {
+                if !c.is_whitespace() && had_quotes && !in_quotes {
+                    // quote char in the middle of the name
+                    return Err(FamilyError::InvalidCharacterInName);
+                }
+                current.push(c)
+            }
         }
     }
 
