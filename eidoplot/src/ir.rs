@@ -10,7 +10,7 @@ pub mod plot;
 pub mod series;
 
 pub use axis::Axis;
-pub use figure::Figure;
+pub use figure::{Figure, FigLegend};
 pub use legend::Legend;
-pub use plot::Plot;
+pub use plot::{Plot, PlotLegend};
 pub use series::{Series, SeriesPlot};

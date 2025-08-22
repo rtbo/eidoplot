@@ -3,43 +3,6 @@ use std::num::NonZeroU32;
 use crate::style;
 use crate::style::defaults;
 
-#[derive(Debug, Default, Clone, Copy)]
-pub enum Pos {
-    OutTop,
-    OutRight,
-    #[default]
-    OutBottom,
-    OutLeft,
-    InTop,
-    InTopRight,
-    InRight,
-    InBottomRight,
-    InBottom,
-    InBottomLeft,
-    InLeft,
-    InTopLeft,
-}
-
-impl Pos {
-    pub fn is_inside(&self) -> bool {
-        matches!(
-            self,
-            Pos::InTop
-                | Pos::InTopRight
-                | Pos::InRight
-                | Pos::InBottomRight
-                | Pos::InBottom
-                | Pos::InBottomLeft
-                | Pos::InLeft
-                | Pos::InTopLeft
-        )
-    }
-
-    pub fn prefers_vertical(&self) -> bool {
-        self.is_inside() || matches!(self, Pos::OutLeft | Pos::OutRight)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct EntryFont {
     pub size: f32,
@@ -59,7 +22,6 @@ impl Default for EntryFont {
 
 #[derive(Debug, Clone)]
 pub struct Legend {
-    pos: Pos,
     font: EntryFont,
     fill: Option<style::Fill>,
     border: Option<style::Line>,
@@ -67,13 +29,11 @@ pub struct Legend {
     columns: Option<NonZeroU32>,
     padding: f32,
     spacing: f32,
-    margin: f32,
 }
 
 impl Default for Legend {
     fn default() -> Self {
         Self {
-            pos: Pos::OutBottom,
             font: EntryFont::default(),
             fill: defaults::LEGEND_FILL,
             border: defaults::LEGEND_BORDER,
@@ -81,23 +41,11 @@ impl Default for Legend {
             columns: None,
             padding: defaults::LEGEND_PADDING,
             spacing: defaults::LEGEND_SPACING,
-            margin: defaults::LEGEND_MARGIN,
         }
     }
 }
 
 impl Legend {
-    pub fn new(pos: Pos) -> Self {
-        Self {
-            pos,
-            ..Default::default()
-        }
-    }
-
-    pub fn pos(&self) -> Pos {
-        self.pos
-    }
-
     pub fn font(&self) -> &EntryFont {
         &self.font
     }
@@ -126,15 +74,6 @@ impl Legend {
         self.spacing
     }
 
-    /// Margin separating the legend from the plot area
-    pub fn margin(&self) -> f32 {
-        self.margin
-    }
-
-    pub fn with_pos(self, pos: Pos) -> Self {
-        Self { pos, ..self }
-    }
-
     pub fn with_font(self, font: EntryFont) -> Self {
         Self { font, ..self }
     }
@@ -161,10 +100,5 @@ impl Legend {
 
     pub fn with_spacing(self, spacing: f32) -> Self {
         Self { spacing, ..self }
-    }
-
-    /// Set the margin separating the legend from the plot area
-    pub fn with_margin(self, margin: f32) -> Self {
-        Self { margin, ..self }
     }
 }

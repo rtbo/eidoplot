@@ -30,7 +30,7 @@ fn main() {
         x_axis,
         y_axis,
         series: vec![series],
-        legend: Some(ir::Legend::new(ir::legend::Pos::InTopRight)),
+        legend: Some(ir::plot::LegendPos::InTopRight.into()),
         ..ir::Plot::default()
     };
 

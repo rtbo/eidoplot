@@ -58,9 +58,9 @@ pub struct Legend {
 }
 
 impl Legend {
-    pub fn from_ir(legend: &ir::Legend, avail_width: f32, fontdb: Arc<fontdb::Database>) -> Legend {
+    pub fn from_ir(legend: &ir::Legend, prefers_vertical: bool, avail_width: f32, fontdb: Arc<fontdb::Database>) -> Legend {
         let mut columns = legend.columns();
-        if columns.is_none() && legend.pos().prefers_vertical() {
+        if columns.is_none() && prefers_vertical {
             columns.replace(NonZeroU32::new(1).unwrap());
         }
         Legend {
