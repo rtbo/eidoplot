@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 #[cfg(feature = "polars")]
 pub mod polars;
 
@@ -107,8 +105,8 @@ pub trait Source {
 #[derive(Debug, Clone)]
 pub enum VecColumn {
     F64(Vec<f64>),
-    I64(Vec<i64>),
-    Str(Vec<String>),
+    I64(Vec<Option<i64>>),
+    Str(Vec<Option<String>>),
 }
 
 impl From<Vec<f64>> for VecColumn {
@@ -117,14 +115,14 @@ impl From<Vec<f64>> for VecColumn {
     }
 }
 
-impl From<Vec<i64>> for VecColumn {
-    fn from(v: Vec<i64>) -> Self {
+impl From<Vec<Option<i64>>> for VecColumn {
+    fn from(v: Vec<Option<i64>>) -> Self {
         VecColumn::I64(v)
     }
 }
 
-impl From<Vec<String>> for VecColumn {
-    fn from(v: Vec<String>) -> Self {
+impl From<Vec<Option<String>>> for VecColumn {
+    fn from(v: Vec<Option<String>>) -> Self {
         VecColumn::Str(v)
     }
 }
@@ -188,7 +186,7 @@ impl F64Column for Vec<f64> {
     }
 }
 
-impl F64Column for Vec<i64> {
+impl F64Column for Vec<Option<i64>> {
     fn len(&self) -> usize {
         self.len()
     }
@@ -198,11 +196,11 @@ impl F64Column for Vec<i64> {
     }
 
     fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
-        Box::new(self.as_slice().iter().copied().map(|i| Some(i as f64)))
+        Box::new(self.as_slice().iter().copied().map(|v| v.map(|v| v as f64)))
     }
 }
 
-impl I64Column for Vec<i64> {
+impl I64Column for Vec<Option<i64>> {
     fn len(&self) -> usize {
         self.len()
     }
@@ -212,68 +210,218 @@ impl I64Column for Vec<i64> {
     }
 
     fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
-        Box::new(self.as_slice().iter().copied().map(Some))
+        Box::new(self.as_slice().iter().copied())
     }
 }
 
-impl StrColumn for Vec<String> {
+impl StrColumn for Vec<Option<String>> {
     fn len(&self) -> usize {
         self.len()
     }
     fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
-        Box::new(self.as_slice().iter().map(|s| Some(s.as_str())))
+        Box::new(self.as_slice().iter().map(|s| s.as_deref()))
     }
 }
 
-impl StrColumn for Vec<&str> {
+impl StrColumn for Vec<Option<&str>> {
     fn len(&self) -> usize {
         self.len()
     }
     fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
-        Box::new(self.as_slice().iter().map(|s| Some(*s)))
+        Box::new(self.as_slice().iter().map(|s| *s))
     }
 }
 
-#[derive(Debug)]
+
 pub struct VecSource {
-    columns: HashMap<String, Box<dyn Column>>,
+    heads: Vec<String>,
+    columns: Vec<VecColumn>,
     len: usize,
 }
 
 impl VecSource {
     pub fn new() -> Self {
         Self {
-            columns: HashMap::new(),
+            heads: Vec::new(),
+            columns: Vec::new(),
             len: 0,
         }
     }
 
-    pub fn add_column(&mut self, name: &str, col: Box<dyn Column>) {
+    pub fn add_column(&mut self, name: &str, col: VecColumn) {
         self.len = self.len.max(col.len());
-        self.columns.insert(name.to_string(), col);
+        self.heads.push(name.to_string());
+        self.columns.push(col);
+        for col in &mut self.columns {
+            while col.len() < self.len {
+                match col {
+                    VecColumn::F64(vec) => vec.push(f64::NAN),
+                    VecColumn::I64(vec) => vec.push(None),
+                    VecColumn::Str(vec) => vec.push(None),
+                }
+            }
+        }
     }
 
-    pub fn with_column(mut self, name: &str, col: Box<dyn Column>) -> Self {
+    pub fn with_column(mut self, name: &str, col: VecColumn) -> Self {
         self.add_column(name, col);
         self
     }
 
     pub fn with_f64_column(mut self, name: &str, col: Vec<f64>) -> Self {
-        self.add_column(name, Box::new(VecColumn::F64(col)));
+        self.add_column(name, VecColumn::F64(col));
+        self
+    }
+
+    pub fn with_i64_column(mut self, name: &str, col: Vec<Option<i64>>) -> Self {
+        self.add_column(name, VecColumn::I64(col));
+        self
+    }
+
+    pub fn with_str_column(mut self, name: &str, col: Vec<Option<String>>) -> Self {
+        self.add_column(name, VecColumn::Str(col));
         self
     }
 }
 
 impl Source for VecSource {
     fn column_names(&self) -> Vec<&str> {
-        self.columns.keys().map(|k| k.as_str()).collect()
+        self.heads.as_slice().iter().map(|s| s.as_str()).collect()
     }
 
     fn column(&self, name: &str) -> Option<&dyn Column> {
-        self.columns.get(name).map(|c| &**c)
+        let Some(idx) = self.heads.as_slice().iter().position(|k| k == name) else {
+            return None;
+        };
+        self.columns.get(idx).map(|c| c as &dyn Column)
     }
 
     fn len(&self) -> usize {
         self.len
+    }
+}
+
+/// Custom Debug implementation to pretty-print the table
+impl std::fmt::Debug for VecSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let rows = self.len();
+        let cols = self.heads.len();
+
+        // Determine which columns to show
+        let (col_indices, show_ellipsis) = if cols > 8 {
+            let mut idxs = (0..4).collect::<Vec<_>>();
+            idxs.extend((cols - 4)..cols);
+            (idxs, true)
+        } else {
+            ((0..cols).collect::<Vec<_>>(), false)
+        };
+
+        // Helper to get cell as string
+        fn cell_string(col: &VecColumn, row: usize) -> String {
+            match col {
+                VecColumn::F64(v) => {
+                    let val = v.get(row).copied();
+                    match val {
+                        Some(x) if x.is_finite() => format!("{:.6}", x),
+                        _ => "(null)".to_string(),
+                    }
+                }
+                VecColumn::I64(v) => {
+                    match v.get(row).copied().flatten() {
+                        Some(x) => format!("{}", x),
+                        None => "(null)".to_string(),
+                    }
+                }
+                VecColumn::Str(v) => {
+                    match v.get(row) {
+                        Some(Some(s)) => s.clone(),
+                        _ => "(null)".to_string(),
+                    }
+                }
+            }
+        }
+
+        // Compute max width for each shown column (header, and up to 5+5 rows)
+        let mut col_widths: Vec<usize> = col_indices
+            .iter()
+            .map(|&i| self.heads[i].len())
+            .collect();
+
+        let row_indices: Vec<usize> = if rows <= 10 {
+            (0..rows).collect()
+        } else {
+            (0..5).chain((rows - 5)..rows).collect()
+        };
+
+        for (col_pos, &col_idx) in col_indices.iter().enumerate() {
+            // Check header
+            col_widths[col_pos] = col_widths[col_pos].max(self.heads[col_idx].len());
+            // Check cell values
+            for &row in &row_indices {
+                let cell = cell_string(&self.columns[col_idx], row);
+                col_widths[col_pos] = col_widths[col_pos].max(cell.len());
+            }
+        }
+        let ellipsis_width = 6; // width for "..."
+
+        // Print header
+        writeln!(f, "VecSource: {} rows x {} columns", rows, cols)?;
+        for (col_pos, &i) in col_indices.iter().enumerate() {
+            write!(
+                f,
+                "| {:^width$} ",
+                &self.heads[i],
+                width = col_widths[col_pos]
+            )?;
+        }
+        if show_ellipsis {
+            write!(f, "| {:^width$} ", "...", width = ellipsis_width)?;
+        }
+        writeln!(f, "|")?;
+
+        // Print separator
+        for (col_pos, _) in col_indices.iter().enumerate() {
+            write!(f, "|{:=^width$}", "", width = col_widths[col_pos] + 2)?;
+        }
+        if show_ellipsis {
+            write!(f, "|{:=^width$}", "", width = ellipsis_width + 2)?;
+        }
+        writeln!(f, "|")?;
+
+        // Helper to print a row
+        let print_row = |f: &mut std::fmt::Formatter<'_>, row: usize| -> std::fmt::Result {
+            for (col_pos, &i) in col_indices.iter().enumerate() {
+                let cell = cell_string(&self.columns[i], row);
+                write!(f, "| {:>width$} ", cell, width = col_widths[col_pos])?;
+            }
+            if show_ellipsis {
+                write!(f, "| {:^width$} ", "...", width = ellipsis_width)?;
+            }
+            writeln!(f, "|")
+        };
+
+        if rows <= 10 {
+            for row in 0..rows {
+                print_row(f, row)?;
+            }
+        } else {
+            // Print first 5
+            for row in 0..5 {
+                print_row(f, row)?;
+            }
+            // Ellipsis for rows
+            for (col_pos, _) in col_indices.iter().enumerate() {
+                write!(f, "| {:^width$} ", "...", width = col_widths[col_pos])?;
+            }
+            if show_ellipsis {
+                write!(f, "| {:^width$} ", "...", width = ellipsis_width)?;
+            }
+            writeln!(f, "|")?;
+            // Print last 5
+            for row in (rows - 5)..rows {
+                print_row(f, row)?;
+            }
+        }
+        Ok(())
     }
 }
