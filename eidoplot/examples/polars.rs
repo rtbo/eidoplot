@@ -15,12 +15,10 @@ fn main() {
     )
     .unwrap();
 
-    let title = ir::Text::new(
-        "Sine wave from polars",
-        style::Font::new("serif".into(), 24.0)
-            .with_style(style::font::Style::Italic)
-            .with_weight(style::font::Weight::BOLD),
-    );
+    let title = ir::figure::Title {
+        text: "Sine wave from polars".into(),
+        font: ir::figure::TitleFont::default(),
+    };
 
     let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("x".into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("y".into());
@@ -43,9 +41,6 @@ fn main() {
         x_axis,
         y_axis,
         series: vec![series],
-        legend: Some(ir::Legend::default().with_font(
-            style::Font::new("Noto Sans Math".into(), 16.0).with_style(style::font::Style::Italic),
-        )),
         ..ir::Plot::default()
     };
 
