@@ -120,6 +120,7 @@ impl State {
         if let Some(fill) = path.fill {
             let mut paint = tiny_skia::Paint::default();
             ts_fill(fill, &mut paint);
+
             px.fill_path(
                 path.path,
                 &paint,
@@ -154,7 +155,7 @@ impl State {
         )?;
 
         let mut paint = tiny_skia::Paint::default();
-        ts_fill(text.fill, &mut paint);
+        ts_text_fill(text.fill, &mut paint);
         let render_opts = text::render::Options {
             fill: Some(paint),
             outline: None,
@@ -178,7 +179,7 @@ impl State {
             .unwrap_or(self.transform);
 
         let mut paint = tiny_skia::Paint::default();
-        ts_fill(text.fill, &mut paint);
+        ts_text_fill(text.fill, &mut paint);
         let render_opts = text::render::Options {
             fill: Some(paint),
             outline: None,
@@ -290,6 +291,16 @@ fn ts_color(color: style::Color) -> tiny_skia::Color {
 }
 
 fn ts_fill(fill: style::Fill, paint: &mut tiny_skia::Paint) {
+    paint.colorspace = tiny_skia::ColorSpace::Linear;
+    match fill {
+        style::Fill::Solid(color) => {
+            let color = ts_color(color);
+            paint.set_color(color);
+        }
+    }
+}
+
+fn ts_text_fill(fill: style::Fill, paint: &mut tiny_skia::Paint) {
     paint.colorspace = tiny_skia::ColorSpace::Gamma2;
     match fill {
         style::Fill::Solid(color) => {

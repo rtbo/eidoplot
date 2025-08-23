@@ -43,7 +43,7 @@ pub const LEGEND_BORDER: Option<style::Line> = Some({
     }
 });
 pub const LEGEND_FILL: Option<style::Fill> =
-    Some(style::Fill::Solid(color::WHITE.with_opacity(0.5)));
+    Some(style::Fill::Solid(color::WHITE.with_opacity(0.7)));
 pub const LEGEND_SHAPE_SPACING: f32 = 10.0;
 pub const LEGEND_SHAPE_SIZE: geom::Size = geom::Size::new(25.0, 14.0);
 pub const LEGEND_PADDING: f32 = 8.0;
