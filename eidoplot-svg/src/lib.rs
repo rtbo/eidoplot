@@ -249,10 +249,15 @@ fn path_data(path: &geom::Path) -> element::path::Data {
             geom::PathSegment::LineTo(p) => {
                 data = data.line_to((p.x, p.y));
             }
+            geom::PathSegment::QuadTo(p1, p2) => {
+                data = data.quadratic_curve_to((p1.x, p1.y, p2.x, p2.y));
+            }
+            geom::PathSegment::CubicTo(p1, p2, p3) => {
+                data = data.cubic_curve_to((p1.x, p1.y, p2.x, p2.y, p3.x, p3.y));
+            }
             geom::PathSegment::Close => {
                 data = data.close();
             }
-            _ => unreachable!(),
         }
     }
     data
