@@ -1,11 +1,204 @@
 #[cfg(feature = "polars")]
 pub mod polars;
 
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub enum Sample<'a> {
+    #[default]
+    Null,
+    Num(f64),
+    Cat(&'a str),
+}
+
+impl Sample<'_> {
+    pub fn is_null(&self) -> bool {
+        matches!(self, Sample::Null)
+    }
+
+    pub fn as_num(&self) -> Option<f64> {
+        match self {
+            Sample::Num(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_cat(&self) -> Option<&str> {
+        match self {
+            Sample::Cat(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn to_owned(&self) -> OwnedSample {
+        match self {
+            Sample::Null => OwnedSample::Null,
+            Sample::Num(v) => OwnedSample::Num(*v),
+            Sample::Cat(v) => OwnedSample::Cat(v.to_string()),
+        }
+    }
+}
+
+impl std::cmp::Eq for Sample<'_> {}
+
+impl From<f64> for Sample<'_> {
+    fn from(val: f64) -> Self {
+        if val.is_finite() {
+            Sample::Num(val)
+        } else {
+
+        Sample::Num(val)
+        }
+    }
+}
+
+impl From<Option<f64>> for Sample<'_> {
+    fn from(val: Option<f64>) -> Self {
+        match val {
+            Some(v) => v.into(),
+            None => Sample::Null,
+        }
+    }
+}
+
+impl From<i64> for Sample<'_> {
+    fn from(val: i64) -> Self {
+        Sample::Num(val as f64)
+    }
+}
+
+impl From<Option<i64>> for Sample<'_> {
+    fn from(val: Option<i64>) -> Self {
+        match val {
+            Some(v) => Sample::Num(v as f64),
+            None => Sample::Null,
+        }
+    }
+}
+
+impl<'a> From<&'a str> for Sample<'a> {
+    fn from(val: &'a str) -> Self {
+        Sample::Cat(val)
+    }
+}
+
+impl<'a> From<Option<&'a str>> for Sample<'a> {
+    fn from(val: Option<&'a str>) -> Self {
+        match val {
+            Some(val) => Sample::Cat(val),
+            None => Sample::Null,
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub enum OwnedSample {
+    #[default]
+    Null,
+    Num(f64),
+    Cat(String),
+}
+
+impl OwnedSample {
+    pub fn is_null(&self) -> bool {
+        matches!(self, OwnedSample::Null)
+    }
+
+    pub fn as_num(&self) -> Option<f64> {
+        match self {
+            OwnedSample::Num(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    pub fn as_cat(&self) -> Option<&str> {
+        match self {
+            OwnedSample::Cat(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn as_sample(&self) -> Sample<'_> {
+        match self {
+            OwnedSample::Null => Sample::Null,
+            OwnedSample::Num(v) => Sample::Num(*v),
+            OwnedSample::Cat(v) => Sample::Cat(v.as_str()),
+        }
+    }
+}
+
+impl std::cmp::Eq for OwnedSample {}
+
+impl From<f64> for OwnedSample {
+    fn from(val: f64) -> Self {
+        if val.is_finite() {
+            OwnedSample::Num(val)
+        } else {
+
+        OwnedSample::Num(val)
+        }
+    }
+}
+
+impl From<Option<f64>> for OwnedSample {
+    fn from(val: Option<f64>) -> Self {
+        match val {
+            Some(v) => v.into(),
+            None => OwnedSample::Null,
+        }
+    }
+}
+
+impl From<i64> for OwnedSample {
+    fn from(val: i64) -> Self {
+        OwnedSample::Num(val as f64)
+    }
+}
+
+impl From<Option<i64>> for OwnedSample {
+    fn from(val: Option<i64>) -> Self {
+        match val {
+            Some(v) => OwnedSample::Num(v as f64),
+            None => OwnedSample::Null,
+        }
+    }
+}
+
+impl<'a> From<&'a str> for OwnedSample {
+    fn from(val: &'a str) -> Self {
+        OwnedSample::Cat(val.to_string())
+    }
+}
+
+impl From<String> for OwnedSample {
+    fn from(val: String) -> Self {
+        OwnedSample::Cat(val)
+    }
+}
+
+impl From<Option<String>> for OwnedSample {
+    fn from(val: Option<String>) -> Self {
+        match val {
+            Some(val) => OwnedSample::Cat(val),
+            None => OwnedSample::Null,
+        }
+    }
+}
+
 /// Trait for a column of unspecified type
 pub trait Column: std::fmt::Debug {
     fn len(&self) -> usize;
 
     fn len_some(&self) -> usize;
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
+        if let Some(iter) = self.as_i64_iter() {
+            Box::new(iter.map(Sample::from)) 
+        } else if let Some(iter) = self.as_f64_iter() {
+            Box::new(iter.map(Sample::from))
+        } else {
+            Box::new(self.as_str_iter().unwrap().map(Sample::from))
+        }
+    }
 
     fn f64(&self) -> Option<&dyn F64Column> {
         None
@@ -31,7 +224,7 @@ pub trait Column: std::fmt::Debug {
     }
 }
 
-pub trait F64Column {
+pub trait F64Column: std::fmt::Debug {
     fn len(&self) -> usize;
 
     fn len_some(&self) -> usize {
@@ -57,7 +250,7 @@ pub trait F64Column {
     }
 }
 
-pub trait I64Column {
+pub trait I64Column: std::fmt::Debug {
     fn len(&self) -> usize;
 
     fn len_some(&self) -> usize {
@@ -83,7 +276,7 @@ pub trait I64Column {
     }
 }
 
-pub trait StrColumn {
+pub trait StrColumn: std::fmt::Debug {
     fn len(&self) -> usize;
 
     fn len_some(&self) -> usize {
@@ -305,6 +498,20 @@ impl From<Vec<Option<String>>> for VecColumn {
     }
 }
 
+impl From<Vec<i64>> for VecColumn {
+    fn from(v: Vec<i64>) -> Self {
+        let v: Vec<Option<i64>> = v.into_iter().map(Some).collect();
+        VecColumn::I64(v)
+    }
+}
+
+impl From<Vec<String>> for VecColumn {
+    fn from(v: Vec<String>) -> Self {
+        let v: Vec<Option<String>> = v.into_iter().map(Some).collect();
+        VecColumn::Str(v)
+    }
+}
+
 impl Column for VecColumn {
     fn len(&self) -> usize {
         match self {
@@ -317,8 +524,16 @@ impl Column for VecColumn {
     fn len_some(&self) -> usize {
         match self {
             VecColumn::F64(v) => v.len_some(),
-            VecColumn::I64(v) => v.len(),
+            VecColumn::I64(v) => <dyn I64Column>::len_some(v),
             VecColumn::Str(v) => v.len_some(),
+        }
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
+        match self {
+            VecColumn::F64(v) => Box::new(v.iter().map(|v| v.into())),
+            VecColumn::I64(v) => Box::new(v.as_slice().iter().map(|v| (*v).into())),
+            VecColumn::Str(v) => Box::new(v.iter().map(|v| v.into())),
         }
     }
 

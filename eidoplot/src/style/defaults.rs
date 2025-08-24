@@ -21,7 +21,7 @@ pub const TICKS_GRID_LINE: Option<style::Line> = Some({
     style::Line {
         width: 1.0,
         color: color::GRAY,
-        pattern: style::LinePattern::Dash(DASH_PATTERN),
+        pattern: style::LinePattern::Solid,
     }
 });
 pub const MINOR_TICKS_GRID_LINE: Option<style::Line> = Some({

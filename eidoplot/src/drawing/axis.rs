@@ -1,12 +1,13 @@
-use crate::drawing::Error;
+use crate::data;
+use crate::drawing::{Categories, Error};
 
 /// Bounds of an axis
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Bounds {
     /// Numeric bounds, used by both float and integer
     Num(NumBounds),
     /// Category bounds
-    Cat(Vec<String>),
+    Cat(Categories),
 }
 
 impl From<NumBounds> for Bounds {
@@ -15,8 +16,8 @@ impl From<NumBounds> for Bounds {
     }
 }
 
-impl From<Vec<String>> for Bounds {
-    fn from(value: Vec<String>) -> Self {
+impl From<Categories> for Bounds {
+    fn from(value: Categories) -> Self {
         Self::Cat(value)
     }
 }
@@ -29,10 +30,8 @@ impl Bounds {
                 Ok(())
             }
             (Bounds::Cat(a), Bounds::Cat(b)) => {
-                for s in b {
-                    if !a.contains(s) {
-                        a.push(s.clone());
-                    }
+                for s in b.iter() {
+                    a.push(s);
                 }
                 Ok(())
             }
@@ -42,9 +41,31 @@ impl Bounds {
         }
     }
 
-    pub fn as_num(&self) -> Option<NumBounds> {
+    pub fn _contains(&self, sample: data::Sample) -> bool {
         match self {
-            Bounds::Num(n) => Some(*n),
+            Bounds::Num(n) => n.contains(sample.as_num().unwrap()),
+            Bounds::Cat(cats) => cats._contains(sample.as_cat().unwrap()),
+        }
+    }
+
+    pub fn _is_num(&self) -> bool {
+        matches!(self, Bounds::Num(_))
+    }   
+
+    pub fn _is_cat(&self) -> bool {
+        matches!(self, Bounds::Cat(_))
+    }
+
+    pub fn as_num(&self) -> Option<&NumBounds> {
+        match self {
+            Bounds::Num(n) => Some(n),
+            _ => None,
+        }
+    }
+
+    pub fn _as_cat(&self) -> Option<&Categories> {
+        match self {
+            Bounds::Cat(cats) => Some(cats),
             _ => None,
         }
     }

@@ -35,3 +35,6 @@ required-features = ["polars"]
 [[example]]
 name="iris"
 required-features = ["polars"]
+
+[[example]]
+name="cat"

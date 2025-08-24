@@ -1,7 +1,18 @@
-use crate::drawing::axis;
+use crate::data;
+use crate::drawing::{Categories, axis};
 use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
 
-pub fn locate(locator: &Locator, ab: axis::NumBounds) -> Vec<f64> {
+pub fn locate(locator: &Locator, ab: &axis::Bounds) -> Vec<data::OwnedSample> {
+    match ab {
+        axis::Bounds::Cat(cats) => cats.iter().map(|c| c.into()).collect(),
+        axis::Bounds::Num(ab) => {
+            let ticks = locate_num(locator, *ab);
+            ticks.iter().map(|t| (*t).into()).collect()
+        }
+    }
+}
+
+fn locate_num(locator: &Locator, ab: axis::NumBounds) -> Vec<f64> {
     match locator {
         Locator::Auto => MaxN::new_auto().ticks(ab),
         Locator::MaxN { bins, steps } => {
@@ -149,7 +160,14 @@ impl MaxNEdgeInteger {
     }
 }
 
-pub fn label_formatter(ticks: &Ticks, ab: axis::NumBounds) -> Box<dyn LabelFormatter> {
+pub fn label_formatter(ticks: &Ticks, ab: &axis::Bounds) -> Box<dyn LabelFormatter> {
+    match ab {
+        axis::Bounds::Cat(cats) => Box::new(cats.clone()),
+        axis::Bounds::Num(ab) => num_label_formatter(ticks, *ab),
+    }
+}
+
+fn num_label_formatter(ticks: &Ticks, ab: axis::NumBounds) -> Box<dyn LabelFormatter> {
     match ticks.formatter() {
         Formatter::Auto => auto_label_formatter(ticks.locator(), ab),
         Formatter::Prec(prec) => Box::new(PrecLabelFormat(*prec)),
@@ -169,13 +187,21 @@ pub trait LabelFormatter {
     fn axis_annotation(&self) -> Option<&str> {
         None
     }
-    fn format_label(&self, data: f64) -> String;
+    fn format_label(&self, data: data::Sample) -> String;
+}
+
+impl LabelFormatter for Categories {
+    fn format_label(&self, data: data::Sample) -> String {
+        let cat = data.as_cat().expect("Should be a category");
+        self.iter().find(|c| *c == cat).map(str::to_string).unwrap_or_default()
+    }
 }
 
 struct PrecLabelFormat(usize);
 
 impl LabelFormatter for PrecLabelFormat {
-    fn format_label(&self, data: f64) -> String {
+    fn format_label(&self, data: data::Sample) -> String {
+        let data = data.as_num().unwrap();
         format!("{data:.*}", self.0)
     }
 }
@@ -188,7 +214,8 @@ impl LabelFormatter for PiMultipleLabelFormat {
     fn axis_annotation(&self) -> Option<&str> {
         Some("\u{00d7} π")
     }
-    fn format_label(&self, data: f64) -> String {
+    fn format_label(&self, data: data::Sample) -> String {
+        let data = data.as_num().unwrap();
         let val = data / PI;
         format!("{val:.*}", self.prec)
     }
@@ -197,7 +224,8 @@ impl LabelFormatter for PiMultipleLabelFormat {
 struct PercentLabelFormat;
 
 impl LabelFormatter for PercentLabelFormat {
-    fn format_label(&self, data: f64) -> String {
+    fn format_label(&self, data: data::Sample) -> String {
+        let data = data.as_num().unwrap();
         format!("{:.0}%", data * 100.0)
     }
 }

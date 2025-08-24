@@ -1,4 +1,6 @@
-use crate::drawing::{Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale};
+use crate::drawing::{
+    ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
+};
 use crate::render::{self, Surface as _};
 use crate::{data, geom, ir};
 
@@ -47,17 +49,12 @@ fn calc_xy_bounds<D>(
     data_source: &D,
     x_data: &ir::series::DataCol,
     y_data: &ir::series::DataCol,
-) -> Result<(axis::NumBounds, axis::NumBounds), Error>
+) -> Result<(axis::Bounds, axis::Bounds), Error>
 where
     D: data::Source,
 {
-    let x_col = get_column(x_data, data_source)?
-        .f64()
-        .ok_or_else(|| Error::InconsistentData("X data must be numeric".into()))?;
-
-    let y_col = get_column(y_data, data_source)?
-        .f64()
-        .ok_or_else(|| Error::InconsistentData("Y data must be numeric".into()))?;
+    let x_col = get_column(x_data, data_source)?;
+    let y_col = get_column(y_data, data_source)?;
 
     if x_col.len() != y_col.len() {
         return Err(Error::InconsistentData(
@@ -89,9 +86,7 @@ impl Series {
     {
         let processed = match &series.plot {
             ir::SeriesPlot::Line(line) => SeriesPlot::Line(Line::from_ir(line, data_source)?),
-            ir::SeriesPlot::Scatter(sc) => {
-                SeriesPlot::Scatter(Scatter::from_ir(sc, data_source)?)
-            }
+            ir::SeriesPlot::Scatter(sc) => SeriesPlot::Scatter(Scatter::from_ir(sc, data_source)?),
             ir::SeriesPlot::Histogram(hist) => {
                 SeriesPlot::Histogram(Histogram::from_ir(hist, data_source)?)
             }
@@ -101,8 +96,8 @@ impl Series {
 
     pub fn bounds(&self) -> (axis::Bounds, axis::Bounds) {
         match &self.plot {
-            SeriesPlot::Line(line) => (line.ab.0.into(), line.ab.1.into()),
-            SeriesPlot::Scatter(scatter) => (scatter.ab.0.into(), scatter.ab.1.into()),
+            SeriesPlot::Line(line) => (line.ab.0.clone(), line.ab.1.clone()),
+            SeriesPlot::Scatter(scatter) => (scatter.ab.0.clone(), scatter.ab.1.clone()),
             SeriesPlot::Histogram(hist) => (hist.ab.0.into(), hist.ab.1.into()),
         }
     }
@@ -154,7 +149,7 @@ where
 
 #[derive(Debug, Clone)]
 struct Line {
-    ab: (axis::NumBounds, axis::NumBounds),
+    ab: (axis::Bounds, axis::Bounds),
 }
 
 impl Line {
@@ -179,9 +174,8 @@ impl Line {
         D: data::Source,
     {
         // unwraping here as data is checked during setup phase
-        let x_col = get_column(&ir.x_data, data_source).unwrap().f64().unwrap();
-
-        let y_col = get_column(&ir.y_data, data_source).unwrap().f64().unwrap();
+        let x_col = get_column(&ir.x_data, data_source).unwrap();
+        let y_col = get_column(&ir.y_data, data_source).unwrap();
 
         debug_assert!(x_col.len() == y_col.len());
 
@@ -189,19 +183,18 @@ impl Line {
 
         let mut pb = geom::PathBuilder::with_capacity(x_col.len() + 1, x_col.len());
         for (x, y) in x_col.iter().zip(y_col.iter()) {
-            match (x, y) {
-                (Some(x), Some(y)) => {
-                    let (x, y) = cm.map_coord((x, y));
-                    let x = rect.left() + x;
-                    let y = rect.bottom() - y;
-                    if in_a_line {
-                        pb.line_to(x, y);
-                    } else {
-                        pb.move_to(x, y);
-                        in_a_line = true;
-                    }
-                }
-                _ => in_a_line = false,
+            if x.is_null() || y.is_null() {
+                in_a_line = false;
+                continue;
+            }
+            let (x, y) = cm.map_coord((x, y));
+            let x = rect.left() + x;
+            let y = rect.bottom() - y;
+            if in_a_line {
+                pb.line_to(x, y);
+            } else {
+                pb.move_to(x, y);
+                in_a_line = true;
             }
         }
         pb.finish().expect("Should be a valid path")
@@ -236,9 +229,9 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct Scatter {
-    ab: (axis::NumBounds, axis::NumBounds),
+    ab: (axis::Bounds, axis::Bounds),
 }
 
 impl Scatter {
@@ -271,31 +264,27 @@ where
         let path = marker::marker_path(&ir.marker);
 
         // unwraping here as data is checked during setup phase
-        let x_col = get_column(&ir.x_data, ctx.data_source()).unwrap().f64().unwrap();
-        let y_col = get_column(&ir.y_data, ctx.data_source()).unwrap().f64().unwrap();
+        let x_col = get_column(&ir.x_data, ctx.data_source()).unwrap();
+        let y_col = get_column(&ir.y_data, ctx.data_source()).unwrap();
         debug_assert!(x_col.len() == y_col.len());
 
         for (x, y) in x_col.iter().zip(y_col.iter()) {
-            match (x, y) {
-                (Some(x), Some(y)) => {
-                    let (x, y) = cm.map_coord((x, y));
-                    let x = rect.left() + x;
-                    let y = rect.bottom() - y;
-                    let transform = geom::Transform::from_translate(
-                        x, y,
-                    );
-                    let path = render::Path {
-                        path: &path,
-                        fill: ir.marker.fill,
-                        stroke: ir.marker.stroke,
-                        transform: Some(&transform),
-                    };
-                    self.draw_path(&path)?;
-                }
-                _ => ()
+            if x.is_null() || y.is_null() {
+                continue;
             }
+            let (x, y) = cm.map_coord((x, y));
+            let x = rect.left() + x;
+            let y = rect.bottom() - y;
+            let transform = geom::Transform::from_translate(x, y);
+            let path = render::Path {
+                path: &path,
+                fill: ir.marker.fill,
+                stroke: ir.marker.stroke,
+                transform: Some(&transform),
+            };
+            self.draw_path(&path)?;
         }
-        
+
         Ok(())
     }
 }
@@ -374,18 +363,18 @@ where
         cm: &CoordMapXy,
     ) -> Result<(), render::Error> {
         let mut pb = geom::PathBuilder::new();
-        let mut x = rect.left() + cm.x.map_coord(hist.bins[0].range.0);
-        let mut y = rect.bottom() - cm.y.map_coord(0.0);
+        let mut x = rect.left() + cm.x.map_coord(hist.bins[0].range.0.into());
+        let mut y = rect.bottom() - cm.y.map_coord(0.0.into());
         pb.move_to(x, y);
 
         for bin in hist.bins.iter() {
-            y = rect.bottom() - cm.y.map_coord(bin.value);
+            y = rect.bottom() - cm.y.map_coord(bin.value.into());
             pb.line_to(x, y);
-            x = rect.left() + cm.x.map_coord(bin.range.1);
+            x = rect.left() + cm.x.map_coord(bin.range.1.into());
             pb.line_to(x, y);
         }
 
-        y = rect.bottom() - cm.y.map_coord(0.0);
+        y = rect.bottom() - cm.y.map_coord(0.0.into());
         pb.line_to(x, y);
 
         let path = pb.finish().expect("Should be a valid path");

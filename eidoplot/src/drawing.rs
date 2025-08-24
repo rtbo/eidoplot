@@ -59,29 +59,6 @@ pub struct Options {
     pub fontdb: Option<Arc<fontdb::Database>>,
 }
 
-#[derive(Debug)]
-struct Ctx<'a, D> {
-    data_source: &'a D,
-    fontdb: Arc<fontdb::Database>,
-}
-
-impl<'a, D> Ctx<'a, D> {
-    pub fn new(data_source: &'a D, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D> {
-        Ctx {
-            data_source,
-            fontdb,
-        }
-    }
-
-    pub fn data_source(&self) -> &'a D {
-        self.data_source
-    }
-
-    pub fn fontdb(&self) -> &Arc<fontdb::Database> {
-        &self.fontdb
-    }
-}
-
 pub trait SurfaceExt: render::Surface {
     fn draw_figure<D>(
         &mut self,
@@ -104,13 +81,28 @@ pub trait SurfaceExt: render::Surface {
 
 impl<T> SurfaceExt for T where T: render::Surface {}
 
-trait F64ColumnExt: data::F64Column {
-    fn bounds(&self) -> Option<axis::NumBounds> {
-        self.minmax().map(|mm| mm.into())
-    }
+#[derive(Debug)]
+struct Ctx<'a, D> {
+    data_source: &'a D,
+    fontdb: Arc<fontdb::Database>,
 }
 
-impl<T> F64ColumnExt for T where T: data::F64Column + ?Sized {}
+impl<'a, D> Ctx<'a, D> {
+    pub fn new(data_source: &'a D, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D> {
+        Ctx {
+            data_source,
+            fontdb,
+        }
+    }
+
+    pub fn data_source(&self) -> &'a D {
+        self.data_source
+    }
+
+    pub fn fontdb(&self) -> &Arc<fontdb::Database> {
+        &self.fontdb
+    }
+}
 
 struct SurfWrapper<'a, S: ?Sized> {
     surface: &'a mut S,
@@ -150,5 +142,81 @@ where
 
     fn pop_clip(&mut self) -> Result<(), render::Error> {
         self.surface.pop_clip()
+    }
+}
+
+trait F64ColumnExt: data::F64Column {
+    fn bounds(&self) -> Option<axis::NumBounds> {
+        self.minmax().map(|(min, max)| (min, max).into())
+    }
+}
+
+impl<T> F64ColumnExt for T where T: data::F64Column + ?Sized {}
+
+trait ColumnExt: data::Column {
+    fn bounds(&self) -> Option<axis::Bounds> {
+        if let Some(num) = self.f64() {
+            num.minmax()
+                .map(|(min, max)| axis::Bounds::Num((min, max).into()))
+        } else if let Some(cats) = self.str() {
+            Some(axis::Bounds::Cat(cats.into()))
+        } else {
+            None
+        }
+    }
+}
+
+impl<T> ColumnExt for T where T: data::Column + ?Sized {}
+
+#[derive(Debug, Clone, PartialEq)]
+struct Category(String);
+
+#[derive(Debug, Clone, PartialEq)]
+struct Categories {
+    cats: Vec<Category>,
+}
+
+impl Categories {
+    fn new() -> Self {
+        Categories { cats: Vec::new() }
+    }
+
+    fn len(&self) -> usize {
+        self.cats.len()
+    }
+
+    fn _is_empty(&self) -> bool {
+        self.cats.is_empty()
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &str> {
+        self.cats.iter().map(|c| c.0.as_str())
+    }
+
+    fn _get(&self, idx: usize) -> Option<&str> {
+        self.cats.get(idx).map(|c| c.0.as_str())
+    }
+
+    fn _contains(&self, cat: &str) -> bool {
+        self.cats.iter().any(|c| c.0 == cat)
+    }
+
+    fn push(&mut self, cat: &str) {
+        if self.cats.iter().any(|c| c.0 == cat) {
+            return;
+        }
+        self.cats.push(Category(cat.to_string()));
+    }
+}
+
+impl From<&dyn data::StrColumn> for Categories {
+    fn from(col: &dyn data::StrColumn) -> Self {
+        let mut cats = Categories::new();
+        for s in col.iter() {
+            if let Some(s) = s {
+                cats.push(s);
+            }
+        }
+        cats
     }
 }
