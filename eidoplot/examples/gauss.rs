@@ -37,7 +37,7 @@ fn main() {
 
     let dist_series = ir::Series {
         name: Some("distribution".into()),
-        plot: ir::SeriesPlot::Xy(ir::series::Xy {
+        plot: ir::SeriesPlot::Line(ir::series::Line {
             line: style::Line {
                 color: style::color::DARKSLATEBLUE,
                 width: 4.0,
@@ -69,7 +69,7 @@ fn main() {
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
 
-    let data_source = data::VecSource::new().with_f64_column("pop".into(), pop);
+    let data_source = data::TableSource::new().with_f64_column("pop".into(), pop);
 
     common::save_figure(&fig, &data_source);
 }

@@ -16,7 +16,7 @@ fn main() {
 
     let series = ir::Series {
         name: Some("y=sin(x)".into()),
-        plot: ir::SeriesPlot::Xy(ir::series::Xy {
+        plot: ir::SeriesPlot::Line(ir::series::Line {
             line: style::Line {
                 color: style::color::BLUE,
                 width: 3.0,
@@ -41,7 +41,7 @@ fn main() {
     let x: Vec<f64> = (0..=360).map(|t| t as f64 * PI / 180.0).collect();
     let y = x.iter().map(|x| x.sin()).collect();
 
-    let data_source = data::VecSource::new()
+    let data_source = data::TableSource::new()
         .with_f64_column("x".into(), x)
         .with_f64_column("y".into(), y);
 

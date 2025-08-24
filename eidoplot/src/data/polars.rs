@@ -60,17 +60,9 @@ impl data::Column for Series {
 }
 
 impl data::Source for DataFrame {
-    fn column_names(&self) -> Vec<&str> {
-        self.get_column_names_str()
-    }
-
     fn column(&self, name: &str) -> Option<&dyn data::Column> {
         self.column(name)
             .map(|c| c.as_materialized_series() as &dyn data::Column)
             .ok()
-    }
-
-    fn len(&self) -> usize {
-        self.height()
     }
 }

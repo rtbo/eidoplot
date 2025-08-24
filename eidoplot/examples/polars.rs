@@ -25,7 +25,7 @@ fn main() {
 
     let series = ir::Series {
         name: Some("y=sin(x)".into()),
-        plot: ir::SeriesPlot::Xy(ir::series::Xy {
+        plot: ir::SeriesPlot::Line(ir::series::Line {
             line: style::Line {
                 color: style::color::BLUE,
                 width: 3.0,

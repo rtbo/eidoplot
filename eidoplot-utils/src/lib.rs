@@ -1,4 +1,4 @@
-use eidoplot::data::{VecColumn, VecSource};
+use eidoplot::data::{VecColumn, TableSource};
 
 #[derive(Debug, Clone, Copy)]
 pub enum CsvParseError {
@@ -23,10 +23,10 @@ impl std::fmt::Display for CsvParseError {
 
 impl std::error::Error for CsvParseError {}
 
-pub fn parse_csv_data(data: &str, sep: char) -> Result<VecSource, CsvParseError> {
+pub fn parse_csv_data(data: &str, sep: char) -> Result<TableSource, CsvParseError> {
     let mut lines = data.lines();
     let Some(head_line) = lines.next() else {
-        return Ok(VecSource::new());
+        return Ok(TableSource::new());
     };
     let mut builder = VecSourceRowBuilder::new();
     for line in lines {
@@ -80,7 +80,7 @@ impl VecSourceRowBuilder {
         self.rows.push(row);
     }
 
-    pub fn finish(self, heads: &[&str]) -> Result<VecSource, CsvParseError> {
+    pub fn finish(self, heads: &[&str]) -> Result<TableSource, CsvParseError> {
         let columns: Result<Vec<_>, _> = (0..heads.len())
             .into_iter()
             .map(|ci| build_empty_column(&self.rows, ci))
@@ -105,7 +105,7 @@ impl VecSourceRowBuilder {
             }
         }
 
-        let mut src = VecSource::new();
+        let mut src = TableSource::new();
         for (ci, col) in columns.into_iter().enumerate() {
             src.add_column(heads[ci], col);
         }

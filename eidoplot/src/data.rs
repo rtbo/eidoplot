@@ -1,7 +1,7 @@
 #[cfg(feature = "polars")]
 pub mod polars;
 
-/// Trait for a column of a specific type
+/// Trait for a column of unspecified type
 pub trait Column: std::fmt::Debug {
     fn len(&self) -> usize;
 
@@ -95,13 +95,191 @@ pub trait StrColumn {
 
 /// Trait for a table-like data source
 pub trait Source {
-    fn column_names(&self) -> Vec<&str>;
     fn column(&self, name: &str) -> Option<&dyn Column>;
-    fn len(&self) -> usize;
+}
+
+impl F64Column for Vec<f64> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_finite()).count()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(
+            self.as_slice()
+                .iter()
+                .copied()
+                .map(|f| if f.is_finite() { Some(f) } else { None }),
+        )
+    }
+}
+
+impl F64Column for Vec<Option<i64>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(self.as_slice().iter().copied().map(|v| v.map(|v| v as f64)))
+    }
+}
+
+impl F64Column for Vec<i64> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(self.as_slice().iter().copied().map(|v| Some(v as f64)))
+    }
+}
+
+impl I64Column for Vec<Option<i64>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
+        Box::new(self.as_slice().iter().copied())
+    }
+}
+
+impl I64Column for Vec<i64> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
+        Box::new(self.as_slice().iter().copied().map(Some))
+    }
+}
+
+impl StrColumn for Vec<Option<String>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+        Box::new(self.as_slice().iter().map(|s| s.as_deref()))
+    }
+}
+
+impl StrColumn for Vec<String> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+        Box::new(self.as_slice().iter().map(|s| Some(s.as_str())))
+    }
+}
+
+impl StrColumn for Vec<Option<&str>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+        Box::new(self.as_slice().iter().map(|s| *s))
+    }
+}
+
+impl StrColumn for Vec<&str> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+        Box::new(self.as_slice().iter().map(|s| Some(*s)))
+    }
+}
+
+/// Simple collection of named columns, owning the data
+#[derive(Debug)]
+pub struct NamedOwnedColumns {
+    names: Vec<String>,
+    columns: Vec<Box<dyn Column>>,
+}
+
+impl NamedOwnedColumns {
+    pub fn new() -> Self {
+        Self {
+            names: Vec::new(),
+            columns: Vec::new(),
+        }
+    }
+
+    pub fn add_column(&mut self, name: &str, col: Box<dyn Column>) {
+        let position = self.names.as_slice().iter().position(|n| n == name);
+        if let Some(pos) = position {
+            self.columns[pos] = col;
+            return;
+        }
+        self.names.push(name.to_string());
+        self.columns.push(col);
+    }
+}
+
+impl Source for NamedOwnedColumns {
+    fn column(&self, name: &str) -> Option<&dyn Column> {
+        let Some(idx) = self.names.as_slice().iter().position(|k| k == name) else {
+            return None;
+        };
+        self.columns.get(idx).map(|c| c.as_ref() as &dyn Column)
+    }
+}
+
+/// Simple collection of named columns, referencing external data
+#[derive(Debug)]
+pub struct NamedColumns<'a> {
+    names: Vec<String>,
+    columns: Vec<&'a dyn Column>,
+}
+
+impl<'a> NamedColumns<'a> {
+    pub fn new() -> Self {
+        Self {
+            names: Vec::new(),
+            columns: Vec::new(),
+        }
+    }
+
+    pub fn add_column(&mut self, name: &str, col: &'a dyn Column) {
+        let position = self.names.as_slice().iter().position(|n| n == name);
+        if let Some(pos) = position {
+            self.columns[pos] = col;
+            return;
+        }
+        self.names.push(name.to_string());
+        self.columns.push(col);
+    }
+}
+
+impl<'a> Source for NamedColumns<'a> {
+    fn column(&self, name: &str) -> Option<&dyn Column> {
+        let Some(idx) = self.names.as_slice().iter().position(|k| k == name) else {
+            return None;
+        };
+        self.columns.get(idx).map(|c| *c as &dyn Column)
+    }
 }
 
 // Simple vector base implementation
-
 #[derive(Debug, Clone)]
 pub enum VecColumn {
     F64(Vec<f64>),
@@ -167,79 +345,14 @@ impl Column for VecColumn {
     }
 }
 
-impl F64Column for Vec<f64> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn len_some(&self) -> usize {
-        self.as_slice().iter().filter(|v| v.is_finite()).count()
-    }
-
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
-        Box::new(
-            self.as_slice()
-                .iter()
-                .copied()
-                .map(|f| if f.is_finite() { Some(f) } else { None }),
-        )
-    }
-}
-
-impl F64Column for Vec<Option<i64>> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn len_some(&self) -> usize {
-        self.len()
-    }
-
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
-        Box::new(self.as_slice().iter().copied().map(|v| v.map(|v| v as f64)))
-    }
-}
-
-impl I64Column for Vec<Option<i64>> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn len_some(&self) -> usize {
-        self.len()
-    }
-
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
-        Box::new(self.as_slice().iter().copied())
-    }
-}
-
-impl StrColumn for Vec<Option<String>> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
-        Box::new(self.as_slice().iter().map(|s| s.as_deref()))
-    }
-}
-
-impl StrColumn for Vec<Option<&str>> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
-        Box::new(self.as_slice().iter().map(|s| *s))
-    }
-}
-
-
-pub struct VecSource {
+/// Simple table source backed by vectors
+pub struct TableSource {
     heads: Vec<String>,
     columns: Vec<VecColumn>,
     len: usize,
 }
 
-impl VecSource {
+impl TableSource {
     pub fn new() -> Self {
         Self {
             heads: Vec::new(),
@@ -282,27 +395,23 @@ impl VecSource {
         self.add_column(name, VecColumn::Str(col));
         self
     }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
 }
 
-impl Source for VecSource {
-    fn column_names(&self) -> Vec<&str> {
-        self.heads.as_slice().iter().map(|s| s.as_str()).collect()
-    }
-
+impl Source for TableSource {
     fn column(&self, name: &str) -> Option<&dyn Column> {
         let Some(idx) = self.heads.as_slice().iter().position(|k| k == name) else {
             return None;
         };
         self.columns.get(idx).map(|c| c as &dyn Column)
     }
-
-    fn len(&self) -> usize {
-        self.len
-    }
 }
 
 /// Custom Debug implementation to pretty-print the table
-impl std::fmt::Debug for VecSource {
+impl std::fmt::Debug for TableSource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let rows = self.len();
         let cols = self.heads.len();
