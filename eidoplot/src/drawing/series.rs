@@ -1,8 +1,8 @@
-use scale::CoordMapXy;
-
-use crate::drawing::{Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, scale};
+use crate::drawing::{Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale};
 use crate::render::{self, Surface as _};
 use crate::{data, geom, ir};
+
+use scale::CoordMapXy;
 
 pub fn series_has_legend(series: &ir::Series) -> bool {
     series.name.is_some()
@@ -21,7 +21,8 @@ impl legend::Entry for ir::Series {
 
     fn shape(&self) -> legend::Shape {
         match &self.plot {
-            ir::SeriesPlot::Xy(xy) => legend::Shape::Line(xy.line),
+            ir::SeriesPlot::Line(xy) => legend::Shape::Line(xy.line),
+            ir::SeriesPlot::Scatter(sc) => legend::Shape::Marker(sc.marker),
             ir::SeriesPlot::Histogram(hist) => legend::Shape::Rect(hist.fill, hist.line),
         }
     }
@@ -42,13 +43,42 @@ where
     }
 }
 
+fn calc_xy_bounds<D>(
+    data_source: &D,
+    x_data: &ir::series::DataCol,
+    y_data: &ir::series::DataCol,
+) -> Result<(axis::NumBounds, axis::NumBounds), Error>
+where
+    D: data::Source,
+{
+    let x_col = get_column(x_data, data_source)?
+        .f64()
+        .ok_or_else(|| Error::InconsistentData("X data must be numeric".into()))?;
+
+    let y_col = get_column(y_data, data_source)?
+        .f64()
+        .ok_or_else(|| Error::InconsistentData("Y data must be numeric".into()))?;
+
+    if x_col.len() != y_col.len() {
+        return Err(Error::InconsistentData(
+            "X and Y data must be the same length".to_string(),
+        ));
+    }
+
+    let x_bounds = x_col.bounds().ok_or(Error::UnboundedAxis)?;
+    let y_bounds = y_col.bounds().ok_or(Error::UnboundedAxis)?;
+
+    Ok((x_bounds, y_bounds))
+}
+
 pub struct Series {
     plot: SeriesPlot,
 }
 
 #[derive(Debug, Clone)]
 enum SeriesPlot {
-    Xy(Xy),
+    Line(Line),
+    Scatter(Scatter),
     Histogram(Histogram),
 }
 
@@ -58,7 +88,10 @@ impl Series {
         D: data::Source,
     {
         let processed = match &series.plot {
-            ir::SeriesPlot::Xy(xy) => SeriesPlot::Xy(Xy::from_ir(xy, data_source)?),
+            ir::SeriesPlot::Line(line) => SeriesPlot::Line(Line::from_ir(line, data_source)?),
+            ir::SeriesPlot::Scatter(sc) => {
+                SeriesPlot::Scatter(Scatter::from_ir(sc, data_source)?)
+            }
             ir::SeriesPlot::Histogram(hist) => {
                 SeriesPlot::Histogram(Histogram::from_ir(hist, data_source)?)
             }
@@ -68,7 +101,8 @@ impl Series {
 
     pub fn bounds(&self) -> (axis::Bounds, axis::Bounds) {
         match &self.plot {
-            SeriesPlot::Xy(xy) => (xy.ab.0.into(), xy.ab.1.into()),
+            SeriesPlot::Line(line) => (line.ab.0.into(), line.ab.1.into()),
+            SeriesPlot::Scatter(scatter) => (scatter.ab.0.into(), scatter.ab.1.into()),
             SeriesPlot::Histogram(hist) => (hist.ab.0.into(), hist.ab.1.into()),
         }
     }
@@ -104,8 +138,11 @@ where
         D: data::Source,
     {
         match (&ir_series.plot, &series.plot) {
-            (ir::SeriesPlot::Xy(ir), SeriesPlot::Xy(xy)) => {
-                self.draw_series_xy(ctx, ir, xy, rect, cm)
+            (ir::SeriesPlot::Line(ir), SeriesPlot::Line(xy)) => {
+                self.draw_series_line(ctx, ir, xy, rect, cm)
+            }
+            (ir::SeriesPlot::Scatter(ir), SeriesPlot::Scatter(sc)) => {
+                self.draw_series_scatter(ctx, ir, sc, rect, cm)
             }
             (ir::SeriesPlot::Histogram(ir), SeriesPlot::Histogram(hist)) => {
                 Ok(self.draw_series_histogram(ir, hist, rect, cm)?)
@@ -116,40 +153,24 @@ where
 }
 
 #[derive(Debug, Clone)]
-struct Xy {
+struct Line {
     ab: (axis::NumBounds, axis::NumBounds),
 }
 
-impl Xy {
-    fn from_ir<D>(ir: &ir::series::Xy, data_source: &D) -> Result<Self, Error>
+impl Line {
+    fn from_ir<D>(ir: &ir::series::Line, data_source: &D) -> Result<Self, Error>
     where
         D: data::Source,
     {
-        let x_col = get_column(&ir.x_data, data_source)?
-            .f64()
-            .ok_or_else(|| Error::InconsistentData("XY data must be numeric".into()))?;
-
-        let y_col = get_column(&ir.y_data, data_source)?
-            .f64()
-            .ok_or_else(|| Error::InconsistentData("XY data must be numeric".into()))?;
-
-        if x_col.len() != y_col.len() {
-            return Err(Error::InconsistentData(
-                "X and Y data must be the same length".to_string(),
-            ));
-        }
-
-        let x_bounds = x_col.bounds().ok_or(Error::UnboundedAxis)?;
-        let y_bounds = y_col.bounds().ok_or(Error::UnboundedAxis)?;
-
-        Ok(Xy {
+        let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &ir.x_data, &ir.y_data)?;
+        Ok(Line {
             ab: (x_bounds, y_bounds),
         })
     }
 
     fn build_path<D>(
         &self,
-        ir: &ir::series::Xy,
+        ir: &ir::series::Line,
         data_source: &D,
         rect: &geom::Rect,
         cm: &CoordMapXy,
@@ -191,18 +212,18 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    fn draw_series_xy<D>(
+    fn draw_series_line<D>(
         &mut self,
         ctx: &Ctx<D>,
-        ir: &ir::series::Xy,
-        xy: &Xy,
+        ir: &ir::series::Line,
+        line: &Line,
         rect: &geom::Rect,
         cm: &CoordMapXy,
     ) -> Result<(), Error>
     where
         D: data::Source,
     {
-        let path = xy.build_path(ir, ctx.data_source(), rect, cm);
+        let path = line.build_path(ir, ctx.data_source(), rect, cm);
 
         let path = render::Path {
             path: &path,
@@ -211,6 +232,70 @@ where
             transform: None,
         };
         self.draw_path(&path)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Scatter {
+    ab: (axis::NumBounds, axis::NumBounds),
+}
+
+impl Scatter {
+    fn from_ir<D>(ir: &ir::series::Scatter, data_source: &D) -> Result<Self, Error>
+    where
+        D: data::Source,
+    {
+        let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &ir.x_data, &ir.y_data)?;
+        Ok(Scatter {
+            ab: (x_bounds, y_bounds),
+        })
+    }
+}
+
+impl<S: ?Sized> SurfWrapper<'_, S>
+where
+    S: render::Surface,
+{
+    fn draw_series_scatter<D>(
+        &mut self,
+        ctx: &Ctx<D>,
+        ir: &ir::series::Scatter,
+        _scatter: &Scatter,
+        rect: &geom::Rect,
+        cm: &CoordMapXy,
+    ) -> Result<(), Error>
+    where
+        D: data::Source,
+    {
+        let path = marker::marker_path(&ir.marker);
+
+        // unwraping here as data is checked during setup phase
+        let x_col = get_column(&ir.x_data, ctx.data_source()).unwrap().f64().unwrap();
+        let y_col = get_column(&ir.y_data, ctx.data_source()).unwrap().f64().unwrap();
+        debug_assert!(x_col.len() == y_col.len());
+
+        for (x, y) in x_col.iter().zip(y_col.iter()) {
+            match (x, y) {
+                (Some(x), Some(y)) => {
+                    let (x, y) = cm.map_coord((x, y));
+                    let x = rect.left() + x;
+                    let y = rect.bottom() - y;
+                    let transform = geom::Transform::from_translate(
+                        x, y,
+                    );
+                    let path = render::Path {
+                        path: &path,
+                        fill: ir.marker.fill,
+                        stroke: ir.marker.stroke,
+                        transform: Some(&transform),
+                    };
+                    self.draw_path(&path)?;
+                }
+                _ => ()
+            }
+        }
+        
         Ok(())
     }
 }

@@ -32,6 +32,8 @@ pub const MINOR_TICKS_GRID_LINE: Option<style::Line> = Some({
     }
 });
 
+pub const MARKER_SIZE: f32 = 10.0;
+
 pub const LEGEND_LABEL_FONT_FAMILY: &str = "Noto Sans Math";
 pub const LEGEND_LABEL_FONT_SIZE: f32 = 16.0;
 pub const LEGEND_LABEL_COLOR: Color = color::BLACK;

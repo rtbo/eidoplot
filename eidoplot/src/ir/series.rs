@@ -15,14 +15,23 @@ pub struct Series {
 #[derive(Debug, Clone)]
 pub enum SeriesPlot {
     /// Plots data in XY space.
-    Xy(Xy),
+    Line(Line),
+    /// Plots data as scatter points.
+    Scatter(Scatter),
     /// Plots data in histograms
     Histogram(Histogram),
 }
 
 #[derive(Debug, Clone)]
-pub struct Xy {
+pub struct Line {
     pub line: style::Line,
+    pub x_data: DataCol,
+    pub y_data: DataCol,
+}
+
+#[derive(Debug, Clone)]
+pub struct Scatter {
+    pub marker: style::Marker,
     pub x_data: DataCol,
     pub y_data: DataCol,
 }

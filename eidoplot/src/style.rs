@@ -92,3 +92,39 @@ impl From<Color> for Fill {
         Fill::Solid(color)
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum MarkerShape {
+    #[default]
+    Circle,
+    Square,
+    Diamond,
+    Cross,
+    Plus,
+    TriangleUp,
+    TriangleDown,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct MarkerSize(pub f32);
+
+impl Default for MarkerSize {
+    fn default() -> Self {
+        MarkerSize(defaults::MARKER_SIZE)
+    }
+}
+
+impl From<f32> for MarkerSize {
+    fn from(size: f32) -> Self {
+        MarkerSize(size)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Marker {
+    pub size: MarkerSize,
+    pub shape: MarkerShape,
+    pub fill: Option<Fill>,
+    pub stroke: Option<Line>,
+}
+

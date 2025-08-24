@@ -9,6 +9,7 @@ use crate::{data, ir, render};
 mod axis;
 mod figure;
 mod legend;
+mod marker;
 mod plot;
 mod scale;
 mod series;

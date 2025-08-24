@@ -11,6 +11,7 @@ use crate::{geom, ir, style};
 
 pub enum Shape {
     Line(style::Line),
+    Marker(style::Marker),
     Rect(style::Fill, Option<style::Line>),
 }
 
@@ -201,12 +202,16 @@ where
         );
 
         let shape_sz = defaults::LEGEND_SHAPE_SIZE;
+        let shape_rect = geom::Rect::from_ps(
+            geom::Point::new(rect.left(), rect.center_y() - shape_sz.height() / 2.0),
+            shape_sz,
+        );
 
         match entry.shape {
             Shape::Line(line) => {
                 let mut path = geom::PathBuilder::new();
-                path.move_to(rect.left(), rect.center_y());
-                path.line_to(rect.left() + shape_sz.width(), rect.center_y());
+                path.move_to(shape_rect.left(), shape_rect.center_y());
+                path.line_to(shape_rect.right(), rect.center_y());
                 let path = path.finish().expect("Should be a valid path");
 
                 let line = render::Path {
@@ -216,6 +221,21 @@ where
                     transform: None,
                 };
                 self.draw_path(&line)?;
+            }
+            Shape::Marker(marker) => {
+                let path = crate::drawing::marker::marker_path(&marker);
+                let transform = geom::Transform::from_translate(
+                    shape_rect.center_x(),
+                    shape_rect.center_y(),
+                );
+
+                let path = render::Path {
+                    path: &path,
+                    fill: marker.fill,
+                    stroke: marker.stroke,
+                    transform: Some(&transform),
+                };
+                self.draw_path(&path)?;
             }
             Shape::Rect(fill, line) => {
                 let r = geom::Rect::from_ps(
