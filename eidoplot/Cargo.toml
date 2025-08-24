@@ -31,3 +31,7 @@ name="gauss"
 [[example]]
 name="polars"
 required-features = ["polars"]
+
+[[example]]
+name="iris"
+required-features = ["polars"]
