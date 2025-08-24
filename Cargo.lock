@@ -519,6 +519,7 @@ dependencies = [
  "eidoplot-pxl",
  "eidoplot-svg",
  "eidoplot-text",
+ "eidoplot-utils",
  "polars",
  "rand",
  "rand_chacha",
@@ -563,6 +564,13 @@ dependencies = [
  "tinyvec",
  "ttf-parser",
  "unicode-bidi",
+]
+
+[[package]]
+name = "eidoplot-utils"
+version = "0.1.0"
+dependencies = [
+ "eidoplot",
 ]
 
 [[package]]

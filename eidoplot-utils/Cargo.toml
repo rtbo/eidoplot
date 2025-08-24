@@ -1,0 +1,8 @@
+[package]
+name = "eidoplot-utils"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+eidoplot = { path = "../eidoplot" }
