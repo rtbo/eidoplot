@@ -323,10 +323,11 @@ fn ts_stroke(stroke: style::Line, paint: &mut tiny_skia::Paint) -> tiny_skia::St
     match stroke.pattern {
         style::LinePattern::Solid => (),
         style::LinePattern::Dash(dash) => {
-            ts.dash = tiny_skia::StrokeDash::new(vec![dash.0, dash.1], 0.0);
+            ts.dash =
+                tiny_skia::StrokeDash::new(vec![dash.0 * stroke.width, dash.1 * stroke.width], 0.0);
         }
         style::LinePattern::Dot => {
-            ts.dash = tiny_skia::StrokeDash::new(vec![1.0, 1.0], 0.0);
+            ts.dash = tiny_skia::StrokeDash::new(vec![stroke.width, stroke.width], 0.0);
         }
     }
     ts
