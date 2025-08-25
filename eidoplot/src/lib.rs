@@ -44,14 +44,11 @@ pub mod style;
 /// Basically we put here all magic values that would require proper parameters
 mod missing_params {
     use crate::geom;
-    use crate::style::{Color, color};
 
     pub const FIG_TITLE_MARGIN: f32 = 6.0;
-    pub const FIG_TITLE_COLOR: Color = color::BLACK;
 
     pub const PLOT_PADDING: geom::Padding = geom::Padding::Even(5.0);
     pub const AXIS_LABEL_MARGIN: f32 = 8.0;
-    pub const AXIS_LABEL_COLOR: Color = color::BLACK;
     pub const AXIS_ANNOT_FONT_FAMILY: &str = "Noto Sans Math";
 
     pub const TICK_SIZE: f32 = 4.0;

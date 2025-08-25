@@ -3,20 +3,35 @@ mod named;
 pub use named::*;
 
 #[derive(Debug, Clone, Copy)]
-pub struct Color {
+pub struct ColorU8 {
     r: u8,
     g: u8,
     b: u8,
     a: u8,
 }
 
-impl Color {
+impl ColorU8 {
+    pub const fn from_rgb_f32(r: f32, g: f32, b: f32) -> Self {
+        let r = (r.clamp(0.0, 1.0) * 255.0) as u8;
+        let g = (g.clamp(0.0, 1.0) * 255.0) as u8;
+        let b = (b.clamp(0.0, 1.0) * 255.0) as u8;
+        ColorU8 { r, g, b, a: 255 }
+    }
+
+    pub const fn from_rgba_f32(r: f32, g: f32, b: f32, a: f32) -> Self {
+        let r = (r.clamp(0.0, 1.0) * 255.0) as u8;
+        let g = (g.clamp(0.0, 1.0) * 255.0) as u8;
+        let b = (b.clamp(0.0, 1.0) * 255.0) as u8;
+        let a = (a.clamp(0.0, 1.0) * 255.0) as u8;
+        ColorU8 { r, g, b, a }
+    }
+
     pub const fn from_rgb(r: u8, g: u8, b: u8) -> Self {
-        Color { r, g, b, a: 255 }
+        ColorU8 { r, g, b, a: 255 }
     }
 
     pub const fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
-        Color { r, g, b, a }
+        ColorU8 { r, g, b, a }
     }
 
     const fn from_html(hex: &[u8]) -> Self {
@@ -31,7 +46,7 @@ impl Color {
                 let r = r << 4 | r;
                 let g = g << 4 | g;
                 let b = b << 4 | b;
-                Color::from_rgb(r, g, b)
+                ColorU8::from_rgb(r, g, b)
             }
             5 => {
                 let r = hex_to_u8(hex[1]);
@@ -42,20 +57,20 @@ impl Color {
                 let g = g << 4 | g;
                 let b = b << 4 | b;
                 let a = a << 4 | a;
-                Color::from_rgba(r, g, b, a)
+                ColorU8::from_rgba(r, g, b, a)
             }
             7 => {
                 let r = hex_to_u8(hex[1]) << 4 | hex_to_u8(hex[2]);
                 let g = hex_to_u8(hex[3]) << 4 | hex_to_u8(hex[4]);
                 let b = hex_to_u8(hex[5]) << 4 | hex_to_u8(hex[6]);
-                Color::from_rgb(r, g, b)
+                ColorU8::from_rgb(r, g, b)
             }
             9 => {
                 let r = hex_to_u8(hex[1]) << 4 | hex_to_u8(hex[2]);
                 let g = hex_to_u8(hex[3]) << 4 | hex_to_u8(hex[4]);
                 let b = hex_to_u8(hex[5]) << 4 | hex_to_u8(hex[6]);
                 let a = hex_to_u8(hex[7]) << 4 | hex_to_u8(hex[8]);
-                Color::from_rgba(r, g, b, a)
+                ColorU8::from_rgba(r, g, b, a)
             }
             _ => panic!("Invalid hex color"),
         }
@@ -98,31 +113,31 @@ impl Color {
     }
 
     pub const fn with_red(self, r: u8) -> Self {
-        Color { r, ..self }
+        ColorU8 { r, ..self }
     }
 
     pub const fn with_green(self, g: u8) -> Self {
-        Color { g, ..self }
+        ColorU8 { g, ..self }
     }
 
     pub const fn with_blue(self, b: u8) -> Self {
-        Color { b, ..self }
+        ColorU8 { b, ..self }
     }
 
     pub const fn with_alpha(self, a: u8) -> Self {
-        Color { a, ..self }
+        ColorU8 { a, ..self }
     }
 
     pub const fn with_opacity(self, opacity: f32) -> Self {
         assert!(0.0 <= opacity && opacity <= 1.0);
-        Color {
+        ColorU8 {
             a: (self.a as f32 * opacity) as u8,
             ..self
         }
     }
 
     pub const fn without_opacity(self) -> Self {
-        Color { a: 255, ..self }
+        ColorU8 { a: 255, ..self }
     }
 }
 

@@ -1,4 +1,7 @@
-use eidoplot::{data, ir, style};
+use eidoplot::{
+    data, ir,
+    style::{self, palette},
+};
 
 mod common;
 
@@ -11,9 +14,7 @@ fn main() {
         "lime".to_string(),
     ]);
 
-    let stock = data::VecColumn::from(vec![
-        50, 30, 20, 35, 5
-    ]);
+    let stock = data::VecColumn::from(vec![50, 30, 20, 35, 5]);
 
     let mut source = data::NamedColumns::new();
     source.add_column("fruits", &fruits);
@@ -21,10 +22,8 @@ fn main() {
 
     let title = "Categorical scatter".into();
 
-    let x_axis = ir::Axis::new(ir::axis::Scale::default())
-        .with_label("Fruits".into());
-    let y_axis = ir::Axis::new(ir::axis::Scale::default())
-        .with_label("Stock".into());
+    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("Fruits".into());
+    let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("Stock".into());
 
     let stock = ir::Series {
         name: Some("Stock".into()),
@@ -32,7 +31,7 @@ fn main() {
             marker: style::Marker {
                 shape: Default::default(),
                 size: Default::default(),
-                fill: Some(style::Fill::Solid(style::color::BLUE)),
+                fill: Some(style::Color::Palette(palette::Color(0)).into()),
                 stroke: None,
             },
             x_data: ir::series::DataCol::SrcRef("fruits".to_string()),

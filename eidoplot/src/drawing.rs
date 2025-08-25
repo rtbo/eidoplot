@@ -4,7 +4,7 @@ use std::sync::Arc;
 use eidoplot_text as text;
 use text::fontdb;
 
-use crate::{data, ir, render};
+use crate::{data, geom, ir, render, style};
 
 mod axis;
 mod figure;
@@ -60,19 +60,21 @@ pub struct Options {
 }
 
 pub trait SurfaceExt: render::Surface {
-    fn draw_figure<D>(
+    fn draw_figure<D, T>(
         &mut self,
         figure: &ir::Figure,
         data_source: &D,
+        theme: T,
         opts: Options,
     ) -> Result<(), Error>
     where
         D: data::Source,
+        T: style::Theme,
     {
         let fontdb = opts
             .fontdb
             .unwrap_or_else(|| Arc::new(crate::bundled_font_db()));
-        let ctx = Ctx::new(data_source, fontdb);
+        let ctx = Ctx::new(data_source, theme, fontdb);
         let mut wrapper = SurfWrapper { surface: self };
         wrapper.draw_toplevel_figure(&ctx, figure)?;
         Ok(())
@@ -82,21 +84,28 @@ pub trait SurfaceExt: render::Surface {
 impl<T> SurfaceExt for T where T: render::Surface {}
 
 #[derive(Debug)]
-struct Ctx<'a, D> {
+struct Ctx<'a, D, T> {
     data_source: &'a D,
+    theme: T,
     fontdb: Arc<fontdb::Database>,
 }
 
-impl<'a, D> Ctx<'a, D> {
-    pub fn new(data_source: &'a D, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D> {
+impl<'a, D, T> Ctx<'a, D, T>
+{
+    pub fn new(data_source: &'a D, theme: T, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D, T> {
         Ctx {
             data_source,
+            theme,
             fontdb,
         }
     }
 
     pub fn data_source(&self) -> &'a D {
         self.data_source
+    }
+
+    pub fn theme(&self) -> &T {
+        &self.theme
     }
 
     pub fn fontdb(&self) -> &Arc<fontdb::Database> {
@@ -112,11 +121,11 @@ impl<'a, S: ?Sized> render::Surface for SurfWrapper<'a, S>
 where
     S: render::Surface,
 {
-    fn prepare(&mut self, size: crate::geom::Size) -> Result<(), render::Error> {
+    fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
         self.surface.prepare(size)
     }
 
-    fn fill(&mut self, fill: crate::style::Fill) -> Result<(), render::Error> {
+    fn fill(&mut self, fill: render::Paint) -> Result<(), render::Error> {
         self.surface.fill(fill)
     }
 

@@ -4,6 +4,7 @@ use eidoplot::ir;
 use eidoplot::data;
 use eidoplot::style;
 
+use eidoplot::style::palette;
 use polars::prelude::*;
 
 mod common;
@@ -101,7 +102,7 @@ fn main() {
             marker: style::Marker {
                 shape: Default::default(),
                 size: Default::default(),
-                fill: Some(style::Fill::Solid(style::color::BLUE)),
+                fill: Some(style::Fill::Solid(style::Color::Palette(palette::Color(0)))),
                 stroke: None,
             },
             x_data: ir::series::DataCol::SrcRef("setosa_sepal_length".to_string()),
@@ -114,7 +115,7 @@ fn main() {
             marker: style::Marker {
                 shape: Default::default(),
                 size: Default::default(),
-                fill: Some(style::Fill::Solid(style::color::GREEN)),
+                fill: Some(style::Fill::Solid(style::Color::Palette(palette::Color(1)))),
                 stroke: None,
             },
             x_data: ir::series::DataCol::SrcRef("versicolor_sepal_length".to_string()),
@@ -127,7 +128,7 @@ fn main() {
             marker: style::Marker {
                 shape: Default::default(),
                 size: Default::default(),
-                fill: Some(style::Fill::Solid(style::color::RED)),
+                fill: Some(style::Fill::Solid(style::Color::Palette(palette::Color(2)))),
                 stroke: None,
             },
             x_data: ir::series::DataCol::SrcRef("virginica_sepal_length".to_string()),

@@ -81,9 +81,9 @@ impl State {
         Ok(())
     }
 
-    fn fill(&mut self, px: &mut PixmapMut<'_>, fill: style::Fill) -> Result<(), render::Error> {
+    fn fill(&mut self, px: &mut PixmapMut<'_>, fill: render::Paint) -> Result<(), render::Error> {
         match fill {
-            style::Fill::Solid(color) => {
+            render::Paint::Solid(color) => {
                 let color = ts_color(color);
                 px.fill(color);
             }
@@ -218,7 +218,7 @@ impl render::Surface for PxlSurface {
         self.state.prepare(size)
     }
 
-    fn fill(&mut self, fill: style::Fill) -> Result<(), render::Error> {
+    fn fill(&mut self, fill: render::Paint) -> Result<(), render::Error> {
         let mut px = self.pixmap.as_mut();
         self.state.fill(&mut px, fill)
     }
@@ -257,7 +257,7 @@ impl render::Surface for PxlSurfaceRef<'_> {
         self.state.prepare(size)
     }
 
-    fn fill(&mut self, fill: style::Fill) -> Result<(), render::Error> {
+    fn fill(&mut self, fill: render::Paint) -> Result<(), render::Error> {
         self.state.fill(&mut self.pixmap, fill)
     }
 
@@ -286,31 +286,31 @@ impl render::Surface for PxlSurfaceRef<'_> {
     }
 }
 
-fn ts_color(color: style::Color) -> tiny_skia::Color {
+fn ts_color(color: style::ColorU8) -> tiny_skia::Color {
     tiny_skia::Color::from_rgba8(color.red(), color.green(), color.blue(), color.alpha())
 }
 
-fn ts_fill(fill: style::Fill, paint: &mut tiny_skia::Paint) {
+fn ts_fill(fill: render::Paint, paint: &mut tiny_skia::Paint) {
     paint.colorspace = tiny_skia::ColorSpace::Linear;
     match fill {
-        style::Fill::Solid(color) => {
+        render::Paint::Solid(color) => {
             let color = ts_color(color);
             paint.set_color(color);
         }
     }
 }
 
-fn ts_text_fill(fill: style::Fill, paint: &mut tiny_skia::Paint) {
+fn ts_text_fill(fill: render::Paint, paint: &mut tiny_skia::Paint) {
     paint.colorspace = tiny_skia::ColorSpace::Gamma2;
     match fill {
-        style::Fill::Solid(color) => {
+        render::Paint::Solid(color) => {
             let color = ts_color(color);
             paint.set_color(color);
         }
     }
 }
 
-fn ts_stroke(stroke: style::Line, paint: &mut tiny_skia::Paint) -> tiny_skia::Stroke {
+fn ts_stroke(stroke: render::Stroke, paint: &mut tiny_skia::Paint) -> tiny_skia::Stroke {
     let color = ts_color(stroke.color);
     paint.colorspace = tiny_skia::ColorSpace::Gamma2;
     paint.set_color(color);
@@ -321,13 +321,11 @@ fn ts_stroke(stroke: style::Line, paint: &mut tiny_skia::Paint) -> tiny_skia::St
     };
 
     match stroke.pattern {
-        style::LinePattern::Solid => (),
-        style::LinePattern::Dash(dash) => {
+        render::LinePattern::Solid => (),
+        render::LinePattern::Dash(dash) => {
+            let array = dash.iter().map(|d| d* stroke.width).collect();
             ts.dash =
-                tiny_skia::StrokeDash::new(vec![dash.0 * stroke.width, dash.1 * stroke.width], 0.0);
-        }
-        style::LinePattern::Dot => {
-            ts.dash = tiny_skia::StrokeDash::new(vec![stroke.width, stroke.width], 0.0);
+                tiny_skia::StrokeDash::new(array, 0.0);
         }
     }
     ts

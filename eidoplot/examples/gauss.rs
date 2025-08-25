@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use eidoplot::{data, ir, style};
+use eidoplot::{data, ir, style::{self, palette}};
 use rand::SeedableRng;
 use rand_distr::{Distribution, Normal};
 
@@ -39,7 +39,7 @@ fn main() {
         name: Some("distribution".into()),
         plot: ir::SeriesPlot::Line(ir::series::Line {
             line: style::Line {
-                color: style::color::DARKSLATEBLUE,
+                color: style::Color::Palette(palette::Color(0)),
                 width: 4.0,
                 pattern: style::LinePattern::Solid,
             },
@@ -50,7 +50,7 @@ fn main() {
     let pop_series = ir::Series {
         name: Some("population".into()),
         plot: ir::SeriesPlot::Histogram(ir::series::Histogram {
-            fill: style::color::CORNFLOWERBLUE.with_opacity(0.9).into(),
+            fill: style::Color::Palette(palette::Color(1)).into(),
             line: None,
             bins: 16,
             density: true,

@@ -7,7 +7,7 @@ use crate::drawing::legend::Legend;
 use crate::drawing::series::{Series, series_has_legend};
 use crate::drawing::{Ctx, Error, SurfWrapper, axis, scale, ticks};
 use crate::render::{self, Surface as _};
-use crate::style::{self, defaults};
+use crate::style::{self, Theme, defaults};
 use crate::{data, geom, ir, missing_params};
 
 #[derive(Debug, Clone)]
@@ -92,7 +92,7 @@ fn auto_insets(plot: &ir::Plot) -> geom::Padding {
     defaults::PLOT_XY_AUTO_INSETS
 }
 
-impl<D> Ctx<'_, D> {
+impl<D, T> Ctx<'_, D, T> {
     fn setup_plot_axes(
         &self,
         plot: &ir::Plot,
@@ -292,7 +292,7 @@ impl<D> Ctx<'_, D> {
             annot,
             font: ticks.font().clone(),
             color: ticks.color(),
-            grid: ticks.grid().copied(),
+            grid: ticks.grid().cloned(),
         })
     }
 
@@ -307,7 +307,7 @@ impl<D> Ctx<'_, D> {
         Ok(MinorTicks {
             locs,
             color: minor_ticks.color(),
-            grid: minor_ticks.grid().copied(),
+            grid: minor_ticks.grid().cloned(),
         })
     }
 }
@@ -323,7 +323,7 @@ fn tick_loc_is_close(a: f64, b: f64) -> bool {
     ratio.is_finite() && (ratio - 1.0).abs() < 1e-8
 }
 
-impl<D> Ctx<'_, D>
+impl<D, T> Ctx<'_, D, T>
 where
     D: data::Source,
 {
@@ -339,14 +339,15 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_plot<D>(
+    pub fn draw_plot<D, T>(
         &mut self,
-        ctx: &Ctx<D>,
+        ctx: &Ctx<D, T>,
         plot: &ir::Plot,
         rect: &geom::Rect,
     ) -> Result<(), Error>
     where
         D: data::Source,
+        T: style::Theme,
     {
         let rect = {
             let mut rect = rect.pad(&missing_params::PLOT_PADDING);
@@ -369,12 +370,12 @@ where
             .shifted_left_side(axes.y_width())
             .shifted_bottom_side(-axes.x_height());
 
-        self.draw_plot_background(plot, &rect)?;
-        self.draw_grid(&axes, &rect)?;
+        self.draw_plot_background(ctx, plot, &rect)?;
+        self.draw_grid(ctx, &axes, &rect)?;
         self.draw_plot_series(ctx, &plot.series, &series, &rect, &axes)?;
-        self.draw_x_axis(&axes.x, &rect)?;
-        self.draw_y_axis(&axes.y, &rect)?;
-        self.draw_plot_border(plot.border.as_ref(), &rect)?;
+        self.draw_x_axis(ctx, &axes.x, &rect)?;
+        self.draw_y_axis(ctx, &axes.y, &rect)?;
+        self.draw_plot_border(ctx, plot.border.as_ref(), &rect)?;
 
         if let Some(legend) = &plot.legend {
             if legend.pos().is_inside() {
@@ -385,13 +386,16 @@ where
         Ok(())
     }
 
-    fn draw_plot_outer_legend<D>(
+    fn draw_plot_outer_legend<D, T>(
         &mut self,
-        ctx: &Ctx<D>,
+        ctx: &Ctx<D, T>,
         plot: &ir::Plot,
         legend: &ir::PlotLegend,
         rect: &mut geom::Rect,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error>
+    where
+        T: style::Theme,
+    {
         let mut dlegend = Legend::from_ir(
             legend.legend(),
             legend.pos().prefers_vertical(),
@@ -431,17 +435,20 @@ where
             }
             _ => unreachable!(),
         };
-        self.draw_legend(&dlegend, &top_left)?;
+        self.draw_legend(ctx, &dlegend, &top_left)?;
         Ok(())
     }
 
-    fn draw_plot_inner_legend<D>(
+    fn draw_plot_inner_legend<D, T>(
         &mut self,
-        ctx: &Ctx<D>,
+        ctx: &Ctx<D, T>,
         plot: &ir::Plot,
         legend: &ir::PlotLegend,
         rect: &geom::Rect,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error>
+    where
+        T: style::Theme,
+    {
         let mut dlegend = Legend::from_ir(
             legend.legend(),
             legend.pos().prefers_vertical(),
@@ -490,19 +497,23 @@ where
             }
             _ => unreachable!(),
         };
-        self.draw_legend(&dlegend, &top_left)?;
+        self.draw_legend(ctx, &dlegend, &top_left)?;
         Ok(())
     }
 
-    fn draw_plot_background(
+    fn draw_plot_background<D, T>(
         &mut self,
+        ctx: &Ctx<D, T>,
         plot: &ir::Plot,
         rect: &geom::Rect,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        T: Theme,
+    {
         if let Some(fill) = plot.fill.as_ref() {
             self.draw_rect(&render::Rect {
                 rect: *rect,
-                fill: Some(fill.clone()),
+                fill: Some(fill.as_paint(ctx.theme())),
                 stroke: None,
                 transform: None,
             })?;
@@ -510,9 +521,17 @@ where
         Ok(())
     }
 
-    fn draw_grid(&mut self, axes: &Axes, rect: &geom::Rect) -> Result<(), render::Error> {
+    fn draw_grid<D, T>(
+        &mut self,
+        ctx: &Ctx<D, T>,
+        axes: &Axes,
+        rect: &geom::Rect,
+    ) -> Result<(), render::Error>
+    where
+        T: Theme,
+    {
         if let Some(x_min_ticks) = axes.x.minor_ticks.as_ref() {
-            if let Some(grid) = x_min_ticks.grid {
+            if let Some(grid) = &x_min_ticks.grid {
                 let mut pathb = geom::PathBuilder::with_capacity(
                     2 * x_min_ticks.locs.len(),
                     2 * x_min_ticks.locs.len(),
@@ -525,7 +544,7 @@ where
                     let rpath = render::Path {
                         path: &path,
                         fill: None,
-                        stroke: Some(grid.clone()),
+                        stroke: Some(grid.as_stroke(ctx.theme())),
                         transform: None,
                     };
                     self.draw_path(&rpath)?;
@@ -534,7 +553,7 @@ where
             }
         }
         if let Some(x_ticks) = axes.x.ticks.as_ref() {
-            if let Some(x_grid) = x_ticks.grid {
+            if let Some(x_grid) = &x_ticks.grid {
                 let mut pathb = geom::PathBuilder::with_capacity(
                     2 * x_ticks.locs.len(),
                     2 * x_ticks.locs.len(),
@@ -551,7 +570,7 @@ where
                     let rpath = render::Path {
                         path: &path,
                         fill: None,
-                        stroke: Some(x_grid.clone()),
+                        stroke: Some(x_grid.as_stroke(ctx.theme())),
                         transform: None,
                     };
                     self.draw_path(&rpath)?;
@@ -560,7 +579,7 @@ where
             }
         }
         if let Some(y_min_ticks) = axes.y.minor_ticks.as_ref() {
-            if let Some(grid) = y_min_ticks.grid {
+            if let Some(grid) = &y_min_ticks.grid {
                 let mut pathb = geom::PathBuilder::with_capacity(
                     2 * y_min_ticks.locs.len(),
                     2 * y_min_ticks.locs.len(),
@@ -573,7 +592,7 @@ where
                     let pathr = render::Path {
                         path: &path,
                         fill: None,
-                        stroke: Some(grid.clone()),
+                        stroke: Some(grid.as_stroke(ctx.theme())),
                         transform: None,
                     };
                     self.draw_path(&pathr)?;
@@ -582,7 +601,7 @@ where
             }
         }
         if let Some(y_ticks) = axes.y.ticks.as_ref() {
-            if let Some(y_grid) = y_ticks.grid {
+            if let Some(y_grid) = &y_ticks.grid {
                 let mut pathb = geom::PathBuilder::with_capacity(
                     2 * y_ticks.locs.len(),
                     2 * y_ticks.locs.len(),
@@ -599,7 +618,7 @@ where
                     let pathr = render::Path {
                         path: &path,
                         fill: None,
-                        stroke: Some(y_grid.clone()),
+                        stroke: Some(y_grid.as_stroke(ctx.theme())),
                         transform: None,
                     };
                     self.draw_path(&pathr)?;
@@ -610,17 +629,21 @@ where
         Ok(())
     }
 
-    fn draw_plot_border(
+    fn draw_plot_border<D, T>(
         &mut self,
+        ctx: &Ctx<D, T>,
         border: Option<&ir::plot::Border>,
         rect: &geom::Rect,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        T: Theme,
+    {
         match border {
             None => Ok(()),
             Some(ir::plot::Border::Box(stroke)) => self.draw_rect(&render::Rect {
                 rect: *rect,
                 fill: None,
-                stroke: Some(stroke.clone()),
+                stroke: Some(stroke.as_stroke(ctx.theme())),
                 transform: None,
             }),
             Some(ir::plot::Border::Axis(stroke)) => {
@@ -632,7 +655,7 @@ where
                 let path = render::Path {
                     path: &path,
                     fill: None,
-                    stroke: Some(stroke.clone()),
+                    stroke: Some(stroke.as_stroke(ctx.theme())),
                     transform: None,
                 };
                 self.draw_path(&path)
@@ -643,9 +666,9 @@ where
         }
     }
 
-    fn draw_plot_series<D>(
+    fn draw_plot_series<D, T>(
         &mut self,
-        ctx: &Ctx<D>,
+        ctx: &Ctx<D, T>,
         ir_series: &[ir::Series],
         series: &[Series],
         rect: &geom::Rect,
@@ -653,6 +676,7 @@ where
     ) -> Result<(), Error>
     where
         D: data::Source,
+        T: Theme,
     {
         self.push_clip(&render::Clip {
             path: &rect.to_path(),
@@ -671,7 +695,15 @@ where
         Ok(())
     }
 
-    fn draw_x_axis(&mut self, x_axis: &Axis, rect: &geom::Rect) -> Result<(), render::Error> {
+    fn draw_x_axis<D, T>(
+        &mut self,
+        ctx: &Ctx<D, T>,
+        x_axis: &Axis,
+        rect: &geom::Rect,
+    ) -> Result<(), render::Error>
+    where
+        T: Theme,
+    {
         if let Some(x_min_ticks) = x_axis.minor_ticks.as_ref() {
             let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
             let ticks = x_min_ticks
@@ -682,20 +714,24 @@ where
             self.draw_ticks_path(
                 ticks,
                 missing_params::MINOR_TICK_SIZE,
-                &x_min_ticks.color.into(),
+                render::Stroke {
+                    color: x_min_ticks.color.resolve(ctx.theme()),
+                    width: 1.0,
+                    pattern: Default::default(),
+                },
                 &transform,
             )?;
         }
         let mut label_y = rect.bottom() + missing_params::AXIS_LABEL_MARGIN;
         if let Some(x_ticks) = x_axis.ticks.as_ref() {
-            self.draw_x_ticks(&rect, x_ticks, x_axis)?;
+            self.draw_x_ticks(ctx, &rect, x_ticks, x_axis)?;
             label_y +=
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + x_ticks.font.size;
         }
         if let Some(label) = &x_axis.label {
             let text = render::TextLayout {
                 layout: label,
-                fill: missing_params::AXIS_LABEL_COLOR.into(),
+                fill: ctx.theme().foreground().into(),
                 transform: Some(&Transform::from_translate(rect.center_x(), label_y)),
             };
             self.draw_text_layout(&text)?;
@@ -703,12 +739,16 @@ where
         Ok(())
     }
 
-    fn draw_x_ticks(
+    fn draw_x_ticks<D, T>(
         &mut self,
+        ctx: &Ctx<D, T>,
         rect: &geom::Rect,
         x_ticks: &Ticks,
         x_cm: &dyn scale::CoordMap,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        T: style::Theme,
+    {
         let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
         let ticks = x_ticks.locs.iter().map(|t| {
             x_cm.map_coord(t.as_sample())
@@ -717,11 +757,15 @@ where
         self.draw_ticks_path(
             ticks,
             missing_params::TICK_SIZE,
-            &x_ticks.color.into(),
+            render::Stroke {
+                color: x_ticks.color.resolve(ctx.theme()),
+                width: 1.0,
+                pattern: Default::default(),
+            },
             &transform,
         )?;
 
-        let fill = x_ticks.color.into();
+        let fill = x_ticks.color.resolve(ctx.theme()).into();
 
         for (xt, lbl) in x_ticks.locs.iter().zip(x_ticks.lbls.iter()) {
             let x = rect.left()
@@ -767,7 +811,15 @@ where
         Ok(())
     }
 
-    fn draw_y_axis(&mut self, y_axis: &Axis, rect: &geom::Rect) -> Result<(), render::Error> {
+    fn draw_y_axis<D, T>(
+        &mut self,
+        ctx: &Ctx<D, T>,
+        y_axis: &Axis,
+        rect: &geom::Rect,
+    ) -> Result<(), render::Error>
+    where
+        T: style::Theme,
+    {
         if let Some(y_min_ticks) = y_axis.minor_ticks.as_ref() {
             let transform =
                 geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(-90.0);
@@ -779,12 +831,16 @@ where
             self.draw_ticks_path(
                 ticks,
                 missing_params::MINOR_TICK_SIZE,
-                &y_min_ticks.color.into(),
+                render::Stroke {
+                    color: y_min_ticks.color.resolve(ctx.theme()),
+                    width: 1.0,
+                    pattern: Default::default(),
+                },
                 &transform,
             )?;
         }
         if let Some(y_ticks) = y_axis.ticks.as_ref() {
-            self.draw_y_ticks(rect, y_ticks, y_axis)?;
+            self.draw_y_ticks(ctx, rect, y_ticks, y_axis)?;
         }
         if let Some(label) = y_axis.label.as_ref() {
             // we render at origin, but translate to correct position and rotate
@@ -793,7 +849,7 @@ where
             let transform = geom::Transform::from_translate(tx, ty).pre_rotate(-90.0);
             let text = render::TextLayout {
                 layout: label,
-                fill: missing_params::AXIS_LABEL_COLOR.into(),
+                fill: ctx.theme().foreground().into(),
                 transform: Some(&transform),
             };
             self.draw_text_layout(&text)?;
@@ -801,12 +857,16 @@ where
         Ok(())
     }
 
-    fn draw_y_ticks(
+    fn draw_y_ticks<D, T>(
         &mut self,
+        ctx: &Ctx<D, T>,
         rect: &geom::Rect,
         y_ticks: &Ticks,
         y_cm: &dyn CoordMap,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        T: style::Theme,
+    {
         let transform =
             geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(-90.0);
         let ticks = y_ticks.locs.iter().map(|t| {
@@ -816,11 +876,15 @@ where
         self.draw_ticks_path(
             ticks,
             missing_params::TICK_SIZE,
-            &y_ticks.color.into(),
+            render::Stroke {
+                color: y_ticks.color.resolve(ctx.theme()).into(),
+                width: 1.0,
+                pattern: Default::default(),
+            },
             &transform,
         )?;
 
-        let fill = y_ticks.color.into();
+        let fill = y_ticks.color.resolve(ctx.theme()).into();
 
         for (yt, lbl) in y_ticks.locs.iter().zip(y_ticks.lbls.iter()) {
             let x = rect.left() - missing_params::TICK_SIZE - missing_params::TICK_LABEL_MARGIN;
@@ -843,7 +907,7 @@ where
         &mut self,
         ticks: T,
         size: f32,
-        stroke: &style::Line,
+        stroke: render::Stroke,
         transform: &geom::Transform,
     ) -> Result<(), render::Error>
     where
@@ -853,7 +917,7 @@ where
         let ticks_path = render::Path {
             path: &ticks_path,
             fill: None,
-            stroke: Some(stroke.clone()),
+            stroke: Some(stroke),
             transform: Some(transform),
         };
         self.draw_path(&ticks_path)?;

@@ -53,12 +53,12 @@ impl Surface for SvgSurface {
     }
 
     /// Fill the entire surface with the given color
-    fn fill(&mut self, fill: style::Fill) -> Result<(), render::Error> {
+    fn fill(&mut self, fill: render::Paint) -> Result<(), render::Error> {
         let mut node = element::Rectangle::new()
             .set("width", "100%")
             .set("height", "100%");
         match fill {
-            style::Fill::Solid(color) => node.assign("fill", color.html()),
+            render::Paint::Solid(color) => node.assign("fill", color.html()),
         }
         self.append_node(node);
         Ok(())
@@ -190,11 +190,11 @@ where
     }
 }
 
-fn assign_fill<N>(node: &mut N, fill: Option<&style::Fill>)
+fn assign_fill<N>(node: &mut N, fill: Option<&render::Paint>)
 where
     N: Node,
 {
-    if let Some(style::Fill::Solid(color)) = fill {
+    if let Some(render::Paint::Solid(color)) = fill {
         node.assign("fill", color.html());
         if let Some(opacity) = color.opacity() {
             node.assign("fill-opacity", opacity);
@@ -204,7 +204,7 @@ where
     }
 }
 
-fn assign_stroke<N>(node: &mut N, stroke: Option<&style::Line>)
+fn assign_stroke<N>(node: &mut N, stroke: Option<&render::Stroke>)
 where
     N: Node,
 {
@@ -216,10 +216,10 @@ where
             node.assign("stroke-opacity", opacity);
         }
         match stroke.pattern {
-            style::LinePattern::Solid => (),
-            style::LinePattern::Dot => node.assign("stroke-dasharray", (w, w)),
-            style::LinePattern::Dash(style::Dash(len, gap)) => {
-                node.assign("stroke-dasharray", (w * len, w * gap))
+            render::LinePattern::Solid => (),
+            render::LinePattern::Dash(dash) => {
+                let array: Vec<f32> = dash.iter().map(|d| d * w).collect();
+                node.assign("stroke-dasharray", array)
             }
         }
     } else {

@@ -32,7 +32,7 @@ impl Default for Scale {
 pub mod ticks {
     use eidoplot_text::Font;
 
-    use crate::style::{self, Color, defaults};
+    use crate::style::{self, defaults, theme, Color, Dash};
 
     /// Describes how to locate the ticks of an axis
     #[derive(Debug, Default, Clone)]
@@ -55,7 +55,6 @@ pub mod ticks {
             bins: u32,
         },
     }
-
 
     /// Describes how to format the ticks labels
     #[derive(Debug, Default, Clone, Copy)]
@@ -108,8 +107,12 @@ pub mod ticks {
                 locator: Locator::default(),
                 formatter: Formatter::default(),
                 font: TicksFont::default(),
-                color: defaults::TICKS_LABEL_COLOR,
-                grid: defaults::TICKS_GRID_LINE,
+                color: theme::Color::Foreground.into(),
+                grid: Some(style::Line {
+                    width: 1.0,
+                    color: style::Color::Theme(theme::Color::Grid),
+                    pattern: style::LinePattern::Solid,
+                }),
             }
         }
     }
@@ -181,8 +184,12 @@ pub mod ticks {
         fn default() -> Self {
             MinorTicks {
                 locator: Locator::default(),
-                color: defaults::TICKS_LABEL_COLOR,
-                grid: defaults::MINOR_TICKS_GRID_LINE,
+                color: theme::Color::Foreground.into(),
+                grid: Some(style::Line {
+                    width: 0.5,
+                    color: style::Color::Theme(theme::Color::Grid),
+                    pattern: style::LinePattern::Dash(Dash::default()),
+                }),
             }
         }
     }
@@ -205,7 +212,7 @@ pub mod ticks {
         }
         pub fn with_grid(self, grid: Option<style::Line>) -> Self {
             Self { grid, ..self }
-        }   
+        }
 
         pub fn locator(&self) -> &Locator {
             &self.locator

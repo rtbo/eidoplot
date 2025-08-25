@@ -1,7 +1,6 @@
 use std::num::NonZeroU32;
 
-use crate::style;
-use crate::style::defaults;
+use crate::style::{self, theme, defaults};
 
 #[derive(Debug, Clone)]
 pub struct EntryFont {
@@ -15,7 +14,7 @@ impl Default for EntryFont {
         Self {
             size: defaults::LEGEND_LABEL_FONT_SIZE,
             font: style::Font::default(),
-            color: defaults::LEGEND_LABEL_COLOR,
+            color: theme::Color::Foreground.into(),
         }
     }
 }

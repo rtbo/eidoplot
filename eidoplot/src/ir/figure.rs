@@ -2,7 +2,7 @@ use std::iter::FusedIterator;
 
 use crate::geom;
 use crate::ir::{Plot, Legend};
-use crate::style::{self, color, defaults};
+use crate::style::{self, defaults, theme};
 
 #[derive(Debug, Clone)]
 pub struct TitleFont {
@@ -115,7 +115,7 @@ impl Figure {
             title: None,
             plots,
             legend: None,
-            fill: Some(color::WHITE.into()),
+            fill: Some(theme::Color::Background.into()),
             layout: None,
         }
     }

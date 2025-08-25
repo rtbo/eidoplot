@@ -4,19 +4,20 @@ use crate::drawing::legend::Legend;
 use crate::drawing::series::series_has_legend;
 use crate::drawing::{Ctx, Error, SurfWrapper};
 use crate::render::{self, Surface as _};
-use crate::{data, geom, ir, missing_params};
+use crate::{data, geom, ir, missing_params, style};
 
 impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_toplevel_figure<D>(&mut self, ctx: &Ctx<D>, fig: &ir::Figure) -> Result<(), Error>
+    pub fn draw_toplevel_figure<D, T>(&mut self, ctx: &Ctx<D, T>, fig: &ir::Figure) -> Result<(), Error>
     where
         D: data::Source,
+        T: style::Theme,
     {
         self.prepare(fig.size())?;
         if let Some(fill) = fig.fill() {
-            self.fill(fill)?;
+            self.fill(fill.as_paint(ctx.theme()))?;
         }
 
         let mut rect = geom::Rect::from_ps(geom::Point::ORIGIN, fig.size());
@@ -36,7 +37,7 @@ where
                 text: &title.text,
                 font: &title.font.font,
                 font_size: title.font.size,
-                fill: missing_params::FIG_TITLE_COLOR.into(),
+                fill: ctx.theme().foreground().into(),
                 options: text::layout::Options {
                     hor_align: text::layout::HorAlign::Center,
                     ver_align: text::layout::VerAlign::Center,
@@ -57,13 +58,15 @@ where
         Ok(())
     }
 
-    fn draw_figure_legend<D>(
+    fn draw_figure_legend<D, T>(
         &mut self,
-        ctx: &Ctx<D>,
+        ctx: &Ctx<D, T>,
         fig: &ir::Figure,
         legend: &ir::FigLegend,
         rect: &mut geom::Rect,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error> 
+    where T: style::Theme,
+    {
         let mut dlegend = Legend::from_ir(
             legend.legend(),
             legend.pos().prefers_vertical(),
@@ -104,18 +107,19 @@ where
                 tl
             }
         };
-        self.draw_legend(&dlegend, &top_left)?;
+        self.draw_legend(ctx, &dlegend, &top_left)?;
         Ok(())
     }
 
-    fn draw_figure_plots<D>(
+    fn draw_figure_plots<D, T>(
         &mut self,
-        ctx: &Ctx<D>,
+        ctx: &Ctx<D, T>,
         plots: &ir::figure::Plots,
         rect: &geom::Rect,
     ) -> Result<(), Error>
     where
         D: data::Source,
+        T: style::Theme,
     {
         match plots {
             ir::figure::Plots::Plot(plot) => Ok(self.draw_plot(ctx, plot, rect)?),

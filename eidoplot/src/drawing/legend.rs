@@ -4,7 +4,7 @@ use std::sync::Arc;
 use eidoplot_text as text;
 use text::{TextLayout, fontdb};
 
-use crate::drawing::{self, SurfWrapper};
+use crate::drawing::{self, Ctx, SurfWrapper};
 use crate::render::{self, Surface as _};
 use crate::style::defaults;
 use crate::{geom, ir, style};
@@ -166,34 +166,40 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_legend(
+    pub fn draw_legend<D, T>(
         &mut self,
+        ctx: &Ctx<D, T>,
         legend: &Legend,
         top_left: &geom::Point,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error> 
+    where T: style::Theme,
+    {
         let rect = geom::Rect::from_ps(*top_left, legend.size.unwrap());
         if legend.fill.is_some() || legend.border.is_some() {
             self.draw_rect(&render::Rect {
                 rect,
-                fill: legend.fill,
-                stroke: legend.border,
+                fill: legend.fill.map(|f| f.as_paint(ctx.theme())),
+                stroke: legend.border.as_ref().map(|l| l.as_stroke(ctx.theme())),
                 transform: None,
             })?;
         }
 
         for entry in &legend.entries {
-            self.draw_legend_entry(entry, &rect, legend.label_fill)?;
+            self.draw_legend_entry(ctx, entry, &rect, legend.label_fill)?;
         }
 
         Ok(())
     }
 
-    fn draw_legend_entry(
+    fn draw_legend_entry<D, T>(
         &mut self,
+        ctx: &Ctx<D, T>,
         entry: &LegendEntry,
         rect: &geom::Rect,
         label_fill: style::Fill,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error> 
+    where T: style::Theme,
+    {
         let rect = geom::Rect::from_xywh(
             rect.left() + entry.x,
             rect.top() + entry.y,
@@ -207,7 +213,7 @@ where
             shape_sz,
         );
 
-        match entry.shape {
+        match &entry.shape {
             Shape::Line(line) => {
                 let mut path = geom::PathBuilder::new();
                 path.move_to(shape_rect.left(), shape_rect.center_y());
@@ -217,7 +223,7 @@ where
                 let line = render::Path {
                     path: &path,
                     fill: None,
-                    stroke: Some(line),
+                    stroke: Some(line.as_stroke(ctx.theme())),
                     transform: None,
                 };
                 self.draw_path(&line)?;
@@ -231,8 +237,8 @@ where
 
                 let path = render::Path {
                     path: &path,
-                    fill: marker.fill,
-                    stroke: marker.stroke,
+                    fill: marker.fill.as_ref().map(|f| f.as_paint(ctx.theme())),
+                    stroke: marker.stroke.as_ref().map(|s| s.as_stroke(ctx.theme())),
                     transform: Some(&transform),
                 };
                 self.draw_path(&path)?;
@@ -244,8 +250,8 @@ where
                 );
                 let rr = render::Rect {
                     rect: r,
-                    fill: Some(fill),
-                    stroke: line,
+                    fill: Some(fill.as_paint(ctx.theme())),
+                    stroke: line.as_ref().map(|l| l.as_stroke(ctx.theme())),
                     transform: None,
                 };
                 self.draw_rect(&rr)?;
@@ -258,7 +264,7 @@ where
         );
         let text = render::TextLayout {
             layout: &entry.text,
-            fill: label_fill,
+            fill: label_fill.as_paint(ctx.theme()),
             transform: Some(&pos.translation()),
         };
         self.draw_text_layout(&text)?;

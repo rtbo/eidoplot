@@ -2,7 +2,7 @@ use crate::drawing::{
     ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
 };
 use crate::render::{self, Surface as _};
-use crate::{data, geom, ir};
+use crate::{data, geom, ir, style};
 
 use scale::CoordMapXy;
 
@@ -23,9 +23,9 @@ impl legend::Entry for ir::Series {
 
     fn shape(&self) -> legend::Shape {
         match &self.plot {
-            ir::SeriesPlot::Line(xy) => legend::Shape::Line(xy.line),
-            ir::SeriesPlot::Scatter(sc) => legend::Shape::Marker(sc.marker),
-            ir::SeriesPlot::Histogram(hist) => legend::Shape::Rect(hist.fill, hist.line),
+            ir::SeriesPlot::Line(xy) => legend::Shape::Line(xy.line.clone()),
+            ir::SeriesPlot::Scatter(sc) => legend::Shape::Marker(sc.marker.clone()),
+            ir::SeriesPlot::Histogram(hist) => legend::Shape::Rect(hist.fill, hist.line.clone()),
         }
     }
 }
@@ -121,9 +121,9 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_series_plot<D>(
+    pub fn draw_series_plot<D, T>(
         &mut self,
-        ctx: &Ctx<D>,
+        ctx: &Ctx<D, T>,
         ir_series: &ir::Series,
         series: &Series,
         rect: &geom::Rect,
@@ -131,6 +131,7 @@ where
     ) -> Result<(), Error>
     where
         D: data::Source,
+        T: style::Theme,
     {
         match (&ir_series.plot, &series.plot) {
             (ir::SeriesPlot::Line(ir), SeriesPlot::Line(xy)) => {
@@ -140,7 +141,7 @@ where
                 self.draw_series_scatter(ctx, ir, sc, rect, cm)
             }
             (ir::SeriesPlot::Histogram(ir), SeriesPlot::Histogram(hist)) => {
-                Ok(self.draw_series_histogram(ir, hist, rect, cm)?)
+                Ok(self.draw_series_histogram(ctx, ir, hist, rect, cm)?)
             }
             _ => unreachable!("Should be the same plot type"),
         }
@@ -205,9 +206,9 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    fn draw_series_line<D>(
+    fn draw_series_line<D, T>(
         &mut self,
-        ctx: &Ctx<D>,
+        ctx: &Ctx<D, T>,
         ir: &ir::series::Line,
         line: &Line,
         rect: &geom::Rect,
@@ -215,13 +216,14 @@ where
     ) -> Result<(), Error>
     where
         D: data::Source,
+        T: style::Theme,
     {
         let path = line.build_path(ir, ctx.data_source(), rect, cm);
 
         let path = render::Path {
             path: &path,
             fill: None,
-            stroke: Some(ir.line.clone()),
+            stroke: Some(ir.line.as_stroke(ctx.theme())),
             transform: None,
         };
         self.draw_path(&path)?;
@@ -250,9 +252,9 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    fn draw_series_scatter<D>(
+    fn draw_series_scatter<D, T>(
         &mut self,
-        ctx: &Ctx<D>,
+        ctx: &Ctx<D, T>,
         ir: &ir::series::Scatter,
         _scatter: &Scatter,
         rect: &geom::Rect,
@@ -260,6 +262,7 @@ where
     ) -> Result<(), Error>
     where
         D: data::Source,
+        T: style::Theme,
     {
         let path = marker::marker_path(&ir.marker);
 
@@ -278,8 +281,8 @@ where
             let transform = geom::Transform::from_translate(x, y);
             let path = render::Path {
                 path: &path,
-                fill: ir.marker.fill,
-                stroke: ir.marker.stroke,
+                fill: ir.marker.fill.as_ref().map(|f| f.as_paint(ctx.theme())),
+                stroke: ir.marker.stroke.as_ref().map(|l| l.as_stroke(ctx.theme())),
                 transform: Some(&transform),
             };
             self.draw_path(&path)?;
@@ -355,13 +358,17 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    fn draw_series_histogram(
+    fn draw_series_histogram<D, T>(
         &mut self,
+        ctx: &Ctx<D, T>,
         ir: &ir::series::Histogram,
         hist: &Histogram,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        T: style::Theme,
+    {
         let mut pb = geom::PathBuilder::new();
         let mut x = rect.left() + cm.x.map_coord_num(hist.bins[0].range.0);
         let mut y = rect.bottom() - cm.y.map_coord_num(0.0);
@@ -380,8 +387,8 @@ where
         let path = pb.finish().expect("Should be a valid path");
         let path = render::Path {
             path: &path,
-            fill: Some(ir.fill.clone()),
-            stroke: ir.line.clone(),
+            fill: Some(ir.fill.as_paint(ctx.theme())),
+            stroke: ir.line.as_ref().map(|l| l.as_stroke(ctx.theme())),
             transform: None,
         };
         self.draw_path(&path)?;

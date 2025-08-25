@@ -2,7 +2,7 @@ use std::fmt;
 
 use eidoplot_text as text;
 
-use crate::{geom, style};
+use crate::{geom, style::ColorU8};
 
 #[derive(Debug)]
 pub enum Error {
@@ -30,7 +30,7 @@ pub trait Surface {
     fn prepare(&mut self, size: geom::Size) -> Result<(), Error>;
 
     /// Fill the entire surface with the given fill pattern
-    fn fill(&mut self, fill: style::Fill) -> Result<(), Error>;
+    fn fill(&mut self, fill: Paint) -> Result<(), Error>;
 
     /// Draw a rectangle
     fn draw_rect(&mut self, rect: &Rect) -> Result<(), Error>;
@@ -53,30 +53,47 @@ pub trait Surface {
     fn pop_clip(&mut self) -> Result<(), Error>;
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Paint {
+    Solid(ColorU8),
+}
+
+impl From<ColorU8> for Paint {
+    fn from(value: ColorU8) -> Self {
+        Paint::Solid(value)
+    }
+}
+
+/// Line pattern defines how the line is drawn
+#[derive(Debug, Clone, Copy, Default)]
+pub enum LinePattern<'a> {
+    /// Solid line
+    #[default]
+    Solid,
+    /// Dashed line. The pattern is relative to the line width.
+    Dash(&'a [f32]),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Stroke<'a> {
+    pub color: ColorU8,
+    pub width: f32,
+    pub pattern: LinePattern<'a>,
+}
+
 #[derive(Debug, Clone)]
 pub struct Rect<'a> {
     pub rect: geom::Rect,
-    pub fill: Option<style::Fill>,
-    pub stroke: Option<style::Line>,
+    pub fill: Option<Paint>,
+    pub stroke: Option<Stroke<'a>>,
     pub transform: Option<&'a geom::Transform>,
-}
-
-impl<'a> Rect<'a> {
-    pub fn new(rect: geom::Rect) -> Self {
-        Rect {
-            rect,
-            fill: None,
-            stroke: None,
-            transform: None,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Path<'a> {
     pub path: &'a geom::Path,
-    pub fill: Option<style::Fill>,
-    pub stroke: Option<style::Line>,
+    pub fill: Option<Paint>,
+    pub stroke: Option<Stroke<'a>>,
     pub transform: Option<&'a geom::Transform>,
 }
 
@@ -91,7 +108,7 @@ pub struct Text<'a> {
     pub text: &'a str,
     pub font: &'a text::Font,
     pub font_size: f32,
-    pub fill: style::Fill,
+    pub fill: Paint,
     pub options: text::layout::Options,
     pub transform: Option<&'a geom::Transform>,
 }
@@ -99,6 +116,6 @@ pub struct Text<'a> {
 #[derive(Debug, Clone)]
 pub struct TextLayout<'a> {
     pub layout: &'a text::TextLayout,
-    pub fill: style::Fill,
+    pub fill: Paint,
     pub transform: Option<&'a geom::Transform>,
 }

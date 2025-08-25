@@ -1,8 +1,7 @@
 use crate::ir::{Axis, Legend, Series};
-use crate::style::color;
-use crate::style::{self, defaults};
+use crate::style::{self, defaults, theme};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Border {
     Box(style::Line),
     Axis(style::Line),
@@ -15,7 +14,7 @@ pub enum Border {
 
 impl Default for Border {
     fn default() -> Self {
-        Border::Box(color::BLACK.into())
+        Border::Box(theme::Color::Foreground.into())
     }
 }
 
