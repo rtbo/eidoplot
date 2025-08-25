@@ -1,4 +1,3 @@
-use crate::data;
 use crate::drawing::{Categories, Error};
 
 /// Bounds of an axis
@@ -31,7 +30,7 @@ impl Bounds {
             }
             (Bounds::Cat(a), Bounds::Cat(b)) => {
                 for s in b.iter() {
-                    a.push(s);
+                    a.push_if_not_present(s);
                 }
                 Ok(())
             }
@@ -40,33 +39,54 @@ impl Bounds {
             )),
         }
     }
+}
 
-    pub fn _contains(&self, sample: data::Sample) -> bool {
-        match self {
-            Bounds::Num(n) => n.contains(sample.as_num().unwrap()),
-            Bounds::Cat(cats) => cats._contains(sample.as_cat().unwrap()),
-        }
+/// Bounds of an axis, borrowing internal its data
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum BoundsRef<'a> {
+    /// Numeric bounds, used by both float and integer
+    Num(NumBounds),
+    /// Category bounds
+    Cat(&'a Categories),
+}
+
+impl From<NumBounds> for BoundsRef<'_> {
+    fn from(value: NumBounds) -> Self {
+        Self::Num(value)
     }
+}
 
-    pub fn _is_num(&self) -> bool {
-        matches!(self, Bounds::Num(_))
-    }   
-
-    pub fn _is_cat(&self) -> bool {
-        matches!(self, Bounds::Cat(_))
+impl<'a> From<&'a Categories> for BoundsRef<'a> {
+    fn from(value: &'a Categories) -> Self {
+        Self::Cat(value)
     }
+}
 
-    pub fn as_num(&self) -> Option<&NumBounds> {
+impl BoundsRef<'_> {
+    pub fn as_num(&self) -> Option<NumBounds> {
         match self {
-            Bounds::Num(n) => Some(n),
+            &BoundsRef::Num(n) => Some(n),
             _ => None,
         }
     }
+}
 
-    pub fn _as_cat(&self) -> Option<&Categories> {
-        match self {
-            Bounds::Cat(cats) => Some(cats),
-            _ => None,
+impl std::cmp::PartialEq<Bounds> for BoundsRef<'_> {
+    fn eq(&self, other: &Bounds) -> bool {
+        match (self, other) {
+            (&BoundsRef::Num(a), &Bounds::Num(b)) => a == b,
+            (&BoundsRef::Cat(a), Bounds::Cat(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
+impl std::cmp::PartialEq<BoundsRef<'_>> for Bounds {
+    fn eq(&self, other: &BoundsRef) -> bool {
+        match (self, other) {
+            (&Bounds::Num(a), &BoundsRef::Num(b)) => a == b,
+            (Bounds::Cat(a), &BoundsRef::Cat(b)) => a == b,
+            _ => false,
         }
     }
 }

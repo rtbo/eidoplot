@@ -201,7 +201,7 @@ impl Categories {
         self.cats.iter().any(|c| c.0 == cat)
     }
 
-    fn push(&mut self, cat: &str) {
+    fn push_if_not_present(&mut self, cat: &str) {
         if self.cats.iter().any(|c| c.0 == cat) {
             return;
         }
@@ -214,7 +214,7 @@ impl From<&dyn data::StrColumn> for Categories {
         let mut cats = Categories::new();
         for s in col.iter() {
             if let Some(s) = s {
-                cats.push(s);
+                cats.push_if_not_present(s);
             }
         }
         cats

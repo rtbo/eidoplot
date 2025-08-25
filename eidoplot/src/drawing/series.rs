@@ -187,7 +187,7 @@ impl Line {
                 in_a_line = false;
                 continue;
             }
-            let (x, y) = cm.map_coord((x, y));
+            let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
             let x = rect.left() + x;
             let y = rect.bottom() - y;
             if in_a_line {
@@ -272,7 +272,7 @@ where
             if x.is_null() || y.is_null() {
                 continue;
             }
-            let (x, y) = cm.map_coord((x, y));
+            let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
             let x = rect.left() + x;
             let y = rect.bottom() - y;
             let transform = geom::Transform::from_translate(x, y);
@@ -363,18 +363,18 @@ where
         cm: &CoordMapXy,
     ) -> Result<(), render::Error> {
         let mut pb = geom::PathBuilder::new();
-        let mut x = rect.left() + cm.x.map_coord(hist.bins[0].range.0.into());
-        let mut y = rect.bottom() - cm.y.map_coord(0.0.into());
+        let mut x = rect.left() + cm.x.map_coord_num(hist.bins[0].range.0);
+        let mut y = rect.bottom() - cm.y.map_coord_num(0.0);
         pb.move_to(x, y);
 
         for bin in hist.bins.iter() {
-            y = rect.bottom() - cm.y.map_coord(bin.value.into());
+            y = rect.bottom() - cm.y.map_coord_num(bin.value);
             pb.line_to(x, y);
-            x = rect.left() + cm.x.map_coord(bin.range.1.into());
+            x = rect.left() + cm.x.map_coord_num(bin.range.1);
             pb.line_to(x, y);
         }
 
-        y = rect.bottom() - cm.y.map_coord(0.0.into());
+        y = rect.bottom() - cm.y.map_coord_num(0.0);
         pb.line_to(x, y);
 
         let path = pb.finish().expect("Should be a valid path");

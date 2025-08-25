@@ -2,26 +2,26 @@ use crate::data;
 use crate::drawing::{Categories, axis};
 use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
 
-pub fn locate(locator: &Locator, ab: &axis::Bounds) -> Vec<data::OwnedSample> {
+pub fn locate(locator: &Locator, ab: axis::BoundsRef) -> Vec<data::OwnedSample> {
     match ab {
-        axis::Bounds::Cat(cats) => cats.iter().map(|c| c.into()).collect(),
-        axis::Bounds::Num(ab) => {
-            let ticks = locate_num(locator, *ab);
+        axis::BoundsRef::Cat(cats) => cats.iter().map(|c| c.into()).collect(),
+        axis::BoundsRef::Num(nb) => {
+            let ticks = locate_num(locator, nb);
             ticks.iter().map(|t| (*t).into()).collect()
         }
     }
 }
 
-fn locate_num(locator: &Locator, ab: axis::NumBounds) -> Vec<f64> {
+fn locate_num(locator: &Locator, nb: axis::NumBounds) -> Vec<f64> {
     match locator {
-        Locator::Auto => MaxN::new_auto().ticks(ab),
+        Locator::Auto => MaxN::new_auto().ticks(nb),
         Locator::MaxN { bins, steps } => {
             let ticker = MaxN::new(*bins, steps.as_slice());
-            ticker.ticks(ab)
+            ticker.ticks(nb)
         }
         Locator::PiMultiple { bins } => {
             let ticker = MaxN::new_pi(*bins);
-            ticker.ticks(ab)
+            ticker.ticks(nb)
         }
     }
 }
@@ -62,8 +62,8 @@ impl<'a> MaxN<'a> {
         Self::new(bins, PI_STEPS)
     }
 
-    fn ticks(&self, ab: axis::NumBounds) -> Vec<f64> {
-        let target_step = ab.span() / self.bins as f64;
+    fn ticks(&self, nb: axis::NumBounds) -> Vec<f64> {
+        let target_step = nb.span() / self.bins as f64;
 
         // getting quite about where we need to be
         let scale = 10f64.powf(target_step.log10().div_euclid(1.0));
@@ -80,11 +80,11 @@ impl<'a> MaxN<'a> {
             stepper.step()
         };
 
-        let vmin = (ab.start() / step).floor() * step;
+        let vmin = (nb.start() / step).floor() * step;
 
         let edge = MaxNEdgeInteger { step };
-        let low = edge.largest_le(ab.start() - vmin);
-        let high = edge.smallest_ge(ab.end() - vmin);
+        let low = edge.largest_le(nb.start() - vmin);
+        let high = edge.smallest_ge(nb.end() - vmin);
 
         let mut ticks = Vec::with_capacity((high - low + 1.0) as usize);
         let mut val = low;
@@ -160,10 +160,10 @@ impl MaxNEdgeInteger {
     }
 }
 
-pub fn label_formatter(ticks: &Ticks, ab: &axis::Bounds) -> Box<dyn LabelFormatter> {
+pub fn label_formatter(ticks: &Ticks, ab: axis::BoundsRef) -> Box<dyn LabelFormatter> {
     match ab {
-        axis::Bounds::Cat(cats) => Box::new(cats.clone()),
-        axis::Bounds::Num(ab) => num_label_formatter(ticks, *ab),
+        axis::BoundsRef::Num(ab) => num_label_formatter(ticks, ab),
+        axis::BoundsRef::Cat(cats) => Box::new(cats.clone()),
     }
 }
 

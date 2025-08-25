@@ -47,10 +47,15 @@ struct Axis {
 }
 
 impl CoordMap for Axis {
-    fn map_coord(&self, sample: data::Sample) -> f32 {
-        self.coord_map.map_coord(sample)
+    fn map_coord_num(&self, num: f64) -> f32 {
+        self.coord_map.map_coord_num(num)
     }
-    fn axis_bounds(&self) -> axis::Bounds {
+
+    fn map_coord_cat(&self, cat: &str) -> f32 {
+        self.coord_map.map_coord_cat(cat)
+    }
+
+    fn axis_bounds(&self) -> axis::BoundsRef<'_> {
         self.coord_map.axis_bounds()
     }
 }
@@ -171,7 +176,7 @@ impl<D> Ctx<'_, D> {
             let num_bounds = bounds.as_num().ok_or_else(|| {
                 Error::InconsistentAxisBounds("Can't use minor ticks with categories".into())
             })?;
-            Some(self.setup_minor_ticks(mt, major_locs, *num_bounds)?)
+            Some(self.setup_minor_ticks(mt, major_locs, num_bounds)?)
         } else {
             None
         };
@@ -217,7 +222,7 @@ impl<D> Ctx<'_, D> {
             let num_bounds = bounds.as_num().ok_or_else(|| {
                 Error::InconsistentAxisBounds("Can't use minor ticks with categories".into())
             })?;
-            Some(self.setup_minor_ticks(mt, major_locs, *num_bounds)?)
+            Some(self.setup_minor_ticks(mt, major_locs, num_bounds)?)
         } else {
             None
         };
@@ -243,7 +248,7 @@ impl<D> Ctx<'_, D> {
         })
     }
 
-    fn setup_x_ticks(&self, ticks: &ir::axis::Ticks, ab: axis::Bounds) -> Result<Ticks, Error> {
+    fn setup_x_ticks(&self, ticks: &ir::axis::Ticks, ab: axis::BoundsRef) -> Result<Ticks, Error> {
         let opts = text::layout::Options {
             hor_align: text::layout::HorAlign::Center,
             ver_align: text::layout::LineVerAlign::Hanging.into(),
@@ -252,7 +257,7 @@ impl<D> Ctx<'_, D> {
         self.setup_ticks(ticks, ab, opts)
     }
 
-    fn setup_y_ticks(&self, ticks: &ir::axis::Ticks, ab: axis::Bounds) -> Result<Ticks, Error> {
+    fn setup_y_ticks(&self, ticks: &ir::axis::Ticks, ab: axis::BoundsRef) -> Result<Ticks, Error> {
         let opts = text::layout::Options {
             hor_align: text::layout::HorAlign::Right,
             ver_align: text::layout::LineVerAlign::Middle.into(),
@@ -264,14 +269,14 @@ impl<D> Ctx<'_, D> {
     fn setup_ticks(
         &self,
         ticks: &ir::axis::Ticks,
-        ab: axis::Bounds,
+        ab: axis::BoundsRef,
         opts: text::layout::Options,
     ) -> Result<Ticks, Error> {
-        let mut locs = ticks::locate(ticks.locator(), &ab);
+        let mut locs = ticks::locate(ticks.locator(), ab);
         if let Some(ab) = ab.as_num() {
             locs.retain(|l| ab.contains(l.as_num().unwrap()));
         }
-        let lbl_formatter = ticks::label_formatter(ticks, &ab);
+        let lbl_formatter = ticks::label_formatter(ticks, ab);
         let font = ticks.font();
         let db: &font::Database = self.fontdb();
         let lbls: Result<Vec<TextLayout>, _> = locs
@@ -513,7 +518,7 @@ where
                     2 * x_min_ticks.locs.len(),
                 );
                 for t in x_min_ticks.locs.iter().copied() {
-                    let x = axes.x.map_coord(t.into()) + rect.left();
+                    let x = axes.x.map_coord_num(t.into()) + rect.left();
                     pathb.move_to(x, rect.top());
                     pathb.line_to(x, rect.bottom());
                     let path = pathb.finish().expect("Should be a valid path");
@@ -535,7 +540,11 @@ where
                     2 * x_ticks.locs.len(),
                 );
                 for t in x_ticks.locs.iter() {
-                    let x = axes.x.map_coord(t.as_sample()) + rect.left();
+                    let x = axes
+                        .x
+                        .map_coord(t.as_sample())
+                        .expect("Should be a valid coord")
+                        + rect.left();
                     pathb.move_to(x, rect.top());
                     pathb.line_to(x, rect.bottom());
                     let path = pathb.finish().expect("Should be a valid path");
@@ -557,7 +566,7 @@ where
                     2 * y_min_ticks.locs.len(),
                 );
                 for t in y_min_ticks.locs.iter().copied() {
-                    let y = rect.bottom() - axes.y.map_coord(t.into());
+                    let y = rect.bottom() - axes.y.map_coord_num(t);
                     pathb.move_to(rect.left(), y);
                     pathb.line_to(rect.right(), y);
                     let path = pathb.finish().expect("Should be a valid path");
@@ -579,7 +588,11 @@ where
                     2 * y_ticks.locs.len(),
                 );
                 for t in y_ticks.locs.iter() {
-                    let y = rect.bottom() - axes.y.map_coord(t.as_sample());
+                    let y = rect.bottom()
+                        - axes
+                            .y
+                            .map_coord(t.as_sample())
+                            .expect("Should be a valid coord");
                     pathb.move_to(rect.left(), y);
                     pathb.line_to(rect.right(), y);
                     let path = pathb.finish().expect("Should be a valid path");
@@ -665,7 +678,7 @@ where
                 .locs
                 .iter()
                 .copied()
-                .map(|t| x_axis.map_coord(t.into()));
+                .map(|t| x_axis.map_coord_num(t));
             self.draw_ticks_path(
                 ticks,
                 missing_params::MINOR_TICK_SIZE,
@@ -697,7 +710,10 @@ where
         x_cm: &dyn scale::CoordMap,
     ) -> Result<(), render::Error> {
         let transform = geom::Transform::from_translate(rect.left(), rect.bottom());
-        let ticks = x_ticks.locs.iter().map(|t| x_cm.map_coord(t.as_sample()));
+        let ticks = x_ticks.locs.iter().map(|t| {
+            x_cm.map_coord(t.as_sample())
+                .expect("Ticks should be valid coord")
+        });
         self.draw_ticks_path(
             ticks,
             missing_params::TICK_SIZE,
@@ -708,7 +724,10 @@ where
         let fill = x_ticks.color.into();
 
         for (xt, lbl) in x_ticks.locs.iter().zip(x_ticks.lbls.iter()) {
-            let x = rect.left() + x_cm.map_coord(xt.as_sample());
+            let x = rect.left()
+                + x_cm
+                    .map_coord(xt.as_sample())
+                    .expect("Ticks should be valid coord");
             let y = rect.bottom() + missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN;
             let text = render::TextLayout {
                 layout: lbl,
@@ -756,7 +775,7 @@ where
                 .locs
                 .iter()
                 .copied()
-                .map(|t| y_axis.map_coord(t.into()));
+                .map(|t| y_axis.map_coord_num(t));
             self.draw_ticks_path(
                 ticks,
                 missing_params::MINOR_TICK_SIZE,
@@ -790,7 +809,10 @@ where
     ) -> Result<(), render::Error> {
         let transform =
             geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(-90.0);
-        let ticks = y_ticks.locs.iter().map(|t| y_cm.map_coord(t.as_sample()));
+        let ticks = y_ticks.locs.iter().map(|t| {
+            y_cm.map_coord(t.as_sample())
+                .expect("Ticks should be valid coord")
+        });
         self.draw_ticks_path(
             ticks,
             missing_params::TICK_SIZE,
@@ -802,7 +824,10 @@ where
 
         for (yt, lbl) in y_ticks.locs.iter().zip(y_ticks.lbls.iter()) {
             let x = rect.left() - missing_params::TICK_SIZE - missing_params::TICK_LABEL_MARGIN;
-            let y = rect.bottom() - y_cm.map_coord(yt.as_sample());
+            let y = rect.bottom()
+                - y_cm
+                    .map_coord(yt.as_sample())
+                    .expect("Ticks should be valid coord");
             let pos = geom::Point::new(x, y);
             let text = render::TextLayout {
                 layout: lbl,
