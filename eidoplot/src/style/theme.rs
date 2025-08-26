@@ -1,29 +1,19 @@
-use crate::style::{color, ColorU8};
-use crate::style::palette::{self, Palette};
-
-#[derive(Debug, Clone, Copy)]
-pub enum Color {
-    Background,
-    Foreground,
-    Grid,
-    LegendFill,
-    LegendBorder,
-    Series(palette::Color),
-}
+use crate::style;
+use crate::style::series::Palette;
+use crate::style::color::{self, ColorU8};
 
 pub trait Theme {
     type Palette: Palette;
 
     fn is_dark(&self) -> bool;
 
-    fn get(&self, col: Color) -> ColorU8 {
+    fn get(&self, col: Col) -> ColorU8 {
         match col {
-            Color::Background => self.background(),
-            Color::Foreground => self.foreground(),
-            Color::Grid => self.grid(),
-            Color::LegendFill => self.legend_fill(),
-            Color::LegendBorder => self.legend_border(),
-            Color::Series(i) => self.series(i),
+            Col::Background => self.background(),
+            Col::Foreground => self.foreground(),
+            Col::Grid => self.grid(),
+            Col::LegendFill => self.legend_fill(),
+            Col::LegendBorder => self.legend_border(),
         }
     }
 
@@ -40,11 +30,86 @@ pub trait Theme {
     }
 
     fn palette(&self) -> &Self::Palette;
+}
 
-    fn series(&self, color: palette::Color) -> ColorU8 {
-        self.palette().get(color)
+#[derive(Debug, Clone, Copy)]
+pub enum Col {
+    Background,
+    Foreground,
+    Grid,
+    LegendFill,
+    LegendBorder,
+}
+
+impl super::Color for Col {}
+
+impl<T, P> super::ResolveColor<Col> for T
+where
+    T: Theme<Palette = P>,
+    P: Palette,
+{
+    fn resolve_color(&self, color: &Col) -> ColorU8 {
+        self.get(*color)
     }
 }
+
+/// A flexible color for theme elements
+#[derive(Debug, Clone, Copy)]
+pub enum Color {
+    Theme(Col),
+    Fixed(ColorU8),
+}
+
+impl From<Col> for Color {
+    fn from(color: Col) -> Self {
+        Color::Theme(color)
+    }
+}
+
+impl From<ColorU8> for Color {
+    fn from(color: ColorU8) -> Self {
+        Color::Fixed(color)
+    }
+}
+
+impl super::Color for Color {}
+
+impl<T, P> super::ResolveColor<Color> for T
+where
+    T: Theme<Palette = P>,
+    P: Palette,
+{
+    fn resolve_color(&self, color: &Color) -> ColorU8 {
+        match color {
+            Color::Theme(col) => self.get(*col),
+            Color::Fixed(c) => *c,
+        }
+    }
+}
+
+pub type Line = style::Line<Color>;
+
+// From<Color> for Line is already defined in style.rs, using generics.
+// We just add From<Col> for Line here.
+impl From<Col> for Line {
+    fn from(col: Col) -> Self {
+        Line {
+            color: col.into(),
+            width: 1.0,
+            pattern: style::LinePattern::default(),
+        }
+    }
+}
+
+pub type Fill = style::Fill<Color>;
+
+// From<Color> for Fill is already defined in style.rs, using generics.
+// We just add From<Col> for Fill here.
+impl From<Col> for Fill {
+    fn from(col: Col) -> Self {
+        Fill::Solid(col.into())
+    }
+}   
 
 #[derive(Debug, Clone, Copy)]
 pub struct Light<P: Palette> {
@@ -53,9 +118,7 @@ pub struct Light<P: Palette> {
 
 impl<P: Palette> Light<P> {
     pub fn new(palette: P) -> Self {
-        Light {
-            palette,
-        }
+        Light { palette }
     }
 }
 
@@ -98,9 +161,7 @@ pub struct Dark<P: Palette> {
 
 impl<P: Palette> Dark<P> {
     pub fn new(palette: P) -> Self {
-        Dark {
-            palette,
-        }
+        Dark { palette }
     }
 }
 

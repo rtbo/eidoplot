@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use eidoplot::{data, ir, style::{self, palette}};
+use eidoplot::{data, ir, style};
 
 mod common;
 
@@ -18,7 +18,7 @@ fn main() {
         name: Some("y=sin(x)".into()),
         plot: ir::SeriesPlot::Line(ir::series::Line {
             line: style::Line {
-                color: style::Color::Palette(palette::Color(0)),
+                color: style::series::Color::Auto,
                 width: 3.0,
                 pattern: style::LinePattern::Solid,
             },

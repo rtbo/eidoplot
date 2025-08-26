@@ -80,15 +80,15 @@ enum SeriesPlot {
 }
 
 impl Series {
-    pub fn from_ir<D>(series: &ir::Series, data_source: &D) -> Result<Self, Error>
+    pub fn from_ir<D>(index: usize, series: &ir::Series, data_source: &D) -> Result<Self, Error>
     where
         D: data::Source,
     {
         let processed = match &series.plot {
-            ir::SeriesPlot::Line(line) => SeriesPlot::Line(Line::from_ir(line, data_source)?),
-            ir::SeriesPlot::Scatter(sc) => SeriesPlot::Scatter(Scatter::from_ir(sc, data_source)?),
+            ir::SeriesPlot::Line(line) => SeriesPlot::Line(Line::from_ir(index, line, data_source)?),
+            ir::SeriesPlot::Scatter(sc) => SeriesPlot::Scatter(Scatter::from_ir(index, sc, data_source)?),
             ir::SeriesPlot::Histogram(hist) => {
-                SeriesPlot::Histogram(Histogram::from_ir(hist, data_source)?)
+                SeriesPlot::Histogram(Histogram::from_ir(index, hist, data_source)?)
             }
         };
         Ok(Series { plot: processed })
@@ -150,16 +150,18 @@ where
 
 #[derive(Debug, Clone)]
 struct Line {
+    index: usize,
     ab: (axis::Bounds, axis::Bounds),
 }
 
 impl Line {
-    fn from_ir<D>(ir: &ir::series::Line, data_source: &D) -> Result<Self, Error>
+    fn from_ir<D>(index: usize, ir: &ir::series::Line, data_source: &D) -> Result<Self, Error>
     where
         D: data::Source,
     {
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &ir.x_data, &ir.y_data)?;
         Ok(Line {
+            index,
             ab: (x_bounds, y_bounds),
         })
     }
@@ -219,11 +221,12 @@ where
         T: style::Theme,
     {
         let path = line.build_path(ir, ctx.data_source(), rect, cm);
+        let rc = (ctx.theme().palette(), line.index);
 
         let path = render::Path {
             path: &path,
             fill: None,
-            stroke: Some(ir.line.as_stroke(ctx.theme())),
+            stroke: Some(ir.line.as_stroke(&rc)),
             transform: None,
         };
         self.draw_path(&path)?;
@@ -233,16 +236,18 @@ where
 
 #[derive(Debug, Clone)]
 struct Scatter {
+    index: usize,
     ab: (axis::Bounds, axis::Bounds),
 }
 
 impl Scatter {
-    fn from_ir<D>(ir: &ir::series::Scatter, data_source: &D) -> Result<Self, Error>
+    fn from_ir<D>(index: usize, ir: &ir::series::Scatter, data_source: &D) -> Result<Self, Error>
     where
         D: data::Source,
     {
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &ir.x_data, &ir.y_data)?;
         Ok(Scatter {
+            index,
             ab: (x_bounds, y_bounds),
         })
     }
@@ -256,7 +261,7 @@ where
         &mut self,
         ctx: &Ctx<D, T>,
         ir: &ir::series::Scatter,
-        _scatter: &Scatter,
+        scatter: &Scatter,
         rect: &geom::Rect,
         cm: &CoordMapXy,
     ) -> Result<(), Error>
@@ -265,6 +270,7 @@ where
         T: style::Theme,
     {
         let path = marker::marker_path(&ir.marker);
+        let rc = (ctx.theme().palette(), scatter.index);
 
         // unwraping here as data is checked during setup phase
         let x_col = get_column(&ir.x_data, ctx.data_source()).unwrap();
@@ -281,8 +287,8 @@ where
             let transform = geom::Transform::from_translate(x, y);
             let path = render::Path {
                 path: &path,
-                fill: ir.marker.fill.as_ref().map(|f| f.as_paint(ctx.theme())),
-                stroke: ir.marker.stroke.as_ref().map(|l| l.as_stroke(ctx.theme())),
+                fill: ir.marker.fill.as_ref().map(|f| f.as_paint(&rc)),
+                stroke: ir.marker.stroke.as_ref().map(|l| l.as_stroke(&rc)),
                 transform: Some(&transform),
             };
             self.draw_path(&path)?;
@@ -302,12 +308,13 @@ struct HistBin {
 
 #[derive(Debug, Clone)]
 struct Histogram {
+    index: usize,
     ab: (axis::NumBounds, axis::NumBounds),
     bins: Vec<HistBin>,
 }
 
 impl Histogram {
-    fn from_ir<D>(hist: &ir::series::Histogram, data_source: &D) -> Result<Self, Error>
+    fn from_ir<D>(index: usize, hist: &ir::series::Histogram, data_source: &D) -> Result<Self, Error>
     where
         D: data::Source,
     {
@@ -348,6 +355,7 @@ impl Histogram {
         }
 
         Ok(Histogram {
+            index,
             ab: (x_bounds, y_bounds),
             bins,
         })
@@ -369,6 +377,8 @@ where
     where
         T: style::Theme,
     {
+        let rc = (ctx.theme().palette(), hist.index);
+
         let mut pb = geom::PathBuilder::new();
         let mut x = rect.left() + cm.x.map_coord_num(hist.bins[0].range.0);
         let mut y = rect.bottom() - cm.y.map_coord_num(0.0);
@@ -387,8 +397,8 @@ where
         let path = pb.finish().expect("Should be a valid path");
         let path = render::Path {
             path: &path,
-            fill: Some(ir.fill.as_paint(ctx.theme())),
-            stroke: ir.line.as_ref().map(|l| l.as_stroke(ctx.theme())),
+            fill: Some(ir.fill.as_paint(&rc)),
+            stroke: ir.line.as_ref().map(|l| l.as_stroke(&rc)),
             transform: None,
         };
         self.draw_path(&path)?;

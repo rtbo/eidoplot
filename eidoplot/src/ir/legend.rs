@@ -6,7 +6,7 @@ use crate::style::{self, theme, defaults};
 pub struct EntryFont {
     pub size: f32,
     pub font: style::Font,
-    pub color: style::Color,
+    pub color: theme::Color,
 }
 
 impl Default for EntryFont {
@@ -14,7 +14,7 @@ impl Default for EntryFont {
         Self {
             size: defaults::LEGEND_LABEL_FONT_SIZE,
             font: style::Font::default(),
-            color: theme::Color::Foreground.into(),
+            color: theme::Col::Foreground.into(),
         }
     }
 }
@@ -22,9 +22,8 @@ impl Default for EntryFont {
 #[derive(Debug, Clone)]
 pub struct Legend {
     font: EntryFont,
-    fill: Option<style::Fill>,
-    border: Option<style::Line>,
-    label_fill: style::Fill,
+    fill: Option<theme::Fill>,
+    border: Option<theme::Line>,
     columns: Option<NonZeroU32>,
     padding: f32,
     spacing: f32,
@@ -34,9 +33,8 @@ impl Default for Legend {
     fn default() -> Self {
         Self {
             font: EntryFont::default(),
-            fill: defaults::LEGEND_FILL,
-            border: defaults::LEGEND_BORDER,
-            label_fill: defaults::LEGEND_LABEL_COLOR.into(),
+            fill: Some(theme::Col::LegendFill.into()),
+            border: Some(theme::Col::LegendBorder.into()),
             columns: None,
             padding: defaults::LEGEND_PADDING,
             spacing: defaults::LEGEND_SPACING,
@@ -49,16 +47,12 @@ impl Legend {
         &self.font
     }
 
-    pub fn fill(&self) -> Option<&style::Fill> {
+    pub fn fill(&self) -> Option<&theme::Fill> {
         self.fill.as_ref()
     }
 
-    pub fn border(&self) -> Option<&style::Line> {
+    pub fn border(&self) -> Option<&theme::Line> {
         self.border.as_ref()
-    }
-
-    pub fn label_fill(&self) -> &style::Fill {
-        &self.label_fill
     }
 
     pub fn columns(&self) -> Option<NonZeroU32> {
@@ -77,16 +71,12 @@ impl Legend {
         Self { font, ..self }
     }
 
-    pub fn with_fill(self, fill: Option<style::Fill>) -> Self {
+    pub fn with_fill(self, fill: Option<theme::Fill>) -> Self {
         Self { fill, ..self }
     }
 
-    pub fn with_border(self, border: Option<style::Line>) -> Self {
+    pub fn with_border(self, border: Option<theme::Line>) -> Self {
         Self { border, ..self }
-    }
-
-    pub fn with_label_fill(self, label_fill: style::Fill) -> Self {
-        Self { label_fill, ..self }
     }
 
     pub fn with_columns(self, columns: Option<NonZeroU32>) -> Self {

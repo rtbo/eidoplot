@@ -6,13 +6,13 @@ use text::{TextLayout, fontdb};
 
 use crate::drawing::{self, Ctx, SurfWrapper};
 use crate::render::{self, Surface as _};
-use crate::style::defaults;
+use crate::style::{defaults, theme, Color as _};
 use crate::{geom, ir, style};
 
 pub enum Shape {
-    Line(style::Line),
-    Marker(style::Marker),
-    Rect(style::Fill, Option<style::Line>),
+    Line(style::series::Line),
+    Marker(style::series::Marker),
+    Rect(style::series::Fill, Option<style::series::Line>),
 }
 
 /// trait implemented by series, or any other item that
@@ -24,6 +24,7 @@ pub trait Entry {
 }
 
 struct LegendEntry {
+    index: usize,
     shape: Shape,
     text: TextLayout,
     label_width: f32,
@@ -44,9 +45,8 @@ impl LegendEntry {
 
 pub struct Legend {
     font: ir::legend::EntryFont,
-    fill: Option<style::Fill>,
-    border: Option<style::Line>,
-    label_fill: style::Fill,
+    fill: Option<theme::Fill>,
+    border: Option<theme::Line>,
     columns: Option<NonZeroU32>,
     spacing: f32,
     padding: f32,
@@ -68,7 +68,6 @@ impl Legend {
             font: legend.font().clone(),
             fill: legend.fill().cloned(),
             border: legend.border().cloned(),
-            label_fill: *legend.label_fill(),
             columns,
             spacing: legend.spacing(),
             padding: legend.padding(),
@@ -81,7 +80,7 @@ impl Legend {
         }
     }
 
-    pub fn add_entry<E>(&mut self, entry: &E) -> Result<(), drawing::Error>
+    pub fn add_entry<E>(&mut self, index: usize, entry: &E) -> Result<(), drawing::Error>
     where
         E: Entry,
     {
@@ -98,6 +97,7 @@ impl Legend {
         let label_width = text.bbox().width();
         let label_height = text.bbox().height();
         self.entries.push(LegendEntry {
+            index,
             shape,
             text,
             label_width,
@@ -185,7 +185,7 @@ where
         }
 
         for entry in &legend.entries {
-            self.draw_legend_entry(ctx, entry, &rect, legend.label_fill)?;
+            self.draw_legend_entry(ctx, entry, &rect, legend.font.color)?;
         }
 
         Ok(())
@@ -196,7 +196,7 @@ where
         ctx: &Ctx<D, T>,
         entry: &LegendEntry,
         rect: &geom::Rect,
-        label_fill: style::Fill,
+        label_color: theme::Color,
     ) -> Result<(), render::Error> 
     where T: style::Theme,
     {
@@ -213,6 +213,8 @@ where
             shape_sz,
         );
 
+        let rc = (ctx.theme().palette(), entry.index);
+
         match &entry.shape {
             Shape::Line(line) => {
                 let mut path = geom::PathBuilder::new();
@@ -223,7 +225,7 @@ where
                 let line = render::Path {
                     path: &path,
                     fill: None,
-                    stroke: Some(line.as_stroke(ctx.theme())),
+                    stroke: Some(line.as_stroke(&rc)),
                     transform: None,
                 };
                 self.draw_path(&line)?;
@@ -237,8 +239,8 @@ where
 
                 let path = render::Path {
                     path: &path,
-                    fill: marker.fill.as_ref().map(|f| f.as_paint(ctx.theme())),
-                    stroke: marker.stroke.as_ref().map(|s| s.as_stroke(ctx.theme())),
+                    fill: marker.fill.as_ref().map(|f| f.as_paint(&rc)),
+                    stroke: marker.stroke.as_ref().map(|s| s.as_stroke(&rc)),
                     transform: Some(&transform),
                 };
                 self.draw_path(&path)?;
@@ -250,8 +252,8 @@ where
                 );
                 let rr = render::Rect {
                     rect: r,
-                    fill: Some(fill.as_paint(ctx.theme())),
-                    stroke: line.as_ref().map(|l| l.as_stroke(ctx.theme())),
+                    fill: Some(fill.as_paint(&rc)),
+                    stroke: line.as_ref().map(|l| l.as_stroke(&rc)),
                     transform: None,
                 };
                 self.draw_rect(&rr)?;
@@ -264,7 +266,7 @@ where
         );
         let text = render::TextLayout {
             layout: &entry.text,
-            fill: label_fill.as_paint(ctx.theme()),
+            fill: label_color.resolve(ctx.theme()).into(),
             transform: Some(&pos.translation()),
         };
         self.draw_text_layout(&text)?;

@@ -32,7 +32,7 @@ impl Default for Scale {
 pub mod ticks {
     use eidoplot_text::Font;
 
-    use crate::style::{self, defaults, theme, Color, Dash};
+    use crate::style::{self, Dash, defaults, theme};
 
     /// Describes how to locate the ticks of an axis
     #[derive(Debug, Default, Clone)]
@@ -96,9 +96,9 @@ pub mod ticks {
         /// Font for the ticks labels
         font: TicksFont,
         /// Color for the ticks and the labels
-        color: Color,
+        color: theme::Color,
         /// Gridline style
-        grid: Option<style::Line>,
+        grid: Option<theme::Line>,
     }
 
     impl Default for Ticks {
@@ -107,10 +107,10 @@ pub mod ticks {
                 locator: Locator::default(),
                 formatter: Formatter::default(),
                 font: TicksFont::default(),
-                color: theme::Color::Foreground.into(),
-                grid: Some(style::Line {
+                color: theme::Col::Foreground.into(),
+                grid: Some(theme::Line {
                     width: 1.0,
-                    color: style::Color::Theme(theme::Color::Grid),
+                    color: theme::Col::Grid.into(),
                     pattern: style::LinePattern::Solid,
                 }),
             }
@@ -131,11 +131,11 @@ pub mod ticks {
             Self { font, ..self }
         }
         /// Returns a new ticks with the specified color
-        pub fn with_color(self, color: Color) -> Self {
+        pub fn with_color(self, color: theme::Color) -> Self {
             Self { color, ..self }
         }
         /// Returns a new ticks with the specified grid
-        pub fn with_grid(self, grid: Option<style::Line>) -> Self {
+        pub fn with_grid(self, grid: Option<theme::Line>) -> Self {
             Self { grid, ..self }
         }
 
@@ -152,11 +152,11 @@ pub mod ticks {
             &self.font
         }
         /// The color
-        pub fn color(&self) -> Color {
+        pub fn color(&self) -> theme::Color {
             self.color
         }
         /// The grid
-        pub fn grid(&self) -> Option<&style::Line> {
+        pub fn grid(&self) -> Option<&theme::Line> {
             self.grid.as_ref()
         }
     }
@@ -175,19 +175,19 @@ pub mod ticks {
         /// Minor ticks locator
         pub locator: Locator,
         /// Ticks color
-        pub color: Color,
+        pub color: theme::Color,
         /// Gridline style
-        grid: Option<style::Line>,
+        grid: Option<theme::Line>,
     }
 
     impl Default for MinorTicks {
         fn default() -> Self {
             MinorTicks {
                 locator: Locator::default(),
-                color: theme::Color::Foreground.into(),
+                color: theme::Col::Foreground.into(),
                 grid: Some(style::Line {
                     width: 0.5,
-                    color: style::Color::Theme(theme::Color::Grid),
+                    color: theme::Col::Grid.into(),
                     pattern: style::LinePattern::Dash(Dash::default()),
                 }),
             }
@@ -207,20 +207,20 @@ pub mod ticks {
         pub fn with_locator(self, locator: Locator) -> Self {
             Self { locator, ..self }
         }
-        pub fn with_color(self, color: Color) -> Self {
+        pub fn with_color(self, color: theme::Color) -> Self {
             Self { color, ..self }
         }
-        pub fn with_grid(self, grid: Option<style::Line>) -> Self {
+        pub fn with_grid(self, grid: Option<theme::Line>) -> Self {
             Self { grid, ..self }
         }
 
         pub fn locator(&self) -> &Locator {
             &self.locator
         }
-        pub fn color(&self) -> Color {
+        pub fn color(&self) -> theme::Color {
             self.color
         }
-        pub fn grid(&self) -> Option<&style::Line> {
+        pub fn grid(&self) -> Option<&theme::Line> {
             self.grid.as_ref()
         }
     }

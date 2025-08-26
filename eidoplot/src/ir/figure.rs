@@ -104,7 +104,7 @@ pub struct Figure {
     title: Option<Title>,
     plots: Plots,
     legend: Option<FigLegend>,
-    fill: Option<style::Fill>,
+    fill: Option<theme::Fill>,
     layout: Option<Layout>,
 }
 
@@ -115,7 +115,7 @@ impl Figure {
             title: None,
             plots,
             legend: None,
-            fill: Some(theme::Color::Background.into()),
+            fill: Some(theme::Col::Background.into()),
             layout: None,
         }
     }
@@ -135,7 +135,7 @@ impl Figure {
         Figure { legend, ..self }
     }
 
-    pub fn with_fill(self, fill: Option<style::Fill>) -> Self {
+    pub fn with_fill(self, fill: Option<theme::Fill>) -> Self {
         Figure { fill, ..self }
     }
 
@@ -159,7 +159,7 @@ impl Figure {
         self.legend.as_ref()
     }
 
-    pub fn fill(&self) -> Option<style::Fill> {
+    pub fn fill(&self) -> Option<theme::Fill> {
         self.fill
     }
 

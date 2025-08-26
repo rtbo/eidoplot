@@ -7,7 +7,7 @@ use crate::drawing::legend::Legend;
 use crate::drawing::series::{Series, series_has_legend};
 use crate::drawing::{Ctx, Error, SurfWrapper, axis, scale, ticks};
 use crate::render::{self, Surface as _};
-use crate::style::{self, Theme, defaults};
+use crate::style::{self, defaults, theme, Color as _, Theme};
 use crate::{data, geom, ir, missing_params};
 
 #[derive(Debug, Clone)]
@@ -16,8 +16,8 @@ struct Ticks {
     lbls: Vec<TextLayout>,
     annot: Option<String>,
     font: ir::axis::TicksFont,
-    color: style::Color,
-    grid: Option<style::Line>,
+    color: theme::Color,
+    grid: Option<theme::Line>,
 }
 
 impl Ticks {
@@ -33,8 +33,8 @@ impl Ticks {
 #[derive(Debug, Clone)]
 struct MinorTicks {
     locs: Vec<f64>,
-    color: style::Color,
-    grid: Option<style::Line>,
+    color: theme::Color,
+    grid: Option<theme::Line>,
 }
 
 #[derive(Debug)]
@@ -330,7 +330,8 @@ where
     fn setup_plot_series(&self, plot: &ir::Plot) -> Result<Vec<Series>, Error> {
         plot.series
             .iter()
-            .map(|s| Series::from_ir(s, self.data_source()))
+            .enumerate()
+            .map(|(index, s)| Series::from_ir(index, s, self.data_source()))
             .collect()
     }
 }
@@ -402,9 +403,9 @@ where
             rect.width(),
             ctx.fontdb().clone(),
         );
-        for s in plot.series.iter() {
+        for (index, s) in plot.series.iter().enumerate() {
             if series_has_legend(s) {
-                dlegend.add_entry(s)?;
+                dlegend.add_entry(index, s)?;
             }
         }
         let sz = dlegend.layout();
@@ -455,9 +456,9 @@ where
             rect.width(),
             ctx.fontdb().clone(),
         );
-        for s in plot.series.iter() {
+        for (index, s) in plot.series.iter().enumerate() {
             if series_has_legend(s) {
-                dlegend.add_entry(s)?;
+                dlegend.add_entry(index, s)?;
             }
         }
 

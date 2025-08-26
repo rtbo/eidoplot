@@ -1,4 +1,5 @@
-use crate::{data, style};
+use crate::data;
+use crate::style;
 
 #[derive(Debug, Clone)]
 pub enum DataCol {
@@ -24,22 +25,22 @@ pub enum SeriesPlot {
 
 #[derive(Debug, Clone)]
 pub struct Line {
-    pub line: style::Line,
+    pub line: style::series::Line,
     pub x_data: DataCol,
     pub y_data: DataCol,
 }
 
 #[derive(Debug, Clone)]
 pub struct Scatter {
-    pub marker: style::Marker,
+    pub marker: style::series::Marker,
     pub x_data: DataCol,
     pub y_data: DataCol,
 }
 
 #[derive(Debug, Clone)]
 pub struct Histogram {
-    pub fill: style::Fill,
-    pub line: Option<style::Line>,
+    pub fill: style::series::Fill,
+    pub line: Option<style::series::Line>,
     pub bins: u32,
     pub density: bool,
     pub data: DataCol,

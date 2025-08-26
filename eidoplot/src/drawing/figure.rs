@@ -74,9 +74,9 @@ where
             ctx.fontdb().clone(),
         );
         for p in fig.plots().iter() {
-            for s in p.series.iter() {
+            for (index, s) in p.series.iter().enumerate() {
                 if series_has_legend(s) {
-                    dlegend.add_entry(s)?;
+                    dlegend.add_entry(index, s)?;
                 }
             }
         }

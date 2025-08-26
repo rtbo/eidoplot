@@ -1,12 +1,12 @@
 use crate::ir::{Axis, Legend, Series};
-use crate::style::{self, defaults, theme};
+use crate::style::{defaults, theme};
 
 #[derive(Debug, Clone)]
 pub enum Border {
-    Box(style::Line),
-    Axis(style::Line),
+    Box(theme::Line),
+    Axis(theme::Line),
     AxisArrow {
-        stroke: style::Line,
+        stroke: theme::Line,
         size: f32,
         overflow: f32,
     },
@@ -14,7 +14,7 @@ pub enum Border {
 
 impl Default for Border {
     fn default() -> Self {
-        Border::Box(theme::Color::Foreground.into())
+        Border::Box(theme::Col::Foreground.into())
     }
 }
 
@@ -120,7 +120,7 @@ impl From<LegendPos> for PlotLegend {
 #[derive(Debug, Clone)]
 pub struct Plot {
     pub title: Option<String>,
-    pub fill: Option<style::Fill>,
+    pub fill: Option<theme::Fill>,
     pub border: Option<Border>,
     pub insets: Option<Insets>,
     pub legend: Option<PlotLegend>,

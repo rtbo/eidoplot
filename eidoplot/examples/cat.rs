@@ -1,6 +1,6 @@
 use eidoplot::{
     data, ir,
-    style::{self, palette},
+    style,
 };
 
 mod common;
@@ -31,7 +31,7 @@ fn main() {
             marker: style::Marker {
                 shape: Default::default(),
                 size: Default::default(),
-                fill: Some(style::Color::Palette(palette::Color(0)).into()),
+                fill: Some(style::series::Color::Auto.into()),
                 stroke: None,
             },
             x_data: ir::series::DataCol::SrcRef("fruits".to_string()),

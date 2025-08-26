@@ -2,7 +2,7 @@ mod named;
 
 pub use named::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ColorU8 {
     r: u8,
     g: u8,

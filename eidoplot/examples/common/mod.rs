@@ -2,7 +2,7 @@ use std::env;
 use std::sync::Arc;
 
 use eidoplot::drawing::{self, SurfaceExt};
-use eidoplot::style::{self, palette, theme};
+use eidoplot::style::{self, series, theme};
 use eidoplot::{data, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
@@ -12,7 +12,7 @@ pub fn save_figure<D>(fig: &ir::Figure, data_source: &D)
 where
     D: data::Source,
 {
-    let theme = theme::Dark::new(palette::TOL_BRIGHT);
+    let theme = theme::Dark::new(series::TOL_BRIGHT);
 
     let fontdb = Arc::new(eidoplot::bundled_font_db());
 

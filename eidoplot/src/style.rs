@@ -1,6 +1,6 @@
 pub mod color;
 pub(crate) mod defaults;
-pub mod palette;
+pub mod series;
 pub mod theme;
 
 pub use color::ColorU8;
@@ -10,50 +10,31 @@ pub mod font {
 }
 
 pub use font::Font;
-pub use palette::Palette;
+pub use series::Palette;
 pub use theme::Theme;
 
 use crate::render;
 
-/// A color that can be either from a theme or palette or a fixed color
-#[derive(Debug, Clone, Copy)]
-pub enum Color {
-    /// Color from the current series palette
-    Palette(palette::Color),
-    /// Color from the current theme
-    Theme(theme::Color),
-    /// A fixed color
-    Fixed(ColorU8),
+pub trait ResolveColor<Color> {
+    fn resolve_color(&self, color: &Color) -> ColorU8;
 }
 
-impl Color {
-    pub fn resolve<T>(&self, theme: &T) -> ColorU8
+pub trait Color {
+    #[inline]
+    fn resolve<R>(&self, rc: &R) -> ColorU8
     where
-        T: theme::Theme,
+        R: ResolveColor<Self>,
+        Self: Sized,
     {
-        match self {
-            Color::Palette(col) => theme.palette().get(*col),
-            Color::Theme(col) => theme.get(*col),
-            Color::Fixed(col) => *col,
-        }
+        rc.resolve_color(self)
     }
 }
 
-impl From<palette::Color> for Color {
-    fn from(col: palette::Color) -> Self {
-        Color::Palette(col)
-    }
-}
+impl Color for ColorU8 {}
 
-impl From<theme::Color> for Color {
-    fn from(col: theme::Color) -> Self {
-        Color::Theme(col)
-    }
-}
-
-impl From<ColorU8> for Color {
-    fn from(color: ColorU8) -> Self {
-        Color::Fixed(color)
+impl ResolveColor<ColorU8> for () {
+    fn resolve_color(&self, color: &ColorU8) -> ColorU8 {
+        *color
     }
 }
 
@@ -84,18 +65,18 @@ impl Default for LinePattern {
 }
 
 #[derive(Debug, Clone)]
-pub struct Line {
-    pub color: Color,
+pub struct Line<C: Color> {
+    pub color: C,
     pub width: f32,
     pub pattern: LinePattern,
 }
 
 const DOT_DASH: &[f32] = &[1.0, 1.0];
 
-impl Line {
-    pub fn as_stroke<'a, T>(&'a self, theme: &T) -> render::Stroke<'a>
+impl<C: Color> Line<C> {
+    pub fn as_stroke<'a, R>(&'a self, rc: &R) -> render::Stroke<'a>
     where
-        T: Theme,
+        R: ResolveColor<C>,
     {
         let pattern = match &self.pattern {
             LinePattern::Solid => render::LinePattern::Solid,
@@ -104,15 +85,15 @@ impl Line {
         };
 
         render::Stroke {
-            color: self.color.resolve(theme),
+            color: self.color.resolve(rc),
             width: self.width,
             pattern,
         }
     }
 }
 
-impl From<Color> for Line {
-    fn from(color: Color) -> Self {
+impl<C: Color> From<C> for Line<C> {
+    fn from(color: C) -> Self {
         Line {
             width: 1.0,
             color,
@@ -121,18 +102,8 @@ impl From<Color> for Line {
     }
 }
 
-impl From<theme::Color> for Line {
-    fn from(color: theme::Color) -> Self {
-        Line {
-            width: 1.0,
-            color: color.into(),
-            pattern: LinePattern::default(),
-        }
-    }
-}
-
-impl From<(Color, f32)> for Line {
-    fn from((color, width): (Color, f32)) -> Self {
+impl<C: Color> From<(C, f32)> for Line<C> {
+    fn from((color, width): (C, f32)) -> Self {
         Line {
             color,
             width,
@@ -141,8 +112,8 @@ impl From<(Color, f32)> for Line {
     }
 }
 
-impl From<(Color, f32, LinePattern)> for Line {
-    fn from((color, width, pattern): (Color, f32, LinePattern)) -> Self {
+impl<C: Color> From<(C, f32, LinePattern)> for Line<C> {
+    fn from((color, width, pattern): (C, f32, LinePattern)) -> Self {
         Line {
             color,
             width,
@@ -151,8 +122,8 @@ impl From<(Color, f32, LinePattern)> for Line {
     }
 }
 
-impl From<(Color, f32, Dash)> for Line {
-    fn from((color, width, dash): (Color, f32, Dash)) -> Self {
+impl<C: Color> From<(C, f32, Dash)> for Line<C> {
+    fn from((color, width, dash): (C, f32, Dash)) -> Self {
         Line {
             color,
             width,
@@ -162,42 +133,24 @@ impl From<(Color, f32, Dash)> for Line {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum Fill {
-    Solid(Color),
+pub enum Fill<C: Color> {
+    Solid(C),
 }
 
-impl Fill {
-    pub fn as_paint<T>(&self, theme: &T) -> render::Paint
+impl<C: Color> Fill<C> {
+    pub fn as_paint<R>(&self, rc: &R) -> render::Paint
     where
-        T: Theme,
+        R: ResolveColor<C>,
     {
         match self {
-            Fill::Solid(c) => render::Paint::Solid(c.resolve(theme)),
+            Fill::Solid(c) => render::Paint::Solid(c.resolve(rc)),
         }
     }
 }
 
-impl From<Color> for Fill {
-    fn from(color: Color) -> Self {
+impl<C: Color> From<C> for Fill<C> {
+    fn from(color: C) -> Self {
         Fill::Solid(color)
-    }
-}
-
-impl From<palette::Color> for Fill {
-    fn from(color: palette::Color) -> Self {
-        Fill::Solid(color.into())
-    }
-}
-
-impl From<theme::Color> for Fill {
-    fn from(color: theme::Color) -> Self {
-        Fill::Solid(color.into())
-    }
-}
-
-impl From<ColorU8> for Fill {
-    fn from(color: ColorU8) -> Self {
-        Fill::Solid(color.into())
     }
 }
 
@@ -229,9 +182,38 @@ impl From<f32> for MarkerSize {
 }
 
 #[derive(Debug, Clone)]
-pub struct Marker {
+pub struct Marker<C: Color> {
     pub size: MarkerSize,
     pub shape: MarkerShape,
-    pub fill: Option<Fill>,
-    pub stroke: Option<Line>,
+    pub fill: Option<Fill<C>>,
+    pub stroke: Option<Line<C>>,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::style::theme;
+    use theme::Theme;
+
+    use super::*;
+
+    #[test]
+    fn test_color_resolve() {
+        let theme = theme::Light::new(series::STANDARD);
+
+        let theme_line: theme::Line = (theme::Color::Theme(theme::Col::LegendBorder), 2.0).into();
+        let stroke = theme_line.as_stroke(&theme);
+        assert_eq!(stroke.color, ColorU8::from_html(b"#000000"));
+
+        let series_line: Line<series::IndexColor> = (series::IndexColor(2), 2.0).into();
+        let stroke = series_line.as_stroke(theme.palette());
+        assert_eq!(stroke.color, ColorU8::from_html(b"#2ca02c"));
+
+        let series_line: Line<series::AutoColor> = (series::AutoColor, 2.0).into();
+        let stroke = series_line.as_stroke(&(theme.palette(), 2));
+        assert_eq!(stroke.color, ColorU8::from_html(b"#2ca02c"));
+
+        let fixed_color: Line<ColorU8> = (ColorU8::from_html(b"#123456"), 2.0).into();
+        let stroke = fixed_color.as_stroke(&());
+        assert_eq!(stroke.color, ColorU8::from_html(b"#123456"));
+    }
 }

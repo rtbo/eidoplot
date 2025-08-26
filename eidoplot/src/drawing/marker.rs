@@ -3,7 +3,7 @@ use crate::{geom, style};
 
 const SQRT2: f32 = 1.41421356237;
 
-pub fn marker_path(marker: &style::Marker) -> geom::Path {
+pub fn marker_path<C: style::Color>(marker: &style::Marker<C>) -> geom::Path {
     match marker.shape {
         style::MarkerShape::Circle => {
             let radius = marker.size.0 / 2.0;
