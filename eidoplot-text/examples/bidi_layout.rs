@@ -4,13 +4,13 @@ use text::{Font, TextLayout, TextShape, font, layout, render};
 const ENGLISH_TEXT: &str = "Hello, world!
 How are you?";
 
-const ARABIC_TEXT: &str = "مرحبا، العالم!
+const ARABIC_TEXT: &str = "مرحباً بالعالم!
 كيف حالك؟";
 
-const MIXED_TEXT_LTR: &str = "Hello, العالم!
+const MIXED_TEXT_LTR: &str = "Hello, بالعالم!
 How are you?";
 
-const MIXED_TEXT_RTL: &str = "مرحبا، world!
+const MIXED_TEXT_RTL: &str = "مرحباً world!
 كيف حالك؟";
 
 const ENGLISH_THEN_ARABIC_TEXT: &str = "Hello, world!
