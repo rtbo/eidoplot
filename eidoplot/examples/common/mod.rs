@@ -12,7 +12,7 @@ pub fn save_figure<D>(fig: &ir::Figure, data_source: &D)
 where
     D: data::Source,
 {
-    let theme = theme::Light::new(palette::Standard);
+    let theme = theme::Dark::new(palette::TOL_BRIGHT);
 
     let fontdb = Arc::new(eidoplot::bundled_font_db());
 

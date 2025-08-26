@@ -30,8 +30,14 @@ pub trait Theme {
     fn background(&self) -> ColorU8;
     fn foreground(&self) -> ColorU8;
     fn grid(&self) -> ColorU8;
-    fn legend_fill(&self) -> ColorU8;
-    fn legend_border(&self) -> ColorU8;
+
+    fn legend_fill(&self) -> ColorU8 {
+        self.background().with_opacity(0.5)
+    }
+
+    fn legend_border(&self) -> ColorU8 {
+        self.foreground()
+    }
 
     fn palette(&self) -> &Self::Palette;
 
@@ -78,6 +84,51 @@ impl<P: Palette> Theme for Light<P> {
 
     fn legend_border(&self) -> ColorU8 {
         ColorU8::from_rgb(0, 0, 0)
+    }
+
+    fn palette(&self) -> &Self::Palette {
+        &self.palette
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Dark<P: Palette> {
+    pub palette: P,
+}
+
+impl<P: Palette> Dark<P> {
+    pub fn new(palette: P) -> Self {
+        Dark {
+            palette,
+        }
+    }
+}
+
+impl<P: Palette> Theme for Dark<P> {
+    type Palette = P;
+
+    fn is_dark(&self) -> bool {
+        true
+    }
+
+    fn background(&self) -> ColorU8 {
+        ColorU8::from_html(b"#1e1e2e")
+    }
+
+    fn foreground(&self) -> ColorU8 {
+        color::WHITE
+    }
+
+    fn grid(&self) -> ColorU8 {
+        ColorU8::from_rgb(192, 192, 192).with_opacity(0.6)
+    }
+
+    fn legend_fill(&self) -> ColorU8 {
+        self.background().with_opacity(0.5)
+    }
+
+    fn legend_border(&self) -> ColorU8 {
+        ColorU8::from_rgb(255, 255, 255)
     }
 
     fn palette(&self) -> &Self::Palette {

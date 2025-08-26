@@ -1,5 +1,6 @@
-use crate::style::{ColorU8, color, theme};
-use crate::{geom, style};
+use crate::geom;
+use crate::style;
+use crate::style::theme;
 
 pub const FONT_FAMILY: &str = "sans-serif";
 
@@ -18,7 +19,7 @@ pub const TICKS_LABEL_FONT_SIZE: f32 = 12.0;
 pub const MARKER_SIZE: f32 = 10.0;
 
 pub const LEGEND_LABEL_FONT_SIZE: f32 = 16.0;
-pub const LEGEND_LABEL_COLOR: ColorU8 = color::BLACK;
+pub const LEGEND_LABEL_COLOR: style::Color = style::Color::Theme(theme::Color::Foreground);
 pub const LEGEND_BORDER: Option<style::Line> = Some({
     style::Line {
         width: 1.0,

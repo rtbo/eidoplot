@@ -34,7 +34,7 @@ impl ColorU8 {
         ColorU8 { r, g, b, a }
     }
 
-    const fn from_html(hex: &[u8]) -> Self {
+    pub const fn from_html(hex: &[u8]) -> Self {
         if hex[0] != b'#' {
             panic!("Invalid hex color");
         }
