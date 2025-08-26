@@ -1,3 +1,4 @@
+pub mod catppuccin;
 pub mod color;
 pub(crate) mod defaults;
 pub mod series;
