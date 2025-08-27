@@ -1,6 +1,6 @@
 use crate::style;
-use crate::style::series::Palette;
 use crate::style::color::{self, ColorU8};
+use crate::style::series::Palette;
 
 pub trait Theme {
     type Palette: Palette;
@@ -97,6 +97,7 @@ impl From<Col> for Line {
             color: col.into(),
             width: 1.0,
             pattern: style::LinePattern::default(),
+            opacity: None,
         }
     }
 }
@@ -107,9 +108,12 @@ pub type Fill = style::Fill<Color>;
 // We just add From<Col> for Fill here.
 impl From<Col> for Fill {
     fn from(col: Col) -> Self {
-        Fill::Solid(col.into())
+        Fill::Solid {
+            color: col.into(),
+            opacity: None,
+        }
     }
-}   
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Light<P: Palette> {

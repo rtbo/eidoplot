@@ -70,15 +70,50 @@ pub struct Line<C: Color> {
     pub color: C,
     pub width: f32,
     pub pattern: LinePattern,
+    pub opacity: Option<f32>,
+}
+
+impl<C> Default for Line<C>
+where
+    C: Color + Default,
+{
+    fn default() -> Self {
+        Line {
+            color: C::default(),
+            width: 1.0,
+            pattern: LinePattern::default(),
+            opacity: None,
+        }
+    }
 }
 
 const DOT_DASH: &[f32] = &[1.0, 1.0];
 
 impl<C: Color> Line<C> {
+    pub fn with_width(self, width: f32) -> Self {
+        Line {
+            width,
+            ..self
+        }
+    }
+
+    pub fn with_opacity(self, opacity: f32) -> Self {
+        Line {
+            opacity: Some(opacity),
+            ..self
+        }         
+    }
+
     pub fn as_stroke<'a, R>(&'a self, rc: &R) -> render::Stroke<'a>
     where
         R: ResolveColor<C>,
     {
+        let color = if let Some(opacity) = self.opacity {
+            self.color.resolve(rc).with_opacity(opacity)
+        } else {
+            self.color.resolve(rc)
+        };
+
         let pattern = match &self.pattern {
             LinePattern::Solid => render::LinePattern::Solid,
             LinePattern::Dash(Dash(a)) => render::LinePattern::Dash(a.as_slice()),
@@ -86,7 +121,7 @@ impl<C: Color> Line<C> {
         };
 
         render::Stroke {
-            color: self.color.resolve(rc),
+            color,
             width: self.width,
             pattern,
         }
@@ -99,6 +134,19 @@ impl<C: Color> From<C> for Line<C> {
             width: 1.0,
             color,
             pattern: LinePattern::default(),
+            opacity: None,
+        }
+    }
+}
+
+impl<C: Color> From<f32> for Line<C>
+where C: Color + Default {
+    fn from(value: f32) -> Self {
+        Line {
+            width: value,
+            color: C::default(),
+            pattern: LinePattern::default(),
+            opacity: None,
         }
     }
 }
@@ -109,6 +157,7 @@ impl<C: Color> From<(C, f32)> for Line<C> {
             color,
             width,
             pattern: LinePattern::default(),
+            opacity: None,
         }
     }
 }
@@ -119,6 +168,7 @@ impl<C: Color> From<(C, f32, LinePattern)> for Line<C> {
             color,
             width,
             pattern,
+            opacity: None,
         }
     }
 }
@@ -129,29 +179,49 @@ impl<C: Color> From<(C, f32, Dash)> for Line<C> {
             color,
             width,
             pattern: LinePattern::Dash(dash),
+            opacity: None,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum Fill<C: Color> {
-    Solid(C),
+    Solid { color: C, opacity: Option<f32> },
 }
 
 impl<C: Color> Fill<C> {
+    pub fn with_opacity(self, opacity: f32) -> Self {
+        match self {
+            Fill::Solid { color, .. } => Fill::Solid {
+                color,
+                opacity: Some(opacity),
+            },
+        }
+    }
+
     pub fn as_paint<R>(&self, rc: &R) -> render::Paint
     where
         R: ResolveColor<C>,
     {
         match self {
-            Fill::Solid(c) => render::Paint::Solid(c.resolve(rc)),
+            Fill::Solid {
+                color,
+                opacity: None,
+            } => render::Paint::Solid(color.resolve(rc)),
+            Fill::Solid {
+                color,
+                opacity: Some(opacity),
+            } => render::Paint::Solid(color.resolve(rc).with_opacity(*opacity)),
         }
     }
 }
 
 impl<C: Color> From<C> for Fill<C> {
     fn from(color: C) -> Self {
-        Fill::Solid(color)
+        Fill::Solid {
+            color,
+            opacity: None,
+        }
     }
 }
 

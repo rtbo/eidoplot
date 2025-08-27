@@ -104,7 +104,7 @@ fn main() {
             marker: style::Marker {
                 shape: Default::default(),
                 size: Default::default(),
-                fill: Some(style::Fill::Solid(style::series::Color::Auto)),
+                fill: Some(style::series::Color::Auto.into()),
                 stroke: None,
             },
             x_data: ir::series::DataCol::SrcRef("setosa_sepal_length".to_string()),
@@ -117,7 +117,7 @@ fn main() {
             marker: style::Marker {
                 shape: Default::default(),
                 size: Default::default(),
-                fill: Some(style::Fill::Solid(style::series::Color::Auto)),
+                fill: Some(style::series::Color::Auto.into()),
                 stroke: None,
             },
             x_data: ir::series::DataCol::SrcRef("versicolor_sepal_length".to_string()),
@@ -130,7 +130,7 @@ fn main() {
             marker: style::Marker {
                 shape: Default::default(),
                 size: Default::default(),
-                fill: Some(style::Fill::Solid(style::series::Color::Auto)),
+                fill: Some(style::series::Color::Auto.into()),
                 stroke: None,
             },
             x_data: ir::series::DataCol::SrcRef("virginica_sepal_length".to_string()),

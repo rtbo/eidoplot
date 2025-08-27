@@ -38,11 +38,7 @@ fn main() {
     let dist_series = ir::Series {
         name: Some("distribution".into()),
         plot: ir::SeriesPlot::Line(ir::series::Line {
-            line: style::Line {
-                color: style::series::Color::Auto,
-                width: 4.0,
-                pattern: style::LinePattern::Solid,
-            },
+            line: 4.0.into(),
             x_data: ir::series::DataCol::Inline(x.into()),
             y_data: ir::series::DataCol::Inline(y.into()),
         }),
@@ -50,8 +46,8 @@ fn main() {
     let pop_series = ir::Series {
         name: Some("population".into()),
         plot: ir::SeriesPlot::Histogram(ir::series::Histogram {
-            fill: style::series::Color::Auto.into(),
-            line: None,
+            fill: style::series::Fill::from(style::series::Color::Auto).with_opacity(0.5),
+            line: Some(1.5.into()),
             bins: 16,
             density: true,
             data: ir::series::DataCol::SrcRef("pop".to_string()),

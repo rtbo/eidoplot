@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use eidoplot::{ir, style};
+use eidoplot::ir;
 use polars::prelude::*;
 
 mod common;
@@ -26,11 +26,7 @@ fn main() {
     let series = ir::Series {
         name: Some("y=sin(x)".into()),
         plot: ir::SeriesPlot::Line(ir::series::Line {
-            line: style::Line {
-                color: style::series::Color::Auto,
-                width: 3.0,
-                pattern: style::LinePattern::Solid,
-            },
+            line: 3.0.into(),
             x_data: ir::series::DataCol::SrcRef("x".to_string()),
             y_data: ir::series::DataCol::SrcRef("y".to_string()),
         }),

@@ -42,10 +42,11 @@ where P: Palette
 impl style::Color for AutoColor {}
 
 /// A flexible color for data series
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum Color {
-    Index(IndexColor),
+    #[default]
     Auto,
+    Index(IndexColor),
     Fixed(ColorU8),
 }
 
