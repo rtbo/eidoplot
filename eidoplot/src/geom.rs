@@ -1,8 +1,8 @@
 /*!
  * Geometric primitives.
- * 
+ *
  * Paths and transforms are publicly imported from tiny-skia-path.
- * 
+ *
  * Y low coordinates are at the top.
  */
 
@@ -28,7 +28,7 @@ impl Point {
     pub const fn x(&self) -> f32 {
         self.x
     }
-    
+
     /// The Y coordinate
     pub const fn y(&self) -> f32 {
         self.y
@@ -36,7 +36,10 @@ impl Point {
 
     /// Translate the point by dx and dy
     pub const fn translate(self, dx: f32, dy: f32) -> Point {
-        Point { x: self.x + dx, y: self.y + dy }
+        Point {
+            x: self.x + dx,
+            y: self.y + dy,
+        }
     }
 
     /// Get a translation transform for this point
@@ -114,6 +117,46 @@ impl Rect {
             y: self.y + padding.top(),
             w: self.w - padding.sum_hor(),
             h: self.h - padding.sum_ver(),
+        }
+    }
+
+    /// The top-left point of the rectangle
+    pub const fn top_left(&self) -> Point {
+        Point {
+            x: self.left(),
+            y: self.top(),
+        }
+    }
+
+    /// The top-right point of the rectangle
+    pub const fn top_right(&self) -> Point {
+        Point {
+            x: self.right(),
+            y: self.top(),
+        }
+    }
+
+    /// The bottom-right point of the rectangle
+    pub const fn bottom_right(&self) -> Point {
+        Point {
+            x: self.right(),
+            y: self.bottom(),
+        }
+    }
+
+    /// The bottom-left point of the rectangle
+    pub const fn bottom_left(&self) -> Point {
+        Point {
+            x: self.left(),
+            y: self.bottom(),
+        }
+    }
+
+    /// The size of the rectangle
+    pub const fn size(&self) -> Size {
+        Size {
+            w: self.w,
+            h: self.h,
         }
     }
 
@@ -285,21 +328,22 @@ pub enum Padding {
     /// Uniform padding in all directions
     Even(f32),
     /// Vertical and horizontal padding
-    Center { 
+    Center {
         /// Vertical padding
-        v: f32, 
+        v: f32,
         /// Horizontal padding
-        h: f32 },
+        h: f32,
+    },
     /// Top, right, bottom and left padding
-    Custom { 
+    Custom {
         /// Top padding
-        t: f32, 
+        t: f32,
         /// Right padding
-        r: f32, 
+        r: f32,
         /// Bottom padding
-        b: f32, 
+        b: f32,
         /// Left padding
-        l: f32 
+        l: f32,
     },
 }
 
@@ -383,21 +427,22 @@ pub enum Margin {
     /// Uniform margin in all directions
     Even(f32),
     /// Vertical and horizontal margin
-    Center { 
+    Center {
         /// Vertical margin
-        v: f32, 
+        v: f32,
         /// Horizontal margin
-        h: f32 },
+        h: f32,
+    },
     /// Top, right, bottom and left margin
-    Custom { 
+    Custom {
         /// Top margin
-        t: f32, 
+        t: f32,
         /// Right margin
-        r: f32, 
+        r: f32,
         /// Bottom margin
-        b: f32, 
+        b: f32,
         /// Left margin
-        l: f32 
+        l: f32,
     },
 }
 

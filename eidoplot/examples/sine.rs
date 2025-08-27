@@ -8,10 +8,10 @@ fn main() {
     let title = "Sine wave".into();
 
     let x_axis = ir::Axis::new(ir::axis::Scale::default())
-        .with_label("x".into())
+        .with_title("x".into())
         .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default())
-        .with_label("y".into())
+        .with_title("y".into())
         .with_minor_ticks(ir::axis::ticks::MinorTicks::default());
 
     let series = ir::Series {

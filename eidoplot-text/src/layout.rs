@@ -283,6 +283,14 @@ impl TextLayout {
         self.bbox
     }
 
+    pub fn width(&self) -> f32 {
+        self.bbox.width()
+    }
+
+    pub fn height(&self) -> f32 {
+        self.bbox.height()
+    }
+
     pub fn line_bbox(&self, lidx: usize) -> BBox {
         self.lines[lidx].bbox
     }

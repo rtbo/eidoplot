@@ -30,19 +30,11 @@ fn main() {
     let title: ir::figure::Title =
         format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA).into();
 
-    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("x".into());
+    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("x".into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default())
-        .with_label("population density".into())
+        .with_title("population density".into())
         .with_ticks(ir::axis::Ticks::default().with_formatter(ir::axis::ticks::Formatter::Percent));
 
-    let dist_series = ir::Series {
-        name: Some("distribution".into()),
-        plot: ir::SeriesPlot::Line(ir::series::Line {
-            line: 4.0.into(),
-            x_data: ir::series::DataCol::Inline(x.into()),
-            y_data: ir::series::DataCol::Inline(y.into()),
-        }),
-    };
     let pop_series = ir::Series {
         name: Some("population".into()),
         plot: ir::SeriesPlot::Histogram(ir::series::Histogram {
@@ -53,12 +45,20 @@ fn main() {
             data: ir::series::DataCol::SrcRef("pop".to_string()),
         }),
     };
+    let dist_series = ir::Series {
+        name: Some("distribution".into()),
+        plot: ir::SeriesPlot::Line(ir::series::Line {
+            line: 4.0.into(),
+            x_data: ir::series::DataCol::Inline(x.into()),
+            y_data: ir::series::DataCol::Inline(y.into()),
+        }),
+    };
 
     let plot = ir::Plot {
         title: None,
         x_axis,
         y_axis,
-        series: vec![pop_series, dist_series],
+        series: vec![dist_series, pop_series],
         legend: Some(ir::plot::LegendPos::OutRight.into()),
         ..ir::Plot::default()
     };

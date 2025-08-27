@@ -91,9 +91,9 @@ fn main() {
     let title = "Iris dataset".into();
 
     let x_axis = ir::Axis::new(ir::axis::Scale::default())
-        .with_label("Sepal Length [cm]".into());
+        .with_title("Sepal Length [cm]".into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default())
-        .with_label("Petal Length [cm]".into());
+        .with_title("Petal Length [cm]".into());
 
     let setosa = ir::Series {
         name: Some("Setosa".into()),

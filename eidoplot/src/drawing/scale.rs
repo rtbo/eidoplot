@@ -1,5 +1,5 @@
 use crate::data;
-use crate::drawing::{Categories, axis};
+use crate::drawing::axis;
 use crate::ir;
 
 /// Maps coordinates from data space to surface space.
@@ -34,32 +34,20 @@ pub struct CoordMapXy<'a> {
 
 impl<'a> CoordMapXy<'a> {
     pub fn map_coord(&self, dp: (data::Sample, data::Sample)) -> Option<(f32, f32)> {
-        self.x.map_coord(dp.0).and_then(|x| {
-            self.y.map_coord(dp.1).map(|y| (x, y))
-        })
+        self.x
+            .map_coord(dp.0)
+            .and_then(|x| self.y.map_coord(dp.1).map(|y| (x, y)))
     }
 }
 
-pub fn map_scale_coord(
-    scale: &ir::axis::Scale,
-    plot_size: f32,
-    axis_bounds: &axis::Bounds,
-    insets: (f32, f32),
-) -> Box<dyn CoordMap> {
-    match axis_bounds {
-        axis::Bounds::Num(n) => map_num_scale_coord(scale, plot_size, n, insets),
-        axis::Bounds::Cat(cats) => map_cat_scale_coord(scale, plot_size, cats, insets),
-    }
-}
-
-fn map_num_scale_coord(
+pub fn map_scale_coord_num(
     scale: &ir::axis::Scale,
     plot_size: f32,
     axis_bounds: &axis::NumBounds,
     insets: (f32, f32),
 ) -> Box<dyn CoordMap> {
     match scale {
-        ir::axis::Scale::Linear(ir::axis::Range::Auto) => {
+        ir::axis::Scale::Auto | ir::axis::Scale::Linear(ir::axis::Range::Auto) => {
             Box::new(LinCoordMap::new(plot_size, insets, *axis_bounds))
         }
         ir::axis::Scale::Linear(ir::axis::Range::MinAuto(min)) => Box::new(LinCoordMap::new(
@@ -76,15 +64,6 @@ fn map_num_scale_coord(
             Box::new(LinCoordMap::new(plot_size, (0.0, 0.0), (*min, *max).into()))
         }
     }
-}
-
-fn map_cat_scale_coord(
-    _scale: &ir::axis::Scale,
-    mesh_size: f32,
-    cats: &Categories,
-    insets: (f32, f32),
-) -> Box<dyn CoordMap> {
-    Box::new(CatCoordMap::new(mesh_size, insets, cats))
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -116,35 +95,6 @@ impl CoordMap for LinCoordMap {
     }
 }
 
-#[derive(Debug, Clone)]
-struct CatCoordMap {
-    categories: Categories,
-    plot_size: f32,
-    inset: (f32, f32),
-}
-
-impl CatCoordMap {
-    fn new(plot_size: f32, inset: (f32, f32), categories: &Categories) -> Self {
-        CatCoordMap {
-            categories: categories.clone(),
-            plot_size,
-            inset,
-        }
-    }
-}
-
-impl CoordMap for CatCoordMap {
-    fn map_coord_cat(&self, cat: &str) -> f32 {
-        let cat_idx = self.categories.iter().position(|c| c == cat).unwrap();
-        let ratio = cat_idx as f64 / (self.categories.len() - 1) as f64;
-        ratio as f32 * (self.plot_size - self.inset.0 - self.inset.1) + self.inset.0
-    }
-
-    fn axis_bounds(&self) -> axis::BoundsRef<'_> {
-        (&self.categories).into()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -153,19 +103,34 @@ mod tests {
     fn test_map_scale_coord_linear_auto() {
         let linear_auto = ir::axis::Scale::Linear(ir::axis::Range::Auto);
 
-        let map = map_scale_coord(&linear_auto, 100.0, &axis::Bounds::Num((0.0, 10.0).into()), (0.0, 0.0));
+        let map = map_scale_coord_num(
+            &linear_auto,
+            100.0,
+            &(0.0, 10.0).into(),
+            (0.0, 0.0),
+        );
         assert_eq!(map.map_coord_num(0.0), 0.0);
         assert_eq!(map.map_coord_num(5.0), 50.0);
         assert_eq!(map.map_coord_num(10.0), 100.0);
         assert_eq!(map.axis_bounds(), axis::Bounds::Num((0.0, 10.0).into()));
 
-        let map = map_scale_coord(&linear_auto, 110.0, &axis::Bounds::Num((0.0, 10.0).into()), (10.0, 0.0));
+        let map = map_scale_coord_num(
+            &linear_auto,
+            110.0,
+            &(0.0, 10.0).into(),
+            (10.0, 0.0),
+        );
         assert_eq!(map.map_coord_num(0.0), 10.0);
         assert_eq!(map.map_coord_num(5.0), 60.0);
         assert_eq!(map.map_coord_num(10.0), 110.0);
         assert_eq!(map.axis_bounds(), axis::Bounds::Num((-1.0, 10.0).into()));
 
-        let map = map_scale_coord(&linear_auto, 120.0, &axis::Bounds::Num((0.0, 10.0).into()), (10.0, 10.0));
+        let map = map_scale_coord_num(
+            &linear_auto,
+            120.0,
+            &(0.0, 10.0).into(),
+            (10.0, 10.0),
+        );
         assert_eq!(map.map_coord_num(0.0), 10.0);
         assert_eq!(map.map_coord_num(5.0), 60.0);
         assert_eq!(map.map_coord_num(10.0), 110.0);

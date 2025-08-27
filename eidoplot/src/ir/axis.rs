@@ -18,6 +18,10 @@ pub enum Range {
 /// Describes the type of an axis
 #[derive(Debug, Clone, Copy)]
 pub enum Scale {
+    /// Full auto scale, depending on the data and type of plot.
+    /// Will typically translate to auto linear axis for numerical data
+    /// and auto categorical axis for categorical data
+    Auto,
     /// Linear axis
     Linear(Range),
 }
@@ -230,34 +234,36 @@ pub mod ticks {
 
 pub use ticks::{MinorTicks, Ticks, TicksFont};
 
-use crate::style::{self, defaults};
+use crate::style::{self, defaults, theme};
 
 #[derive(Debug, Clone)]
-pub struct LabelFont {
+pub struct TitleFont {
     pub font: style::Font,
     pub size: f32,
+    pub color: theme::Color,    
 }
 
-impl Default for LabelFont {
+impl Default for TitleFont {
     fn default() -> Self {
-        LabelFont {
+        TitleFont {
             font: defaults::AXIS_LABEL_FONT_FAMILY.parse().unwrap(),
             size: defaults::AXIS_LABEL_FONT_SIZE,
+            color: theme::Col::Foreground.into(),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Label {
+pub struct Title {
     pub text: String,
-    pub font: LabelFont,
+    pub font: TitleFont,
 }
 
-impl From<&str> for Label {
+impl From<&str> for Title {
     fn from(value: &str) -> Self {
-        Label {
+        Title {
             text: value.to_string(),
-            font: LabelFont::default(),
+            font: TitleFont::default(),
         }
     }
 }
@@ -265,7 +271,7 @@ impl From<&str> for Label {
 #[derive(Debug, Clone)]
 pub struct Axis {
     scale: Scale,
-    label: Option<Label>,
+    title: Option<Title>,
     ticks: Option<Ticks>,
     minor_ticks: Option<MinorTicks>,
 }
@@ -273,7 +279,7 @@ pub struct Axis {
 impl Default for Axis {
     fn default() -> Self {
         Axis {
-            label: None,
+            title: None,
             scale: Default::default(),
             ticks: Some(Default::default()),
             minor_ticks: None,
@@ -289,9 +295,9 @@ impl Axis {
         }
     }
 
-    pub fn with_label(self, label: Label) -> Self {
+    pub fn with_title(self, title: Title) -> Self {
         Self {
-            label: Some(label),
+            title: Some(title),
             ..self
         }
     }
@@ -314,8 +320,8 @@ impl Axis {
         }
     }
 
-    pub fn label(&self) -> Option<&Label> {
-        self.label.as_ref()
+    pub fn title(&self) -> Option<&Title> {
+        self.title.as_ref()
     }
     pub fn scale(&self) -> &Scale {
         &self.scale

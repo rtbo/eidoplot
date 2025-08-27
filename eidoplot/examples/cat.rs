@@ -22,8 +22,8 @@ fn main() {
 
     let title = "Categorical scatter".into();
 
-    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("Fruits".into());
-    let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("Stock".into());
+    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("Fruits".into());
+    let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("Stock".into());
 
     let stock = ir::Series {
         name: Some("Stock".into()),

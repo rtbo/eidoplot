@@ -2,17 +2,7 @@ use crate::data;
 use crate::drawing::{Categories, axis};
 use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
 
-pub fn locate(locator: &Locator, ab: axis::BoundsRef) -> Vec<data::OwnedSample> {
-    match ab {
-        axis::BoundsRef::Cat(cats) => cats.iter().map(|c| c.into()).collect(),
-        axis::BoundsRef::Num(nb) => {
-            let ticks = locate_num(locator, nb);
-            ticks.iter().map(|t| (*t).into()).collect()
-        }
-    }
-}
-
-fn locate_num(locator: &Locator, nb: axis::NumBounds) -> Vec<f64> {
+pub fn locate_num(locator: &Locator, nb: axis::NumBounds) -> Vec<f64> {
     match locator {
         Locator::Auto => MaxN::new_auto().ticks(nb),
         Locator::MaxN { bins, steps } => {
@@ -160,14 +150,7 @@ impl MaxNEdgeInteger {
     }
 }
 
-pub fn label_formatter(ticks: &Ticks, ab: axis::BoundsRef) -> Box<dyn LabelFormatter> {
-    match ab {
-        axis::BoundsRef::Num(ab) => num_label_formatter(ticks, ab),
-        axis::BoundsRef::Cat(cats) => Box::new(cats.clone()),
-    }
-}
-
-fn num_label_formatter(ticks: &Ticks, ab: axis::NumBounds) -> Box<dyn LabelFormatter> {
+pub fn num_label_formatter(ticks: &Ticks, ab: axis::NumBounds) -> Box<dyn LabelFormatter> {
     match ticks.formatter() {
         Formatter::Auto => auto_label_formatter(ticks.locator(), ab),
         Formatter::Prec(prec) => Box::new(PrecLabelFormat(*prec)),

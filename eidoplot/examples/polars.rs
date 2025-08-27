@@ -20,8 +20,8 @@ fn main() {
         font: ir::figure::TitleFont::default(),
     };
 
-    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("x".into());
-    let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_label("y".into());
+    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("x".into());
+    let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("y".into());
 
     let series = ir::Series {
         name: Some("y=sin(x)".into()),
