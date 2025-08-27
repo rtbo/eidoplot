@@ -33,6 +33,32 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "iris example",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example",
+                    "iris"
+                ]
+            },
+            "args": []
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "cat example",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example",
+                    "cat"
+                ]
+            },
+            "args": []
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "bidi_layout example",
             "cargo": {
                 "args": [
