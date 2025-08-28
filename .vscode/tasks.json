@@ -36,6 +36,42 @@
                 "showReuseMessage": true,
                 "clear": false
             }
+        },
+        {
+            "label": "Iris example",
+            "type": "shell",
+            "command": "cargo run --example iris -- svg png",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$rustc", "$rust-panic"],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
+        },
+        {
+            "label": "Cat example",
+            "type": "shell",
+            "command": "cargo run --example cat -- svg png",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$rustc", "$rust-panic"],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
         }
     ]
 }
