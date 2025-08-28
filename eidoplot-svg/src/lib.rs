@@ -91,15 +91,20 @@ impl Surface for SvgSurface {
             .set(
                 "text-anchor",
                 text_anchor(text.options.hor_align, text::Direction::LTR),
-            )
-            .set(
-                "dominant-baseline",
-                dominant_baseline(text.options.ver_align),
             );
+
+        let (db, yshift) = dominant_baseline(text.options.ver_align, None, text.font_size);
+        node.assign("dominant-baseline", db);
+
+        let shift = Transform::from_translate(0.0, yshift);
+        let transform = text
+            .transform
+            .map(|t| t.post_concat(shift))
+            .unwrap_or(shift);
 
         assign_font(&mut node, &text.font, text.font_size);
         assign_fill(&mut node, Some(&text.fill));
-        assign_transform(&mut node, text.transform);
+        assign_transform(&mut node, Some(&transform));
 
         self.append_node(node);
 
@@ -112,16 +117,27 @@ impl Surface for SvgSurface {
 
         let mut node = element::Text::new(layout.text())
             .set("text-rendering", "optimizeLegibility")
-            // have to assume LTR as no shaping is done
             .set(
                 "text-anchor",
-                text_anchor(options.hor_align, text::Direction::LTR),
-            )
-            .set("dominant-baseline", dominant_baseline(options.ver_align));
+                text_anchor(options.hor_align, layout.direction()),
+            );
+
+        let (db, yshift) = dominant_baseline(
+            options.ver_align,
+            Some(layout.metrics()),
+            layout.font_size(),
+        );
+        node.assign("dominant-baseline", db);
+
+        let shift = Transform::from_translate(0.0, yshift);
+        let transform = text
+            .transform
+            .map(|t| t.post_concat(shift))
+            .unwrap_or(shift);
 
         assign_font(&mut node, layout.font(), layout.font_size());
         assign_fill(&mut node, Some(&text.fill));
-        assign_transform(&mut node, text.transform);
+        assign_transform(&mut node, Some(&transform));
 
         self.append_node(node);
 
@@ -305,18 +321,65 @@ fn text_anchor(align: text::HorAlign, direction: text::Direction) -> &'static st
     }
 }
 
-fn dominant_baseline(align: text::VerAlign) -> &'static str {
+fn dominant_baseline(
+    align: text::VerAlign,
+    metrics: Option<text::ScaledMetrics>,
+    font_size: f32,
+) -> (&'static str, f32) {
     if let text::VerAlign::Line(lidx, _) = align {
         assert!(lidx == 0, "Only single line is supported");
     }
+
+    // text-top and text-bottom don't work too well,
+    // so instead we apply hanging and alphabetic,
+    // with a vertical shift from the font face if available, or hard-coded from the font_size
+
+    // the following factors work for Noto-Sans. 
+
+    const TOP_FACTOR: f32 = 0.355;
+    const BOTTOM_FACTOR: f32 = -0.293;
+
+    // the following block can be activated to print factors for other fonts
+    #[cfg(false)]
+    if let Some(m) = metrics {
+        let top_factor = (m.ascent - m.cap_height) / font_size;
+        let bottom_factor = m.descent / font_size;
+        println!("top factor = {top_factor}");
+        println!("bottom factor = {bottom_factor}");
+    }
+
     match align {
-        text::VerAlign::Center => "center",
-        text::VerAlign::Top => "text-top",
-        text::VerAlign::Bottom => "text-bottom",
-        text::VerAlign::Line(_, text::LineVerAlign::Top) => "text-top",
-        text::VerAlign::Line(_, text::LineVerAlign::Hanging) => "hanging",
-        text::VerAlign::Line(_, text::LineVerAlign::Middle) => "middle",
-        text::VerAlign::Line(_, text::LineVerAlign::Baseline) => "alphabetic",
-        text::VerAlign::Line(_, text::LineVerAlign::Bottom) => "text-bottom",
+        text::VerAlign::Center => ("center", 0.0),
+        //text::VerAlign::Top => ("text-top", 0.0),
+        text::VerAlign::Top => (
+            "hanging",
+            metrics
+                .map(|m| m.ascent - m.cap_height)
+                .unwrap_or(TOP_FACTOR * font_size),
+        ),
+        //text::VerAlign::Bottom => "text-bottom",
+        text::VerAlign::Bottom => (
+            "alphabetic",
+            metrics
+                .map(|m| m.descent)
+                .unwrap_or(BOTTOM_FACTOR * font_size),
+        ),
+        // text::VerAlign::Line(_, text::LineVerAlign::Top) => "text-top",
+        text::VerAlign::Line(_, text::LineVerAlign::Top) => (
+            "hanging",
+            metrics
+                .map(|m| m.ascent - m.cap_height)
+                .unwrap_or(TOP_FACTOR * font_size),
+        ),
+        text::VerAlign::Line(_, text::LineVerAlign::Hanging) => ("hanging", 0.0),
+        text::VerAlign::Line(_, text::LineVerAlign::Middle) => ("middle", 0.0),
+        text::VerAlign::Line(_, text::LineVerAlign::Baseline) => ("alphabetic", 0.0),
+        // text::VerAlign::Line(_, text::LineVerAlign::Bottom) => ("text-bottom", 0.0),
+        text::VerAlign::Line(_, text::LineVerAlign::Bottom) => (
+            "alphabetic",
+            metrics
+                .map(|m| m.descent)
+                .unwrap_or(BOTTOM_FACTOR * font_size),
+        ),
     }
 }
