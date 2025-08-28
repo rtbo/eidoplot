@@ -200,7 +200,7 @@ fn save_fig_with_resolved_theme<T, D>(
 
     match &args.svg {
         Svg::No => (),
-        Svg::Yes => write_svg(fig, data_source, theme.clone(), fontdb, "plot.png"),
+        Svg::Yes => write_svg(fig, data_source, theme.clone(), fontdb, "plot.svg"),
         Svg::YesToFile(file_name) => write_svg(fig, data_source, theme.clone(), fontdb, &file_name),
     }
 }
