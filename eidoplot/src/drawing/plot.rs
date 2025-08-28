@@ -26,7 +26,7 @@ fn auto_insets(plot: &ir::Plot) -> geom::Padding {
 }
 
 impl<D, T> Ctx<'_, D, T> {
-    fn setup_plot_axes2(
+    fn setup_plot_axes(
         &self,
         plot: &ir::Plot,
         ab: (&axis::Bounds, &axis::Bounds),
@@ -34,23 +34,25 @@ impl<D, T> Ctx<'_, D, T> {
     ) -> Result<axis::Axes, Error> {
         let insets = plot_insets(plot);
 
-        // x-axis height only depends on font size, so it can be computed right-away,
-        // We use this to bootstrap the layout
+        // bootstrapping the axes by setting the vertical axis with estimated height
+        // from the font size of the horizontal axis (for which text width doesn't matter)
 
-        let x_height = self.calculate_x_axis_height(&plot.x_axis);
-        let rect = rect.shifted_bottom_side(-x_height);
-
-        let left_axis =
-            self.setup_axis(&plot.y_axis, ab.1, axis::Side::Left, &rect.size(), &insets)?;
-        let rect = rect.shifted_left_side(left_axis.size_across());
-
-        let bottom_axis = self.setup_axis(
-            &plot.x_axis,
-            ab.0,
-            axis::Side::Bottom,
-            &rect.size(),
+        let estimated_height = rect.height() - self.estimate_hor_axis_height(&plot.x_axis);
+        let mut left_axis = self.setup_axis(
+            &plot.y_axis,
+            ab.1,
+            axis::Side::Left,
+            estimated_height,
             &insets,
         )?;
+
+        let width = rect.width() - left_axis.size_across();
+        let bottom_axis =
+            self.setup_axis(&plot.x_axis, ab.0, axis::Side::Bottom, width, &insets)?;
+        
+        // now we correct the vertical axis according the real height of the horizontal axis
+        let height = rect.height() - bottom_axis.size_across();
+        left_axis.set_size_along(height);
 
         Ok(axis::Axes {
             left: left_axis,
@@ -58,7 +60,7 @@ impl<D, T> Ctx<'_, D, T> {
         })
     }
 
-    fn calculate_x_axis_height(&self, x_axis: &ir::Axis) -> f32 {
+    fn estimate_hor_axis_height(&self, x_axis: &ir::Axis) -> f32 {
         let mut height = 0.0;
         if let Some(ticks) = x_axis.ticks() {
             height +=
@@ -113,7 +115,7 @@ where
         let series = ctx.setup_plot_series(plot)?;
         let (x_bounds, y_bounds) = Series::unite_bounds(&series)?.ok_or(Error::UnboundedAxis)?;
 
-        let axes = ctx.setup_plot_axes2(plot, (&x_bounds, &y_bounds), &rect)?;
+        let axes = ctx.setup_plot_axes(plot, (&x_bounds, &y_bounds), &rect)?;
 
         let rect = rect.pad(&axes.total_plot_padding());
 

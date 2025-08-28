@@ -195,17 +195,17 @@ pub struct Axis {
 }
 
 impl Axis {
-    /// Compute the size of the axis in the orthogonal direction
+    /// Compute the size of the axis in its orthogonal direction
     /// For horizontal axis, this is the height, for vertical it is the width
     /// The width needs the text layouts
     pub fn size_across(&self) -> f32 {
         let mut size = match &self.scale {
             AxisScale::Num {
                 ticks: Some(ticks), ..
-            } => ticks.size_ortho(self.side),
+            } => ticks.size_across(self.side),
             AxisScale::Cat {
                 ticks: Some(ticks), ..
-            } => ticks.size_ortho(self.side),
+            } => ticks.size_across(self.side),
             _ => 0.0,
         };
         if let Some((title, _)) = self.title.as_ref() {
@@ -213,6 +213,17 @@ impl Axis {
             size += title.height() + missing_params::AXIS_TITLE_MARGIN;
         }
         size
+    }
+
+    pub fn set_size_along(&mut self, size: f32) {
+        match &mut self.scale {
+            AxisScale::Num {
+                cm, ..
+            } => cm.set_plot_size(size),
+            AxisScale::Cat {
+                bins, ..
+            } => bins.set_plot_size(size),
+        }
     }
 
     pub fn coord_map(&self) -> &dyn CoordMap {
@@ -257,7 +268,7 @@ struct NumTicks {
 }
 
 impl NumTicks {
-    fn size_ortho(&self, side: Side) -> f32 {
+    fn size_across(&self, side: Side) -> f32 {
         let mut size = 0.0;
 
         if let Some(mark) = self.mark.as_ref() {
@@ -295,7 +306,7 @@ struct CategoryTicks {
 }
 
 impl CategoryTicks {
-    fn size_ortho(&self, side: Side) -> f32 {
+    fn size_across(&self, side: Side) -> f32 {
         let mut size = 0.0;
 
         match side {
@@ -383,6 +394,10 @@ impl CoordMap for CategoryBins {
     fn axis_bounds(&self) -> BoundsRef<'_> {
         (&self.categories).into()
     }
+
+    fn set_plot_size(&mut self, plot_size: f32) {
+        self.bin_size = (plot_size - self.inset.0 - self.inset.1) / self.categories.len() as f32;
+    }
 }
 
 #[allow(dead_code)]
@@ -408,6 +423,7 @@ impl Side {
         }
     }
 
+    /// Layout options for axis title
     fn title_opts(&self) -> text::layout::Options {
         match self {
             Side::Bottom => text::layout::Options {
@@ -456,12 +472,12 @@ impl Side {
         match self {
             Side::Bottom => text::layout::Options {
                 hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Hanging.into(),
+                ver_align: text::layout::LineVerAlign::Top.into(),
                 ..Default::default()
             },
             Side::Top => text::layout::Options {
                 hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Baseline.into(),
+                ver_align: text::layout::LineVerAlign::Bottom.into(),
                 ..Default::default()
             },
             Side::Left => text::layout::Options {
@@ -542,6 +558,7 @@ impl Side {
         }
     }
 
+    #[allow(dead_code)]
     fn size_along(&self, size: &geom::Size) -> f32 {
         match self.direction() {
             Direction::Horizontal => size.width(),
@@ -549,7 +566,7 @@ impl Side {
         }
     }
 
-    fn size_ortho(&self, avail_size: &geom::Size) -> f32 {
+    fn size_across(&self, avail_size: &geom::Size) -> f32 {
         match self.direction() {
             Direction::Horizontal => avail_size.height(),
             Direction::Vertical => avail_size.width(),
@@ -600,6 +617,7 @@ impl Side {
     /// Returns the transform to be applied to the ticks to align them with the axis.
     /// Identity will map ticks horizontally from the top left corner.
     fn ticks_marks_transform(&self, rect: &geom::Rect) -> geom::Transform {
+        // FIXME: for left axis, and top axis, the ticks are inside out (doesn't matter if symmetrical)
         match self {
             Side::Bottom => geom::Transform::from_translate(rect.left(), rect.bottom()),
             Side::Top => geom::Transform::from_translate(rect.left(), rect.top()),
@@ -619,10 +637,9 @@ impl<D, T> Ctx<'_, D, T> {
         ir: &ir::Axis,
         ab: &Bounds,
         side: Side,
-        size: &geom::Size,
+        size_along: f32,
         insets: &geom::Padding,
     ) -> Result<Axis, Error> {
-        let size_along = side.size_along(size);
         let insets = side.insets(insets);
         let scale = self.setup_scale(ir, ab, side, size_along, insets)?;
 
@@ -662,7 +679,7 @@ impl<D, T> Ctx<'_, D, T> {
                     .transpose()?;
 
                 let minor_ticks = if let Some(mt) = ir.minor_ticks() {
-                    Some(self.setup_minor_ticks2(mt, ticks.as_ref(), nb)?)
+                    Some(self.setup_minor_ticks(mt, ticks.as_ref(), nb)?)
                 } else {
                     None
                 };
@@ -728,7 +745,7 @@ impl<D, T> Ctx<'_, D, T> {
         })
     }
 
-    fn setup_minor_ticks2(
+    fn setup_minor_ticks(
         &self,
         minor_ticks: &ir::axis::MinorTicks,
         major_ticks: Option<&NumTicks>,
@@ -978,14 +995,17 @@ where
         } else {
             0.0
         };
-        let shift_across = shift_across + missing_params::TICK_LABEL_MARGIN;
-        let mut size: f32 = 0.0;
 
         let color = ticks.lbl_color.resolve(ctx.theme());
         let paint: render::Paint = color.into();
+
+        let shift_across = shift_across + missing_params::TICK_LABEL_MARGIN;
+        let mut max_lbl_size: f32 = 0.0;
+
         for t in ticks.ticks.iter() {
-            let txt_size = geom::Size::new(t.lbl.width(), t.lbl.height());
-            size = size.max(side.size_ortho(&txt_size));
+            let lbl_size = geom::Size::new(t.lbl.width(), t.lbl.height());
+            max_lbl_size = max_lbl_size.max(side.size_across(&lbl_size));
+
             let pos_along = cm.map_coord_num(t.loc);
             let transform = side.tick_label_transform(pos_along, shift_across, plot_rect);
             let layout = render::TextLayout {
@@ -995,7 +1015,7 @@ where
             };
             self.draw_text_layout(&layout)?;
         }
-        let shift_across = shift_across + size;
+        let shift_across = shift_across + max_lbl_size;
         if let Some(annot) = ticks.annot.as_ref() {
             let transform = side.annot_transform(shift_across, plot_rect);
             let layout = render::TextLayout {
@@ -1047,19 +1067,20 @@ where
             let transform = side.ticks_marks_transform(plot_rect);
             self.draw_ticks_marks(ctx, locs, sep, &transform)?;
         }
+        // tick marks are separators, so not counted in shift_across, because not supposed to overlap
         let shift_across = missing_params::TICK_LABEL_MARGIN;
 
         let color = ticks.lbl_color.resolve(ctx.theme());
         let fill: render::Paint = color.into();
 
-        let mut size: f32 = 0.0;
+        let mut max_lbl_size: f32 = 0.0;
 
         for (i, lbl) in ticks.lbls.iter().enumerate() {
             let txt_size = geom::Size::new(lbl.width(), lbl.height());
-            size = size.max(side.size_ortho(&txt_size));
+            max_lbl_size = max_lbl_size.max(side.size_across(&txt_size));
 
-            let loc = bins.cat_location(i);
-            let transform = side.tick_label_transform(loc, shift_across, plot_rect);
+            let pos_along = bins.cat_location(i);
+            let transform = side.tick_label_transform(pos_along, shift_across, plot_rect);
             let layout = render::TextLayout {
                 layout: lbl,
                 fill,
@@ -1068,7 +1089,7 @@ where
             self.draw_text_layout(&layout)?;
         }
 
-        Ok(shift_across + size)
+        Ok(shift_across + max_lbl_size)
     }
 
     // return shift across axis (distance to get away from axis to avoid collision)

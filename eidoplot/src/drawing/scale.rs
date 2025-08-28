@@ -24,6 +24,8 @@ pub trait CoordMap: std::fmt::Debug {
     }
 
     fn axis_bounds(&self) -> axis::BoundsRef<'_>;
+
+    fn set_plot_size(&mut self, plot_size: f32);
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -70,17 +72,31 @@ pub fn map_scale_coord_num(
 struct LinCoordMap {
     plot_size: f32,
     ab: axis::NumBounds,
+
+    // next fields are there for `set_plot_size`
+    orig_ab: axis::NumBounds,
+    insets: (f32, f32),
 }
 
 impl LinCoordMap {
-    fn new(plot_size: f32, inset: (f32, f32), ab: axis::NumBounds) -> Self {
-        let plot_to_data = ab.span() / (plot_size - inset.0 - inset.1) as f64;
-        let ab = axis::NumBounds::from((
-            ab.start() - inset.0 as f64 * plot_to_data,
-            ab.end() + inset.1 as f64 * plot_to_data,
-        ));
+    fn new(plot_size: f32, insets: (f32, f32), ab: axis::NumBounds) -> Self {
+        let orig_ab = ab;
+        let ab = Self::extend_bounds_with_insets(plot_size, insets, ab);
 
-        LinCoordMap { plot_size, ab }
+        LinCoordMap {
+            plot_size,
+            ab,
+            orig_ab,
+            insets,
+        }
+    }
+
+    fn extend_bounds_with_insets(plot_size: f32, insets: (f32, f32), ab: axis::NumBounds) -> axis::NumBounds {
+        let plot_to_data = ab.span() / (plot_size - insets.0 - insets.1) as f64;
+        axis::NumBounds::from((
+            ab.start() - insets.0 as f64 * plot_to_data,
+            ab.end() + insets.1 as f64 * plot_to_data,
+        ))
     }
 }
 
@@ -93,6 +109,11 @@ impl CoordMap for LinCoordMap {
     fn axis_bounds(&self) -> axis::BoundsRef<'_> {
         self.ab.into()
     }
+
+    fn set_plot_size(&mut self, plot_size: f32) {
+        self.plot_size = plot_size;
+        self.ab = Self::extend_bounds_with_insets(plot_size, self.insets, self.orig_ab);
+    }
 }
 
 #[cfg(test)]
@@ -103,34 +124,19 @@ mod tests {
     fn test_map_scale_coord_linear_auto() {
         let linear_auto = ir::axis::Scale::Linear(ir::axis::Range::Auto);
 
-        let map = map_scale_coord_num(
-            &linear_auto,
-            100.0,
-            &(0.0, 10.0).into(),
-            (0.0, 0.0),
-        );
+        let map = map_scale_coord_num(&linear_auto, 100.0, &(0.0, 10.0).into(), (0.0, 0.0));
         assert_eq!(map.map_coord_num(0.0), 0.0);
         assert_eq!(map.map_coord_num(5.0), 50.0);
         assert_eq!(map.map_coord_num(10.0), 100.0);
         assert_eq!(map.axis_bounds(), axis::Bounds::Num((0.0, 10.0).into()));
 
-        let map = map_scale_coord_num(
-            &linear_auto,
-            110.0,
-            &(0.0, 10.0).into(),
-            (10.0, 0.0),
-        );
+        let map = map_scale_coord_num(&linear_auto, 110.0, &(0.0, 10.0).into(), (10.0, 0.0));
         assert_eq!(map.map_coord_num(0.0), 10.0);
         assert_eq!(map.map_coord_num(5.0), 60.0);
         assert_eq!(map.map_coord_num(10.0), 110.0);
         assert_eq!(map.axis_bounds(), axis::Bounds::Num((-1.0, 10.0).into()));
 
-        let map = map_scale_coord_num(
-            &linear_auto,
-            120.0,
-            &(0.0, 10.0).into(),
-            (10.0, 10.0),
-        );
+        let map = map_scale_coord_num(&linear_auto, 120.0, &(0.0, 10.0).into(), (10.0, 10.0));
         assert_eq!(map.map_coord_num(0.0), 10.0);
         assert_eq!(map.map_coord_num(5.0), 60.0);
         assert_eq!(map.map_coord_num(10.0), 110.0);
