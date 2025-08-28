@@ -120,7 +120,7 @@ pub(crate) mod single_font {
     pub(crate) struct Lines {
         pub(crate) lines: Vec<Line>,
         pub(crate) font: font::ID,
-        pub(crate) metrics: font::FaceMetrics,
+        pub(crate) metrics: font::Metrics,
     }
 }
 
@@ -131,7 +131,7 @@ pub(crate) mod fallback {
     #[derive(Debug, Clone)]
     pub(crate) enum Glyph {
         Missing(String),
-        Resolved(super::Glyph, font::ID, font::FaceMetrics),
+        Resolved(super::Glyph, font::ID, font::Metrics),
     }
 
     impl Glyph {

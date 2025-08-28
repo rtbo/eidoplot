@@ -8,7 +8,7 @@ pub mod layout;
 pub mod render;
 pub mod shape;
 
-pub use font::{Font, parse_font_families};
+pub use font::{Font, parse_font_families, ScaledMetrics};
 pub use layout::{Anchor, HorAlign, LineVerAlign, TextLayout, VerAlign};
 pub use render::{render_text, render_text_tiny_skia};
 pub use shape::{Direction, TextShape};

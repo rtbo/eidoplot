@@ -3,7 +3,7 @@ use std::fmt;
 use tiny_skia_path::Transform;
 use ttf_parser as ttf;
 
-use crate::font::{self, Font};
+use crate::font::{self, Font, ScaledMetrics};
 use crate::shape::{self, Direction, MainDirection, TextShape};
 
 /// Error returned when the layout options or font size
@@ -225,6 +225,7 @@ pub(crate) struct LineLayout {
     pub(crate) runs: Vec<GlyphRun>,
     bbox: BBox,
     direction: Direction,
+    metrics: ScaledMetrics,
 }
 
 #[derive(Debug, Clone)]
@@ -299,8 +300,16 @@ impl TextLayout {
         self.lines.first().map(|l| l.direction).unwrap_or_default()
     }
 
+    pub fn metrics(&self) -> ScaledMetrics {
+        self.lines.first().map(|l| l.metrics).unwrap_or_else(|| ScaledMetrics::null())
+    }
+
     pub fn line_direction(&self, lidx: usize) -> Direction {
         self.lines[lidx].direction
+    }
+
+    pub fn line_metrics(&self, lidx: usize) -> ScaledMetrics {
+        self.lines[lidx].metrics
     }
 
     /// Options used to build this layout
@@ -357,7 +366,7 @@ trait LinesTrait {
 
     fn line_glyph_font_id(&self, lidx: usize, gidx: usize) -> Option<font::ID>;
     fn line_glyph_scale(&self, lidx: usize, gidx: usize, font_size: f32) -> Option<f32>;
-    fn line_scaled_metrics(&self, idx: usize, font_size: f32) -> Option<font::ScaledFaceMetrics>;
+    fn line_scaled_metrics(&self, idx: usize, font_size: f32) -> Option<font::ScaledMetrics>;
     /// Y value of the baseline of a line.
     /// Relatively to the baseline of the first line
     fn line_scaled_baseline(&self, lidx: usize, font_size: f32) -> f32;
@@ -405,7 +414,7 @@ mod single_font {
             &self,
             _idx: usize,
             font_size: f32,
-        ) -> Option<font::ScaledFaceMetrics> {
+        ) -> Option<font::ScaledMetrics> {
             Some(self.metrics.scaled(font_size))
         }
 
@@ -514,13 +523,13 @@ mod fallback_font {
             &self,
             idx: usize,
             font_size: f32,
-        ) -> Option<font::ScaledFaceMetrics> {
+        ) -> Option<font::ScaledMetrics> {
             let line = &self.lines[idx];
             if line.glyphs.is_empty() {
                 return None;
             }
 
-            let mut metrics = font::ScaledFaceMetrics::null();
+            let mut metrics = font::ScaledMetrics::null();
 
             for g in &line.glyphs {
                 match g {
@@ -625,7 +634,15 @@ where
             y_cursor += lines.line_scaled_height(lidx, font_size);
         }
 
-        let l = layout_line_at_baseline(y_cursor, lines, lidx, font_size, line_align);
+        let metrics = if lidx == 0 {
+            fst_metrics
+        } else if lidx == lines_len-1 {
+            lst_metrics
+        } else {
+            lines.line_scaled_metrics(lidx, font_size).unwrap()
+        };
+
+        let l = layout_line_at_baseline(y_cursor, lines, lidx, font_size, line_align, metrics);
         line_vec.push(l);
 
         y_cursor += lines.line_scaled_gap(lidx, font_size);
@@ -660,6 +677,7 @@ fn layout_line_at_baseline<T>(
     lidx: usize,
     font_size: f32,
     align: LineAlign,
+    metrics: ScaledMetrics,
 ) -> LineLayout
 where
     T: LinesTrait,
@@ -761,5 +779,6 @@ where
         runs: glyph_runs,
         bbox,
         direction: line.main_direction(),
+        metrics,
     }
 }

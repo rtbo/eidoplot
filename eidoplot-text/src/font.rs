@@ -831,7 +831,7 @@ pub(crate) fn apply_variations(face: &mut ttf::Face, font: &Font) {
 
 /// A font that has been resolved, but not scaled
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct FaceMetrics {
+pub(crate) struct Metrics {
     // all values in font units
     units_per_em: u16,
     pub(crate) ascent: i16,
@@ -841,7 +841,7 @@ pub(crate) struct FaceMetrics {
     pub(crate) line_gap: i16,
 }
 
-impl FaceMetrics {
+impl Metrics {
     pub(crate) fn height(&self) -> i16 {
         self.ascent - self.descent
     }
@@ -849,22 +849,6 @@ impl FaceMetrics {
     pub(crate) fn scale(&self, size: f32) -> f32 {
         size / self.units_per_em as f32
     }
-
-    // pub(crate) fn scaled_ascent(&self, size: f32) -> f32 {
-    //     self.ascent as f32 * self.scale(size)
-    // }
-
-    // pub(crate) fn scaled_descent(&self, size: f32) -> f32 {
-    //     self.descent as f32 * self.scale(size)
-    // }
-
-    // pub(crate) fn scaled_x_height(&self, size: f32) -> f32 {
-    //     self.x_height as f32 * self.scale(size)
-    // }
-
-    // pub(crate) fn scaled_cap_height(&self, size: f32) -> f32 {
-    //     self.cap_height as f32 * self.scale(size)
-    // }
 
     pub(crate) fn scaled_height(&self, size: f32) -> f32 {
         (self.ascent - self.descent) as f32 * self.scale(size)
@@ -874,9 +858,9 @@ impl FaceMetrics {
         self.line_gap as f32 * self.scale(size)
     }
 
-    pub(crate) fn scaled(&self, size: f32) -> ScaledFaceMetrics {
+    pub(crate) fn scaled(&self, size: f32) -> ScaledMetrics {
         let scale = self.scale(size);
-        ScaledFaceMetrics {
+        ScaledMetrics {
             ascent: self.ascent as f32 * scale,
             descent: self.descent as f32 * scale,
             x_height: self.x_height as f32 * scale,
@@ -886,7 +870,7 @@ impl FaceMetrics {
     }
 }
 
-pub(crate) fn face_metrics(face: &ttf::Face) -> FaceMetrics {
+pub(crate) fn face_metrics(face: &ttf::Face) -> Metrics {
     let units_per_em = face.units_per_em();
     let ascent = face.ascender();
     let descent = face.descender();
@@ -898,7 +882,7 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> FaceMetrics {
         .unwrap_or(((ascent - descent) as f32 * 0.8) as i16);
     let line_gap = face.line_gap();
 
-    FaceMetrics {
+    Metrics {
         units_per_em,
         ascent,
         descent,
@@ -908,17 +892,31 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> FaceMetrics {
     }
 }
 
-pub(crate) struct ScaledFaceMetrics {
-    pub(crate) ascent: f32,
-    pub(crate) descent: f32,
-    pub(crate) x_height: f32,
-    pub(crate) cap_height: f32,
-    pub(crate) line_gap: f32,
+/// Metrics of a font face, scaled to a font size
+#[derive(Debug, Clone, Copy)]
+pub struct ScaledMetrics {
+    /// Height between baseline and top of the font face
+    pub ascent: f32,
+    /// Height between baseline and bottom of the font face (negative value)
+    pub descent: f32,
+    /// Height between baseline and top of most letters 
+    /// (the half of this height is used for the "middle" alignment)
+    pub x_height: f32,
+    /// Height between baseline and top of capitals (used for the "hanging" alignment)
+    pub cap_height: f32,
+    /// Gap to be added (possibly zero) to the distance between two lines,
+    /// from the bottom of the first line to the top of the following one)
+    pub line_gap: f32,
 }
 
-impl ScaledFaceMetrics {
-    pub(crate) const fn null() -> ScaledFaceMetrics {
-        ScaledFaceMetrics {
+impl ScaledMetrics {
+    /// The total height of the face, from ascent to descent
+    pub fn height(&self) -> f32 {
+        self.ascent - self.descent
+    }
+
+    pub(crate) const fn null() -> ScaledMetrics {
+        ScaledMetrics {
             ascent: 0.0,
             descent: 0.0,
             x_height: 0.0,
