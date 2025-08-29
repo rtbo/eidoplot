@@ -40,13 +40,18 @@ impl From<Categories> for Bounds {
 }
 
 impl Bounds {
-    pub fn unite_with(&mut self, other: &Bounds) -> Result<(), Error> {
+    pub fn unite_with<B>(&mut self, other: &B) -> Result<(), Error>
+    where
+        B: AsBoundRef,
+    {
+        let other = other.as_bound_ref();
+
         match (self, other) {
-            (Bounds::Num(a), Bounds::Num(b)) => {
-                a.unite_with(b);
+            (Bounds::Num(a), BoundsRef::Num(b)) => {
+                a.unite_with(&b);
                 Ok(())
             }
-            (Bounds::Cat(a), Bounds::Cat(b)) => {
+            (Bounds::Cat(a), BoundsRef::Cat(b)) => {
                 for s in b.iter() {
                     a.push_if_not_present(s);
                 }
@@ -66,6 +71,15 @@ pub enum BoundsRef<'a> {
     Num(NumBounds),
     /// Category bounds
     Cat(&'a Categories),
+}
+
+impl BoundsRef<'_> {
+    pub fn to_bounds(&self) -> Bounds {
+        match self {
+            &BoundsRef::Num(n) => n.into(),
+            &BoundsRef::Cat(c) => c.clone().into(),
+        }
+    }
 }
 
 impl From<NumBounds> for BoundsRef<'_> {
@@ -106,6 +120,25 @@ impl std::cmp::PartialEq<BoundsRef<'_>> for Bounds {
             (Bounds::Cat(a), &BoundsRef::Cat(b)) => a == b,
             _ => false,
         }
+    }
+}
+
+pub trait AsBoundRef {
+    fn as_bound_ref(&self) -> BoundsRef<'_>;
+}
+
+impl AsBoundRef for Bounds {
+    fn as_bound_ref(&self) -> BoundsRef<'_> {
+        match self {
+            &Bounds::Num(n) => n.into(),
+            &Bounds::Cat(ref c) => c.into(),
+        }
+    }
+}
+
+impl AsBoundRef for BoundsRef<'_> {
+    fn as_bound_ref(&self) -> BoundsRef<'_> {
+        *self
     }
 }
 
@@ -217,12 +250,8 @@ impl Axis {
 
     pub fn set_size_along(&mut self, size: f32) {
         match &mut self.scale {
-            AxisScale::Num {
-                cm, ..
-            } => cm.set_plot_size(size),
-            AxisScale::Cat {
-                bins, ..
-            } => bins.set_plot_size(size),
+            AxisScale::Num { cm, .. } => cm.set_plot_size(size),
+            AxisScale::Cat { bins, .. } => bins.set_plot_size(size),
         }
     }
 
@@ -393,6 +422,10 @@ impl CoordMap for CategoryBins {
 
     fn axis_bounds(&self) -> BoundsRef<'_> {
         (&self.categories).into()
+    }
+
+    fn cat_bin_size(&self) -> f32 {
+        self.bin_size
     }
 
     fn set_plot_size(&mut self, plot_size: f32) {

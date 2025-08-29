@@ -56,9 +56,9 @@
             }
         },
         {
-            "label": "Cat example",
+            "label": "Bars example",
             "type": "shell",
-            "command": "cargo run --example cat -- svg png",
+            "command": "cargo run --example bars -- svg png",
             "group": {
                 "kind": "build",
                 "isDefault": true

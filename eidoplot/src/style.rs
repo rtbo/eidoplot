@@ -189,6 +189,18 @@ pub enum Fill<C: Color> {
     Solid { color: C, opacity: Option<f32> },
 }
 
+impl<C> Default for Fill<C>
+where
+    C: Color + Default,
+{
+    fn default() -> Self {
+        Fill::Solid {
+            color: C::default(),
+            opacity: None,
+        }
+    }
+}
+
 impl<C: Color> Fill<C> {
     pub fn with_opacity(self, opacity: f32) -> Self {
         match self {

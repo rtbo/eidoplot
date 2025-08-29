@@ -40,4 +40,4 @@ name="iris_polars"
 required-features = ["polars"]
 
 [[example]]
-name="cat"
+name="bars"

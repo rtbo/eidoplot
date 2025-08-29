@@ -23,6 +23,11 @@ pub trait CoordMap: std::fmt::Debug {
         unimplemented!("Only for categorical scales");
     }
 
+    /// Get the size of a category bin (width for horizontal axes, height for vertical axes)
+    fn cat_bin_size(&self) -> f32 {
+        unimplemented!("Only for categorical scales");
+    }
+
     fn axis_bounds(&self) -> axis::BoundsRef<'_>;
 
     fn set_plot_size(&mut self, plot_size: f32);

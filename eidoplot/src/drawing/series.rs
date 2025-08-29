@@ -1,9 +1,10 @@
 use crate::drawing::{
-    ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
+    Categories, ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
 };
 use crate::render::{self, Surface as _};
 use crate::{data, geom, ir, style};
 
+use axis::AsBoundRef;
 use scale::CoordMapXy;
 
 pub fn series_has_legend(series: &ir::Series) -> bool {
@@ -26,6 +27,7 @@ impl legend::Entry for ir::Series {
             ir::SeriesPlot::Line(xy) => legend::Shape::Line(xy.line.clone()),
             ir::SeriesPlot::Scatter(sc) => legend::Shape::Marker(sc.marker.clone()),
             ir::SeriesPlot::Histogram(hist) => legend::Shape::Rect(hist.fill, hist.line.clone()),
+            ir::SeriesPlot::Bars(bars) => legend::Shape::Rect(bars.fill, bars.line.clone()),
         }
     }
 }
@@ -77,6 +79,7 @@ enum SeriesPlot {
     Line(Line),
     Scatter(Scatter),
     Histogram(Histogram),
+    Bars(Bars),
 }
 
 impl Series {
@@ -85,20 +88,28 @@ impl Series {
         D: data::Source,
     {
         let processed = match &series.plot {
-            ir::SeriesPlot::Line(line) => SeriesPlot::Line(Line::from_ir(index, line, data_source)?),
-            ir::SeriesPlot::Scatter(sc) => SeriesPlot::Scatter(Scatter::from_ir(index, sc, data_source)?),
+            ir::SeriesPlot::Line(line) => {
+                SeriesPlot::Line(Line::from_ir(index, line, data_source)?)
+            }
+            ir::SeriesPlot::Scatter(sc) => {
+                SeriesPlot::Scatter(Scatter::from_ir(index, sc, data_source)?)
+            }
             ir::SeriesPlot::Histogram(hist) => {
                 SeriesPlot::Histogram(Histogram::from_ir(index, hist, data_source)?)
+            }
+            ir::SeriesPlot::Bars(bars) => {
+                SeriesPlot::Bars(Bars::from_ir(index, bars, data_source)?)
             }
         };
         Ok(Series { plot: processed })
     }
 
-    pub fn bounds(&self) -> (axis::Bounds, axis::Bounds) {
+    pub fn bounds(&self) -> (axis::BoundsRef<'_>, axis::BoundsRef<'_>) {
         match &self.plot {
-            SeriesPlot::Line(line) => (line.ab.0.clone(), line.ab.1.clone()),
-            SeriesPlot::Scatter(scatter) => (scatter.ab.0.clone(), scatter.ab.1.clone()),
+            SeriesPlot::Line(line) => (line.ab.0.as_bound_ref(), line.ab.1.as_bound_ref()),
+            SeriesPlot::Scatter(scatter) => (scatter.ab.0.as_bound_ref(), scatter.ab.1.as_bound_ref()),
             SeriesPlot::Histogram(hist) => (hist.ab.0.into(), hist.ab.1.into()),
+            SeriesPlot::Bars(bars) => bars.bounds(),
         }
     }
 
@@ -110,7 +121,7 @@ impl Series {
                 a.0.unite_with(&b.0)?;
                 a.1.unite_with(&b.1)?;
             } else {
-                a = Some(b);
+                a = Some((b.0.to_bounds(), b.1.to_bounds()));
             }
         }
         Ok(a)
@@ -142,6 +153,9 @@ where
             }
             (ir::SeriesPlot::Histogram(ir), SeriesPlot::Histogram(hist)) => {
                 Ok(self.draw_series_histogram(ctx, ir, hist, rect, cm)?)
+            }
+            (ir::SeriesPlot::Bars(ir), SeriesPlot::Bars(bars)) => {
+                Ok(self.draw_series_bars(ctx, ir, bars, rect, cm)?)
             }
             _ => unreachable!("Should be the same plot type"),
         }
@@ -314,7 +328,11 @@ struct Histogram {
 }
 
 impl Histogram {
-    fn from_ir<D>(index: usize, hist: &ir::series::Histogram, data_source: &D) -> Result<Self, Error>
+    fn from_ir<D>(
+        index: usize,
+        hist: &ir::series::Histogram,
+        data_source: &D,
+    ) -> Result<Self, Error>
     where
         D: data::Source,
     {
@@ -393,6 +411,129 @@ where
 
         y = rect.bottom() - cm.y.map_coord_num(0.0);
         pb.line_to(x, y);
+
+        let path = pb.finish().expect("Should be a valid path");
+        let path = render::Path {
+            path: &path,
+            fill: Some(ir.fill.as_paint(&rc)),
+            stroke: ir.line.as_ref().map(|l| l.as_stroke(&rc)),
+            transform: None,
+        };
+        self.draw_path(&path)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+enum BarsBounds {
+    Vertical(Categories, axis::NumBounds),
+    Horizontal(axis::NumBounds, Categories),
+}
+
+#[derive(Debug, Clone)]
+struct Bars {
+    index: usize,
+    bounds: BarsBounds,
+}
+
+impl Bars {
+    fn from_ir<D>(index: usize, ir: &ir::series::Bars, data_source: &D) -> Result<Self, Error>
+    where
+        D: data::Source,
+    {
+        let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &ir.x_data, &ir.y_data)?;
+
+        let bounds = match (x_bounds, y_bounds) {
+            (axis::Bounds::Num(x_bounds), axis::Bounds::Cat(y_bounds)) => {
+                BarsBounds::Horizontal(x_bounds, y_bounds)
+            }
+            (axis::Bounds::Cat(x_bounds), axis::Bounds::Num(y_bounds)) => {
+                BarsBounds::Vertical(x_bounds, y_bounds)
+            }
+            _ => {
+                return Err(Error::InconsistentData(
+                    "One of X and Y data must be numeric and the other categorical".to_string(),
+                ));
+            }
+        };
+
+        Ok(Bars { index, bounds })
+    }
+
+    fn bounds(&self) -> (axis::BoundsRef<'_>, axis::BoundsRef<'_>) {
+        match &self.bounds {
+            &BarsBounds::Vertical(ref x_bounds, y_bounds) => (x_bounds.into(), y_bounds.into()),
+            &BarsBounds::Horizontal(x_bounds, ref y_bounds) => (x_bounds.into(), y_bounds.into()),
+        }
+    }
+}
+
+
+impl<S: ?Sized> SurfWrapper<'_, S>
+where
+    S: render::Surface,
+{
+    fn draw_series_bars<D, T>(
+        &mut self,
+        ctx: &Ctx<D, T>,
+        ir: &ir::series::Bars,
+        bars: &Bars,
+        rect: &geom::Rect,
+        cm: &CoordMapXy,
+    ) -> Result<(), render::Error>
+    where
+        D: data::Source,
+        T: style::Theme,
+    {
+        let rc = (ctx.theme().palette(), bars.index);
+
+        // unwraping here as data is checked during setup phase
+        let x_col = get_column(&ir.x_data, ctx.data_source()).unwrap();
+        let y_col = get_column(&ir.y_data, ctx.data_source()).unwrap();
+        debug_assert!(x_col.len() == y_col.len());
+
+        let mut pb = geom::PathBuilder::new();
+
+        match &bars.bounds {
+            BarsBounds::Vertical(..) => {
+                let cat_bin_width = cm.x.cat_bin_size();
+                let y_start = rect.bottom() - cm.y.map_coord_num(0.0);
+
+                for (x, y) in x_col.iter().zip(y_col.iter()) {
+                    if x.is_null() || y.is_null() {
+                        continue;   
+                    }
+
+                    let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
+                    let x_start = rect.left() + x + cat_bin_width * (ir.position.offset - 0.5);
+                    let x_end = x_start + cat_bin_width * ir.position.width;
+                    let y_end = rect.bottom() - y;
+                    pb.move_to(x_start, y_start);
+                    pb.line_to(x_start, y_end);
+                    pb.line_to(x_end, y_end);
+                    pb.line_to(x_end, y_start);
+                }
+            }
+            BarsBounds::Horizontal(..) => {
+                let cat_bin_height = cm.y.cat_bin_size();
+                let x_start = rect.left() + cm.x.map_coord_num(0.0);
+
+                for (x, y) in x_col.iter().zip(y_col.iter()) {
+                    if x.is_null() || y.is_null() {
+                        continue;   
+                    }
+
+                    let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
+                    let y_start = rect.bottom() - y - cat_bin_height * (ir.position.offset - 0.5);
+                    let y_end = y_start - cat_bin_height * ir.position.width;
+                    let x_end = rect.left() + x;
+                    pb.move_to(x_start, y_start);
+                    pb.line_to(x_end, y_start);
+                    pb.line_to(x_end, y_end);
+                    pb.line_to(x_start, y_end);
+                }
+            }
+        }
 
         let path = pb.finish().expect("Should be a valid path");
         let path = render::Path {

@@ -46,12 +46,12 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "cat example",
+            "name": "bars example",
             "cargo": {
                 "args": [
                     "build",
                     "--example",
-                    "cat"
+                    "bars"
                 ]
             },
             "args": []
