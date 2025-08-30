@@ -6,40 +6,58 @@ use text::{TextLayout, fontdb};
 
 use crate::drawing::{self, Ctx, SurfWrapper};
 use crate::render::{self, Surface as _};
-use crate::style::{defaults, theme, Color as _};
+use crate::style::{Color as _, defaults, theme};
 use crate::{geom, ir, style};
 
+#[derive(Debug, Clone)]
 pub enum Shape {
     Line(style::series::Line),
     Marker(style::series::Marker),
     Rect(style::series::Fill, Option<style::series::Line>),
 }
 
-/// trait implemented by series, or any other item that
-/// has to populate the legend
-pub trait Entry {
-    fn label(&self) -> &str;
-    fn font(&self) -> Option<&ir::legend::EntryFont>;
-    fn shape(&self) -> Shape;
+#[derive(Debug, Clone, Copy)]
+pub enum ShapeRef<'a> {
+    Line(&'a style::series::Line),
+    Marker(&'a style::series::Marker),
+    Rect(&'a style::series::Fill, Option<&'a style::series::Line>),
 }
 
+impl ShapeRef<'_> {
+    pub fn to_shape(&self) -> Shape {
+        match self {
+            &ShapeRef::Line(line) => Shape::Line(line.clone()),
+            &ShapeRef::Marker(marker) => Shape::Marker(marker.clone()),
+            &ShapeRef::Rect(fill, line) => Shape::Rect(fill.clone(), line.cloned()),
+        }
+    }
+}
+
+/// A legend entry, used to populate the legend
+#[derive(Debug, Clone)]
+pub struct Entry<'a> {
+    pub label: &'a str,
+    pub font: Option<&'a ir::legend::EntryFont>,
+    pub shape: ShapeRef<'a>,
+}
+
+/// A legend entry, as built during setup phase
+#[derive(Debug, Clone)]
 struct LegendEntry {
     index: usize,
     shape: Shape,
     text: TextLayout,
-    label_width: f32,
-    label_height: f32,
     x: f32,
     y: f32,
 }
 
 impl LegendEntry {
     fn width(&self) -> f32 {
-        self.label_width + defaults::LEGEND_SHAPE_SPACING + defaults::LEGEND_SHAPE_SIZE.width()
+        self.text.width() + defaults::LEGEND_SHAPE_SPACING + defaults::LEGEND_SHAPE_SIZE.width()
     }
 
     fn height(&self) -> f32 {
-        self.label_height.max(defaults::LEGEND_SHAPE_SIZE.height())
+        self.text.height().max(defaults::LEGEND_SHAPE_SIZE.height())
     }
 }
 
@@ -59,7 +77,12 @@ pub struct Legend {
 }
 
 impl Legend {
-    pub fn from_ir(legend: &ir::Legend, prefers_vertical: bool, avail_width: f32, fontdb: Arc<fontdb::Database>) -> Legend {
+    pub fn from_ir(
+        legend: &ir::Legend,
+        prefers_vertical: bool,
+        avail_width: f32,
+        fontdb: Arc<fontdb::Database>,
+    ) -> Legend {
         let mut columns = legend.columns();
         if columns.is_none() && prefers_vertical {
             columns.replace(NonZeroU32::new(1).unwrap());
@@ -80,28 +103,19 @@ impl Legend {
         }
     }
 
-    pub fn add_entry<E>(&mut self, index: usize, entry: &E) -> Result<(), drawing::Error>
-    where
-        E: Entry,
-    {
-        let shape = entry.shape();
-        let label = entry.label();
-        let entry_font = entry.font();
-        let font = entry_font.unwrap_or(&self.font);
+    pub fn add_entry(&mut self, index: usize, entry: Entry) -> Result<(), drawing::Error> {
+        let shape = entry.shape.to_shape();
+        let font = entry.font.unwrap_or(&self.font);
         let opts = text::layout::Options {
             hor_align: text::layout::HorAlign::Start,
             ver_align: text::layout::LineVerAlign::Middle.into(),
             ..Default::default()
         };
-        let text = text::shape_and_layout_str(label, &font.font, &self.fontdb, font.size, &opts)?;
-        let label_width = text.bbox().width();
-        let label_height = text.bbox().height();
+        let text = text::shape_and_layout_str(entry.label, &font.font, &self.fontdb, font.size, &opts)?;
         self.entries.push(LegendEntry {
             index,
             shape,
             text,
-            label_width,
-            label_height,
             x: f32::NAN,
             y: f32::NAN,
         });
@@ -134,10 +148,7 @@ impl Legend {
                 x += e.width() + self.spacing;
             }
         }
-        let sz = geom::Size::new(
-            w + self.padding,
-            h + self.padding,
-        );
+        let sz = geom::Size::new(w + self.padding, h + self.padding);
         self.size.replace(sz);
         sz
     }
@@ -145,7 +156,7 @@ impl Legend {
     fn max_label_width(&self) -> f32 {
         let mut width = f32::NAN;
         for e in &self.entries {
-            width = width.max(e.label_width);
+            width = width.max(e.text.width());
         }
         width
     }
@@ -171,8 +182,9 @@ where
         ctx: &Ctx<D, T>,
         legend: &Legend,
         top_left: &geom::Point,
-    ) -> Result<(), render::Error> 
-    where T: style::Theme,
+    ) -> Result<(), render::Error>
+    where
+        T: style::Theme,
     {
         let rect = geom::Rect::from_ps(*top_left, legend.size.unwrap());
         if legend.fill.is_some() || legend.border.is_some() {
@@ -197,8 +209,9 @@ where
         entry: &LegendEntry,
         rect: &geom::Rect,
         label_color: theme::Color,
-    ) -> Result<(), render::Error> 
-    where T: style::Theme,
+    ) -> Result<(), render::Error>
+    where
+        T: style::Theme,
     {
         let rect = geom::Rect::from_xywh(
             rect.left() + entry.x,
@@ -232,10 +245,8 @@ where
             }
             Shape::Marker(marker) => {
                 let path = crate::drawing::marker::marker_path(&marker);
-                let transform = geom::Transform::from_translate(
-                    shape_rect.center_x(),
-                    shape_rect.center_y(),
-                );
+                let transform =
+                    geom::Transform::from_translate(shape_rect.center_x(), shape_rect.center_y());
 
                 let path = render::Path {
                     path: &path,

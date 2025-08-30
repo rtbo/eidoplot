@@ -1,7 +1,7 @@
 use eidoplot_text as text;
 
 use crate::drawing::legend::Legend;
-use crate::drawing::series::series_has_legend;
+use crate::drawing::plot;
 use crate::drawing::{Ctx, Error, SurfWrapper};
 use crate::render::{self, Surface as _};
 use crate::{data, geom, ir, missing_params, style};
@@ -10,7 +10,11 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_toplevel_figure<D, T>(&mut self, ctx: &Ctx<D, T>, fig: &ir::Figure) -> Result<(), Error>
+    pub fn draw_toplevel_figure<D, T>(
+        &mut self,
+        ctx: &Ctx<D, T>,
+        fig: &ir::Figure,
+    ) -> Result<(), Error>
     where
         D: data::Source,
         T: style::Theme,
@@ -64,8 +68,9 @@ where
         fig: &ir::Figure,
         legend: &ir::FigLegend,
         rect: &mut geom::Rect,
-    ) -> Result<(), Error> 
-    where T: style::Theme,
+    ) -> Result<(), Error>
+    where
+        T: style::Theme,
     {
         let mut dlegend = Legend::from_ir(
             legend.legend(),
@@ -73,13 +78,18 @@ where
             rect.width(),
             ctx.fontdb().clone(),
         );
-        for p in fig.plots().iter() {
-            for (index, s) in p.series.iter().enumerate() {
-                if series_has_legend(s) {
-                    dlegend.add_entry(index, s)?;
+
+        let mut idx = 0;
+        for plot in fig.plots().iter() {
+            plot::for_each_series(plot, |s| {
+                if let Some(entry) = s.legend_entry() {
+                    dlegend.add_entry(idx, entry)?;
+                    idx += 1;
                 }
-            }
+                Ok(())
+            })?;
         }
+
         let sz = dlegend.layout();
         let top_left = match legend.pos() {
             ir::figure::LegendPos::Top => {

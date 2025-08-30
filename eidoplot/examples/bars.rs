@@ -1,6 +1,4 @@
-use eidoplot::{
-    data, ir,
-};
+use eidoplot::{data, ir};
 
 mod common;
 
@@ -28,51 +26,72 @@ fn main() {
     let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("Fruits".into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("Stock".into());
 
-    let stocks_2023 = ir::Series {
-        name: Some("Stocks 2023".into()),
-        plot: ir::SeriesPlot::Bars(ir::series::Bars {
-            fill: Default::default(),
-            line: None,
-            position: ir::series::BarPosition {
-                offset: 0.2,
-                width: 0.2,
+    let bars_group = ir::Series::BarsGroup(ir::series::BarsGroup {
+        categories: ir::series::DataCol::SrcRef("fruits".to_string()), 
+        orientation: ir::series::BarsOrientation::Vertical,
+        arrangement: ir::series::BarsArrangement::Stack(Default::default()),
+        series: vec![
+            ir::series::BarSeries {
+                name: Some("Stocks 2023".into()),
+                fill: Default::default(),
+                line: None,
+                data: ir::series::DataCol::SrcRef("stocks_2023".to_string()),
             },
-            x_data: ir::series::DataCol::SrcRef("fruits".to_string()),
-            y_data: ir::series::DataCol::SrcRef("stocks_2023".to_string()),
-        }),
-    };
-    let stocks_2024 = ir::Series {
-        name: Some("Stocks 2024".into()),
-        plot: ir::SeriesPlot::Bars(ir::series::Bars {
-            fill: Default::default(),
-            line: None,
-            position: ir::series::BarPosition {
-                offset: 0.4,
-                width: 0.2,
+            ir::series::BarSeries {
+                name: Some("Stocks 2024".into()),
+                fill: Default::default(),
+                line: None,
+                data: ir::series::DataCol::SrcRef("stocks_2024".to_string()),
             },
-            x_data: ir::series::DataCol::SrcRef("fruits".to_string()),
-            y_data: ir::series::DataCol::SrcRef("stocks_2024".to_string()),
-        }),
-    };
-    let stocks_2025 = ir::Series {
-        name: Some("Stocks 2025".into()),
-        plot: ir::SeriesPlot::Bars(ir::series::Bars {
-            fill: Default::default(),
-            line: None,
-            position: ir::series::BarPosition {
-                offset: 0.6,
-                width: 0.2,
+            ir::series::BarSeries {
+                name: Some("Stocks 2025".into()),
+                fill: Default::default(),
+                line: None,
+                data: ir::series::DataCol::SrcRef("stocks_2025".to_string()),
             },
-            x_data: ir::series::DataCol::SrcRef("fruits".to_string()),
-            y_data: ir::series::DataCol::SrcRef("stocks_2025".to_string()),
-        }),
-    };
+        ],
+    });
+
+    // let stocks_2023 = ir::Series::Bars(ir::series::Bars {
+    //     name: Some("Stocks 2023".into()),
+    //     fill: Default::default(),
+    //     line: None,
+    //     position: ir::series::BarPosition {
+    //         offset: 0.2,
+    //         width: 0.2,
+    //     },
+    //     x_data: ir::series::DataCol::SrcRef("fruits".to_string()),
+    //     y_data: ir::series::DataCol::SrcRef("stocks_2023".to_string()),
+    // });
+    // let stocks_2024 = ir::Series::Bars(ir::series::Bars {
+    //     name: Some("Stocks 2024".into()),
+    //     fill: Default::default(),
+    //     line: None,
+    //     position: ir::series::BarPosition {
+    //         offset: 0.4,
+    //         width: 0.2,
+    //     },
+    //     x_data: ir::series::DataCol::SrcRef("fruits".to_string()),
+    //     y_data: ir::series::DataCol::SrcRef("stocks_2024".to_string()),
+    // });
+    // let stocks_2025 = ir::Series::Bars(ir::series::Bars {
+    //     name: Some("Stocks 2025".into()),
+    //     fill: Default::default(),
+    //     line: None,
+    //     position: ir::series::BarPosition {
+    //         offset: 0.6,
+    //         width: 0.2,
+    //     },
+    //     x_data: ir::series::DataCol::SrcRef("fruits".to_string()),
+    //     y_data: ir::series::DataCol::SrcRef("stocks_2025".to_string()),
+    // });
 
     let plot = ir::Plot {
         title: None,
         x_axis,
         y_axis,
-        series: vec![stocks_2023, stocks_2024, stocks_2025],
+        //series: vec![stocks_2023, stocks_2024, stocks_2025],
+        series: vec![bars_group],
         ..ir::Plot::default()
     };
 

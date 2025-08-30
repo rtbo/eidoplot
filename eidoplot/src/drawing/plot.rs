@@ -1,7 +1,7 @@
 use scale::CoordMapXy;
 
 use crate::drawing::legend::Legend;
-use crate::drawing::series::{Series, series_has_legend};
+use crate::drawing::series::{Series, SeriesExt};
 use crate::drawing::{Ctx, Error, SurfWrapper, axis, scale};
 use crate::render::{self, Surface as _};
 use crate::style::{self, Theme, defaults};
@@ -17,12 +17,40 @@ fn plot_insets(plot: &ir::Plot) -> geom::Padding {
 
 fn auto_insets(plot: &ir::Plot) -> geom::Padding {
     for s in plot.series.iter() {
-        match &s.plot {
-            ir::series::SeriesPlot::Histogram(..) => return defaults::PLOT_HIST_AUTO_INSETS,
+        match s {
+            ir::Series::Histogram(..) => return defaults::PLOT_VER_BARS_AUTO_INSETS,
+            ir::Series::Bars(..) => return defaults::PLOT_VER_BARS_AUTO_INSETS,
+            ir::Series::BarsGroup(ir::series::BarsGroup {
+                orientation: ir::series::BarsOrientation::Vertical,
+                ..
+            }) => return defaults::PLOT_VER_BARS_AUTO_INSETS,
+            ir::Series::BarsGroup(ir::series::BarsGroup {
+                orientation: ir::series::BarsOrientation::Horizontal,
+                ..
+            }) => return defaults::PLOT_HOR_BARS_AUTO_INSETS,
             _ => (),
         }
     }
     defaults::PLOT_XY_AUTO_INSETS
+}
+
+pub fn for_each_series<F>(plot: &ir::Plot, mut f: F) -> Result<(), Error> 
+where F: FnMut(&dyn SeriesExt) -> Result<(), Error>
+{
+    for s in &plot.series {
+        match &s {
+            ir::Series::Line(line) => f(line)?,
+            ir::Series::Scatter(scatter) => f(scatter)?,
+            ir::Series::Histogram(hist) => f(hist)?,
+            ir::Series::Bars(bars) => f(bars)?,
+            ir::Series::BarsGroup(bars_group) => {
+                for bs in bars_group.series.iter() {
+                    f(bs)?
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 impl<D, T> Ctx<'_, D, T> {
@@ -150,11 +178,16 @@ where
             rect.width(),
             ctx.fontdb().clone(),
         );
-        for (index, s) in plot.series.iter().enumerate() {
-            if series_has_legend(s) {
-                dlegend.add_entry(index, s)?;
+
+        let mut idx = 0;
+        for_each_series(plot, |s| {
+            if let Some(entry) = s.legend_entry() {
+                dlegend.add_entry(idx, entry)?;
+                idx += 1;
             }
-        }
+            Ok(())
+        })?;
+
         let sz = dlegend.layout();
         let top_left = match legend.pos() {
             ir::plot::LegendPos::OutTop => {
@@ -203,11 +236,15 @@ where
             rect.width(),
             ctx.fontdb().clone(),
         );
-        for (index, s) in plot.series.iter().enumerate() {
-            if series_has_legend(s) {
-                dlegend.add_entry(index, s)?;
+
+        let mut idx = 0;
+        for_each_series(plot, |s| {
+            if let Some(entry) = s.legend_entry() {
+                dlegend.add_entry(idx, entry)?;
+                idx += 1;
             }
-        }
+            Ok(())
+        })?;
 
         let sz = dlegend.layout();
 

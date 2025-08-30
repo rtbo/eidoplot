@@ -24,9 +24,15 @@ pub const LEGEND_SPACING: f32 = 16.0;
 pub const LEGEND_MARGIN: f32 = 12.0;
 
 pub const PLOT_XY_AUTO_INSETS: geom::Padding = geom::Padding::Even(20.0);
-pub const PLOT_HIST_AUTO_INSETS: geom::Padding = geom::Padding::Custom {
+pub const PLOT_VER_BARS_AUTO_INSETS: geom::Padding = geom::Padding::Custom {
     t: 20.0,
-    r: 5.0,
+    r: 20.0,
     b: 0.0,
     l: 20.0,
+};
+pub const PLOT_HOR_BARS_AUTO_INSETS: geom::Padding = geom::Padding::Custom {
+    t: 20.0,
+    r: 20.0,
+    b: 20.0,
+    l: 0.0,
 };

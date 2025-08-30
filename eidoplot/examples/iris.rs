@@ -98,45 +98,39 @@ fn main() {
     let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("Sepal Length [cm]".into());
     let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("Petal Length [cm]".into());
 
-    let setosa = ir::Series {
+    let setosa = ir::Series::Scatter(ir::series::Scatter {
         name: Some("Setosa".into()),
-        plot: ir::SeriesPlot::Scatter(ir::series::Scatter {
-            marker: style::Marker {
-                shape: Default::default(),
-                size: Default::default(),
-                fill: Some(style::series::Color::Auto.into()),
-                stroke: None,
-            },
-            x_data: ir::series::DataCol::SrcRef("setosa_sepal_length".to_string()),
-            y_data: ir::series::DataCol::SrcRef("setosa_petal_length".to_string()),
-        }),
-    };
-    let versicolor = ir::Series {
+        marker: style::Marker {
+            shape: Default::default(),
+            size: Default::default(),
+            fill: Some(style::series::Color::Auto.into()),
+            stroke: None,
+        },
+        x_data: ir::series::DataCol::SrcRef("setosa_sepal_length".to_string()),
+        y_data: ir::series::DataCol::SrcRef("setosa_petal_length".to_string()),
+    });
+    let versicolor = ir::Series::Scatter(ir::series::Scatter {
         name: Some("Versicolor".into()),
-        plot: ir::SeriesPlot::Scatter(ir::series::Scatter {
-            marker: style::Marker {
-                shape: Default::default(),
-                size: Default::default(),
-                fill: Some(style::series::Color::Auto.into()),
-                stroke: None,
-            },
-            x_data: ir::series::DataCol::SrcRef("versicolor_sepal_length".to_string()),
-            y_data: ir::series::DataCol::SrcRef("versicolor_petal_length".to_string()),
-        }),
-    };
-    let virginica = ir::Series {
+        marker: style::Marker {
+            shape: Default::default(),
+            size: Default::default(),
+            fill: Some(style::series::Color::Auto.into()),
+            stroke: None,
+        },
+        x_data: ir::series::DataCol::SrcRef("versicolor_sepal_length".to_string()),
+        y_data: ir::series::DataCol::SrcRef("versicolor_petal_length".to_string()),
+    });
+    let virginica = ir::Series::Scatter(ir::series::Scatter {
         name: Some("Virginica".into()),
-        plot: ir::SeriesPlot::Scatter(ir::series::Scatter {
-            marker: style::Marker {
-                shape: Default::default(),
-                size: Default::default(),
-                fill: Some(style::series::Color::Auto.into()),
-                stroke: None,
-            },
-            x_data: ir::series::DataCol::SrcRef("virginica_sepal_length".to_string()),
-            y_data: ir::series::DataCol::SrcRef("virginica_petal_length".to_string()),
-        }),
-    };
+        marker: style::Marker {
+            shape: Default::default(),
+            size: Default::default(),
+            fill: Some(style::series::Color::Auto.into()),
+            stroke: None,
+        },
+        x_data: ir::series::DataCol::SrcRef("virginica_sepal_length".to_string()),
+        y_data: ir::series::DataCol::SrcRef("virginica_petal_length".to_string()),
+    });
 
     let plot = ir::Plot {
         title: None,

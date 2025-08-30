@@ -125,6 +125,7 @@ impl std::cmp::PartialEq<BoundsRef<'_>> for Bounds {
 
 pub trait AsBoundRef {
     fn as_bound_ref(&self) -> BoundsRef<'_>;
+    fn as_cat(&self) -> Option<&Categories>;
 }
 
 impl AsBoundRef for Bounds {
@@ -134,11 +135,25 @@ impl AsBoundRef for Bounds {
             &Bounds::Cat(ref c) => c.into(),
         }
     }
+
+    fn as_cat(&self) -> Option<&Categories> {
+        match self {
+            Bounds::Num(..) => None,
+            Bounds::Cat(c) => Some(c),
+        }
+    }
 }
 
 impl AsBoundRef for BoundsRef<'_> {
     fn as_bound_ref(&self) -> BoundsRef<'_> {
         *self
+    }
+
+    fn as_cat(&self) -> Option<&Categories> {
+        match self {
+            BoundsRef::Num(..) => None,
+            &BoundsRef::Cat(c) => Some(c),
+        }
     }
 }
 

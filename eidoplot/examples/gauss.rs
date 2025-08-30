@@ -35,24 +35,20 @@ fn main() {
         .with_title("population density".into())
         .with_ticks(ir::axis::Ticks::default().with_formatter(ir::axis::ticks::Formatter::Percent));
 
-    let pop_series = ir::Series {
+    let pop_series = ir::Series::Histogram(ir::series::Histogram {
         name: Some("population".into()),
-        plot: ir::SeriesPlot::Histogram(ir::series::Histogram {
-            fill: style::series::Fill::from(style::series::Color::Auto).with_opacity(0.5),
-            line: Some(1.5.into()),
-            bins: 16,
-            density: true,
-            data: ir::series::DataCol::SrcRef("pop".to_string()),
-        }),
-    };
-    let dist_series = ir::Series {
+        fill: style::series::Fill::from(style::series::Color::Auto).with_opacity(0.5),
+        line: Some(1.5.into()),
+        bins: 16,
+        density: true,
+        data: ir::series::DataCol::SrcRef("pop".to_string()),
+    });
+    let dist_series = ir::Series::Line(ir::series::Line {
         name: Some("distribution".into()),
-        plot: ir::SeriesPlot::Line(ir::series::Line {
-            line: 4.0.into(),
-            x_data: ir::series::DataCol::Inline(x.into()),
-            y_data: ir::series::DataCol::Inline(y.into()),
-        }),
-    };
+        line: 4.0.into(),
+        x_data: ir::series::DataCol::Inline(x.into()),
+        y_data: ir::series::DataCol::Inline(y.into()),
+    });
 
     let plot = ir::Plot {
         title: None,

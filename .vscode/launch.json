@@ -15,7 +15,7 @@
                     "sine"
                 ]
             },
-            "args": []
+            "args": ["png", "svg"]
         },
         {
             "type": "lldb",
@@ -28,7 +28,7 @@
                     "gauss"
                 ]
             },
-            "args": []
+            "args": ["png", "svg"]
         },
         {
             "type": "lldb",
@@ -41,7 +41,7 @@
                     "iris"
                 ]
             },
-            "args": []
+            "args": ["png", "svg"]
         },
         {
             "type": "lldb",
@@ -54,7 +54,7 @@
                     "bars"
                 ]
             },
-            "args": []
+            "args": ["png", "svg"]
         },
         {
             "type": "lldb",
@@ -67,7 +67,7 @@
                     "bidi_layout"
                 ]
             },
-            "args": []
+            "args": ["png", "svg"]
         }
     ]
 }

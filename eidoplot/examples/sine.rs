@@ -14,14 +14,12 @@ fn main() {
         .with_title("y".into())
         .with_minor_ticks(ir::axis::ticks::MinorTicks::default());
 
-    let series = ir::Series {
+    let series = ir::Series::Line(ir::series::Line {
         name: Some("y=sin(x)".into()),
-        plot: ir::SeriesPlot::Line(ir::series::Line {
-            line: style::series::Line::default().with_width(3.0),
-            x_data: ir::series::DataCol::SrcRef("x".to_string()),
-            y_data: ir::series::DataCol::SrcRef("y".to_string()),
-        }),
-    };
+        line: style::series::Line::default().with_width(3.0),
+        x_data: ir::series::DataCol::SrcRef("x".to_string()),
+        y_data: ir::series::DataCol::SrcRef("y".to_string()),
+    });
 
     let plot = ir::Plot {
         title: None,

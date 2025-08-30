@@ -1,3 +1,4 @@
+
 use crate::drawing::{
     Categories, ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
 };
@@ -5,30 +6,61 @@ use crate::render::{self, Surface as _};
 use crate::{data, geom, ir, style};
 
 use axis::AsBoundRef;
-use scale::CoordMapXy;
+use scale::{CoordMap, CoordMapXy};
 
-pub fn series_has_legend(series: &ir::Series) -> bool {
-    series.name.is_some()
+/// trait implemented by series, or any other item that
+/// has to populate the legend
+pub trait SeriesExt {
+    fn legend_entry(&self) -> Option<legend::Entry<'_>>;
 }
 
-impl legend::Entry for ir::Series {
-    fn label(&self) -> &str {
-        self.name
-            .as_deref()
-            .expect("Should have a name, or not used as legend entry")
+impl SeriesExt for ir::series::Line {
+    fn legend_entry(&self) -> Option<legend::Entry<'_>> {
+        self.name.as_ref().map(|n| legend::Entry {
+            label: n.as_ref(),
+            font: None,
+            shape: legend::ShapeRef::Line(&self.line),
+        })
     }
+}
 
-    fn font(&self) -> Option<&ir::legend::EntryFont> {
-        None
+impl SeriesExt for ir::series::Scatter {
+    fn legend_entry(&self) -> Option<legend::Entry<'_>> {
+        self.name.as_ref().map(|n| legend::Entry {
+            label: n.as_ref(),
+            font: None,
+            shape: legend::ShapeRef::Marker(&self.marker),
+        })
     }
+}
 
-    fn shape(&self) -> legend::Shape {
-        match &self.plot {
-            ir::SeriesPlot::Line(xy) => legend::Shape::Line(xy.line.clone()),
-            ir::SeriesPlot::Scatter(sc) => legend::Shape::Marker(sc.marker.clone()),
-            ir::SeriesPlot::Histogram(hist) => legend::Shape::Rect(hist.fill, hist.line.clone()),
-            ir::SeriesPlot::Bars(bars) => legend::Shape::Rect(bars.fill, bars.line.clone()),
-        }
+impl SeriesExt for ir::series::Histogram {
+    fn legend_entry(&self) -> Option<legend::Entry<'_>> {
+        self.name.as_ref().map(|n| legend::Entry {
+            label: n.as_ref(),
+            font: None,
+            shape: legend::ShapeRef::Rect(&self.fill, self.line.as_ref()),
+        })
+    }
+}
+
+impl SeriesExt for ir::series::Bars {
+    fn legend_entry(&self) -> Option<legend::Entry<'_>> {
+        self.name.as_ref().map(|n| legend::Entry {
+            label: n.as_ref(),
+            font: None,
+            shape: legend::ShapeRef::Rect(&self.fill, self.line.as_ref()),
+        })
+    }
+}
+
+impl SeriesExt for ir::series::BarSeries {
+    fn legend_entry(&self) -> Option<legend::Entry<'_>> {
+        self.name.as_ref().map(|n| legend::Entry {
+            label: n.as_ref(),
+            font: None,
+            shape: legend::ShapeRef::Rect(&self.fill, self.line.as_ref()),
+        })
     }
 }
 
@@ -70,9 +102,8 @@ where
     Ok((x_bounds, y_bounds))
 }
 
-pub struct Series {
-    plot: SeriesPlot,
-}
+#[derive(Debug, Clone)]
+pub struct Series(SeriesPlot);
 
 #[derive(Debug, Clone)]
 enum SeriesPlot {
@@ -80,6 +111,7 @@ enum SeriesPlot {
     Scatter(Scatter),
     Histogram(Histogram),
     Bars(Bars),
+    BarsGroup(BarsGroup),
 }
 
 impl Series {
@@ -87,30 +119,20 @@ impl Series {
     where
         D: data::Source,
     {
-        let processed = match &series.plot {
-            ir::SeriesPlot::Line(line) => {
-                SeriesPlot::Line(Line::from_ir(index, line, data_source)?)
+        let series = match &series {
+            ir::Series::Line(ir) => SeriesPlot::Line(Line::from_ir(index, ir, data_source)?),
+            ir::Series::Scatter(ir) => {
+                SeriesPlot::Scatter(Scatter::from_ir(index, ir, data_source)?)
             }
-            ir::SeriesPlot::Scatter(sc) => {
-                SeriesPlot::Scatter(Scatter::from_ir(index, sc, data_source)?)
+            ir::Series::Histogram(ir) => {
+                SeriesPlot::Histogram(Histogram::from_ir(index, ir, data_source)?)
             }
-            ir::SeriesPlot::Histogram(hist) => {
-                SeriesPlot::Histogram(Histogram::from_ir(index, hist, data_source)?)
-            }
-            ir::SeriesPlot::Bars(bars) => {
-                SeriesPlot::Bars(Bars::from_ir(index, bars, data_source)?)
+            ir::Series::Bars(ir) => SeriesPlot::Bars(Bars::from_ir(index, ir, data_source)?),
+            ir::Series::BarsGroup(ir) => {
+                SeriesPlot::BarsGroup(BarsGroup::from_ir(index, ir, data_source)?)
             }
         };
-        Ok(Series { plot: processed })
-    }
-
-    pub fn bounds(&self) -> (axis::BoundsRef<'_>, axis::BoundsRef<'_>) {
-        match &self.plot {
-            SeriesPlot::Line(line) => (line.ab.0.as_bound_ref(), line.ab.1.as_bound_ref()),
-            SeriesPlot::Scatter(scatter) => (scatter.ab.0.as_bound_ref(), scatter.ab.1.as_bound_ref()),
-            SeriesPlot::Histogram(hist) => (hist.ab.0.into(), hist.ab.1.into()),
-            SeriesPlot::Bars(bars) => bars.bounds(),
-        }
+        Ok(Series(series))
     }
 
     pub fn unite_bounds(series: &[Series]) -> Result<Option<(axis::Bounds, axis::Bounds)>, Error> {
@@ -125,6 +147,18 @@ impl Series {
             }
         }
         Ok(a)
+    }
+
+    fn bounds(&self) -> (axis::BoundsRef<'_>, axis::BoundsRef<'_>) {
+        match &self.0 {
+            SeriesPlot::Line(line) => (line.ab.0.as_bound_ref(), line.ab.1.as_bound_ref()),
+            SeriesPlot::Scatter(scatter) => {
+                (scatter.ab.0.as_bound_ref(), scatter.ab.1.as_bound_ref())
+            }
+            SeriesPlot::Histogram(hist) => (hist.ab.0.into(), hist.ab.1.into()),
+            SeriesPlot::Bars(bars) => bars.bounds(),
+            SeriesPlot::BarsGroup(bg) => (bg.bounds.0.as_bound_ref(), bg.bounds.1.as_bound_ref()),
+        }
     }
 }
 
@@ -144,18 +178,21 @@ where
         D: data::Source,
         T: style::Theme,
     {
-        match (&ir_series.plot, &series.plot) {
-            (ir::SeriesPlot::Line(ir), SeriesPlot::Line(xy)) => {
+        match (&ir_series, &series.0) {
+            (ir::Series::Line(ir), SeriesPlot::Line(xy)) => {
                 self.draw_series_line(ctx, ir, xy, rect, cm)
             }
-            (ir::SeriesPlot::Scatter(ir), SeriesPlot::Scatter(sc)) => {
+            (ir::Series::Scatter(ir), SeriesPlot::Scatter(sc)) => {
                 self.draw_series_scatter(ctx, ir, sc, rect, cm)
             }
-            (ir::SeriesPlot::Histogram(ir), SeriesPlot::Histogram(hist)) => {
+            (ir::Series::Histogram(ir), SeriesPlot::Histogram(hist)) => {
                 Ok(self.draw_series_histogram(ctx, ir, hist, rect, cm)?)
             }
-            (ir::SeriesPlot::Bars(ir), SeriesPlot::Bars(bars)) => {
+            (ir::Series::Bars(ir), SeriesPlot::Bars(bars)) => {
                 Ok(self.draw_series_bars(ctx, ir, bars, rect, cm)?)
+            }
+            (ir::Series::BarsGroup(ir), SeriesPlot::BarsGroup(bg)) => {
+                Ok(self.draw_series_bars_group(ctx, ir, bg, rect, cm)?)
             }
             _ => unreachable!("Should be the same plot type"),
         }
@@ -468,7 +505,6 @@ impl Bars {
     }
 }
 
-
 impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
@@ -501,7 +537,7 @@ where
 
                 for (x, y) in x_col.iter().zip(y_col.iter()) {
                     if x.is_null() || y.is_null() {
-                        continue;   
+                        continue;
                     }
 
                     let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
@@ -520,7 +556,7 @@ where
 
                 for (x, y) in x_col.iter().zip(y_col.iter()) {
                     if x.is_null() || y.is_null() {
-                        continue;   
+                        continue;
                     }
 
                     let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
@@ -544,5 +580,334 @@ where
         };
         self.draw_path(&path)?;
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BarsGroup {
+    fst_index: usize,
+    bounds: (axis::Bounds, axis::Bounds),
+}
+
+impl BarsGroup {
+    fn from_ir<D>(index: usize, ir: &ir::series::BarsGroup, data_source: &D) -> Result<Self, Error>
+    where
+        D: data::Source,
+    {
+        let cat_col = get_column(&ir.categories, data_source)?;
+        let categories: Categories = cat_col
+            .str()
+            .ok_or_else(|| {
+                Error::InconsistentData("BarsGroup categories must be a string column".to_string())
+            })?
+            .into();
+
+        let mut bounds_per_cat: Vec<axis::NumBounds> = vec![axis::NumBounds::NAN; categories.len()];
+
+        for bs in ir.series.iter() {
+            let data_col = get_column(&bs.data, data_source)?;
+            if data_col.len() != categories.len() {
+                return Err(Error::InconsistentData(
+                    "BarsGroup data must be the same length as categories".to_string(),
+                ));
+            }
+            let data_col = data_col.f64().ok_or(Error::InconsistentData(
+                "BarsGroup data must be numeric".to_string(),
+            ))?;
+
+            for (v, bounds) in data_col.iter().zip(bounds_per_cat.iter_mut()) {
+                if let Some(v) = v {
+                    match ir.arrangement {
+                        ir::series::BarsArrangement::Aside(..) => {
+                            bounds.add_sample(v);
+                        }
+                        ir::series::BarsArrangement::Stack(..) => {
+                            if bounds.end().is_finite() {
+                                bounds.add_sample(v + bounds.end());
+                            } else {
+                                bounds.add_sample(v);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut num_bounds = axis::NumBounds::NAN;
+        for bounds in &bounds_per_cat {
+            num_bounds.unite_with(bounds);
+        }
+
+        let bounds = match ir.orientation {
+            ir::series::BarsOrientation::Vertical => {
+                (axis::Bounds::Cat(categories), axis::Bounds::Num(num_bounds))
+            }
+            ir::series::BarsOrientation::Horizontal => {
+                (axis::Bounds::Num(num_bounds), axis::Bounds::Cat(categories))
+            }
+        };
+
+        Ok(BarsGroup {
+            fst_index: index,
+            bounds,
+        })
+    }
+}
+
+impl<S: ?Sized> SurfWrapper<'_, S>
+where
+    S: render::Surface,
+{
+    fn draw_series_bars_group<D, T>(
+        &mut self,
+        ctx: &Ctx<D, T>,
+        ir: &ir::series::BarsGroup,
+        bg: &BarsGroup,
+        rect: &geom::Rect,
+        cm: &CoordMapXy,
+    ) -> Result<(), render::Error>
+    where
+        D: data::Source,
+        T: style::Theme,
+    {
+        let categories = match ir.orientation {
+            ir::series::BarsOrientation::Vertical => bg.bounds.0.as_cat().unwrap(),
+            ir::series::BarsOrientation::Horizontal => bg.bounds.1.as_cat().unwrap(),
+        };
+
+        match ir.arrangement {
+            ir::series::BarsArrangement::Aside(aside) => {
+                self.draw_series_bars_aside(ctx, ir, &aside, bg, categories, rect, cm)
+            }
+            ir::series::BarsArrangement::Stack(stack) => {
+                self.draw_series_bars_stack(ctx, ir, &stack, bg, categories, rect, cm)
+            }
+        }
+    }
+
+    fn draw_series_bars_aside<D, T>(
+        &mut self,
+        ctx: &Ctx<D, T>,
+        ir: &ir::series::BarsGroup,
+        arrangement: &ir::series::BarsAsideArrangement,
+        bg: &BarsGroup,
+        categories: &Categories,
+        rect: &geom::Rect,
+        cm: &CoordMapXy,
+    ) -> Result<(), render::Error>
+    where
+        D: data::Source,
+        T: style::Theme,
+    {
+        let num_series = ir.series.len();
+        if num_series == 0 {
+            return Ok(());
+        }
+        let num_gaps = num_series - 1;
+
+        let ir::series::BarsAsideArrangement {
+            mut offset,
+            width,
+            gap,
+        } = *arrangement;
+        let width = (width - gap * num_gaps as f32) / num_series as f32;
+
+        let mut col_idx = bg.fst_index;
+
+        for series in ir.series.iter() {
+            let data_col = get_column(&series.data, ctx.data_source()).unwrap();
+            let data_col = data_col.f64().unwrap();
+
+            let mut pb = geom::PathBuilder::new();
+
+            for (cat, val) in categories.iter().zip(data_col.iter()) {
+                let Some(val) = val else { continue };
+
+                let val_start = 0.0;
+                let val_end = val_start + val;
+
+                let cat_coords = ir.orientation.cat_coords(cm, cat, offset, width, rect);
+                let val_coords = ir.orientation.val_coords(cm, val_start, val_end, rect);
+                ir.orientation
+                    .add_series_path(&mut pb, cat_coords, val_coords);
+            }
+
+            let path = pb.finish().expect("Failed to build path");
+
+            let rc = (ctx.theme().palette(), col_idx);
+            col_idx += 1;
+
+            let rpath = render::Path {
+                path: &path,
+                fill: Some(series.fill.as_paint(&rc)),
+                stroke: series.line.as_ref().map(|l| l.as_stroke(&rc)),
+                transform: None,
+            };
+            self.draw_path(&rpath)?;
+
+            offset += width + gap;
+        }
+        Ok(())
+    }
+
+    fn draw_series_bars_stack<D, T>(
+        &mut self,
+        ctx: &Ctx<D, T>,
+        ir: &ir::series::BarsGroup,
+        arrangement: &ir::series::BarsStackArrangement,
+        bg: &BarsGroup,
+        categories: &Categories,
+        rect: &geom::Rect,
+        cm: &CoordMapXy,
+    ) -> Result<(), render::Error>
+    where
+        D: data::Source,
+        T: style::Theme,
+    {
+        let mut cat_values = vec![0.0; categories.len()];
+
+        let mut col_idx = bg.fst_index;
+
+        for series in ir.series.iter() {
+            let data_col = get_column(&series.data, ctx.data_source()).unwrap();
+            let data_col = data_col.f64().unwrap();
+
+            let mut pb = geom::PathBuilder::new();
+
+            for (idx, (cat, val)) in categories.iter().zip(data_col.iter()).enumerate() {
+                let Some(val) = val else { continue };
+
+                let val_start = cat_values[idx];
+                let val_end = val_start + val;
+
+                cat_values[idx] = val_end;
+
+                let cat_coords =
+                    ir.orientation
+                        .cat_coords(cm, cat, arrangement.offset, arrangement.width, rect);
+                let val_coords = ir.orientation.val_coords(cm, val_start, val_end, rect);
+                ir.orientation
+                    .add_series_path(&mut pb, cat_coords, val_coords);
+            }
+
+            let path = pb.finish().expect("Failed to build path");
+
+            let rc = (ctx.theme().palette(), col_idx);
+            col_idx += 1;
+
+            let rpath = render::Path {
+                path: &path,
+                fill: Some(series.fill.as_paint(&rc)),
+                stroke: series.line.as_ref().map(|l| l.as_stroke(&rc)),
+                transform: None,
+            };
+            self.draw_path(&rpath)?;
+        }
+        Ok(())
+    }
+}
+
+trait BarsOrientationExt {
+    fn cat_map<'a>(&self, cm: &'a CoordMapXy) -> &'a dyn CoordMap;
+    fn val_map<'a>(&self, cm: &'a CoordMapXy) -> &'a dyn CoordMap;
+
+    fn cat_coords(
+        &self,
+        cm: &CoordMapXy,
+        cat: &str,
+        bar_offset: f32,
+        bar_size: f32,
+        rect: &geom::Rect,
+    ) -> (f32, f32);
+
+    fn val_coords(
+        &self,
+        cm: &CoordMapXy,
+        val_start: f64,
+        val_end: f64,
+        rect: &geom::Rect,
+    ) -> (f32, f32);
+
+    fn add_series_path(
+        &self,
+        pb: &mut geom::PathBuilder,
+        cat_coords: (f32, f32),
+        val_coords: (f32, f32),
+    );
+}
+
+impl BarsOrientationExt for ir::series::BarsOrientation {
+    fn cat_map<'a>(&self, cm: &'a CoordMapXy) -> &'a dyn CoordMap {
+        match self {
+            Self::Vertical => cm.x,
+            Self::Horizontal => cm.y,
+        }
+    }
+
+    fn val_map<'a>(&self, cm: &'a CoordMapXy) -> &'a dyn CoordMap {
+        match self {
+            Self::Vertical => cm.y,
+            Self::Horizontal => cm.x,
+        }
+    }
+
+    fn cat_coords(
+        &self,
+        cm: &CoordMapXy,
+        cat: &str,
+        bar_offset: f32,
+        bar_size: f32,
+        rect: &geom::Rect,
+    ) -> (f32, f32) {
+        let cat_map = self.cat_map(cm);
+        let bin_size = cat_map.cat_bin_size();
+        let coord = cat_map.map_coord_cat(cat);
+        let start = match self {
+            Self::Vertical => rect.left() + coord + bin_size * (bar_offset - 0.5),
+            Self::Horizontal => rect.bottom() - coord - bin_size * (bar_offset - 0.5),
+        };
+        let end = match self {
+            Self::Vertical => start + bin_size * bar_size,
+            Self::Horizontal => start - bin_size * bar_size,
+        };
+        (start, end)
+    }
+
+    fn val_coords(
+        &self,
+        cm: &CoordMapXy,
+        val_start: f64,
+        val_end: f64,
+        rect: &geom::Rect,
+    ) -> (f32, f32) {
+        let val_map = self.val_map(cm);
+        let start = val_map.map_coord_num(val_start);
+        let end = val_map.map_coord_num(val_end);
+        match self {
+            Self::Vertical => (rect.bottom() - start, rect.bottom() - end),
+            Self::Horizontal => (rect.left() + start, rect.left() + end),
+        }
+    }
+
+    fn add_series_path(
+        &self,
+        pb: &mut geom::PathBuilder,
+        cat_coords: (f32, f32),
+        val_coords: (f32, f32),
+    ) {
+        match self {
+            Self::Vertical => {
+                pb.move_to(cat_coords.0, val_coords.0);
+                pb.line_to(cat_coords.1, val_coords.0);
+                pb.line_to(cat_coords.1, val_coords.1);
+                pb.line_to(cat_coords.0, val_coords.1);
+            }
+            Self::Horizontal => {
+                pb.move_to(val_coords.0, cat_coords.0);
+                pb.line_to(val_coords.1, cat_coords.0);
+                pb.line_to(val_coords.1, cat_coords.1);
+                pb.line_to(val_coords.0, cat_coords.1);
+            }
+        }
     }
 }
