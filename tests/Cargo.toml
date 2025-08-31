@@ -1,0 +1,12 @@
+[package]
+name = "tests"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+eidoplot = { path = "../eidoplot" }
+eidoplot-pxl = { path = "../eidoplot-pxl" }
+eidoplot-svg = { path = "../eidoplot-svg" }
+tiny-skia.workspace = true

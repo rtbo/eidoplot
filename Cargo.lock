@@ -2744,6 +2744,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tests"
+version = "0.1.0"
+dependencies = [
+ "eidoplot",
+ "eidoplot-pxl",
+ "eidoplot-svg",
+ "tiny-skia",
+]
+
+[[package]]
 name = "thiserror"
 version = "2.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
