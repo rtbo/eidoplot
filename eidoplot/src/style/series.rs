@@ -18,8 +18,9 @@ pub struct IndexColor(pub usize);
 
 impl style::Color for IndexColor {}
 
-impl<P> style::ResolveColor<IndexColor> for P 
-where P: Palette 
+impl<P> style::ResolveColor<IndexColor> for P
+where
+    P: Palette,
 {
     fn resolve_color(&self, color: &IndexColor) -> ColorU8 {
         self.get(*color)
@@ -30,9 +31,10 @@ where P: Palette
 #[derive(Debug, Clone, Copy)]
 pub struct AutoColor;
 
-/// Resolve automatically series color using a palette and a series index 
-impl<P> style::ResolveColor<AutoColor> for (&P, usize) 
-where P: Palette
+/// Resolve automatically series color using a palette and a series index
+impl<P> style::ResolveColor<AutoColor> for (&P, usize)
+where
+    P: Palette,
 {
     fn resolve_color(&self, _color: &AutoColor) -> ColorU8 {
         self.0.get(IndexColor(self.1))
@@ -71,8 +73,9 @@ impl From<ColorU8> for Color {
 impl style::Color for Color {}
 
 /// Resolve a series color using a palette and a series index for automatic colors
-impl<P> style::ResolveColor<Color> for (&P, usize) 
-where P: Palette
+impl<P> style::ResolveColor<Color> for (&P, usize)
+where
+    P: Palette,
 {
     fn resolve_color(&self, _color: &Color) -> ColorU8 {
         match _color {
@@ -96,6 +99,10 @@ impl Palette for &[ColorU8] {
         self[color.0 % self.len()]
     }
 }
+
+/// A Palette for monochrome black plotting
+/// Don't use with a dark theme.
+pub const BLACK: &[ColorU8] = &[ColorU8::from_html(b"#000000")];
 
 /// The standard eidoplot color palette (10 colors)
 pub const STANDARD: &[ColorU8] = &[
