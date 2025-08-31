@@ -188,7 +188,9 @@ where
             Ok(())
         })?;
 
-        let sz = dlegend.layout();
+        let Some(sz) = dlegend.layout() else {
+            return Ok(());
+        };
         let top_left = match legend.pos() {
             ir::plot::LegendPos::OutTop => {
                 let tl = geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.top());
@@ -246,7 +248,9 @@ where
             Ok(())
         })?;
 
-        let sz = dlegend.layout();
+        let Some(sz) = dlegend.layout() else {
+            return Ok(());
+        };
 
         let top_left = match legend.pos() {
             ir::plot::LegendPos::InTop => geom::Point::new(

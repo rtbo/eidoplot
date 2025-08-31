@@ -90,7 +90,10 @@ where
             })?;
         }
 
-        let sz = dlegend.layout();
+        let Some(sz) = dlegend.layout() else {
+            return Ok(());
+        };
+        
         let top_left = match legend.pos() {
             ir::figure::LegendPos::Top => {
                 let tl = geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.top());

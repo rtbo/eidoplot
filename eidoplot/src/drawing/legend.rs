@@ -122,7 +122,10 @@ impl Legend {
         Ok(())
     }
 
-    pub fn layout(&mut self) -> geom::Size {
+    pub fn layout(&mut self) -> Option<geom::Size> {
+        if self.entries.is_empty() {
+            return None;
+        }
         let column_width = self.max_label_width();
         let columns = self
             .columns
@@ -150,7 +153,7 @@ impl Legend {
         }
         let sz = geom::Size::new(w + self.padding, h + self.padding);
         self.size.replace(sz);
-        sz
+        Some(sz)
     }
 
     fn max_label_width(&self) -> f32 {
