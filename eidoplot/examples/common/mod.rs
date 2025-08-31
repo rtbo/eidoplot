@@ -225,7 +225,7 @@ fn write_svg<D, T>(
         },
     )
     .unwrap();
-    svg.save(file_name).unwrap();
+    svg.save_svg(file_name).unwrap();
 }
 
 fn write_png<D, T>(

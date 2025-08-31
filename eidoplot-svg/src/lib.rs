@@ -26,7 +26,7 @@ impl SvgSurface {
         }
     }
 
-    pub fn save(&self, path: &str) -> io::Result<()> {
+    pub fn save_svg<P: AsRef<std::path::Path>>(&self, path: P) -> io::Result<()> {
         if !self.group_stack.is_empty() {
             panic!("Unbalanced clip stack");
         }
@@ -334,7 +334,7 @@ fn dominant_baseline(
     // so instead we apply hanging and alphabetic,
     // with a vertical shift from the font face if available, or hard-coded from the font_size
 
-    // the following factors work for Noto-Sans. 
+    // the following factors work for Noto-Sans.
 
     const TOP_FACTOR: f32 = 0.355;
     const BOTTOM_FACTOR: f32 = -0.293;

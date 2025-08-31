@@ -19,9 +19,13 @@ impl PxlSurface {
         Some(Self { pixmap, state })
     }
 
-    pub fn save_png(&self, path: &str) -> io::Result<()> {
+    pub fn save_png<P: AsRef<std::path::Path>>(&self, path: P) -> io::Result<()> {
         self.pixmap.save_png(path)?;
         Ok(())
+    }
+
+    pub fn into_pixmap(self) -> Pixmap {
+        self.pixmap
     }
 }
 
