@@ -291,6 +291,14 @@ pub trait Source {
     fn column(&self, name: &str) -> Option<&dyn Column>;
 }
 
+/// Empty source.
+/// Use this if your data is inlined in the IR.
+impl Source for () {
+    fn column(&self, _name: &str) -> Option<&dyn Column> {
+        None
+    }
+}
+
 impl F64Column for Vec<f64> {
     fn len(&self) -> usize {
         self.len()
