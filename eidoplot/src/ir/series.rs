@@ -7,8 +7,22 @@ pub enum DataCol {
     SrcRef(String),
 }
 
-pub trait SeriesTrait {
-    fn name(&self) -> Option<&str>;
+impl From<data::VecColumn> for DataCol {
+    fn from(col: data::VecColumn) -> Self {
+        DataCol::Inline(col)
+    }
+}
+
+impl From<Vec<f64>> for DataCol {
+    fn from(col: Vec<f64>) -> Self {
+        DataCol::Inline(col.into())
+    }
+}
+
+impl From<Vec<String>> for DataCol {
+    fn from(col: Vec<String>) -> Self {
+        DataCol::Inline(col.into())
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -25,47 +39,183 @@ pub enum Series {
     BarsGroup(BarsGroup),
 }
 
-#[derive(Debug, Clone)]
-pub struct Line {
-    pub name: Option<String>,
-    pub line: style::series::Line,
-    pub x_data: DataCol,
-    pub y_data: DataCol,
+impl From<Line> for Series {
+    fn from(line: Line) -> Self {
+        Series::Line(line)
+    }
 }
 
-impl SeriesTrait for Line {
-    fn name(&self) -> Option<&str> {
+impl From<Scatter> for Series {
+    fn from(scatter: Scatter) -> Self {
+        Series::Scatter(scatter)
+    }
+}
+
+impl From<Histogram> for Series {
+    fn from(histogram: Histogram) -> Self {
+        Series::Histogram(histogram)
+    }
+}
+
+impl From<Bars> for Series {
+    fn from(bars: Bars) -> Self {
+        Series::Bars(bars)
+    }
+}
+
+impl From<BarsGroup> for Series {
+    fn from(bars_group: BarsGroup) -> Self {
+        Series::BarsGroup(bars_group)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Line {
+    name: Option<String>,
+    x_data: DataCol,
+    y_data: DataCol,
+
+    line: style::series::Line,
+}
+
+impl Line {
+    pub fn new(name: Option<String>, x_data: DataCol, y_data: DataCol) -> Self {
+        Line {
+            name,
+            x_data,
+            y_data,
+            line: style::series::Line::default(),
+        }
+    }
+
+    pub fn with_line(mut self, line: style::series::Line) -> Self {
+        self.line = line;
+        self
+    }
+
+    pub fn x_data(&self) -> &DataCol {
+        &self.x_data
+    }
+
+    pub fn y_data(&self) -> &DataCol {
+        &self.y_data
+    }
+
+    pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    pub fn line(&self) -> &style::series::Line {
+        &self.line
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Scatter {
-    pub name: Option<String>,
-    pub marker: style::series::Marker,
-    pub x_data: DataCol,
-    pub y_data: DataCol,
+    name: Option<String>,
+    x_data: DataCol,
+    y_data: DataCol,
+
+    marker: style::series::Marker,
 }
 
-impl SeriesTrait for Scatter {
-    fn name(&self) -> Option<&str> {
+impl Scatter {
+    pub fn new(name: Option<String>, x_data: DataCol, y_data: DataCol) -> Self {
+        Scatter {
+            name,
+            x_data,
+            y_data,
+            marker: style::series::Marker::default(),
+        }
+    }
+
+    pub fn with_marker(mut self, marker: style::series::Marker) -> Self {
+        self.marker = marker;
+        self
+    }
+
+    pub fn x_data(&self) -> &DataCol {
+        &self.x_data
+    }
+
+    pub fn y_data(&self) -> &DataCol {
+        &self.y_data
+    }
+
+    pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    pub fn marker(&self) -> &style::series::Marker {
+        &self.marker
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Histogram {
-    pub name: Option<String>,
-    pub fill: style::series::Fill,
-    pub line: Option<style::series::Line>,
-    pub bins: u32,
-    pub density: bool,
-    pub data: DataCol,
+    name: Option<String>,
+    data: DataCol,
+
+    fill: style::series::Fill,
+    line: Option<style::series::Line>,
+    bins: u32,
+    density: bool,
 }
 
-impl SeriesTrait for Histogram {
-    fn name(&self) -> Option<&str> {
+impl Histogram {
+    pub fn new(name: Option<String>, data: DataCol) -> Self {
+        Histogram {
+            name,
+            data,
+            fill: style::series::Fill::default(),
+            line: None,
+            bins: 10,
+            density: false,
+        }
+    }
+
+    pub fn with_fill(mut self, fill: style::series::Fill) -> Self {
+        self.fill = fill;
+        self
+    }
+
+    pub fn with_line(mut self, line: style::series::Line) -> Self {
+        self.line = Some(line);
+        self
+    }
+
+    pub fn with_bins(mut self, bins: u32) -> Self {
+        self.bins = bins;
+        self
+    }
+
+    pub fn with_density(mut self) -> Self {
+        self.density = true;
+        self
+    }
+
+    pub fn data(&self) -> &DataCol {
+        &self.data
+    }
+
+    pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    pub fn fill(&self) -> &style::series::Fill {
+        &self.fill
+    }
+
+    pub fn line(&self) -> Option<&style::series::Line> {
+        self.line.as_ref()
+    }
+
+    pub fn bins(&self) -> u32 {
+        self.bins
+    }
+
+    pub fn density(&self) -> bool {
+        self.density
     }
 }
 
@@ -92,32 +242,110 @@ impl Default for BarPosition {
 /// One of the axis must be categories, and the other must be numeric
 #[derive(Debug, Clone)]
 pub struct Bars {
-    pub name: Option<String>,
-    pub fill: style::series::Fill,
-    pub line: Option<style::series::Line>,
-    pub position: BarPosition,
-    pub x_data: DataCol,
-    pub y_data: DataCol,
+    name: Option<String>,
+    x_data: DataCol,
+    y_data: DataCol,
+
+    fill: style::series::Fill,
+    line: Option<style::series::Line>,
+    position: BarPosition,
 }
 
-impl SeriesTrait for Bars {
-    fn name(&self) -> Option<&str> {
+impl Bars {
+    pub fn new(name: Option<String>, x_data: DataCol, y_data: DataCol) -> Self {
+        Bars {
+            name,
+            x_data,
+            y_data,
+            fill: style::series::Fill::default(),
+            line: None,
+            position: BarPosition::default(),
+        }
+    }
+
+    pub fn with_fill(self, fill: style::series::Fill) -> Self {
+        Self { fill, ..self }
+    }
+
+    pub fn with_line(self, line: style::series::Line) -> Self {
+        Self { line: Some(line), ..self }
+    }
+
+    pub fn with_position(self, position: BarPosition) -> Self {
+        Self { position, ..self }
+    }
+
+    pub fn x_data(&self) -> &DataCol {
+        &self.x_data
+    }
+
+    pub fn y_data(&self) -> &DataCol {
+        &self.y_data
+    }
+
+    pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    pub fn fill(&self) -> &style::series::Fill {
+        &self.fill
+    }
+
+    pub fn line(&self) -> Option<&style::series::Line> {
+        self.line.as_ref()
+    }
+
+    pub fn position(&self) -> &BarPosition {
+        &self.position
     }
 }
 
 /// The series structure for [`SeriesPlot::Bars`] and [`SeriesPlot::BarsGroup`]
 #[derive(Debug, Clone)]
 pub struct BarSeries {
-    pub name: Option<String>,
-    pub fill: style::series::Fill,
-    pub line: Option<style::series::Line>,
-    pub data: DataCol,
+    name: Option<String>,
+    data: DataCol,
+
+    fill: style::series::Fill,
+    line: Option<style::series::Line>,
 }
 
-impl SeriesTrait for BarSeries {
-    fn name(&self) -> Option<&str> {
+impl BarSeries {
+    pub fn new(name: Option<String>, data: DataCol) -> Self {
+        BarSeries {
+            name,
+            data,
+            fill: style::series::Fill::default(),
+            line: None,
+        }
+    }
+
+    pub fn with_name(self, name: String) -> Self {
+        Self { name: Some(name), ..self }
+    }
+
+    pub fn with_fill(self, fill: style::series::Fill) -> Self {
+        Self { fill, ..self }
+    }
+
+    pub fn with_line(self, line: style::series::Line) -> Self {
+        Self { line: Some(line), ..self }
+    }
+
+    pub fn data(&self) -> &DataCol {
+        &self.data
+    }
+
+    pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    pub fn fill(&self) -> &style::series::Fill {
+        &self.fill
+    }
+
+    pub fn line(&self) -> Option<&style::series::Line> {
+        self.line.as_ref()
     }
 }
 
@@ -126,6 +354,16 @@ pub enum BarsOrientation {
     #[default]
     Vertical,
     Horizontal,
+}
+
+impl BarsOrientation {
+    pub fn is_vertical(&self) -> bool {
+        matches!(self, Self::Vertical)
+    }
+
+    pub fn is_horizontal(&self) -> bool {
+        matches!(self, Self::Horizontal)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -179,8 +417,44 @@ impl Default for BarsArrangement {
 
 #[derive(Debug, Clone)]
 pub struct BarsGroup {
-    pub categories: DataCol,
-    pub orientation: BarsOrientation,
-    pub arrangement: BarsArrangement,
-    pub series: Vec<BarSeries>,
+    categories: DataCol,
+    series: Vec<BarSeries>,
+
+    orientation: BarsOrientation,
+    arrangement: BarsArrangement,
+}
+
+impl BarsGroup {
+    pub fn new(categories: DataCol, series: Vec<BarSeries>) -> Self {
+        BarsGroup {
+            categories,
+            series,
+            orientation: Default::default(),
+            arrangement: Default::default(),
+        }
+    }
+
+    pub fn with_orientation(self, orientation: BarsOrientation) -> Self {
+        Self { orientation, ..self }
+    }
+
+    pub fn with_arrangement(self, arrangement: BarsArrangement) -> Self {
+        Self { arrangement, ..self }
+    }
+
+    pub fn categories(&self) -> &DataCol {
+        &self.categories
+    }
+
+    pub fn series(&self) -> &[BarSeries] {
+        &self.series
+    }
+
+    pub fn orientation(&self) -> &BarsOrientation {
+        &self.orientation
+    }
+
+    pub fn arrangement(&self) -> &BarsArrangement {
+        &self.arrangement
+    }
 }

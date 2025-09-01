@@ -43,6 +43,10 @@ impl Default for Legend {
 }
 
 impl Legend {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn font(&self) -> &EntryFont {
         &self.font
     }

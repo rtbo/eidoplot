@@ -3,9 +3,10 @@
  */
 
 /// Describe the bounds of an axis in data space
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum Range {
     /// Auto determine the bounds
+    #[default]
     Auto,
     /// Lower bound defined, and upper bound automatic
     MinAuto(f64),
@@ -16,20 +17,15 @@ pub enum Range {
 }
 
 /// Describes the type of an axis
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum Scale {
     /// Full auto scale, depending on the data and type of plot.
     /// Will typically translate to auto linear axis for numerical data
     /// and auto categorical axis for categorical data
+    #[default]
     Auto,
     /// Linear axis
     Linear(Range),
-}
-
-impl Default for Scale {
-    fn default() -> Self {
-        Scale::Linear(Range::Auto)
-    }
 }
 
 /// Describe the ticks of an axis
@@ -90,7 +86,7 @@ pub mod ticks {
         }
     }
 
-    /// Describes the ticks of an axis
+    /// Describes the major ticks of an axis
     #[derive(Debug, Clone)]
     pub struct Ticks {
         /// Generates the ticks at the specified locations
@@ -123,6 +119,10 @@ pub mod ticks {
     }
 
     impl Ticks {
+        pub fn new() -> Self {
+            Self::default()
+        }
+
         /// Returns a new `Ticks` with the specified locator
         pub fn with_locator(self, locator: Locator) -> Self {
             Self { locator, ..self }
@@ -178,9 +178,9 @@ pub mod ticks {
     #[derive(Debug, Clone)]
     pub struct MinorTicks {
         /// Minor ticks locator
-        pub locator: Locator,
+        locator: Locator,
         /// Ticks color
-        pub color: theme::Color,
+        color: theme::Color,
         /// Gridline style
         grid: Option<theme::Line>,
     }
@@ -210,6 +210,9 @@ pub mod ticks {
     }
 
     impl MinorTicks {
+        pub fn new() -> Self {
+            Self::default()
+        }
         pub fn with_locator(self, locator: Locator) -> Self {
             Self { locator, ..self }
         }
@@ -240,7 +243,7 @@ use crate::style::{self, defaults, theme};
 pub struct TitleFont {
     pub font: style::Font,
     pub size: f32,
-    pub color: theme::Color,    
+    pub color: theme::Color,
 }
 
 impl Default for TitleFont {
@@ -253,27 +256,52 @@ impl Default for TitleFont {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Title {
-    pub text: String,
-    pub font: TitleFont,
+impl TitleFont {
+    pub fn font(&self) -> &style::Font {
+        &self.font
+    }
 }
 
-impl From<&str> for Title {
-    fn from(value: &str) -> Self {
+#[derive(Debug, Clone)]
+pub struct Title {
+    text: String,
+    font: TitleFont,
+}
+
+impl Title {
+    pub fn new(text: String) -> Self {
         Title {
-            text: value.to_string(),
+            text,
             font: TitleFont::default(),
         }
+    }
+
+    pub fn with_font(mut self, font: TitleFont) -> Self {
+        self.font = font;
+        self
+    }
+
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
+    pub fn font(&self) -> &TitleFont {
+        &self.font
+    }
+}
+
+impl From<String> for Title {
+    fn from(value: String) -> Self {
+        Title::new(value)
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Axis {
-    scale: Scale,
-    title: Option<Title>,
-    ticks: Option<Ticks>,
-    minor_ticks: Option<MinorTicks>,
+    pub title: Option<Title>,
+    pub scale: Scale,
+    pub ticks: Option<Ticks>,
+    pub minor_ticks: Option<MinorTicks>,
 }
 
 impl Default for Axis {
@@ -288,11 +316,8 @@ impl Default for Axis {
 }
 
 impl Axis {
-    pub fn new(scale: Scale) -> Self {
-        Axis {
-            scale,
-            ..Default::default()
-        }
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn with_title(self, title: Title) -> Self {

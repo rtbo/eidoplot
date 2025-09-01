@@ -5,30 +5,28 @@ use eidoplot::{data, ir, style};
 mod common;
 
 fn main() {
-    let title = "Sine wave".into();
+    let title = "Sine wave".to_string().into();
 
-    let x_axis = ir::Axis::new(ir::axis::Scale::default())
-        .with_title("x".into())
+    let x_axis = ir::Axis::new()
+        .with_title("x".to_string().into())
         .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into());
-    let y_axis = ir::Axis::new(ir::axis::Scale::default())
-        .with_title("y".into())
+    let y_axis = ir::Axis::new()
+        .with_title("y".to_string().into())
         .with_minor_ticks(ir::axis::ticks::MinorTicks::default());
 
-    let series = ir::Series::Line(ir::series::Line {
-        name: Some("y=sin(x)".into()),
-        line: style::series::Line::default().with_width(3.0),
-        x_data: ir::series::DataCol::SrcRef("x".to_string()),
-        y_data: ir::series::DataCol::SrcRef("y".to_string()),
-    });
+    let series = ir::Series::Line(
+        ir::series::Line::new(
+            Some("y=sin(x)".into()),
+            ir::DataCol::SrcRef("x".to_string()),
+            ir::DataCol::SrcRef("y".to_string()),
+        )
+        .with_line(style::series::Line::default().with_width(4.0)),
+    );
 
-    let plot = ir::Plot {
-        title: None,
-        x_axis,
-        y_axis,
-        series: vec![series],
-        legend: Some(ir::plot::LegendPos::InTopRight.into()),
-        ..ir::Plot::default()
-    };
+    let plot = ir::Plot::new(vec![series])
+        .with_x_axis(x_axis)
+        .with_y_axis(y_axis)
+        .with_legend(Some(ir::plot::LegendPos::InTopRight.into()));
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
 

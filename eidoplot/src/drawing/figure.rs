@@ -35,12 +35,12 @@ where
                 rect.x(),
                 rect.y(),
                 rect.width(),
-                title.font.size + 2.0 * missing_params::FIG_TITLE_MARGIN,
+                title.font().size + 2.0 * missing_params::FIG_TITLE_MARGIN,
             );
             let text = render::Text {
-                text: &title.text,
-                font: &title.font.font,
-                font_size: title.font.size,
+                text: title.text(),
+                font: title.font().font(),
+                font_size: title.font().size,
                 fill: ctx.theme().foreground().into(),
                 options: text::layout::Options {
                     hor_align: text::layout::HorAlign::Center,

@@ -16,50 +16,50 @@ pub trait SeriesExt {
 
 impl SeriesExt for ir::series::Line {
     fn legend_entry(&self) -> Option<legend::Entry<'_>> {
-        self.name.as_ref().map(|n| legend::Entry {
+        self.name().map(|n| legend::Entry {
             label: n.as_ref(),
             font: None,
-            shape: legend::ShapeRef::Line(&self.line),
+            shape: legend::ShapeRef::Line(self.line()),
         })
     }
 }
 
 impl SeriesExt for ir::series::Scatter {
     fn legend_entry(&self) -> Option<legend::Entry<'_>> {
-        self.name.as_ref().map(|n| legend::Entry {
+        self.name().map(|n| legend::Entry {
             label: n.as_ref(),
             font: None,
-            shape: legend::ShapeRef::Marker(&self.marker),
+            shape: legend::ShapeRef::Marker(self.marker()),
         })
     }
 }
 
 impl SeriesExt for ir::series::Histogram {
     fn legend_entry(&self) -> Option<legend::Entry<'_>> {
-        self.name.as_ref().map(|n| legend::Entry {
+        self.name().map(|n| legend::Entry {
             label: n.as_ref(),
             font: None,
-            shape: legend::ShapeRef::Rect(&self.fill, self.line.as_ref()),
+            shape: legend::ShapeRef::Rect(&self.fill(), self.line()),
         })
     }
 }
 
 impl SeriesExt for ir::series::Bars {
     fn legend_entry(&self) -> Option<legend::Entry<'_>> {
-        self.name.as_ref().map(|n| legend::Entry {
+        self.name().map(|n| legend::Entry {
             label: n.as_ref(),
             font: None,
-            shape: legend::ShapeRef::Rect(&self.fill, self.line.as_ref()),
+            shape: legend::ShapeRef::Rect(self.fill(), self.line()),
         })
     }
 }
 
 impl SeriesExt for ir::series::BarSeries {
     fn legend_entry(&self) -> Option<legend::Entry<'_>> {
-        self.name.as_ref().map(|n| legend::Entry {
+        self.name().map(|n| legend::Entry {
             label: n.as_ref(),
             font: None,
-            shape: legend::ShapeRef::Rect(&self.fill, self.line.as_ref()),
+            shape: legend::ShapeRef::Rect(&self.fill(), self.line()),
         })
     }
 }
@@ -210,7 +210,7 @@ impl Line {
     where
         D: data::Source,
     {
-        let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &ir.x_data, &ir.y_data)?;
+        let (x_bounds, y_bounds) = calc_xy_bounds(data_source, ir.x_data(), ir.y_data())?;
         Ok(Line {
             index,
             ab: (x_bounds, y_bounds),
@@ -228,8 +228,8 @@ impl Line {
         D: data::Source,
     {
         // unwraping here as data is checked during setup phase
-        let x_col = get_column(&ir.x_data, data_source).unwrap();
-        let y_col = get_column(&ir.y_data, data_source).unwrap();
+        let x_col = get_column(ir.x_data(), data_source).unwrap();
+        let y_col = get_column(ir.y_data(), data_source).unwrap();
 
         debug_assert!(x_col.len() == y_col.len());
 
@@ -277,7 +277,7 @@ where
         let path = render::Path {
             path: &path,
             fill: None,
-            stroke: Some(ir.line.as_stroke(&rc)),
+            stroke: Some(ir.line().as_stroke(&rc)),
             transform: None,
         };
         self.draw_path(&path)?;
@@ -296,7 +296,7 @@ impl Scatter {
     where
         D: data::Source,
     {
-        let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &ir.x_data, &ir.y_data)?;
+        let (x_bounds, y_bounds) = calc_xy_bounds(data_source, ir.x_data(), ir.y_data())?;
         Ok(Scatter {
             index,
             ab: (x_bounds, y_bounds),
@@ -320,12 +320,12 @@ where
         D: data::Source,
         T: style::Theme,
     {
-        let path = marker::marker_path(&ir.marker);
+        let path = marker::marker_path(ir.marker());
         let rc = (ctx.theme().palette(), scatter.index);
 
         // unwraping here as data is checked during setup phase
-        let x_col = get_column(&ir.x_data, ctx.data_source()).unwrap();
-        let y_col = get_column(&ir.y_data, ctx.data_source()).unwrap();
+        let x_col = get_column(ir.x_data(), ctx.data_source()).unwrap();
+        let y_col = get_column(ir.y_data(), ctx.data_source()).unwrap();
         debug_assert!(x_col.len() == y_col.len());
 
         for (x, y) in x_col.iter().zip(y_col.iter()) {
@@ -338,8 +338,8 @@ where
             let transform = geom::Transform::from_translate(x, y);
             let path = render::Path {
                 path: &path,
-                fill: ir.marker.fill.as_ref().map(|f| f.as_paint(&rc)),
-                stroke: ir.marker.stroke.as_ref().map(|l| l.as_stroke(&rc)),
+                fill: ir.marker().fill.as_ref().map(|f| f.as_paint(&rc)),
+                stroke: ir.marker().stroke.as_ref().map(|l| l.as_stroke(&rc)),
                 transform: Some(&transform),
             };
             self.draw_path(&path)?;
@@ -373,15 +373,15 @@ impl Histogram {
     where
         D: data::Source,
     {
-        let mut bins = Vec::with_capacity(hist.bins as usize);
+        let mut bins = Vec::with_capacity(hist.bins() as usize);
 
-        let col = get_column(&hist.data, data_source)?;
+        let col = get_column(hist.data(), data_source)?;
         let col = col.f64().ok_or(Error::InconsistentData(
             "Histogram data must be numeric".into(),
         ))?;
         let x_bounds = col.bounds().ok_or(Error::UnboundedAxis)?;
 
-        let width = x_bounds.span() / hist.bins as f64;
+        let width = x_bounds.span() / hist.bins() as f64;
         let mut val = x_bounds.start();
         while val <= x_bounds.end() {
             bins.push(HistBin {
@@ -391,7 +391,7 @@ impl Histogram {
             val += width;
         }
 
-        let samp_add = if hist.density {
+        let samp_add = if hist.density() {
             1.0 / (col.len_some() as f64 * width)
         } else {
             1.0
@@ -452,8 +452,8 @@ where
         let path = pb.finish().expect("Should be a valid path");
         let path = render::Path {
             path: &path,
-            fill: Some(ir.fill.as_paint(&rc)),
-            stroke: ir.line.as_ref().map(|l| l.as_stroke(&rc)),
+            fill: Some(ir.fill().as_paint(&rc)),
+            stroke: ir.line().as_ref().map(|l| l.as_stroke(&rc)),
             transform: None,
         };
         self.draw_path(&path)?;
@@ -478,7 +478,7 @@ impl Bars {
     where
         D: data::Source,
     {
-        let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &ir.x_data, &ir.y_data)?;
+        let (x_bounds, y_bounds) = calc_xy_bounds(data_source, ir.x_data(), ir.y_data())?;
 
         let bounds = match (x_bounds, y_bounds) {
             (axis::Bounds::Num(x_bounds), axis::Bounds::Cat(y_bounds)) => {
@@ -524,8 +524,8 @@ where
         let rc = (ctx.theme().palette(), bars.index);
 
         // unwraping here as data is checked during setup phase
-        let x_col = get_column(&ir.x_data, ctx.data_source()).unwrap();
-        let y_col = get_column(&ir.y_data, ctx.data_source()).unwrap();
+        let x_col = get_column(ir.x_data(), ctx.data_source()).unwrap();
+        let y_col = get_column(ir.y_data(), ctx.data_source()).unwrap();
         debug_assert!(x_col.len() == y_col.len());
 
         let mut pb = geom::PathBuilder::new();
@@ -541,8 +541,8 @@ where
                     }
 
                     let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
-                    let x_start = rect.left() + x + cat_bin_width * (ir.position.offset - 0.5);
-                    let x_end = x_start + cat_bin_width * ir.position.width;
+                    let x_start = rect.left() + x + cat_bin_width * (ir.position().offset - 0.5);
+                    let x_end = x_start + cat_bin_width * ir.position().width;
                     let y_end = rect.bottom() - y;
                     pb.move_to(x_start, y_start);
                     pb.line_to(x_start, y_end);
@@ -560,8 +560,8 @@ where
                     }
 
                     let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
-                    let y_start = rect.bottom() - y - cat_bin_height * (ir.position.offset - 0.5);
-                    let y_end = y_start - cat_bin_height * ir.position.width;
+                    let y_start = rect.bottom() - y - cat_bin_height * (ir.position().offset - 0.5);
+                    let y_end = y_start - cat_bin_height * ir.position().width;
                     let x_end = rect.left() + x;
                     pb.move_to(x_start, y_start);
                     pb.line_to(x_end, y_start);
@@ -574,8 +574,8 @@ where
         let path = pb.finish().expect("Should be a valid path");
         let path = render::Path {
             path: &path,
-            fill: Some(ir.fill.as_paint(&rc)),
-            stroke: ir.line.as_ref().map(|l| l.as_stroke(&rc)),
+            fill: Some(ir.fill().as_paint(&rc)),
+            stroke: ir.line().map(|l| l.as_stroke(&rc)),
             transform: None,
         };
         self.draw_path(&path)?;
@@ -594,7 +594,7 @@ impl BarsGroup {
     where
         D: data::Source,
     {
-        let cat_col = get_column(&ir.categories, data_source)?;
+        let cat_col = get_column(ir.categories(), data_source)?;
         let categories: Categories = cat_col
             .str()
             .ok_or_else(|| {
@@ -604,8 +604,8 @@ impl BarsGroup {
 
         let mut bounds_per_cat: Vec<axis::NumBounds> = vec![axis::NumBounds::NAN; categories.len()];
 
-        for bs in ir.series.iter() {
-            let data_col = get_column(&bs.data, data_source)?;
+        for bs in ir.series() {
+            let data_col = get_column(bs.data(), data_source)?;
             if data_col.len() != categories.len() {
                 return Err(Error::InconsistentData(
                     "BarsGroup data must be the same length as categories".to_string(),
@@ -617,7 +617,7 @@ impl BarsGroup {
 
             for (v, bounds) in data_col.iter().zip(bounds_per_cat.iter_mut()) {
                 if let Some(v) = v {
-                    match ir.arrangement {
+                    match ir.arrangement() {
                         ir::series::BarsArrangement::Aside(..) => {
                             bounds.add_sample(v);
                         }
@@ -638,7 +638,7 @@ impl BarsGroup {
             num_bounds.unite_with(bounds);
         }
 
-        let bounds = match ir.orientation {
+        let bounds = match ir.orientation() {
             ir::series::BarsOrientation::Vertical => {
                 (axis::Bounds::Cat(categories), axis::Bounds::Num(num_bounds))
             }
@@ -670,12 +670,12 @@ where
         D: data::Source,
         T: style::Theme,
     {
-        let categories = match ir.orientation {
+        let categories = match ir.orientation() {
             ir::series::BarsOrientation::Vertical => bg.bounds.0.as_cat().unwrap(),
             ir::series::BarsOrientation::Horizontal => bg.bounds.1.as_cat().unwrap(),
         };
 
-        match ir.arrangement {
+        match ir.arrangement() {
             ir::series::BarsArrangement::Aside(aside) => {
                 self.draw_series_bars_aside(ctx, ir, &aside, bg, categories, rect, cm)
             }
@@ -699,7 +699,7 @@ where
         D: data::Source,
         T: style::Theme,
     {
-        let num_series = ir.series.len();
+        let num_series = ir.series().len();
         if num_series == 0 {
             return Ok(());
         }
@@ -714,8 +714,8 @@ where
 
         let mut col_idx = bg.fst_index;
 
-        for series in ir.series.iter() {
-            let data_col = get_column(&series.data, ctx.data_source()).unwrap();
+        for series in ir.series() {
+            let data_col = get_column(series.data(), ctx.data_source()).unwrap();
             let data_col = data_col.f64().unwrap();
 
             let mut pb = geom::PathBuilder::new();
@@ -726,9 +726,9 @@ where
                 let val_start = 0.0;
                 let val_end = val_start + val;
 
-                let cat_coords = ir.orientation.cat_coords(cm, cat, offset, width, rect);
-                let val_coords = ir.orientation.val_coords(cm, val_start, val_end, rect);
-                ir.orientation
+                let cat_coords = ir.orientation().cat_coords(cm, cat, offset, width, rect);
+                let val_coords = ir.orientation().val_coords(cm, val_start, val_end, rect);
+                ir.orientation()
                     .add_series_path(&mut pb, cat_coords, val_coords);
             }
 
@@ -739,8 +739,8 @@ where
 
             let rpath = render::Path {
                 path: &path,
-                fill: Some(series.fill.as_paint(&rc)),
-                stroke: series.line.as_ref().map(|l| l.as_stroke(&rc)),
+                fill: Some(series.fill().as_paint(&rc)),
+                stroke: series.line().map(|l| l.as_stroke(&rc)),
                 transform: None,
             };
             self.draw_path(&rpath)?;
@@ -768,8 +768,8 @@ where
 
         let mut col_idx = bg.fst_index;
 
-        for series in ir.series.iter() {
-            let data_col = get_column(&series.data, ctx.data_source()).unwrap();
+        for series in ir.series() {
+            let data_col = get_column(series.data(), ctx.data_source()).unwrap();
             let data_col = data_col.f64().unwrap();
 
             let mut pb = geom::PathBuilder::new();
@@ -783,10 +783,10 @@ where
                 cat_values[idx] = val_end;
 
                 let cat_coords =
-                    ir.orientation
+                    ir.orientation()
                         .cat_coords(cm, cat, arrangement.offset, arrangement.width, rect);
-                let val_coords = ir.orientation.val_coords(cm, val_start, val_end, rect);
-                ir.orientation
+                let val_coords = ir.orientation().val_coords(cm, val_start, val_end, rect);
+                ir.orientation()
                     .add_series_path(&mut pb, cat_coords, val_coords);
             }
 
@@ -797,8 +797,8 @@ where
 
             let rpath = render::Path {
                 path: &path,
-                fill: Some(series.fill.as_paint(&rc)),
-                stroke: series.line.as_ref().map(|l| l.as_stroke(&rc)),
+                fill: Some(series.fill().as_paint(&rc)),
+                stroke: series.line().map(|l| l.as_stroke(&rc)),
                 transform: None,
             };
             self.draw_path(&rpath)?;

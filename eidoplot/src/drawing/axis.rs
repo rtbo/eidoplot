@@ -692,16 +692,17 @@ impl<D, T> Ctx<'_, D, T> {
         let scale = self.setup_scale(ir, ab, side, size_along, insets)?;
 
         let title = ir
-            .title()
+            .title
+            .as_ref()
             .map(|title| {
                 text::shape_and_layout_str(
-                    &title.text,
-                    &title.font.font,
+                    title.text(),
+                    title.font().font(),
                     self.fontdb(),
-                    title.font.size,
+                    title.font().size,
                     &side.title_opts(),
                 )
-                .map(|layout| (layout, title.font.color))
+                .map(|layout| (layout, title.font().color))
             })
             .transpose()?;
 
@@ -718,15 +719,16 @@ impl<D, T> Ctx<'_, D, T> {
     ) -> Result<AxisScale, Error> {
         match ab {
             Bounds::Num(nb) => {
-                let cm = scale::map_scale_coord_num(ir.scale(), size_along, &nb, insets);
+                let cm = scale::map_scale_coord_num(&ir.scale, size_along, &nb, insets);
                 let nb = cm.axis_bounds().as_num().unwrap();
 
                 let ticks = ir
-                    .ticks()
+                    .ticks
+                    .as_ref()
                     .map(|major_ticks| self.setup_num_ticks(major_ticks, nb, side))
                     .transpose()?;
 
-                let minor_ticks = if let Some(mt) = ir.minor_ticks() {
+                let minor_ticks = if let Some(mt) = ir.minor_ticks.as_ref() {
                     Some(self.setup_minor_ticks(mt, ticks.as_ref(), nb)?)
                 } else {
                     None
@@ -741,7 +743,8 @@ impl<D, T> Ctx<'_, D, T> {
             Bounds::Cat(cats) => {
                 let bins = CategoryBins::new(size_along, insets, cats.clone());
                 let ticks = ir
-                    .ticks()
+                    .ticks
+                    .as_ref()
                     .map(|t| self.setup_cat_ticks(t, cats, side))
                     .transpose()?;
                 Ok(AxisScale::Cat { bins, ticks })

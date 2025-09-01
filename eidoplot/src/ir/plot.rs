@@ -76,6 +76,16 @@ pub struct PlotLegend {
     margin: f32,
 }
 
+impl Default for PlotLegend {
+    fn default() -> Self {
+        PlotLegend {
+            pos: LegendPos::default(),
+            legend: Legend::default(),
+            margin: defaults::LEGEND_MARGIN,
+        }
+    }
+}
+
 impl PlotLegend {
     /// Build a new legend
     pub fn new(pos: LegendPos, legend: Legend) -> Self {
@@ -105,41 +115,106 @@ impl PlotLegend {
     }
 }
 
-impl Default for PlotLegend {
-    fn default() -> Self {
-        PlotLegend::new(LegendPos::default(), Legend::default())
-    }
-}
 
 impl From<LegendPos> for PlotLegend {
     fn from(pos: LegendPos) -> Self {
-        PlotLegend::new(pos, Legend::default())
+        PlotLegend {
+            pos,
+            ..Default::default()
+        }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Plot {
-    pub title: Option<String>,
-    pub fill: Option<theme::Fill>,
-    pub border: Option<Border>,
-    pub insets: Option<Insets>,
-    pub legend: Option<PlotLegend>,
-    pub x_axis: Axis,
-    pub y_axis: Axis,
-    pub series: Vec<Series>,
+    series: Vec<Series>,
+
+    x_axis: Axis,
+    y_axis: Axis,
+    title: Option<String>,
+    fill: Option<theme::Fill>,
+    border: Option<Border>,
+    insets: Option<Insets>,
+    legend: Option<PlotLegend>,
 }
 
-impl Default for Plot {
-    fn default() -> Self {
+impl Plot {
+    pub fn new(series: Vec<Series>) -> Self {
         Plot {
+            series,
+            x_axis: Axis::default(),
+            y_axis: Axis::default(),
             title: None,
             fill: None,
             border: Some(Border::default()),
             insets: Some(Insets::default()),
             legend: Some(PlotLegend::default()),
-            x_axis: Axis::default(),
-            y_axis: Axis::default(),
-            series: vec![],
         }
+    }
+
+    pub fn with_x_axis(self, x_axis: Axis) -> Self {
+        Self { x_axis, ..self }
+    }
+
+    pub fn with_y_axis(self, y_axis: Axis) -> Self {
+        Self { y_axis, ..self }
+    }
+    
+    pub fn with_title(self, title: String) -> Self {
+        Self {
+            title: Some(title),
+            ..self
+        }
+    }
+
+    pub fn with_fill(self, fill: theme::Fill) -> Self {
+        Self {
+            fill: Some(fill),
+            ..self
+        }
+    }
+
+    pub fn with_border(self, border: Option<Border>) -> Self {
+        Self { border, ..self }
+    }
+
+    pub fn with_insets(self, insets: Option<Insets>) -> Self {
+        Self { insets, ..self }
+    }
+
+    pub fn with_legend(self, legend: Option<PlotLegend>) -> Self {
+        Self { legend, ..self }
+    }
+
+    pub fn series(&self) -> &[Series] {
+        &self.series
+    }
+
+    pub fn x_axis(&self) -> &Axis {
+        &self.x_axis
+    }
+
+    pub fn y_axis(&self) -> &Axis {
+        &self.y_axis
+    }
+
+    pub fn title(&self) -> Option<&str> {
+        self.title.as_deref()
+    }
+
+    pub fn fill(&self) -> Option<&theme::Fill> {
+        self.fill.as_ref()
+    }
+
+    pub fn border(&self) -> Option<&Border> {
+        self.border.as_ref()
+    }
+
+    pub fn insets(&self) -> Option<&Insets> {
+        self.insets.as_ref()
+    }
+
+    pub fn legend(&self) -> Option<&PlotLegend> {
+        self.legend.as_ref()
     }
 }

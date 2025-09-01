@@ -8,43 +8,42 @@ use crate::style::{self, Theme, defaults};
 use crate::{data, geom, ir, missing_params};
 
 fn plot_insets(plot: &ir::Plot) -> geom::Padding {
-    match plot.insets {
-        Some(ir::plot::Insets::Fixed(x, y)) => geom::Padding::Center { v: y, h: x },
+    match plot.insets() {
+        Some(&ir::plot::Insets::Fixed(x, y)) => geom::Padding::Center { v: y, h: x },
         Some(ir::plot::Insets::Auto) => auto_insets(plot),
         None => geom::Padding::Even(0.0),
     }
 }
 
 fn auto_insets(plot: &ir::Plot) -> geom::Padding {
-    for s in plot.series.iter() {
+    for s in plot.series() {
         match s {
             ir::Series::Histogram(..) => return defaults::PLOT_VER_BARS_AUTO_INSETS,
             ir::Series::Bars(..) => return defaults::PLOT_VER_BARS_AUTO_INSETS,
-            ir::Series::BarsGroup(ir::series::BarsGroup {
-                orientation: ir::series::BarsOrientation::Vertical,
-                ..
-            }) => return defaults::PLOT_VER_BARS_AUTO_INSETS,
-            ir::Series::BarsGroup(ir::series::BarsGroup {
-                orientation: ir::series::BarsOrientation::Horizontal,
-                ..
-            }) => return defaults::PLOT_HOR_BARS_AUTO_INSETS,
+            ir::Series::BarsGroup(bg) if bg.orientation().is_vertical() => {
+                return defaults::PLOT_VER_BARS_AUTO_INSETS;
+            }
+            ir::Series::BarsGroup(bg) if bg.orientation().is_horizontal() => {
+                return defaults::PLOT_HOR_BARS_AUTO_INSETS;
+            }
             _ => (),
         }
     }
     defaults::PLOT_XY_AUTO_INSETS
 }
 
-pub fn for_each_series<F>(plot: &ir::Plot, mut f: F) -> Result<(), Error> 
-where F: FnMut(&dyn SeriesExt) -> Result<(), Error>
+pub fn for_each_series<F>(plot: &ir::Plot, mut f: F) -> Result<(), Error>
+where
+    F: FnMut(&dyn SeriesExt) -> Result<(), Error>,
 {
-    for s in &plot.series {
+    for s in plot.series() {
         match &s {
             ir::Series::Line(line) => f(line)?,
             ir::Series::Scatter(scatter) => f(scatter)?,
             ir::Series::Histogram(hist) => f(hist)?,
             ir::Series::Bars(bars) => f(bars)?,
             ir::Series::BarsGroup(bars_group) => {
-                for bs in bars_group.series.iter() {
+                for bs in bars_group.series() {
                     f(bs)?
                 }
             }
@@ -65,9 +64,9 @@ impl<D, T> Ctx<'_, D, T> {
         // bootstrapping the axes by setting the vertical axis with estimated height
         // from the font size of the horizontal axis (for which text width doesn't matter)
 
-        let estimated_height = rect.height() - self.estimate_hor_axis_height(&plot.x_axis);
+        let estimated_height = rect.height() - self.estimate_hor_axis_height(plot.x_axis());
         let mut left_axis = self.setup_axis(
-            &plot.y_axis,
+            plot.y_axis(),
             ab.1,
             axis::Side::Left,
             estimated_height,
@@ -76,8 +75,8 @@ impl<D, T> Ctx<'_, D, T> {
 
         let width = rect.width() - left_axis.size_across();
         let bottom_axis =
-            self.setup_axis(&plot.x_axis, ab.0, axis::Side::Bottom, width, &insets)?;
-        
+            self.setup_axis(plot.x_axis(), ab.0, axis::Side::Bottom, width, &insets)?;
+
         // now we correct the vertical axis according the real height of the horizontal axis
         let height = rect.height() - bottom_axis.size_across();
         left_axis.set_size_along(height);
@@ -90,12 +89,12 @@ impl<D, T> Ctx<'_, D, T> {
 
     fn estimate_hor_axis_height(&self, x_axis: &ir::Axis) -> f32 {
         let mut height = 0.0;
-        if let Some(ticks) = x_axis.ticks() {
+        if let Some(ticks) = x_axis.ticks.as_ref() {
             height +=
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size;
         }
-        if let Some(label) = x_axis.title() {
-            height += 2.0 * missing_params::AXIS_TITLE_MARGIN + label.font.size;
+        if let Some(label) = x_axis.title.as_ref() {
+            height += 2.0 * missing_params::AXIS_TITLE_MARGIN + label.font().size;
         }
         height
     }
@@ -106,7 +105,7 @@ where
     D: data::Source,
 {
     fn setup_plot_series(&self, plot: &ir::Plot) -> Result<Vec<Series>, Error> {
-        plot.series
+        plot.series()
             .iter()
             .enumerate()
             .map(|(index, s)| Series::from_ir(index, s, self.data_source()))
@@ -132,7 +131,7 @@ where
             let mut rect = rect.pad(&missing_params::PLOT_PADDING);
 
             // draw outer legend and adjust rect
-            if let Some(legend) = &plot.legend {
+            if let Some(legend) = plot.legend() {
                 if !legend.pos().is_inside() {
                     self.draw_plot_outer_legend(ctx, plot, legend, &mut rect)?;
                 }
@@ -149,11 +148,11 @@ where
 
         self.draw_plot_background(ctx, plot, &rect)?;
         self.draw_axes_grids(ctx, &axes, &rect)?;
-        self.draw_plot_series(ctx, &plot.series, &series, &rect, &axes)?;
+        self.draw_plot_series(ctx, plot.series(), &series, &rect, &axes)?;
         self.draw_axes(ctx, &axes, &rect)?;
-        self.draw_plot_border(ctx, plot.border.as_ref(), &rect)?;
+        self.draw_plot_border(ctx, plot.border(), &rect)?;
 
-        if let Some(legend) = &plot.legend {
+        if let Some(legend) = plot.legend() {
             if legend.pos().is_inside() {
                 self.draw_plot_inner_legend(ctx, plot, legend, &rect)?;
             }
@@ -299,7 +298,7 @@ where
     where
         T: Theme,
     {
-        if let Some(fill) = plot.fill.as_ref() {
+        if let Some(fill) = plot.fill() {
             self.draw_rect(&render::Rect {
                 rect: *rect,
                 fill: Some(fill.as_paint(ctx.theme())),

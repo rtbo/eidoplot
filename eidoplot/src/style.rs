@@ -272,6 +272,20 @@ pub struct Marker<C: Color> {
     pub stroke: Option<Line<C>>,
 }
 
+impl<C> Default for Marker<C>
+where
+    C: Color + Default,
+{
+    fn default() -> Self {
+        Marker {
+            size: MarkerSize::default(),
+            shape: MarkerShape::default(),
+            fill: Some(Fill::default()),
+            stroke: None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::style::theme;

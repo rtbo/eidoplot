@@ -30,34 +30,39 @@ fn main() {
     let title: ir::figure::Title =
         format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA).into();
 
-    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("x".into());
-    let y_axis = ir::Axis::new(ir::axis::Scale::default())
-        .with_title("population density".into())
-        .with_ticks(ir::axis::Ticks::default().with_formatter(ir::axis::ticks::Formatter::Percent));
+    let x_axis = ir::Axis::new().with_title("x".to_string().into());
+    let y_axis = ir::Axis::new()
+        .with_title("y".to_string().into())
+        .with_ticks(ir::axis::Ticks::new().with_formatter(ir::axis::ticks::Formatter::Percent));
 
-    let pop_series = ir::Series::Histogram(ir::series::Histogram {
-        name: Some("population".into()),
-        fill: style::series::Fill::from(style::series::Color::Auto).with_opacity(0.5),
-        line: Some(1.5.into()),
-        bins: 16,
-        density: true,
-        data: ir::series::DataCol::SrcRef("pop".to_string()),
-    });
-    let dist_series = ir::Series::Line(ir::series::Line {
-        name: Some("distribution".into()),
-        line: 4.0.into(),
-        x_data: ir::series::DataCol::Inline(x.into()),
-        y_data: ir::series::DataCol::Inline(y.into()),
-    });
+    let pop_series = ir::Series::Histogram(
+        ir::series::Histogram::new(
+            Some("population".into()),
+            ir::DataCol::SrcRef("pop".to_string()),
+        )
+        .with_fill(style::series::Fill::Solid {
+            color: style::series::Color::Auto,
+            opacity: Some(0.7),
+        })
+        .with_bins(16)
+        .with_density(),
+    );
 
-    let plot = ir::Plot {
-        title: None,
-        x_axis,
-        y_axis,
-        series: vec![dist_series, pop_series],
-        legend: Some(ir::plot::LegendPos::OutRight.into()),
-        ..ir::Plot::default()
-    };
+    let dist_series = ir::Series::Line(
+        ir::series::Line::new(Some("distribution".into()), x.into(), y.into()).with_line(
+            style::series::Line {
+                width: 4.0,
+                ..style::Line::default()
+            },
+        ),
+    );
+
+    let series = vec![dist_series, pop_series];
+
+    let plot = ir::Plot::new(series)
+        .with_x_axis(x_axis)
+        .with_y_axis(y_axis)
+        .with_legend(Some(ir::plot::LegendPos::OutRight.into()));
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
 

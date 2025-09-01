@@ -1,4 +1,4 @@
-use eidoplot::{geom, ir, style};
+use eidoplot::{geom, ir};
 
 use crate::*;
 
@@ -11,17 +11,9 @@ fn line_y_eq_x() {
     let x = vec![1.0, 2.0, 3.0];
     let y = x.clone();
 
-    let line = ir::Series::Line(ir::series::Line {
-        name: None,
-        line: style::series::Line::default(),
-        x_data: ir::series::DataCol::Inline(x.into()),
-        y_data: ir::series::DataCol::Inline(y.into()),
-    });
+    let line: ir::Series = ir::series::Line::new(None, x.into(), y.into()).into();
 
-    let plot = ir::Plot {
-        series: vec![line],
-        ..Default::default()
-    };
+    let plot = ir::Plot::new(vec![line]);
 
     let fig = create_fig(plot);
 
@@ -33,18 +25,10 @@ fn line_y_eq_x_with_minor() {
     let x = vec![1.0, 2.0, 3.0];
     let y = x.clone();
 
-    let line = ir::Series::Line(ir::series::Line {
-        name: None,
-        line: style::series::Line::default(),
-        x_data: ir::series::DataCol::Inline(x.into()),
-        y_data: ir::series::DataCol::Inline(y.into()),
-    });
+    let line: ir::Series = ir::series::Line::new(None, x.into(), y.into()).into();
 
-    let plot = ir::Plot {
-        series: vec![line],
-        y_axis: ir::axis::Axis::new(Default::default()).with_minor_ticks(Default::default()),
-        ..Default::default()
-    };
+    let plot = ir::Plot::new(vec![line])
+        .with_y_axis(ir::axis::Axis::default().with_minor_ticks(Default::default()));
 
     let fig = create_fig(plot);
 

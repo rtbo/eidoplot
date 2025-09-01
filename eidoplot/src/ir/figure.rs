@@ -8,6 +8,7 @@ use crate::style::{self, defaults, theme};
 pub struct TitleFont {
     pub font: style::Font,
     pub size: f32,
+    pub color: theme::Color,
 }
 
 impl Default for TitleFont {
@@ -15,27 +16,53 @@ impl Default for TitleFont {
         TitleFont {
             font: defaults::TITLE_FONT_FAMILY.parse().unwrap(),
             size: defaults::TITLE_FONT_SIZE,
+            color: theme::Col::Foreground.into(),
         }
+    }
+}
+
+impl TitleFont {
+    pub fn font(&self) -> &style::Font {
+        &self.font
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Title {
-    pub text: String,
-    pub font: TitleFont,
+    text: String,
+    font: TitleFont,
 }
 
-impl<S: Into<String>> From<S> for Title {
-    fn from(text: S) -> Self {
+impl Title {
+    pub fn new(text: String) -> Self {
         Title {
-            text: text.into(),
+            text,
             font: TitleFont::default(),
         }
+    }
+
+    pub fn with_font(mut self, font: TitleFont) -> Self {
+        self.font = font;
+        self
+    }
+
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
+    pub fn font(&self) -> &TitleFont {
+        &self.font
+    }
+}
+
+impl From<String> for Title {
+    fn from(text: String) -> Self {
+        Title::new(text)
     }
 }
 
 /// Position of the legend relatively to the figure
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum LegendPos {
     Top,
     Right,
@@ -100,8 +127,8 @@ impl From<LegendPos> for FigLegend {
 
 #[derive(Debug, Clone)]
 pub struct Figure {
-    size: geom::Size,
     title: Option<Title>,
+    size: geom::Size,
     plots: Plots,
     legend: Option<FigLegend>,
     fill: Option<theme::Fill>,
@@ -111,8 +138,8 @@ pub struct Figure {
 impl Figure {
     pub fn new(plots: Plots) -> Figure {
         Figure {
-            size: defaults::FIG_SIZE,
             title: None,
+            size: defaults::FIG_SIZE,
             plots,
             legend: None,
             fill: Some(theme::Col::Background.into()),
@@ -120,15 +147,15 @@ impl Figure {
         }
     }
 
-    pub fn with_size(self, size: geom::Size) -> Self {
-        Figure { size: size, ..self }
-    }
-
     pub fn with_title(self, title: Option<Title>) -> Self {
         Figure {
             title: title,
             ..self
         }
+    }
+
+    pub fn with_size(self, size: geom::Size) -> Self {
+        Figure { size: size, ..self }
     }
 
     pub fn with_legend(self, legend: Option<FigLegend>) -> Self {
