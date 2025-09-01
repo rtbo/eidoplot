@@ -278,10 +278,11 @@ where
             rect.left() + shape_sz.width() + defaults::LEGEND_SHAPE_SPACING,
             rect.center_y(),
         );
+        let transform = pos.translation();
         let text = render::TextLayout {
             layout: &entry.text,
             fill: label_color.resolve(ctx.theme()).into(),
-            transform: Some(&pos.translation()),
+            transform: Some(&transform),
         };
         self.draw_text_layout(&text)?;
 
