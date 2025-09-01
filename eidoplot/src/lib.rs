@@ -52,6 +52,7 @@ mod missing_params {
 
     pub const TICK_SIZE: f32 = 4.0;
     pub const TICK_LABEL_MARGIN: f32 = 4.0;
+    pub const MINOR_TICK_LINE_WIDTH: f32 = 0.5;
     pub const MINOR_TICK_SIZE: f32 = 2.0;
 }
 

@@ -809,8 +809,14 @@ impl<D, T> Ctx<'_, D, T> {
                     .find(|nt| tick_loc_is_close(nt.loc, *l))
                     .is_none()
         });
+        let mut line: theme::Line = theme::Col::Foreground.into();
+        if let Some(grid) = minor_ticks.grid() {
+            line = line.with_width(grid.width);
+        } else {
+            line = line.with_width(missing_params::MINOR_TICK_LINE_WIDTH);
+        }
         let mark = Some(TickMark {
-            line: theme::Col::Foreground.into(),
+            line,
             size_in: missing_params::MINOR_TICK_SIZE,
             size_out: missing_params::MINOR_TICK_SIZE,
         });
