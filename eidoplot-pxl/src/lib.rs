@@ -64,8 +64,6 @@ struct State {
     fontdb: Arc<fontdb::Database>,
     transform: geom::Transform,
     clip: Option<Mask>,
-    sx: f32,
-    sy: f32,
 }
 
 impl State {
@@ -77,8 +75,6 @@ impl State {
             fontdb,
             transform: geom::Transform::identity(),
             clip: None,
-            sx: 1.0,
-            sy: 1.0,
         }
     }
 
@@ -86,8 +82,6 @@ impl State {
         let sx = self.width as f32 / size.width();
         let sy = self.height as f32 / size.height();
         self.transform = geom::Transform::from_scale(sx, sy);
-        self.sx = sx;
-        self.sy = sy;
         Ok(())
     }
 
@@ -141,8 +135,7 @@ impl State {
         }
         if let Some(stroke) = path.stroke {
             let mut paint = tiny_skia::Paint::default();
-            let scale = (self.sx + self.sy) / 2.0;
-            let stroke = ts_stroke(stroke, &mut paint, scale);
+            let stroke = ts_stroke(stroke, &mut paint);
             px.stroke_path(path.path, &paint, &stroke, transform, self.clip.as_ref());
         }
         Ok(())
@@ -302,7 +295,6 @@ fn ts_color(color: style::ColorU8) -> tiny_skia::Color {
 }
 
 fn ts_fill(fill: render::Paint, paint: &mut tiny_skia::Paint) {
-    paint.colorspace = tiny_skia::ColorSpace::Linear;
     match fill {
         render::Paint::Solid(color) => {
             let color = ts_color(color);
@@ -313,7 +305,6 @@ fn ts_fill(fill: render::Paint, paint: &mut tiny_skia::Paint) {
 }
 
 fn ts_text_fill(fill: render::Paint, paint: &mut tiny_skia::Paint) {
-    paint.colorspace = tiny_skia::ColorSpace::Linear;
     match fill {
         render::Paint::Solid(color) => {
             let color = ts_color(color);
@@ -323,14 +314,7 @@ fn ts_text_fill(fill: render::Paint, paint: &mut tiny_skia::Paint) {
     paint.force_hq_pipeline = true;
 }
 
-fn ts_stroke(stroke: render::Stroke, paint: &mut tiny_skia::Paint, _scale: f32) -> tiny_skia::Stroke {
-    // const SRGB_THRESHOLD: f32 = 0.3;
-    // if stroke.width * scale <= SRGB_THRESHOLD {
-    //     paint.colorspace = tiny_skia::ColorSpace::SimpleSRGB;
-    // } else {
-    //     paint.colorspace = tiny_skia::ColorSpace::Linear;
-    // }
-    paint.colorspace = tiny_skia::ColorSpace::Linear;
+fn ts_stroke(stroke: render::Stroke, paint: &mut tiny_skia::Paint) -> tiny_skia::Stroke {
     paint.force_hq_pipeline = true;
 
     let color = ts_color(stroke.color);
