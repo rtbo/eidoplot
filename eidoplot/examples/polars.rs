@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use eidoplot::ir;
+use eidoplot::{ir, style};
 use polars::prelude::*;
 
 mod common;
@@ -15,30 +15,23 @@ fn main() {
     )
     .unwrap();
 
-    let title = ir::figure::Title {
-        text: "Sine wave from polars".into(),
-        font: ir::figure::TitleFont::default(),
-    };
+    let title = ir::figure::Title::from("Sine wave from polars".to_string());
 
-    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("x".into());
-    let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("y".into());
+    let x_axis = ir::Axis::new().with_title("x".to_string().into());
+    let y_axis = ir::Axis::new().with_title("y".to_string().into());
 
-    let series = ir::Series {
-        name: Some("y=sin(x)".into()),
-        plot: ir::SeriesPlot::Line(ir::series::Line {
-            line: 3.0.into(),
-            x_data: ir::series::DataCol::SrcRef("x".to_string()),
-            y_data: ir::series::DataCol::SrcRef("y".to_string()),
-        }),
-    };
+    let series = ir::Series::Line(
+        ir::series::Line::new(
+            Some("y=sin(x)".to_string()),
+            ir::DataCol::SrcRef("x".to_string()),
+            ir::DataCol::SrcRef("y".to_string()),
+        )
+        .with_line(style::series::Line::default().with_width(4.0)),
+    );
 
-    let plot = ir::Plot {
-        title: None,
-        x_axis,
-        y_axis,
-        series: vec![series],
-        ..ir::Plot::default()
-    };
+    let plot = ir::Plot::new(vec![series])
+        .with_x_axis(x_axis)
+        .with_y_axis(y_axis);
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
 

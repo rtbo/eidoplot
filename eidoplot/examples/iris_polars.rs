@@ -2,7 +2,6 @@ use std::path;
 
 use eidoplot::data;
 use eidoplot::ir;
-use eidoplot::style;
 
 use polars::prelude::*;
 
@@ -88,53 +87,31 @@ fn main() {
             .as_materialized_series(),
     );
 
-    let title = "Iris dataset".into();
+    let title: ir::figure::Title = "Iris dataset".to_string().into();
 
-    let x_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("Sepal Length [cm]".into());
-    let y_axis = ir::Axis::new(ir::axis::Scale::default()).with_title("Petal Length [cm]".into());
+    let x_axis = ir::Axis::new().with_title("Sepal Length [cm]".to_string().into());
+    let y_axis = ir::Axis::new().with_title("Petal Length [cm]".to_string().into());
 
-    let setosa = ir::Series::Scatter(ir::series::Scatter {
-        name: Some("Setosa".into()),
-        marker: style::Marker {
-            shape: Default::default(),
-            size: Default::default(),
-            fill: Some(style::series::Color::Auto.into()),
-            stroke: None,
-        },
-        x_data: ir::series::DataCol::SrcRef("setosa_sepal_length".to_string()),
-        y_data: ir::series::DataCol::SrcRef("setosa_petal_length".to_string()),
-    });
-    let versicolor = ir::Series::Scatter(ir::series::Scatter {
-        name: Some("Versicolor".into()),
-        marker: style::Marker {
-            shape: Default::default(),
-            size: Default::default(),
-            fill: Some(style::series::Color::Auto.into()),
-            stroke: None,
-        },
-        x_data: ir::series::DataCol::SrcRef("versicolor_sepal_length".to_string()),
-        y_data: ir::series::DataCol::SrcRef("versicolor_petal_length".to_string()),
-    });
-    let virginica = ir::Series::Scatter(ir::series::Scatter {
-        name: Some("Virginica".into()),
-        marker: style::Marker {
-            shape: Default::default(),
-            size: Default::default(),
-            fill: Some(style::series::Color::Auto.into()),
-            stroke: None,
-        },
-        x_data: ir::series::DataCol::SrcRef("virginica_sepal_length".to_string()),
-        y_data: ir::series::DataCol::SrcRef("virginica_petal_length".to_string()),
-    });
+    let setosa = ir::Series::Scatter(ir::series::Scatter::new(
+        Some("Setosa".into()),
+        ir::DataCol::SrcRef("setosa_sepal_length".to_string()),
+        ir::DataCol::SrcRef("setosa_petal_length".to_string()),
+    ));
+    let virginica = ir::Series::Scatter(ir::series::Scatter::new(
+        Some("virginica".into()),
+        ir::DataCol::SrcRef("virginica_sepal_length".to_string()),
+        ir::DataCol::SrcRef("virginica_petal_length".to_string()),
+    ));
+    let versicolor = ir::Series::Scatter(ir::series::Scatter::new(
+        Some("Versicolor".into()),
+        ir::DataCol::SrcRef("versicolor_sepal_length".to_string()),
+        ir::DataCol::SrcRef("versicolor_petal_length".to_string()),
+    ));
 
-    let plot = ir::Plot {
-        title: None,
-        x_axis,
-        y_axis,
-        series: vec![setosa, versicolor, virginica],
-        legend: Some(ir::plot::LegendPos::InBottomRight.into()),
-        ..ir::Plot::default()
-    };
+    let plot = ir::Plot::new(vec![setosa, versicolor, virginica])
+        .with_x_axis(x_axis)
+        .with_y_axis(y_axis)
+        .with_legend(Some(ir::plot::LegendPos::InBottomRight.into()));
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
 
