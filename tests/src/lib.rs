@@ -159,6 +159,9 @@ macro_rules! assert_fig_eq_ref {
             save_fig_as_png($fig, $file, $theme);
         }
         let actual_pxl = $crate::fig_to_pxl($fig, $theme);
+        // if !$crate::ref_file_path($file).exists() {
+        //     actual_pxl.save_png($crate::actual_file_path($file)).unwrap(); 
+        // }
         let ref_pxl = $crate::ref_png_pxl($file);
         assert_fig_eq_ref!(__assert_pxl, actual_pxl, ref_pxl, $file);
     };
@@ -173,6 +176,9 @@ macro_rules! assert_fig_eq_ref {
             save_fig_as_svg($fig, $file, $theme);
         }
         let actual_svg = $crate::fig_to_svg($fig, $theme);
+        // if !$crate::ref_file_path($file).exists() {
+        //     std::fs::write($crate::actual_file_path($file), &actual_svg).unwrap();
+        // }
         let ref_svg = $crate::ref_file_bytes($file);
         assert_fig_eq_ref!(__assert_svg, actual_svg, ref_svg, $file);
     };
