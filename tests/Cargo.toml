@@ -13,4 +13,3 @@ tiny-skia.workspace = true
 
 [features]
 regenerate-refs = []
-allow-no-ref = []
