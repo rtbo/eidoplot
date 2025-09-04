@@ -10,3 +10,7 @@ eidoplot = { path = "../eidoplot" }
 eidoplot-pxl = { path = "../eidoplot-pxl" }
 eidoplot-svg = { path = "../eidoplot-svg" }
 tiny-skia.workspace = true
+
+[features]
+regenerate-refs = []
+allow-no-ref = []
