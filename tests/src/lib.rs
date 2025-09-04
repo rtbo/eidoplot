@@ -25,7 +25,13 @@ fn actual_file_path(file: &str) -> PathBuf {
 
 fn diff_file_path(file: &str) -> PathBuf {
     let tests_dir = env!("CARGO_MANIFEST_DIR");
-    Path::new(tests_dir).join("diffs").join(file)
+
+    let path = Path::new(file);
+    let stem = path.file_stem().and_then(std::ffi::OsStr::to_str).unwrap();
+    let ext = path.extension().and_then(std::ffi::OsStr::to_str).unwrap();
+    let file = format!("{}-diff.{}", stem, ext);
+
+    Path::new(tests_dir).join("actual").join(file)
 }
 
 fn bw_theme() -> impl style::Theme {
@@ -69,16 +75,26 @@ where
     buf
 }
 
-#[cfg(feature="regenerate-refs")]
+fn pxl_to_file(pxl: &tiny_skia::Pixmap, file: &Path) {
+    std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+    pxl.save_png(file).unwrap();
+}
+
+fn svg_to_file(svg: &[u8], file: &Path) {
+    std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+    std::fs::write(file, svg).unwrap();
+}
+
+#[cfg(feature = "regenerate-refs")]
 const REGENERATE_REFS: bool = true;
 
-#[cfg(not(feature="regenerate-refs"))]
+#[cfg(not(feature = "regenerate-refs"))]
 const REGENERATE_REFS: bool = false;
 
-#[cfg(feature="allow-no-ref")]
+#[cfg(feature = "allow-no-ref")]
 const ALLOW_NO_REF: bool = true;
 
-#[cfg(not(feature="allow-no-ref"))]
+#[cfg(not(feature = "allow-no-ref"))]
 const ALLOW_NO_REF: bool = false;
 
 macro_rules! assert_fig_eq_ref {
@@ -86,14 +102,13 @@ macro_rules! assert_fig_eq_ref {
         let actual_file = $crate::actual_file_path($file);
         let diff_file = $crate::diff_file_path($file);
 
-        let (diff_px, diff_count) = $crate::pixelmatch::pixelmatch($actual_pxl.as_ref(), $ref_pxl.as_ref(), Default::default());
+        let (diff_pxl, diff_count) = $crate::pixelmatch::pixelmatch($actual_pxl.as_ref(), $ref_pxl.as_ref(), Default::default());
 
         if diff_count != 0 {
             let ref_file = $crate::ref_file_path($file);
 
-            $actual_pxl.save_png(&actual_file).unwrap();
-
-            diff_px.unwrap().save_png(&diff_file).unwrap();
+            $crate::pxl_to_file(&$actual_pxl, &actual_file);
+            $crate::pxl_to_file(diff_pxl.as_ref().unwrap(), &diff_file);
 
             panic!(
                 "PXL assertion failed\n actual figure: {:?}\n    ref figure: {:?}\n    diff image: {:?}\n    diff count: {}",
@@ -112,7 +127,7 @@ macro_rules! assert_fig_eq_ref {
         let actual_file = $crate::actual_file_path($file);
         if $actual_svg != $ref_svg {
             let ref_file = $crate::ref_file_path($file);
-            std::fs::write(&actual_file, &$actual_svg).unwrap();
+            $crate::svg_to_file(&$actual_svg, &actual_file);
             panic!(
                 "SVG assertion failed\n actual figure: {:?}\n    ref figure: {:?}",
                 actual_file, ref_file
@@ -132,14 +147,14 @@ macro_rules! assert_fig_eq_ref {
             || std::env::var("EIDOPLOT_TEST_REGENERATE_REFS").is_ok()
             || std::env::var("EIDOPLOT_TEST_REGENERATE_PNG_REFS").is_ok()
         {
-            actual_pxl.save_png(&ref_file).unwrap();
+            $crate::pxl_to_file(&actual_pxl, &ref_file);
         }
 
         if !std::fs::exists(&ref_file).unwrap() {
             let actual_file = $crate::actual_file_path($file);
-            actual_pxl.save_png(&actual_file).unwrap();
+            $crate::pxl_to_file(&actual_pxl, &actual_file);
             if !$crate::ALLOW_NO_REF {
-                panic!("No ref for \"{}\"\n Actual figure written to {}", $file, actual_file.display());
+                panic!("No such ref: \"{}\"\n  Actual figure written to {}", $file, actual_file.display());
             }
         } else {
             let ref_pxl = tiny_skia::Pixmap::load_png(&ref_file).unwrap();
@@ -153,19 +168,19 @@ macro_rules! assert_fig_eq_ref {
     (svg, $fig:expr, $file:expr, $theme:expr) => {
         let actual_svg = $crate::fig_to_svg($fig, $theme);
         let ref_file = $crate::ref_file_path($file);
-        
+
         if $crate::REGENERATE_REFS
             || std::env::var("EIDOPLOT_TEST_REGENERATE_REFS").is_ok()
             || std::env::var("EIDOPLOT_TEST_REGENERATE_SVG_REFS").is_ok()
         {
-            std::fs::write(&ref_file, &actual_svg).unwrap();
+            svg_to_file(&actual_svg, &ref_file);
         }
 
         if !std::fs::exists(&ref_file).unwrap() {
             let actual_file = $crate::actual_file_path($file);
-            std::fs::write(&actual_file, &actual_svg).unwrap();
+            svg_to_file(&actual_svg, &actual_file);
             if !$crate::ALLOW_NO_REF {
-                panic!("No ref for \"{}\"\n Actual figure written to {}", $file, actual_file.display());
+                panic!("No such ref: \"{}\"\n  Actual figure written to {}", $file, actual_file.display());
             }
         } else {
             let ref_svg = std::fs::read(&ref_file).unwrap();
