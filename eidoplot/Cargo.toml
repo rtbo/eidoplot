@@ -29,15 +29,15 @@ name="sine"
 name="gauss"
 
 [[example]]
-name="polars"
-required-features = ["polars"]
-
-[[example]]
 name="iris"
 
 [[example]]
-name="iris_polars"
+name="bars"
+
+[[example]]
+name="polars_sine"
 required-features = ["polars"]
 
 [[example]]
-name="bars"
+name="polars_iris"
+required-features = ["polars"]

@@ -12,7 +12,8 @@ fn main() {
         .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into());
     let y_axis = ir::Axis::new()
         .with_title("y".to_string().into())
-        .with_minor_ticks(ir::axis::ticks::MinorTicks::default());
+        .with_ticks(Default::default())
+        .with_minor_ticks(Default::default());
 
     let series = ir::Series::Line(
         ir::series::Line::new(
@@ -37,5 +38,5 @@ fn main() {
         .with_f64_column("x".into(), x)
         .with_f64_column("y".into(), y);
 
-    common::save_figure(&fig, &data_source);
+    common::save_figure(&fig, &data_source, "sine");
 }

@@ -90,15 +90,15 @@ fn parse_args() -> Args {
     args
 }
 
-pub fn save_figure<D>(fig: &ir::Figure, data_source: &D)
+pub fn save_figure<D>(fig: &ir::Figure, data_source: &D, default_name: &str)
 where
     D: data::Source,
 {
     let args = parse_args();
-    save_fig_with_theme(fig, data_source, &args);
+    save_fig_match_theme(fig, data_source, &args, default_name);
 }
 
-fn save_fig_with_theme<D>(fig: &ir::Figure, data_source: &D, args: &Args)
+fn save_fig_match_theme<D>(fig: &ir::Figure, data_source: &D, args: &Args, default_name: &str)
 where
     D: data::Source,
 {
@@ -106,85 +106,114 @@ where
 
     match &args.theme {
         Theme::LightStandard => {
-            save_fig_with_resolved_theme(
+            save_fig_with_theme(
                 fig,
                 data_source,
                 theme::Light::new(series::STANDARD),
                 args,
+                default_name,
                 fontdb,
             );
         }
         Theme::LightPastel => {
-            save_fig_with_resolved_theme(
+            save_fig_with_theme(
                 fig,
                 data_source,
                 theme::Light::new(series::PASTEL),
                 args,
+                default_name,
                 fontdb,
             );
         }
         Theme::LightTolBright => {
-            save_fig_with_resolved_theme(
+            save_fig_with_theme(
                 fig,
                 data_source,
                 theme::Light::new(series::TOL_BRIGHT),
                 args,
+                default_name,
                 fontdb,
             );
         }
         Theme::LightOkabeIto => {
-            save_fig_with_resolved_theme(
+            save_fig_with_theme(
                 fig,
                 data_source,
                 theme::Light::new(series::OKABE_ITO),
                 args,
+                default_name,
                 fontdb,
             );
         }
         Theme::DarkPastel => {
-            save_fig_with_resolved_theme(
+            save_fig_with_theme(
                 fig,
                 data_source,
                 theme::Dark::new(series::PASTEL),
                 args,
+                default_name,
                 fontdb,
             );
         }
         Theme::DarkStandard => {
-            save_fig_with_resolved_theme(
+            save_fig_with_theme(
                 fig,
                 data_source,
                 theme::Dark::new(series::STANDARD),
                 args,
+                default_name,
                 fontdb,
             );
         }
         Theme::CatppuccinLatte => {
-            save_fig_with_resolved_theme(fig, data_source, style::catppuccin::Latte, args, fontdb);
+            save_fig_with_theme(
+                fig,
+                data_source,
+                style::catppuccin::Latte,
+                args,
+                default_name,
+                fontdb,
+            );
         }
         Theme::CatppuccinFrappe => {
-            save_fig_with_resolved_theme(fig, data_source, style::catppuccin::Frappe, args, fontdb);
+            save_fig_with_theme(
+                fig,
+                data_source,
+                style::catppuccin::Frappe,
+                args,
+                default_name,
+                fontdb,
+            );
         }
         Theme::CatppuccinMacchiato => {
-            save_fig_with_resolved_theme(
+            save_fig_with_theme(
                 fig,
                 data_source,
                 style::catppuccin::Macchiato,
                 args,
+                default_name,
                 fontdb,
             );
         }
         Theme::CatppuccinMocha => {
-            save_fig_with_resolved_theme(fig, data_source, style::catppuccin::Mocha, args, fontdb);
+            save_fig_with_theme(
+                fig,
+                data_source,
+                style::catppuccin::Mocha,
+                args,
+                default_name,
+                fontdb,
+            );
         }
     }
 }
 
-fn save_fig_with_resolved_theme<T, D>(
+fn save_fig_with_theme<T, D>(
     fig: &ir::Figure,
     data_source: &D,
     theme: T,
     args: &Args,
+    default_name: &str,
     fontdb: Arc<fontdb::Database>,
 ) where
     D: data::Source,
@@ -192,43 +221,32 @@ fn save_fig_with_resolved_theme<T, D>(
 {
     match &args.png {
         Png::No => (),
-        Png::Yes => write_png(fig, data_source, theme.clone(), fontdb.clone(), "plot.png"),
+        Png::Yes => save_fig_as_png(
+            fig,
+            data_source,
+            theme.clone(),
+            fontdb.clone(),
+            &format!("{}.png", default_name),
+        ),
         Png::YesToFile(file_name) => {
-            write_png(fig, data_source, theme.clone(), fontdb.clone(), &file_name)
+            save_fig_as_png(fig, data_source, theme.clone(), fontdb.clone(), &file_name)
         }
     }
 
     match &args.svg {
         Svg::No => (),
-        Svg::Yes => write_svg(fig, data_source, theme.clone(), fontdb, "plot.svg"),
-        Svg::YesToFile(file_name) => write_svg(fig, data_source, theme.clone(), fontdb, &file_name),
+        Svg::Yes => save_fig_as_svg(
+            fig,
+            data_source,
+            theme.clone(),
+            fontdb,
+            &format!("{}.svg", default_name),
+        ),
+        Svg::YesToFile(file_name) => save_fig_as_svg(fig, data_source, theme.clone(), fontdb, &file_name),
     }
 }
 
-fn write_svg<D, T>(
-    fig: &ir::Figure,
-    data_source: &D,
-    theme: T,
-    fontdb: Arc<fontdb::Database>,
-    file_name: &str,
-) where
-    D: data::Source,
-    T: style::Theme,
-{
-    let mut svg = SvgSurface::new(800, 600);
-    svg.draw_figure(
-        fig,
-        data_source,
-        theme,
-        drawing::Options {
-            fontdb: Some(fontdb),
-        },
-    )
-    .unwrap();
-    svg.save_svg(file_name).unwrap();
-}
-
-fn write_png<D, T>(
+fn save_fig_as_png<D, T>(
     fig: &ir::Figure,
     data_source: &D,
     theme: T,
@@ -249,4 +267,27 @@ fn write_png<D, T>(
     )
     .unwrap();
     pxl.save_png(file_name).unwrap();
+}
+
+fn save_fig_as_svg<D, T>(
+    fig: &ir::Figure,
+    data_source: &D,
+    theme: T,
+    fontdb: Arc<fontdb::Database>,
+    file_name: &str,
+) where
+    D: data::Source,
+    T: style::Theme,
+{
+    let mut svg = SvgSurface::new(800, 600);
+    svg.draw_figure(
+        fig,
+        data_source,
+        theme,
+        drawing::Options {
+            fontdb: Some(fontdb),
+        },
+    )
+    .unwrap();
+    svg.save_svg(file_name).unwrap();
 }

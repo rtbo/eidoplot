@@ -1,5 +1,4 @@
 .vscode/settings.json
 target/
-/plot.svg
-/plot.png
-/out.png
+/*.svg
+/*.png

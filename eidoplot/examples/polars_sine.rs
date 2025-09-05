@@ -17,8 +17,12 @@ fn main() {
 
     let title = ir::figure::Title::from("Sine wave from polars".to_string());
 
-    let x_axis = ir::Axis::new().with_title("x".to_string().into());
-    let y_axis = ir::Axis::new().with_title("y".to_string().into());
+    let x_axis = ir::Axis::new()
+        .with_title("x".to_string().into())
+        .with_ticks(Default::default());
+    let y_axis = ir::Axis::new()
+        .with_title("y".to_string().into())
+        .with_ticks(Default::default());
 
     let series = ir::Series::Line(
         ir::series::Line::new(
@@ -35,5 +39,5 @@ fn main() {
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(title);
 
-    common::save_figure(&fig, &data_source);
+    common::save_figure(&fig, &data_source, "polars-sine");
 }

@@ -23,8 +23,12 @@ fn main() {
 
     let title = ir::figure::Title::new("Categorical bars".into());
 
-    let x_axis = ir::Axis::new().with_title("Fruits".to_string().into());
-    let y_axis = ir::Axis::new().with_title("Stocks".to_string().into());
+    let x_axis = ir::Axis::new()
+        .with_title("Fruits".to_string().into())
+        .with_ticks(Default::default());
+    let y_axis = ir::Axis::new()
+        .with_title("Stocks".to_string().into())
+        .with_ticks(Default::default());
 
     // let bars_group: ir::Series = ir::series::BarsGroup::new(
     //     ir::DataCol::SrcRef("fruits".to_string()),
@@ -65,7 +69,7 @@ fn main() {
         )
         .with_name("Stocks 2024".into())
         .with_position(ir::series::BarsPosition {
-            offset: 0.2,
+            offset: 0.4,
             width: 0.2,
         }),
     );
@@ -76,7 +80,7 @@ fn main() {
         )
         .with_name("Stocks 2025".into())
         .with_position(ir::series::BarsPosition {
-            offset: 0.2,
+            offset: 0.6,
             width: 0.2,
         }),
     );
@@ -89,5 +93,5 @@ fn main() {
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(title);
 
-    common::save_figure(&fig, &source);
+    common::save_figure(&fig, &source, "bars");
 }

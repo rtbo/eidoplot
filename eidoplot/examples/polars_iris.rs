@@ -89,8 +89,12 @@ fn main() {
 
     let title: ir::figure::Title = "Iris dataset".to_string().into();
 
-    let x_axis = ir::Axis::new().with_title("Sepal Length [cm]".to_string().into());
-    let y_axis = ir::Axis::new().with_title("Petal Length [cm]".to_string().into());
+    let x_axis = ir::Axis::new()
+        .with_title("Sepal Length [cm]".to_string().into())
+        .with_ticks(Default::default());
+    let y_axis = ir::Axis::new()
+        .with_title("Petal Length [cm]".to_string().into())
+        .with_ticks(Default::default());
 
     let setosa = ir::Series::Scatter(
         ir::series::Scatter::new(
@@ -121,5 +125,5 @@ fn main() {
 
     let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(title);
 
-    common::save_figure(&fig, &source);
+    common::save_figure(&fig, &source, "polars-iris");
 }

@@ -30,7 +30,9 @@ fn main() {
     let title: ir::figure::Title =
         format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA).into();
 
-    let x_axis = ir::Axis::new().with_title("x".to_string().into());
+    let x_axis = ir::Axis::new()
+        .with_title("x".to_string().into())
+        .with_ticks(Default::default());
     let y_axis = ir::Axis::new()
         .with_title("y".to_string().into())
         .with_ticks(ir::axis::Ticks::new().with_formatter(ir::axis::ticks::Formatter::Percent));
@@ -66,7 +68,7 @@ fn main() {
 
     let data_source = data::TableSource::new().with_f64_column("pop".into(), pop);
 
-    common::save_figure(&fig, &data_source);
+    common::save_figure(&fig, &data_source, "gauss");
 }
 
 fn predictable_rng(seed: Option<u64>) -> impl rand::Rng {
