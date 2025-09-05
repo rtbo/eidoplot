@@ -28,7 +28,7 @@ fn main() {
         .with_y_axis(y_axis)
         .with_legend(Some(ir::plot::LegendPos::InTopRight.into()));
 
-    let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
+    let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(title);
 
     let x: Vec<f64> = (0..=360).map(|t| t as f64 * PI / 180.0).collect();
     let y = x.iter().map(|x| x.sin()).collect();

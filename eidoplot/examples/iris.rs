@@ -124,7 +124,7 @@ fn main() {
         .with_y_axis(y_axis)
         .with_legend(Some(ir::plot::LegendPos::InBottomRight.into()));
 
-    let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
+    let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(title);
 
     common::save_figure(&fig, &source);
 }

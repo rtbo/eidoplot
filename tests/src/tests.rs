@@ -21,6 +21,14 @@ fn empty() {
 }
 
 #[test]
+fn empty_title() {
+    let plot = ir::Plot::new(vec![]);
+    let fig = fig_small(plot).with_title("Title".to_string().into());
+
+    assert_fig_eq_ref!(&fig, "empty-title");
+}
+
+#[test]
 fn axes_default() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series]);

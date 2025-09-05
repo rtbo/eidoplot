@@ -87,7 +87,7 @@ fn main() {
         .with_x_axis(x_axis)
         .with_y_axis(y_axis);
 
-    let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(Some(title));
+    let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(title);
 
     common::save_figure(&fig, &source);
 }

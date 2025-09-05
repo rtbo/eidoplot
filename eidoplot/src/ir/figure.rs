@@ -127,9 +127,10 @@ impl From<LegendPos> for FigLegend {
 
 #[derive(Debug, Clone)]
 pub struct Figure {
+    plots: Plots,
+
     title: Option<Title>,
     size: geom::Size,
-    plots: Plots,
     legend: Option<FigLegend>,
     fill: Option<theme::Fill>,
     padding: geom::Padding,
@@ -138,18 +139,19 @@ pub struct Figure {
 impl Figure {
     pub fn new(plots: Plots) -> Figure {
         Figure {
+            plots,
+
             title: None,
             size: defaults::FIG_SIZE,
-            plots,
             legend: None,
             fill: Some(theme::Col::Background.into()),
             padding: defaults::FIG_PADDING,
         }
     }
 
-    pub fn with_title(self, title: Option<Title>) -> Self {
+    pub fn with_title(self, title: Title) -> Self {
         Figure {
-            title: title,
+            title: Some(title),
             ..self
         }
     }
