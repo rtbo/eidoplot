@@ -692,8 +692,7 @@ impl<D, T> Ctx<'_, D, T> {
         let scale = self.setup_scale(ir, ab, side, size_along, insets)?;
 
         let title = ir
-            .title
-            .as_ref()
+            .title()
             .map(|title| {
                 text::shape_and_layout_str(
                     title.text(),
@@ -719,16 +718,15 @@ impl<D, T> Ctx<'_, D, T> {
     ) -> Result<AxisScale, Error> {
         match ab {
             Bounds::Num(nb) => {
-                let cm = scale::map_scale_coord_num(&ir.scale, size_along, &nb, insets);
+                let cm = scale::map_scale_coord_num(ir.scale(), size_along, &nb, insets);
                 let nb = cm.axis_bounds().as_num().unwrap();
 
                 let ticks = ir
-                    .ticks
-                    .as_ref()
+                    .ticks()
                     .map(|major_ticks| self.setup_num_ticks(major_ticks, nb, side))
                     .transpose()?;
 
-                let minor_ticks = if let Some(mt) = ir.minor_ticks.as_ref() {
+                let minor_ticks = if let Some(mt) = ir.minor_ticks() {
                     Some(self.setup_minor_ticks(mt, ticks.as_ref(), nb)?)
                 } else {
                     None
@@ -743,8 +741,7 @@ impl<D, T> Ctx<'_, D, T> {
             Bounds::Cat(cats) => {
                 let bins = CategoryBins::new(size_along, insets, cats.clone());
                 let ticks = ir
-                    .ticks
-                    .as_ref()
+                    .ticks()
                     .map(|t| self.setup_cat_ticks(t, cats, side))
                     .transpose()?;
                 Ok(AxisScale::Cat { bins, ticks })

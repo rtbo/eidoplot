@@ -89,11 +89,11 @@ impl<D, T> Ctx<'_, D, T> {
 
     fn estimate_hor_axis_height(&self, x_axis: &ir::Axis) -> f32 {
         let mut height = 0.0;
-        if let Some(ticks) = x_axis.ticks.as_ref() {
+        if let Some(ticks) = x_axis.ticks() {
             height +=
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size;
         }
-        if let Some(label) = x_axis.title.as_ref() {
+        if let Some(label) = x_axis.title() {
             height += 2.0 * missing_params::AXIS_TITLE_MARGIN + label.font().size;
         }
         height

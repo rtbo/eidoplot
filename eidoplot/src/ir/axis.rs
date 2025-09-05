@@ -298,10 +298,11 @@ impl From<String> for Title {
 
 #[derive(Debug, Clone)]
 pub struct Axis {
-    pub title: Option<Title>,
-    pub scale: Scale,
-    pub ticks: Option<Ticks>,
-    pub minor_ticks: Option<MinorTicks>,
+    scale: Scale,
+
+    title: Option<Title>,
+    ticks: Option<Ticks>,
+    minor_ticks: Option<MinorTicks>,
 }
 
 impl Default for Axis {

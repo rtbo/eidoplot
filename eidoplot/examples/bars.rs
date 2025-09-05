@@ -23,14 +23,8 @@ fn main() {
 
     let title = ir::figure::Title::new("Categorical bars".into());
 
-    let x_axis = ir::Axis {
-        title: Some(ir::axis::Title::new("Fruits".to_string())),
-        ..ir::Axis::default()
-    };
-    let y_axis = ir::Axis {
-        title: Some(ir::axis::Title::new("Stocks".to_string())),
-        ..ir::Axis::default()
-    };
+    let x_axis = ir::Axis::new().with_title("Fruits".to_string().into());
+    let y_axis = ir::Axis::new().with_title("Stocks".to_string().into());
 
     // let bars_group: ir::Series = ir::series::BarsGroup::new(
     //     ir::DataCol::SrcRef("fruits".to_string()),
