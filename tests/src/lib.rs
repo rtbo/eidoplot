@@ -194,8 +194,8 @@ macro_rules! assert_fig_eq_ref {
         if diff_count != 0 {
             let ref_file = $crate::ref_file_path(&$ref_file_name);
 
-            PxlHarness::serialize_fig(actual_file.as_path(), &$prepared.actual_drawn_fig);
-            PxlHarness::serialize_fig(diff_file.as_path(), diff_pxl.as_ref().unwrap());
+            $crate::PxlHarness::serialize_fig(actual_file.as_path(), &$prepared.actual_drawn_fig);
+            $crate::PxlHarness::serialize_fig(diff_file.as_path(), diff_pxl.as_ref().unwrap());
 
             panic!(
                 "PXL assertion failed\n actual figure: {:?}\n    ref figure: {:?}\n    diff image: {:?}\n    diff count: {}",
@@ -215,7 +215,7 @@ macro_rules! assert_fig_eq_ref {
 
         if $prepared.actual_drawn_fig != $prepared.ref_drawn_fig {
             let ref_file = $crate::ref_file_path(&$ref_file_name);
-            SvgHarness::serialize_fig(&actual_file, &$prepared.actual_drawn_fig);
+            $crate::SvgHarness::serialize_fig(&actual_file, &$prepared.actual_drawn_fig);
             panic!(
                 "SVG assertion failed\n actual figure: {:?}\n    ref figure: {:?}",
                 actual_file, ref_file
