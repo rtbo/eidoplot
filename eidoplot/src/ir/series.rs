@@ -71,21 +71,26 @@ impl From<BarsGroup> for Series {
 
 #[derive(Debug, Clone)]
 pub struct Line {
-    name: Option<String>,
     x_data: DataCol,
     y_data: DataCol,
 
+    name: Option<String>,
     line: style::series::Line,
 }
 
 impl Line {
-    pub fn new(name: Option<String>, x_data: DataCol, y_data: DataCol) -> Self {
+    pub fn new(x_data: DataCol, y_data: DataCol) -> Self {
         Line {
-            name,
             x_data,
             y_data,
+
+            name: None,
             line: style::series::Line::default(),
         }
+    }
+
+    pub fn with_name(self, name: String) -> Self {
+        Self { name: Some(name), ..self }
     }
 
     pub fn with_line(mut self, line: style::series::Line) -> Self {
@@ -112,21 +117,26 @@ impl Line {
 
 #[derive(Debug, Clone)]
 pub struct Scatter {
-    name: Option<String>,
     x_data: DataCol,
     y_data: DataCol,
 
+    name: Option<String>,
     marker: style::series::Marker,
 }
 
 impl Scatter {
-    pub fn new(name: Option<String>, x_data: DataCol, y_data: DataCol) -> Self {
+    pub fn new(x_data: DataCol, y_data: DataCol) -> Self {
         Scatter {
-            name,
             x_data,
             y_data,
+
+            name: None,
             marker: style::series::Marker::default(),
         }
+    }
+
+    pub fn with_name(self, name: String) -> Self {
+        Self { name: Some(name), ..self }
     }
 
     pub fn with_marker(mut self, marker: style::series::Marker) -> Self {
@@ -153,9 +163,9 @@ impl Scatter {
 
 #[derive(Debug, Clone)]
 pub struct Histogram {
-    name: Option<String>,
     data: DataCol,
 
+    name: Option<String>,
     fill: style::series::Fill,
     line: Option<style::series::Line>,
     bins: u32,
@@ -163,10 +173,11 @@ pub struct Histogram {
 }
 
 impl Histogram {
-    pub fn new(name: Option<String>, data: DataCol) -> Self {
+    pub fn new(data: DataCol) -> Self {
         Histogram {
-            name,
             data,
+
+            name: None,
             fill: style::series::Fill::default(),
             line: None,
             bins: 10,
@@ -174,9 +185,12 @@ impl Histogram {
         }
     }
 
-    pub fn with_fill(mut self, fill: style::series::Fill) -> Self {
-        self.fill = fill;
-        self
+    pub fn with_name(self, name: String) -> Self {
+        Self { name: Some(name), ..self }
+    }
+
+    pub fn with_fill(self, fill: style::series::Fill) -> Self {
+        Self { fill, ..self }
     }
 
     pub fn with_line(mut self, line: style::series::Line) -> Self {
@@ -224,14 +238,14 @@ impl Histogram {
 /// (the bar starts at 30% of the bin and ends at 70% of the bin)
 /// If multiple series are plotted, this offset and width are to be adjusted, otherwise the bars will overlap.
 #[derive(Debug, Clone, Copy)]
-pub struct BarPosition {
+pub struct BarsPosition {
     pub offset: f32,
     pub width: f32,
 }
 
-impl Default for BarPosition {
+impl Default for BarsPosition {
     fn default() -> Self {
-        BarPosition {
+        BarsPosition {
             offset: 0.3,
             width: 0.4,
         }
@@ -242,25 +256,30 @@ impl Default for BarPosition {
 /// One of the axis must be categories, and the other must be numeric
 #[derive(Debug, Clone)]
 pub struct Bars {
-    name: Option<String>,
     x_data: DataCol,
     y_data: DataCol,
 
+    name: Option<String>,
     fill: style::series::Fill,
     line: Option<style::series::Line>,
-    position: BarPosition,
+    position: BarsPosition,
 }
 
 impl Bars {
-    pub fn new(name: Option<String>, x_data: DataCol, y_data: DataCol) -> Self {
+    pub fn new(x_data: DataCol, y_data: DataCol) -> Self {
         Bars {
-            name,
             x_data,
             y_data,
+
+            name: None,
             fill: style::series::Fill::default(),
             line: None,
-            position: BarPosition::default(),
+            position: BarsPosition::default(),
         }
+    }
+
+    pub fn with_name(self, name: String) -> Self {
+        Self { name: Some(name), ..self }
     }
 
     pub fn with_fill(self, fill: style::series::Fill) -> Self {
@@ -271,7 +290,7 @@ impl Bars {
         Self { line: Some(line), ..self }
     }
 
-    pub fn with_position(self, position: BarPosition) -> Self {
+    pub fn with_position(self, position: BarsPosition) -> Self {
         Self { position, ..self }
     }
 
@@ -295,7 +314,7 @@ impl Bars {
         self.line.as_ref()
     }
 
-    pub fn position(&self) -> &BarPosition {
+    pub fn position(&self) -> &BarsPosition {
         &self.position
     }
 }
@@ -303,18 +322,19 @@ impl Bars {
 /// The series structure for [`SeriesPlot::Bars`] and [`SeriesPlot::BarsGroup`]
 #[derive(Debug, Clone)]
 pub struct BarSeries {
-    name: Option<String>,
     data: DataCol,
 
+    name: Option<String>,
     fill: style::series::Fill,
     line: Option<style::series::Line>,
 }
 
 impl BarSeries {
-    pub fn new(name: Option<String>, data: DataCol) -> Self {
+    pub fn new(data: DataCol) -> Self {
         BarSeries {
-            name,
             data,
+
+            name: None,
             fill: style::series::Fill::default(),
             line: None,
         }

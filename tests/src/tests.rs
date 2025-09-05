@@ -9,13 +9,7 @@ fn fig_small(plot: ir::Plot) -> ir::Figure {
 fn line() -> ir::series::Line {
     let x = vec![1.0, 2.0, 3.0];
     let y = x.clone();
-    ir::series::Line::new(None, x.into(), y.into())
-}
-
-fn line_with_name(name: &str) -> ir::series::Line {
-    let x = vec![1.0, 2.0, 3.0];
-    let y = x.clone();
-    ir::series::Line::new(Some(name.to_string()), x.into(), y.into())
+    ir::series::Line::new(x.into(), y.into())
 }
 
 #[test]
@@ -39,7 +33,7 @@ fn axes_minor_ticks() {
 
 #[test]
 fn legend_pos_default() {
-    let series = line_with_name("line").into();
+    let series = line().with_name("line".into()).into();
     let plot = ir::Plot::new(vec![series]);
     let fig = fig_small(plot);
 
@@ -48,7 +42,7 @@ fn legend_pos_default() {
 
 #[test]
 fn legend_pos_top() {
-    let series = line_with_name("line").into();
+    let series = line().with_name("line".into()).into();
     let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::OutTop.into()));
     let fig = fig_small(plot);
 
@@ -57,16 +51,16 @@ fn legend_pos_top() {
 
 #[test]
 fn legend_pos_right() {
-    let series = line_with_name("line").into();
+    let series = line().with_name("line".into()).into();
     let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::OutRight.into()));
     let fig = fig_small(plot);
-    
+
     assert_fig_eq_ref!(&fig, "legend-pos/right");
 }
 
 #[test]
 fn legend_pos_bottom() {
-    let series = line_with_name("line").into();
+    let series = line().with_name("line".into()).into();
     let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::OutBottom.into()));
     let fig = fig_small(plot);
 
@@ -75,7 +69,7 @@ fn legend_pos_bottom() {
 
 #[test]
 fn legend_pos_left() {
-    let series = line_with_name("line").into();
+    let series = line().with_name("line".into()).into();
     let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::OutLeft.into()));
     let fig = fig_small(plot);
 
@@ -84,7 +78,7 @@ fn legend_pos_left() {
 
 #[test]
 fn legend_pos_in_top_left() {
-    let series = line_with_name("line").into();
+    let series = line().with_name("line".into()).into();
     let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InTopLeft.into()));
     let fig = fig_small(plot);
 
@@ -93,7 +87,7 @@ fn legend_pos_in_top_left() {
 
 #[test]
 fn legend_pos_in_top() {
-    let series = line_with_name("line").into();
+    let series = line().with_name("line".into()).into();
     let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InTop.into()));
     let fig = fig_small(plot);
 
@@ -102,8 +96,9 @@ fn legend_pos_in_top() {
 
 #[test]
 fn legend_pos_in_top_right() {
-    let series = line_with_name("line").into();
-    let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InTopRight.into()));
+    let series = line().with_name("line".into()).into();
+    let plot =
+        ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InTopRight.into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "legend-pos/in_top_right");
@@ -111,7 +106,7 @@ fn legend_pos_in_top_right() {
 
 #[test]
 fn legend_pos_in_right() {
-    let series = line_with_name("line").into();
+    let series = line().with_name("line".into()).into();
     let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InRight.into()));
     let fig = fig_small(plot);
 
@@ -120,8 +115,9 @@ fn legend_pos_in_right() {
 
 #[test]
 fn legend_pos_in_bottom_right() {
-    let series = line_with_name("line").into();
-    let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InBottomRight.into()));
+    let series = line().with_name("line".into()).into();
+    let plot =
+        ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InBottomRight.into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "legend-pos/in_bottom_right");
@@ -129,7 +125,7 @@ fn legend_pos_in_bottom_right() {
 
 #[test]
 fn legend_pos_in_bottom() {
-    let series = line_with_name("line").into();
+    let series = line().with_name("line".into()).into();
     let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InBottom.into()));
     let fig = fig_small(plot);
 
@@ -138,8 +134,9 @@ fn legend_pos_in_bottom() {
 
 #[test]
 fn legend_pos_in_bottom_left() {
-    let series = line_with_name("line").into();
-    let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InBottomLeft.into()));
+    let series = line().with_name("line".into()).into();
+    let plot =
+        ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InBottomLeft.into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "legend-pos/in_bottom_left");
@@ -147,7 +144,7 @@ fn legend_pos_in_bottom_left() {
 
 #[test]
 fn legend_pos_in_left() {
-    let series = line_with_name("line").into();
+    let series = line().with_name("line".into()).into();
     let plot = ir::Plot::new(vec![series]).with_legend(Some(ir::plot::LegendPos::InLeft.into()));
     let fig = fig_small(plot);
 

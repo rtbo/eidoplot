@@ -55,33 +55,33 @@ fn main() {
 
     let stocks_2023 = ir::Series::Bars(
         ir::series::Bars::new(
-            Some("Stocks 2023".into()),
             ir::DataCol::SrcRef("fruits".to_string()),
             ir::DataCol::SrcRef("stocks_2023".to_string()),
         )
-        .with_position(ir::series::BarPosition {
+        .with_name("Stocks 2023".into())
+        .with_position(ir::series::BarsPosition {
             offset: 0.2,
             width: 0.2,
         }),
     );
     let stocks_2024 = ir::Series::Bars(
         ir::series::Bars::new(
-            Some("Stocks 2024".into()),
             ir::DataCol::SrcRef("fruits".to_string()),
             ir::DataCol::SrcRef("stocks_2024".to_string()),
         )
-        .with_position(ir::series::BarPosition {
+        .with_name("Stocks 2024".into())
+        .with_position(ir::series::BarsPosition {
             offset: 0.2,
             width: 0.2,
         }),
     );
     let stocks_2025 = ir::Series::Bars(
         ir::series::Bars::new(
-            Some("Stocks 2025".into()),
             ir::DataCol::SrcRef("fruits".to_string()),
             ir::DataCol::SrcRef("stocks_2025".to_string()),
         )
-        .with_position(ir::series::BarPosition {
+        .with_name("Stocks 2025".into())
+        .with_position(ir::series::BarsPosition {
             offset: 0.2,
             width: 0.2,
         }),

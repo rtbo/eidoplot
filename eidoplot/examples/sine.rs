@@ -16,10 +16,10 @@ fn main() {
 
     let series = ir::Series::Line(
         ir::series::Line::new(
-            Some("y=sin(x)".into()),
             ir::DataCol::SrcRef("x".to_string()),
             ir::DataCol::SrcRef("y".to_string()),
         )
+        .with_name("y=sin(x)".to_string())
         .with_line(style::series::Line::default().with_width(4.0)),
     );
 

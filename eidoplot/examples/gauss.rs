@@ -36,25 +36,23 @@ fn main() {
         .with_ticks(ir::axis::Ticks::new().with_formatter(ir::axis::ticks::Formatter::Percent));
 
     let pop_series = ir::Series::Histogram(
-        ir::series::Histogram::new(
-            Some("population".into()),
-            ir::DataCol::SrcRef("pop".to_string()),
-        )
-        .with_fill(style::series::Fill::Solid {
-            color: style::series::Color::Auto,
-            opacity: Some(0.7),
-        })
-        .with_bins(16)
-        .with_density(),
+        ir::series::Histogram::new(ir::DataCol::SrcRef("pop".to_string()))
+            .with_name("population".into())
+            .with_fill(style::series::Fill::Solid {
+                color: style::series::Color::Auto,
+                opacity: Some(0.7),
+            })
+            .with_bins(16)
+            .with_density(),
     );
 
     let dist_series = ir::Series::Line(
-        ir::series::Line::new(Some("distribution".into()), x.into(), y.into()).with_line(
-            style::series::Line {
+        ir::series::Line::new(x.into(), y.into())
+            .with_name("distribution".into())
+            .with_line(style::series::Line {
                 width: 4.0,
                 ..style::Line::default()
-            },
-        ),
+            }),
     );
 
     let series = vec![dist_series, pop_series];
