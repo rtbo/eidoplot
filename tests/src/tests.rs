@@ -13,6 +13,14 @@ fn line() -> ir::series::Line {
 }
 
 #[test]
+fn empty() {
+    let plot = ir::Plot::new(vec![]);
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "empty");
+}
+
+#[test]
 fn axes_default() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series]);

@@ -140,6 +140,12 @@ where
         };
 
         let series = ctx.setup_plot_series(plot)?;
+        if series.is_empty() {
+            self.draw_plot_background(ctx, plot, &rect)?;
+            self.draw_plot_border(ctx, plot.border(), &rect)?;
+            return Ok(());
+        }
+
         let (x_bounds, y_bounds) = Series::unite_bounds(&series)?.ok_or(Error::UnboundedAxis)?;
 
         let axes = ctx.setup_plot_axes(plot, (&x_bounds, &y_bounds), &rect)?;
