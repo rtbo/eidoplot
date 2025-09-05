@@ -83,8 +83,8 @@ impl Legend {
         Self { border, ..self }
     }
 
-    pub fn with_columns(self, columns: Option<NonZeroU32>) -> Self {
-        Self { columns, ..self }
+    pub fn with_columns(self, columns: NonZeroU32) -> Self {
+        Self { columns: Some(columns), ..self }
     }
 
     pub fn with_padding(self, padding: f32) -> Self {

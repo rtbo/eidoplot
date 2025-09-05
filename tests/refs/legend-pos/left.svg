@@ -5,85 +5,11 @@
 <text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="16" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 68 150)">
 line
 </text>
-<path d="M166.976,255 L166.976,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M190.479,255 L190.479,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M213.982,255 L213.982,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M237.48499,255 L237.48499,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M260.988,255 L260.988,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M284.491,255 L284.491,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M307.99402,255 L307.99402,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M331.497,255 L331.497,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M355,255 L355,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M146.976,235 L375,235" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M146.976,211.25 L375,211.25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M146.976,187.5 L375,187.5" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M146.976,163.75 L375,163.75" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M146.976,140 L375,140" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M146.976,116.25 L375,116.25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M146.976,92.5 L375,92.5" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M146.976,68.75 L375,68.75" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M146.976,45 L375,45" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
 <clipPath id="eidoplot-clip1">
-<path d="M146.976,25 L375,25 L375,255 L146.976,255 z"/>
+<path d="M115.168,25 L375,25 L375,275 L115.168,275 z"/>
 </clipPath>
 <g clip-path="url(#eidoplot-clip1)">
-<path d="M166.976,235 L260.988,140 L355,45" fill="none" stroke="#000000" stroke-width="1"/>
+<path d="M135.168,255 L245.084,150 L355,45" fill="none" stroke="#000000" stroke-width="1"/>
 </g>
-<path d="M20,-4 L20,4 M43.503,-4 L43.503,4 M67.006004,-4 L67.006004,4 M90.508995,-4 L90.508995,4 M114.012,-4 L114.012,4 M137.515,-4 L137.515,4 M161.018,-4 L161.018,4 M184.521,-4 L184.521,4 M208.024,-4 L208.024,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(1 0 0 1 146.976 255)"/>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 166.976 267.26)">
-1.00
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 190.479 267.26)">
-1.25
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 213.982 267.26)">
-1.50
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 237.48499 267.26)">
-1.75
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 260.988 267.26)">
-2.00
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 284.491 267.26)">
-2.25
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 307.99402 267.26)">
-2.50
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 331.497 267.26)">
-2.75
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 355 267.26)">
-3.00
-</text>
-<path d="M20,-4 L20,4 M43.75,-4 L43.75,4 M67.5,-4 L67.5,4 M91.25,-4 L91.25,4 M115,-4 L115,4 M138.75,-4 L138.75,4 M162.5,-4 L162.5,4 M186.25,-4 L186.25,4 M210,-4 L210,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(-0.00000004371139 -1 1 -0.00000004371139 146.976 255)"/>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 138.976 235)">
-1.00
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 138.976 211.25)">
-1.25
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 138.976 187.5)">
-1.50
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 138.976 163.75)">
-1.75
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 138.976 140)">
-2.00
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 138.976 116.25)">
-2.25
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 138.976 92.5)">
-2.50
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 138.976 68.75)">
-2.75
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 138.976 45)">
-3.00
-</text>
-<rect fill="none" height="230" stroke="#000000" stroke-width="1" width="228.024" x="146.976" y="25"/>
+<rect fill="none" height="250" stroke="#000000" stroke-width="1" width="259.832" x="115.168" y="25"/>
 </svg>

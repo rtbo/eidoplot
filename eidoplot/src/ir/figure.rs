@@ -132,7 +132,7 @@ pub struct Figure {
     plots: Plots,
     legend: Option<FigLegend>,
     fill: Option<theme::Fill>,
-    layout: Option<Layout>,
+    padding: geom::Padding,
 }
 
 impl Figure {
@@ -143,7 +143,7 @@ impl Figure {
             plots,
             legend: None,
             fill: Some(theme::Col::Background.into()),
-            layout: None,
+            padding: defaults::FIG_PADDING,
         }
     }
 
@@ -158,16 +158,16 @@ impl Figure {
         Figure { size: size, ..self }
     }
 
-    pub fn with_legend(self, legend: Option<FigLegend>) -> Self {
-        Figure { legend, ..self }
+    pub fn with_legend(self, legend: FigLegend) -> Self {
+        Figure { legend: Some(legend), ..self }
     }
 
     pub fn with_fill(self, fill: Option<theme::Fill>) -> Self {
         Figure { fill, ..self }
     }
 
-    pub fn with_layout(self, layout: Option<Layout>) -> Self {
-        Figure { layout, ..self }
+    pub fn with_padding(self, padding: geom::Padding) -> Self {
+        Figure { padding, ..self }
     }
 
     pub fn size(&self) -> geom::Size {
@@ -190,8 +190,8 @@ impl Figure {
         self.fill
     }
 
-    pub fn layout(&self) -> Option<&Layout> {
-        self.layout.as_ref()
+    pub fn padding(&self) -> &geom::Padding {
+        &self.padding
     }
 }
 
@@ -255,33 +255,3 @@ impl<'a> Iterator for PlotIter<'a> {
 }
 
 impl FusedIterator for PlotIter<'_> {}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Layout {
-    padding: Option<geom::Padding>,
-}
-
-impl Default for Layout {
-    fn default() -> Self {
-        Layout {
-            padding: Some(defaults::FIG_PADDING),
-        }
-    }
-}
-
-impl Layout {
-    pub fn new() -> Self {
-        Layout { padding: None }
-    }
-
-    pub fn with_padding(self, padding: Option<geom::Padding>) -> Self {
-        Self {
-            padding: padding,
-            ..self
-        }
-    }
-
-    pub fn padding(&self) -> Option<&geom::Padding> {
-        self.padding.as_ref()
-    }
-}

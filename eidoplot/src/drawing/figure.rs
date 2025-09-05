@@ -24,11 +24,7 @@ where
             self.fill(fill.as_paint(ctx.theme()))?;
         }
 
-        let mut rect = geom::Rect::from_ps(geom::Point::ORIGIN, fig.size());
-        let layout = fig.layout().cloned().unwrap_or_default();
-        if let Some(padding) = layout.padding() {
-            rect = rect.pad(padding);
-        }
+        let mut rect = geom::Rect::from_ps(geom::Point::ORIGIN, fig.size()).pad(fig.padding());
 
         if let Some(title) = fig.title() {
             let title_rect = geom::Rect::from_xywh(
@@ -93,7 +89,7 @@ where
         let Some(sz) = dlegend.layout() else {
             return Ok(());
         };
-        
+
         let top_left = match legend.pos() {
             ir::figure::LegendPos::Top => {
                 let tl = geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.top());

@@ -86,6 +86,21 @@ pub mod ticks {
         }
     }
 
+    /// Describes the style of the major grid lines
+    #[derive(Debug, Clone)]
+    pub struct Grid(pub theme::Line);
+
+    impl Default for Grid {
+        fn default() -> Self {
+            Grid(theme::Line {
+                width: 1.0,
+                color: theme::Col::Grid.into(),
+                pattern: style::LinePattern::Solid,
+                opacity: None,
+            })
+        }
+    }   
+
     /// Describes the major ticks of an axis
     #[derive(Debug, Clone)]
     pub struct Ticks {
@@ -98,7 +113,7 @@ pub mod ticks {
         /// Color for the ticks and the labels
         color: theme::Color,
         /// Gridline style
-        grid: Option<theme::Line>,
+        grid: Option<Grid>,
     }
 
     impl Default for Ticks {
@@ -108,12 +123,7 @@ pub mod ticks {
                 formatter: Formatter::default(),
                 font: TicksFont::default(),
                 color: theme::Col::Foreground.into(),
-                grid: Some(theme::Line {
-                    width: 1.0,
-                    color: theme::Col::Grid.into(),
-                    pattern: style::LinePattern::Solid,
-                    opacity: None,
-                }),
+                grid: None,
             }
         }
     }
@@ -140,7 +150,7 @@ pub mod ticks {
             Self { color, ..self }
         }
         /// Returns a new ticks with the specified grid
-        pub fn with_grid(self, grid: Option<theme::Line>) -> Self {
+        pub fn with_grid(self, grid: Option<Grid>) -> Self {
             Self { grid, ..self }
         }
 
@@ -161,7 +171,7 @@ pub mod ticks {
             self.color
         }
         /// The grid
-        pub fn grid(&self) -> Option<&theme::Line> {
+        pub fn grid(&self) -> Option<&Grid> {
             self.grid.as_ref()
         }
     }
@@ -175,6 +185,21 @@ pub mod ticks {
         }
     }
 
+    /// Describes the style of the minor grid lines
+    #[derive(Debug, Clone)]
+    pub struct MinorGrid(pub theme::Line);
+
+    impl Default for MinorGrid {
+        fn default() -> Self {
+            MinorGrid(theme::Line {
+                width: 0.5,
+                color: theme::Col::Grid.into(),
+                pattern: style::LinePattern::Dash(Dash::default()),
+                opacity: None,
+            })
+        }
+    }   
+
     #[derive(Debug, Clone)]
     pub struct MinorTicks {
         /// Minor ticks locator
@@ -182,7 +207,7 @@ pub mod ticks {
         /// Ticks color
         color: theme::Color,
         /// Gridline style
-        grid: Option<theme::Line>,
+        grid: Option<MinorGrid>,
     }
 
     impl Default for MinorTicks {
@@ -190,12 +215,7 @@ pub mod ticks {
             MinorTicks {
                 locator: Locator::default(),
                 color: theme::Col::Foreground.into(),
-                grid: Some(style::Line {
-                    width: 0.5,
-                    color: theme::Col::Grid.into(),
-                    pattern: style::LinePattern::Dash(Dash::default()),
-                    opacity: None,
-                }),
+                grid: None,
             }
         }
     }
@@ -219,7 +239,7 @@ pub mod ticks {
         pub fn with_color(self, color: theme::Color) -> Self {
             Self { color, ..self }
         }
-        pub fn with_grid(self, grid: Option<theme::Line>) -> Self {
+        pub fn with_grid(self, grid: Option<MinorGrid>) -> Self {
             Self { grid, ..self }
         }
 
@@ -229,7 +249,7 @@ pub mod ticks {
         pub fn color(&self) -> theme::Color {
             self.color
         }
-        pub fn grid(&self) -> Option<&theme::Line> {
+        pub fn grid(&self) -> Option<&MinorGrid> {
             self.grid.as_ref()
         }
     }
@@ -310,7 +330,7 @@ impl Default for Axis {
         Axis {
             title: None,
             scale: Default::default(),
-            ticks: Some(Default::default()),
+            ticks: None,
             minor_ticks: None,
         }
     }

@@ -757,7 +757,7 @@ impl<D, T> Ctx<'_, D, T> {
     ) -> Result<NumTicks, Error> {
         let db: &font::Database = self.fontdb();
         let font = major_ticks.font();
-        let grid = major_ticks.grid().cloned();
+        let grid = major_ticks.grid().map(|g| g.0.clone());
 
         let ticks_opts = side.ticks_labels_opts();
         let annot_opts = side.annot_opts();
@@ -811,7 +811,7 @@ impl<D, T> Ctx<'_, D, T> {
         });
         let mut line: theme::Line = theme::Col::Foreground.into();
         if let Some(grid) = minor_ticks.grid() {
-            line = line.with_width(grid.width);
+            line = line.with_width(grid.0.width);
         } else {
             line = line.with_width(missing_params::MINOR_TICK_LINE_WIDTH);
         }
@@ -824,7 +824,7 @@ impl<D, T> Ctx<'_, D, T> {
         Ok(MinorTicks {
             locs,
             mark,
-            grid: minor_ticks.grid().cloned(),
+            grid: minor_ticks.grid().map(|g| g.0.clone()),
         })
     }
 

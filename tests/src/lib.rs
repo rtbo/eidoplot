@@ -27,9 +27,13 @@ fn diff_file_path(file: &str) -> PathBuf {
     let tests_dir = env!("CARGO_MANIFEST_DIR");
 
     let path = Path::new(file);
+    let parent = path.parent();
     let stem = path.file_stem().and_then(std::ffi::OsStr::to_str).unwrap();
     let ext = path.extension().and_then(std::ffi::OsStr::to_str).unwrap();
-    let file = format!("{}-diff.{}", stem, ext);
+    let filename = format!("{}-diff.{}", stem, ext);
+    let file = parent
+        .map(|p| p.join(&filename))
+        .unwrap_or_else(|| PathBuf::from(filename));
 
     Path::new(tests_dir).join("actual").join(file)
 }
@@ -37,7 +41,6 @@ fn diff_file_path(file: &str) -> PathBuf {
 fn bw_theme() -> impl style::Theme {
     style::theme::Light::new(style::series::BLACK)
 }
-
 
 #[cfg(feature = "regenerate-refs")]
 const REGENERATE_REFS: bool = true;
@@ -136,6 +139,7 @@ impl TestHarness for PxlHarness {
     }
 
     fn serialize_fig(file: &Path, fig: &Self::DrawnFig) {
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
         fig.save_png(file).unwrap();
     }
 
@@ -169,6 +173,7 @@ impl TestHarness for SvgHarness {
     }
 
     fn serialize_fig(file: &Path, fig: &Self::DrawnFig) {
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
         std::fs::write(file, fig).unwrap();
     }
 

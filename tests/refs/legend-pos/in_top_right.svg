@@ -1,86 +1,12 @@
 <svg height="300" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg">
 <rect fill="#ffffff" height="100%" width="100%"/>
-<path d="M76.808,255 L76.808,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M111.582,255 L111.582,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M146.356,255 L146.356,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M181.13,255 L181.13,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M215.904,255 L215.904,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M250.678,255 L250.678,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M285.45203,255 L285.45203,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M320.226,255 L320.226,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M355,255 L355,25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M56.808,235 L375,235" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M56.808,211.25 L375,211.25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M56.808,187.5 L375,187.5" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M56.808,163.75 L375,163.75" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M56.808,140 L375,140" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M56.808,116.25 L375,116.25" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M56.808,92.5 L375,92.5" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M56.808,68.75 L375,68.75" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<path d="M56.808,45 L375,45" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
 <clipPath id="eidoplot-clip1">
-<path d="M56.808,25 L375,25 L375,255 L56.808,255 z"/>
+<path d="M25,25 L375,25 L375,275 L25,275 z"/>
 </clipPath>
 <g clip-path="url(#eidoplot-clip1)">
-<path d="M76.808,235 L215.904,140 L355,45" fill="none" stroke="#000000" stroke-width="1"/>
+<path d="M45,255 L200,150 L355,45" fill="none" stroke="#000000" stroke-width="1"/>
 </g>
-<path d="M20.000002,-4 L20.000002,4 M54.774002,-4 L54.774002,4 M89.548004,-4 L89.548004,4 M124.32201,-4 L124.32201,4 M159.09601,-4 L159.09601,4 M193.87,-4 L193.87,4 M228.64401,-4 L228.64401,4 M263.418,-4 L263.418,4 M298.19202,-4 L298.19202,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(1 0 0 1 56.808 255)"/>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 76.808 267.26)">
-1.00
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 111.582 267.26)">
-1.25
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 146.356 267.26)">
-1.50
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 181.13 267.26)">
-1.75
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 215.904 267.26)">
-2.00
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 250.678 267.26)">
-2.25
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 285.45203 267.26)">
-2.50
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 320.226 267.26)">
-2.75
-</text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 355 267.26)">
-3.00
-</text>
-<path d="M20,-4 L20,4 M43.75,-4 L43.75,4 M67.5,-4 L67.5,4 M91.25,-4 L91.25,4 M115,-4 L115,4 M138.75,-4 L138.75,4 M162.5,-4 L162.5,4 M186.25,-4 L186.25,4 M210,-4 L210,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(-0.00000004371139 -1 1 -0.00000004371139 56.808 255)"/>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 235)">
-1.00
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 211.25)">
-1.25
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 187.5)">
-1.50
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 163.75)">
-1.75
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 140)">
-2.00
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 116.25)">
-2.25
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 92.5)">
-2.50
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 68.75)">
-2.75
-</text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 45)">
-3.00
-</text>
-<rect fill="none" height="230" stroke="#000000" stroke-width="1" width="318.19202" x="56.808" y="25"/>
+<rect fill="none" height="250" stroke="#000000" stroke-width="1" width="350" x="25" y="25"/>
 <rect fill="#ffffff" fill-opacity="0.5019608" height="37.792" stroke="#000000" stroke-width="1" width="78.168" x="284.832" y="37"/>
 <path d="M292.832,55.896 L317.832,55.896" fill="none" stroke="#000000" stroke-width="1"/>
 <text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="16" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 327.832 55.896)">
