@@ -214,6 +214,18 @@ pub struct Subplots {
     pub plots: Vec<Plot>,
 }
 
+impl From<Plot> for Plots {
+    fn from(plot: Plot) -> Self {
+        Plots::Plot(plot)
+    }
+}
+
+impl From<Subplots> for Plots {
+    fn from(subplots: Subplots) -> Self {
+        Plots::Subplots(subplots)
+    }
+}
+
 impl Plots {
     pub fn iter(&self) -> PlotIter<'_> {
         PlotIter {

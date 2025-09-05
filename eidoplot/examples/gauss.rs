@@ -64,7 +64,7 @@ fn main() {
         .with_y_axis(y_axis)
         .with_legend(Some(ir::plot::LegendPos::OutRight.into()));
 
-    let fig = ir::Figure::new(ir::figure::Plots::Plot(plot)).with_title(title);
+    let fig = ir::Figure::new(plot.into()).with_title(title);
 
     let data_source = data::TableSource::new().with_f64_column("pop".into(), pop);
 

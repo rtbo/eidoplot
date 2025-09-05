@@ -3,7 +3,7 @@ use eidoplot::{geom, ir};
 use crate::*;
 
 fn fig_small(plot: ir::Plot) -> ir::Figure {
-    ir::Figure::new(ir::figure::Plots::Plot(plot)).with_size(geom::Size::new(400.0, 300.0))
+    ir::Figure::new(plot.into()).with_size(geom::Size::new(400.0, 300.0))
 }
 
 fn line() -> ir::series::Line {
