@@ -530,6 +530,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "eidoplot-dsl"
+version = "0.1.0"
+
+[[package]]
 name = "eidoplot-pxl"
 version = "0.1.0"
 dependencies = [

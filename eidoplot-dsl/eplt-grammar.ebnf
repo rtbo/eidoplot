@@ -1,0 +1,60 @@
+grammar             = prop-list ;
+
+eol                 = '\n' | "\r\n";
+
+digit               = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;
+lowercase           = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 
+                      'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 
+                      'u' | 'v' | 'w' | 'x' | 'y' | 'z' ;
+uppercase           = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 
+                      'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 
+                      'U' | 'V' | 'W' | 'X' | 'Y' | 'Z' ;
+minus               = '-' ;
+plus                = '+' ;
+sign                = plus | minus ;
+open-bracket        = '[' ;
+close-bracket       = ']' ;
+open-brace          = '{' ;
+close-brace         = '}' ;
+double-quote        = '"' ;
+comma               = ',' ; 
+space               = ' ' | '\t' ;
+
+opt-sp              = { space } ;
+comment             = "//", anything-but-eol, eol ;
+com-eol             = opt-sp , eol | comment ;
+
+prop-list           = { com-eol | prop } ;
+prop                = opt-sp, prop-name , [ ':' , opt-sp , prop-value ] , opt-sp , com-eol ;
+prop-value          = scalar-value | seq-value | array-value | struct-value ;
+
+prop-name           = kebab-case-ident ;
+ident               = pascal-case-ident ;
+
+scalar-value        = enum-value | str-concatenation | int-literal | float-literal ;
+
+enum-value          = ident ;
+
+string-literal      = double-quote, 
+                      { any-unicode-except-double-quote-backslash-or-eol | esc-seq } ,
+                      double-quote ;
+esc-seq             = ( '\\', '\\' ) | ( '\\', 'n' ) | ( '\\', 'r' ) | ( '\\', 't' ) ;
+str-concatenation   = string-literal , { com-eol | string-literal } ;
+
+int-literal         = [ sign ] , digit , { digit } ;
+float-literal       = [ sign ] , digit , { digit } , '.' , digit , { digit } , 
+                      [ 'e' , [ sign ] , digit , { digit } ] ;
+
+seq-value           = scalar-value , { comma , scalar-value } ;
+
+array-value         = open-bracket , 
+                      [ int-sequence | float-sequnce | str-sequence ] ,
+                      close-bracket ;
+int-sequence        = int-literal , { comma , { com-eol } , int-literal } , [ comma , { com-eol } ] ;
+float-sequence      = float-literal , { comma , { com-eol } , float-literal } , [ comma , { com-eol } ] ;
+str-sequence        = str-concatenation , { comma , { com-eol } , str-concatenation } , [ comma , { com-eol } ] ;
+
+struct-value        = [ ident, opt-sp ], open-brace , prop-list, close-brace ;
+
+kebab-case-ident    = lowercase , { lowercase | digit | '-' } ;
+pascal-case-ident   = uppercase , { lowercase | digit | uppercase } ;

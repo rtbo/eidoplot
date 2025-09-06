@@ -1,0 +1,43 @@
+// figure is one of the root properties
+// at least one instance of figure must be assigned
+figure: {
+    title: "Iris dataset"
+    plot: {
+        // 'x-axis' is a property of type 'Axis'
+        x-axis: Axis {
+            title: "Sepal Length [cm]"
+            // property without value have default values
+            ticks
+        }
+
+        // the type is inferred from the property name
+        y-axis: {
+            title: "Petal Length [cm]"
+            ticks
+        }
+
+        // the legend is constructed from its position 
+        // and get default values for other properties
+        legend: InBottomRight
+
+        // multiple series are created by assigning multiple times
+        // the 'series' property
+        series: Scatter {
+            name: "Setosa"
+            // a string assigned to a data property
+            // is a reference to a column in an external data source
+            x-data: "setosa_sepal_length"
+            y-data: "setosa_petal_length"
+        }
+        series: Scatter {
+            name: "Virginica"
+            x-data: "virginica_sepal_length"
+            y-data: "virginica_petal_length"
+        }
+        series: Scatter {
+            name: "Versicolor"
+            x-data: "versicolor_sepal_length"
+            y-data: "versicolor_petal_length"
+        }
+    }
+}
