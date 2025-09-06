@@ -1,4 +1,4 @@
-use eidoplot::data::{VecColumn, TableSource};
+use eidoplot::data::{TableSource, VecColumn};
 
 #[derive(Debug, Clone, Copy)]
 pub enum CsvParseError {
@@ -126,4 +126,107 @@ fn build_empty_column(rows: &[VecRow], col_idx: usize) -> Result<VecColumn, CsvP
         }
     }
     Err(CsvParseError::AllNull { col: col_idx })
+}
+
+#[cfg(test)]
+mod tests {
+
+    use eidoplot::data::Source;
+
+    pub const CSV_DATA: &str = "Int,Float,Str\n1,1.0,one\n2,2.0,two\n3,3.0,three\n";
+
+    #[test]
+    fn test_parse_csv_data() {
+        let src = super::parse_csv_data(CSV_DATA, ',').unwrap();
+        assert_eq!(src.len(), 3);
+        let int_col = src
+            .column("Int")
+            .and_then(|c| c.i64())
+            .unwrap()
+            .iter()
+            .map(|v| v.unwrap())
+            .collect::<Vec<_>>();
+        let float_col = src
+            .column("Float")
+            .and_then(|c| c.f64())
+            .unwrap()
+            .iter()
+            .map(|v| v.unwrap())
+            .collect::<Vec<_>>();
+        let str_col = src
+            .column("Str")
+            .and_then(|c| c.str())
+            .unwrap()
+            .iter()
+            .map(|v| v.unwrap())
+            .collect::<Vec<_>>();
+
+        assert_eq!(int_col, &[1, 2, 3]);
+        assert_eq!(float_col, &[1.0, 2.0, 3.0]);
+        assert_eq!(str_col, &["one", "two", "three"]);
+    }
+
+    pub const CSV_NULL_DATA: &str = "Int,Float,Str\n1,1.0,one\n2,,two\n3,3.0,three\n";
+
+    #[test]
+    fn test_parse_csv_data_null() {
+        let src = super::parse_csv_data(CSV_NULL_DATA, ',').unwrap();
+        assert_eq!(src.len(), 3);
+        let int_col = src
+            .column("Int")
+            .and_then(|c| c.i64())
+            .unwrap()
+            .iter()
+            .map(|v| v.unwrap())
+            .collect::<Vec<_>>();
+        let float_col = src
+            .column("Float")
+            .and_then(|c| c.f64())
+            .unwrap()
+            .iter()
+            .collect::<Vec<_>>();
+        let str_col = src
+            .column("Str")
+            .and_then(|c| c.str())
+            .unwrap()
+            .iter()
+            .map(|v| v.unwrap())
+            .collect::<Vec<_>>();
+
+        assert_eq!(int_col, &[1, 2, 3]);
+        assert_eq!(float_col, &[Some(1.0), None, Some(3.0)]);
+        assert_eq!(str_col, &["one", "two", "three"]);
+    }
+
+    pub const CSV_NULL_DATA_FST_LINE: &str = "Int,Float,Str\n1,,one\n2,2.0,two\n3,3.0,three\n";
+
+    #[test]
+    fn test_parse_csv_data_null_fst_line() {
+        let src = super::parse_csv_data(CSV_NULL_DATA_FST_LINE, ',').unwrap();
+        assert_eq!(src.len(), 3);
+        let int_col = src
+            .column("Int")
+            .and_then(|c| c.i64())
+            .unwrap()
+            .iter()
+            .map(|v| v.unwrap())
+            .collect::<Vec<_>>();
+        let float_col = src
+            .column("Float")
+            .and_then(|c| c.f64())
+            .unwrap()
+            .iter()
+            .collect::<Vec<_>>();
+        let str_col = src
+            .column("Str")
+            .and_then(|c| c.str())
+            .unwrap()
+            .iter()
+            .map(|v| v.unwrap())
+            .collect::<Vec<_>>();
+
+        assert_eq!(int_col, &[1, 2, 3]);
+        assert_eq!(float_col, &[None, Some(2.0), Some(3.0)]);
+        assert_eq!(str_col, &["one", "two", "three"]);
+    }
 }
