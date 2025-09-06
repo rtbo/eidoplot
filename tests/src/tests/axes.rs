@@ -23,6 +23,16 @@ fn axes_x_title() {
 }
 
 #[test]
+fn axes_y_title() {
+    let series = line().into();
+    let plot = ir::Plot::new(vec![series])
+        .with_y_axis(ir::Axis::default().with_title("y axis".to_string().into()));
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/y-title");
+}
+
+#[test]
 fn axes_titles() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series])
@@ -34,6 +44,16 @@ fn axes_titles() {
 }
 
 #[test]
+fn axes_x_major_ticks() {
+    let series = line().into();
+    let plot =
+        ir::Plot::new(vec![series]).with_x_axis(ir::Axis::default().with_ticks(Default::default()));
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/x-major-ticks");
+}
+
+#[test]
 fn axes_y_major_ticks() {
     let series = line().into();
     let plot =
@@ -41,6 +61,30 @@ fn axes_y_major_ticks() {
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/y-major-ticks");
+}
+
+#[test]
+fn axes_major_ticks() {
+    let series = line().into();
+    let plot = ir::Plot::new(vec![series])
+        .with_x_axis(ir::Axis::default().with_ticks(Default::default()))
+        .with_y_axis(ir::Axis::default().with_ticks(Default::default()));
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/major-ticks");
+}
+
+#[test]
+fn axes_x_title_major_ticks() {
+    let series = line().into();
+    let plot = ir::Plot::new(vec![series]).with_x_axis(
+        ir::Axis::new()
+            .with_title("x axis".to_string().into())
+            .with_ticks(Default::default()),
+    );
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/x-title-major-ticks");
 }
 
 #[test]
@@ -57,14 +101,22 @@ fn axes_y_title_major_ticks() {
 }
 
 #[test]
-fn axes_major_ticks() {
+fn axes_titles_major_ticks() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series])
-        .with_x_axis(ir::Axis::default().with_ticks(Default::default()))
-        .with_y_axis(ir::Axis::default().with_ticks(Default::default()));
+        .with_x_axis(
+            ir::Axis::new()
+                .with_title("x axis".to_string().into())
+                .with_ticks(Default::default()),
+        )
+        .with_y_axis(
+            ir::Axis::new()
+                .with_title("y axis".to_string().into())
+                .with_ticks(Default::default()),
+        );
     let fig = fig_small(plot);
 
-    assert_fig_eq_ref!(&fig, "axes/major-ticks");
+    assert_fig_eq_ref!(&fig, "axes/titles-major-ticks");
 }
 
 #[test]
@@ -84,6 +136,17 @@ fn axes_minor_ticks() {
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/minor-ticks");
+}
+
+#[test]
+fn axes_x_major_grid() {
+    let series = line().into();
+    let plot = ir::Plot::new(vec![series]).with_x_axis(
+        ir::Axis::new().with_ticks(ir::axis::Ticks::new().with_grid(Default::default())),
+    );
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/x-major-grid");
 }
 
 #[test]
