@@ -87,8 +87,38 @@ where
 }
 
 pub type Line = style::Line<Color>;
+
+impl From<ColorU8> for Line {
+    fn from(color: ColorU8) -> Self {
+        Line {
+            color: color.into(),
+            width: 1.0,
+            pattern: style::LinePattern::Solid,
+            opacity: None,
+        }
+    }
+}
+
 pub type Fill = style::Fill<Color>;
+
+impl From<ColorU8> for Fill {
+    fn from(color: ColorU8) -> Self {
+        Fill::Solid { color: color.into(), opacity: None }
+    }
+}
+
 pub type Marker = style::Marker<Color>;
+
+impl From<ColorU8> for Marker {
+    fn from(color: ColorU8) -> Self {
+        Marker {
+            size: Default::default(),
+            shape: Default::default(),
+            fill: Some(Fill::Solid { color: color.into(), opacity: None }),
+            stroke: None,
+        }
+    }
+}
 
 impl Palette for &[ColorU8] {
     fn len(&self) -> usize {
