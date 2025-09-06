@@ -6,8 +6,6 @@ use eidoplot_text as text;
 use text::fontdb;
 use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
-const DEBUG_TEXT_BBOX: bool = false;
-
 #[derive(Debug, Clone)]
 pub struct PxlSurface {
     pixmap: Pixmap,
@@ -171,9 +169,8 @@ impl State {
         let db = &self.fontdb;
         text::render::render_text_tiny_skia(&layout, &render_opts, db, px);
 
-        if DEBUG_TEXT_BBOX {
-            self.draw_text_bbox(px, layout.bbox(), ts_text)?;
-        }
+        #[cfg(feature = "debug-text-bbox")]
+        self.draw_text_bbox(px, layout.bbox(), ts_text)?;
 
         Ok(())
     }
@@ -199,13 +196,13 @@ impl State {
         let db = &self.fontdb;
         text::render_text_tiny_skia(&text.layout, &render_opts, db, px);
 
-        if DEBUG_TEXT_BBOX {
-            self.draw_text_bbox(px, text.layout.bbox(), ts_text)?;
-        }
+        #[cfg(feature = "debug-text-bbox")]
+        self.draw_text_bbox(px, text.layout.bbox(), ts_text)?;
 
         Ok(())
     }
 
+    #[cfg(feature = "debug-text-bbox")]
     fn draw_text_bbox(
         &mut self,
         px: &mut PixmapMut<'_>,
