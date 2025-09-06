@@ -1,4 +1,3 @@
-
 use crate::drawing::{
     Categories, ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
 };
@@ -481,10 +480,12 @@ impl Bars {
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, ir.x_data(), ir.y_data())?;
 
         let bounds = match (x_bounds, y_bounds) {
-            (axis::Bounds::Num(x_bounds), axis::Bounds::Cat(y_bounds)) => {
+            (axis::Bounds::Num(mut x_bounds), axis::Bounds::Cat(y_bounds)) => {
+                x_bounds.add_sample(0.0);
                 BarsBounds::Horizontal(x_bounds, y_bounds)
             }
-            (axis::Bounds::Cat(x_bounds), axis::Bounds::Num(y_bounds)) => {
+            (axis::Bounds::Cat(x_bounds), axis::Bounds::Num(mut y_bounds)) => {
+                y_bounds.add_sample(0.0);
                 BarsBounds::Vertical(x_bounds, y_bounds)
             }
             _ => {
@@ -602,7 +603,8 @@ impl BarsGroup {
             })?
             .into();
 
-        let mut bounds_per_cat: Vec<axis::NumBounds> = vec![axis::NumBounds::NAN; categories.len()];
+        let mut bounds_per_cat: Vec<axis::NumBounds> =
+            vec![axis::NumBounds::from(0.0); categories.len()];
 
         for bs in ir.series() {
             let data_col = get_column(bs.data(), data_source)?;
@@ -782,9 +784,13 @@ where
 
                 cat_values[idx] = val_end;
 
-                let cat_coords =
-                    ir.orientation()
-                        .cat_coords(cm, cat, arrangement.offset, arrangement.width, rect);
+                let cat_coords = ir.orientation().cat_coords(
+                    cm,
+                    cat,
+                    arrangement.offset,
+                    arrangement.width,
+                    rect,
+                );
                 let val_coords = ir.orientation().val_coords(cm, val_start, val_end, rect);
                 ir.orientation()
                     .add_series_path(&mut pb, cat_coords, val_coords);
