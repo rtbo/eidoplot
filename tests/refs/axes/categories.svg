@@ -1,0 +1,20 @@
+<svg height="300" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#ffffff" height="100%" width="100%"/>
+<clipPath id="eidoplot-clip1">
+<path d="M25,25 L375,25 L375,259 L25,259 z"/>
+</clipPath>
+<g clip-path="url(#eidoplot-clip1)">
+<path d="M76.00001,259 L76.00001,187.66666 L117.33334,187.66666 L117.33334,259 M179.33333,259 L179.33333,159.13333 L220.66666,159.13333 L220.66666,259 M282.6667,259 L282.6667,45 L324.00003,45 L324.00003,259" fill="#000000" fill-opacity="0" stroke="#000000" stroke-width="1"/>
+</g>
+<path d="M20,-4 L20,4 M123.333336,-4 L123.333336,4 M226.66667,-4 L226.66667,4 M330,-4 L330,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(1 0 0 1 25 259)"/>
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 96.66667 267.26)">
+a
+</text>
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 200 267.26)">
+b
+</text>
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 303.33334 267.26)">
+c
+</text>
+<rect fill="none" height="234" stroke="#000000" stroke-width="1" width="350" x="25" y="25"/>
+</svg>
