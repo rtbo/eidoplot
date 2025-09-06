@@ -19,6 +19,7 @@ pub fn locate_num(locator: &Locator, nb: axis::NumBounds) -> Vec<f64> {
 pub fn locate_minor(locator: &Locator, ab: axis::NumBounds) -> Vec<f64> {
     match locator {
         Locator::Auto => MaxN::new_auto_minor().ticks(ab),
+        Locator::PiMultiple { bins } => MaxN::new_pi(*bins).ticks(ab),
         _ => todo!("minor locators"),
     }
 }

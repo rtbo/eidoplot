@@ -195,9 +195,47 @@ fn axes_categories() {
         .with_fill(style::color::TRANSPARENT.into())
         .with_line(Default::default());
 
-    let axis = ir::Axis::new().with_ticks(Default::default());
-    let plot = ir::Plot::new(vec![series.into()]).with_x_axis(axis.clone());
+    let plot = ir::Plot::new(vec![series.into()])
+        .with_x_axis(ir::Axis::new().with_ticks(Default::default()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/categories");
+}
+
+#[test]
+fn axes_pi_locator() {
+    use std::f64::consts::PI;
+    let x = vec![PI, 2.0 * PI, 3.0 * PI];
+    let y = vec![1.0, 1.4, 3.0];
+    let series = ir::series::Line::new(x.into(), y.into());
+
+    let plot = ir::Plot::new(vec![series.into()]).with_x_axis(ir::Axis::new().with_ticks(
+        ir::axis::Ticks::new().with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 5 }),
+    ));
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/pi-locator");
+}
+
+#[test]
+fn axes_pi_locator_minor() {
+    use std::f64::consts::PI;
+    let x = vec![PI, 2.0 * PI, 3.0 * PI];
+    let y = vec![1.0, 1.4, 3.0];
+    let series = ir::series::Line::new(x.into(), y.into());
+
+    let plot = ir::Plot::new(vec![series.into()]).with_x_axis(
+        ir::Axis::new()
+            .with_ticks(
+                ir::axis::Ticks::new()
+                    .with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 5 }),
+            )
+            .with_minor_ticks(
+                ir::axis::MinorTicks::new()
+                    .with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 30 }),
+            ),
+    );
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/pi-locator-minor");
 }
