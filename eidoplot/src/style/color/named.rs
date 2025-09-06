@@ -1,5 +1,7 @@
 use super::ColorU8;
 
+pub const TRANSPARENT: ColorU8 = ColorU8::from_rgba(0, 0, 0, 0);
+
 // standard CSS colors
 
 pub const BLACK: ColorU8 = ColorU8::from_html(b"#000000");
