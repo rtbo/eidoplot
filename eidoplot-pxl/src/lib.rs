@@ -6,6 +6,8 @@ use eidoplot_text as text;
 use text::fontdb;
 use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
+const DEBUG_TEXT_BBOX: bool = false;
+
 #[derive(Debug, Clone)]
 pub struct PxlSurface {
     pixmap: Pixmap,
@@ -169,6 +171,10 @@ impl State {
         let db = &self.fontdb;
         text::render::render_text_tiny_skia(&layout, &render_opts, db, px);
 
+        if DEBUG_TEXT_BBOX {
+            self.draw_text_bbox(px, layout.bbox(), ts_text)?;
+        }
+
         Ok(())
     }
 
@@ -193,6 +199,40 @@ impl State {
         let db = &self.fontdb;
         text::render_text_tiny_skia(&text.layout, &render_opts, db, px);
 
+        if DEBUG_TEXT_BBOX {
+            self.draw_text_bbox(px, text.layout.bbox(), ts_text)?;
+        }
+
+        Ok(())
+    }
+
+    fn draw_text_bbox(
+        &mut self,
+        px: &mut PixmapMut<'_>,
+        bbox: eidoplot_text::BBox,
+        transform: geom::Transform,
+    ) -> Result<(), render::Error> {
+        let color = eidoplot::style::color::RED;
+        let stroke = eidoplot::style::Line {
+            width: 1.0,
+            color,
+            pattern: eidoplot::style::LinePattern::Solid,
+            opacity: None,
+        };
+        let eidoplot_text::BBox {
+            top,
+            right,
+            bottom,
+            left,
+        } = bbox;
+        let rect = geom::Rect::from_trbl(top, right, bottom, left);
+        let rrect = render::Rect {
+            rect,
+            fill: None,
+            stroke: Some(stroke.as_stroke(&())),
+            transform: Some(&transform),
+        };
+        self.draw_rect(px, &rrect)?;
         Ok(())
     }
 
@@ -328,9 +368,8 @@ fn ts_stroke(stroke: render::Stroke, paint: &mut tiny_skia::Paint) -> tiny_skia:
     match stroke.pattern {
         render::LinePattern::Solid => (),
         render::LinePattern::Dash(dash) => {
-            let array = dash.iter().map(|d| d* stroke.width).collect();
-            ts.dash =
-                tiny_skia::StrokeDash::new(array, 0.0);
+            let array = dash.iter().map(|d| d * stroke.width).collect();
+            ts.dash = tiny_skia::StrokeDash::new(array, 0.0);
         }
     }
     ts
