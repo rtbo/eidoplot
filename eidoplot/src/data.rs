@@ -299,6 +299,119 @@ impl Source for () {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct FCol<'a> (pub &'a [f64]);
+
+impl F64Column for FCol<'_> {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+    fn len_some(&self) -> usize {
+        self.0.iter().filter(|v| v.is_finite()).count()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(
+            self.0
+                .iter()
+                .copied()
+                .map(|f| if f.is_finite() { Some(f) } else { None }),
+        )
+    }
+}
+
+impl Column for FCol<'_> {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+    fn len_some(&self) -> usize {
+        self.0.iter().filter(|v| v.is_finite()).count()
+    }
+    fn f64(&self) -> Option<&dyn F64Column> {
+        Some(self)
+    }
+}
+
+
+#[derive(Debug, Clone, Copy)]
+pub struct ICol<'a> (pub &'a [i64]);
+
+impl I64Column for ICol<'_> {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+    fn len_some(&self) -> usize {
+        self.0.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
+        Box::new(
+            self.0
+                .iter()
+                .copied()
+                .map(Some)
+        )
+    }
+}
+
+impl F64Column for ICol<'_> {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+    fn len_some(&self) -> usize {
+        self.0.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(
+            self.0
+                .iter()
+                .map(|i| *i as f64)
+                .map(Some)
+        )
+    }
+}
+
+impl Column for ICol<'_> {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+    fn len_some(&self) -> usize {
+        self.0.len()
+    }
+    fn i64(&self) -> Option<&dyn I64Column> {
+        Some(self)
+    }
+    fn f64(&self) -> Option<&dyn F64Column> {
+        Some(self)
+    }
+}
+
+
+#[derive(Debug)]
+pub struct SCol<'a, T> (pub &'a [T]);
+
+impl<T> StrColumn for SCol<'_, T> where T: AsRef<str> + std::fmt::Debug {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+    fn len_some(&self) -> usize {
+        self.0.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+        Box::new(self.0.iter().map(|s| Some(s.as_ref())))
+    }
+}
+
+impl<T> Column for SCol<'_, T> where T: AsRef<str> + std::fmt::Debug {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+    fn len_some(&self) -> usize {
+        self.0.len()
+    }
+    fn str(&self) -> Option<&dyn StrColumn> {
+        Some(self)
+    }
+}
+
 impl F64Column for Vec<f64> {
     fn len(&self) -> usize {
         self.len()
@@ -315,6 +428,18 @@ impl F64Column for Vec<f64> {
                 .copied()
                 .map(|f| if f.is_finite() { Some(f) } else { None }),
         )
+    }
+}
+
+impl Column for Vec<f64> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_finite()).count()
+    }
+    fn f64(&self) -> Option<&dyn F64Column> {
+        Some(self)
     }
 }
 
@@ -531,7 +656,7 @@ impl Column for VecColumn {
 
     fn len_some(&self) -> usize {
         match self {
-            VecColumn::F64(v) => v.len_some(),
+            VecColumn::F64(v) => <dyn F64Column>::len_some(v),
             VecColumn::I64(v) => <dyn I64Column>::len_some(v),
             VecColumn::Str(v) => v.len_some(),
         }
@@ -539,7 +664,7 @@ impl Column for VecColumn {
 
     fn iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
         match self {
-            VecColumn::F64(v) => Box::new(v.iter().map(|v| v.into())),
+            VecColumn::F64(v) => Box::new(v.as_slice().iter().map(|v| (*v).into())),
             VecColumn::I64(v) => Box::new(v.as_slice().iter().map(|v| (*v).into())),
             VecColumn::Str(v) => Box::new(v.iter().map(|v| v.into())),
         }
