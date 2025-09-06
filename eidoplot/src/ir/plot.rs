@@ -148,7 +148,7 @@ impl Plot {
             fill: None,
             border: Some(Border::default()),
             insets: Some(Insets::default()),
-            legend: Some(PlotLegend::default()),
+            legend: None,
         }
     }
 
@@ -182,8 +182,8 @@ impl Plot {
         Self { insets, ..self }
     }
 
-    pub fn with_legend(self, legend: Option<PlotLegend>) -> Self {
-        Self { legend, ..self }
+    pub fn with_legend(self, legend: PlotLegend) -> Self {
+        Self { legend: Some(legend), ..self }
     }
 
     pub fn series(&self) -> &[Series] {

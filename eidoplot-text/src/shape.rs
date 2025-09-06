@@ -66,10 +66,10 @@ mod glyph_dbg {
     #[derive(Debug, Clone, Copy)]
     pub(crate) struct GlyphDbg;
     impl GlyphDbg {
-        pub(super) fn new(chars: &str) -> Self {
+        pub(super) fn new(_chars: &str) -> Self {
             GlyphDbg
         }
-        pub(super) fn chars(&self) -> Option<&str> {
+        pub(crate) fn chars(&self) -> Option<&str> {
             None
         }
     }

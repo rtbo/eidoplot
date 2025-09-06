@@ -89,7 +89,8 @@ fn main() {
 
     let plot = ir::Plot::new(series)
         .with_x_axis(x_axis)
-        .with_y_axis(y_axis);
+        .with_y_axis(y_axis)
+        .with_legend(Default::default());
 
     let fig = ir::Figure::new(plot.into()).with_title(title);
 

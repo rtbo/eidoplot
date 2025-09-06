@@ -7,9 +7,9 @@
 <path d="M45,255 L200,150 L355,45" fill="none" stroke="#000000" stroke-width="1"/>
 </g>
 <rect fill="none" height="250" stroke="#000000" stroke-width="1" width="350" x="25" y="25"/>
-<rect fill="#ffffff" fill-opacity="0.5019608" height="37.792" stroke="#000000" stroke-width="1" width="78.168" x="284.832" y="37"/>
-<path d="M292.832,55.896 L317.832,55.896" fill="none" stroke="#000000" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="16" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 327.832 55.896)">
+<rect fill="#ffffff" fill-opacity="0.5019608" height="33.706" stroke="#000000" stroke-width="1" width="73.074005" x="289.926" y="37"/>
+<path d="M297.926,53.853 L322.926,53.853" fill="none" stroke="#000000" stroke-width="1"/>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="13" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 332.926 53.853)">
 line
 </text>
 </svg>

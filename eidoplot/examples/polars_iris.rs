@@ -121,7 +121,7 @@ fn main() {
     let plot = ir::Plot::new(vec![setosa, versicolor, virginica])
         .with_x_axis(x_axis)
         .with_y_axis(y_axis)
-        .with_legend(Some(ir::plot::LegendPos::InBottomRight.into()));
+        .with_legend(ir::plot::LegendPos::InBottomRight.into());
 
     let fig = ir::Figure::new(plot.into()).with_title(title);
 

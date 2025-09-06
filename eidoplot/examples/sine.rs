@@ -27,7 +27,7 @@ fn main() {
     let plot = ir::Plot::new(vec![series])
         .with_x_axis(x_axis)
         .with_y_axis(y_axis)
-        .with_legend(Some(ir::plot::LegendPos::InTopRight.into()));
+        .with_legend(ir::plot::LegendPos::InTopRight.into());
 
     let fig = ir::Figure::new(plot.into()).with_title(title);
 
