@@ -16,7 +16,7 @@ pub enum Range {
     MinMax(f64, f64),
 }
 
-/// Describes the type of an axis
+/// Describes the type of an axis scale
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Scale {
     /// Full auto scale, depending on the data and type of plot.
@@ -99,7 +99,13 @@ pub mod ticks {
                 opacity: None,
             })
         }
-    }   
+    }
+
+    impl From<theme::Line> for Grid {
+        fn from(line: theme::Line) -> Self {
+            Grid(line)
+        }
+    }
 
     /// Describes the major ticks of an axis
     #[derive(Debug, Clone)]
@@ -150,8 +156,11 @@ pub mod ticks {
             Self { color, ..self }
         }
         /// Returns a new ticks with the specified grid
-        pub fn with_grid(self, grid: Option<Grid>) -> Self {
-            Self { grid, ..self }
+        pub fn with_grid(self, grid: Grid) -> Self {
+            Self {
+                grid: Some(grid),
+                ..self
+            }
         }
 
         /// The locator
@@ -198,7 +207,13 @@ pub mod ticks {
                 opacity: None,
             })
         }
-    }   
+    }
+
+    impl From<theme::Line> for MinorGrid {
+        fn from(line: theme::Line) -> Self {
+            MinorGrid(line)
+        }
+    }
 
     #[derive(Debug, Clone)]
     pub struct MinorTicks {
@@ -239,8 +254,8 @@ pub mod ticks {
         pub fn with_color(self, color: theme::Color) -> Self {
             Self { color, ..self }
         }
-        pub fn with_grid(self, grid: Option<MinorGrid>) -> Self {
-            Self { grid, ..self }
+        pub fn with_grid(self, grid: MinorGrid) -> Self {
+            Self { grid: Some(grid), ..self }
         }
 
         pub fn locator(&self) -> &Locator {
@@ -255,7 +270,7 @@ pub mod ticks {
     }
 }
 
-pub use ticks::{MinorTicks, Ticks, TicksFont};
+pub use ticks::{Grid, MinorGrid, MinorTicks, Ticks, TicksFont};
 
 use crate::style::{self, defaults, theme};
 
