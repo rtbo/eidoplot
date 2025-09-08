@@ -37,8 +37,11 @@ pub mod data;
 pub mod drawing;
 pub mod geom;
 pub mod ir;
+pub mod parse;
 pub mod render;
 pub mod style;
+
+pub use parse::{parse_eplt};
 
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters

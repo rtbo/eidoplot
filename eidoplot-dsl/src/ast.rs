@@ -83,6 +83,24 @@ pub struct Struct {
     pub props: Vec<Prop>,
 }
 
+impl Struct {
+    pub fn has_prop(&self, name: &str) -> bool {
+        self.props.iter().any(|p| p.name.name == name)
+    }
+
+    pub fn prop(&self, name: &str) -> Option<&Prop> {
+        self.props.iter().find(|p| p.name.name == name)
+    }
+
+    pub fn take_prop(&mut self, name: &str) -> Option<Prop> {
+        if let Some(pos) = self.props.iter().position(|p| p.name.name == name) {
+            Some(self.props.remove(pos))
+        } else {
+            None
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::input::Pos;

@@ -3,4 +3,6 @@ mod input;
 mod lex;
 mod parse;
 
-pub use parse::parse;
+pub use input::Pos;
+pub use lex::Span;
+pub use parse::{Error, parse};

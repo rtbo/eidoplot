@@ -3,7 +3,7 @@ use std::fmt;
 use crate::ast;
 use crate::lex::{self, Span, Token, TokenKind};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Error {
     Lex(lex::Error),
     UnexpectedEndOfInput(Span),
@@ -206,6 +206,18 @@ where
                     let scalar = ast::Scalar {
                         span,
                         kind: ast::ScalarKind::Float(val),
+                    };
+                    res_scalars.push(scalar);
+                    res_span.1 = span.1;
+                }
+                Token {
+                    kind: TokenKind::PascalCaseIdent(name),
+                    span,
+                } => {
+                    self.bump_token();
+                    let scalar = ast::Scalar {
+                        span,
+                        kind: ast::ScalarKind::Enum(name),
                     };
                     res_scalars.push(scalar);
                     res_span.1 = span.1;

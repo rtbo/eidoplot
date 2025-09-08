@@ -1,20 +1,19 @@
-// figure is one of the root properties
-// at least one instance of figure must be assigned
+// figure is one of the root properties.
+// it can be assigned multiple times to generate multiple figures
 figure: {
     title: "Iris dataset"
     plot: {
         // 'x-axis' is a property of type 'Axis'
+        // the type is optional though as it can be inferred from
+        // the property name
         x-axis: Axis {
             title: "Sepal Length [cm]"
             // property without value have default values
             ticks
         }
 
-        // the type is inferred from the property name
-        y-axis: {
-            title: "Petal Length [cm]"
-            ticks
-        }
+        // axis can also be specified as a sequence
+        y-axis: "Petal Length [cm]", Ticks
 
         // the legend is constructed from its position 
         // and get default values for other properties

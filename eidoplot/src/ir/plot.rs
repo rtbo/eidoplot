@@ -110,6 +110,10 @@ impl PlotLegend {
         self.margin
     }
 
+    pub fn with_pos(self, pos: LegendPos) -> Self {
+        Self { pos, ..self }
+    }
+
     pub fn with_margin(self, margin: f32) -> Self {
         Self { margin, ..self }
     }
