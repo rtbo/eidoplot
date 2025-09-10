@@ -321,6 +321,8 @@ fn axis_set_enum_field(axis: ir::Axis, span: dsl::Span, ident: &str) -> Result<i
     match ident {
         "Ticks" => Ok(axis.with_ticks(Default::default())),
         "MinorTicks" => Ok(axis.with_minor_ticks(Default::default())),
+        "Grid" => Ok(axis.with_grid(Default::default())),
+        "MinorGrid" => Ok(axis.with_minor_grid(Default::default())),
         _ => Err(Error::Parse(
             span,
             format!("unknown axis property enum: {}", ident),
@@ -359,6 +361,12 @@ fn parse_axis_struct(val: ast::Struct) -> Result<ir::Axis, Error> {
             }
             "minor-ticks" => {
                 axis = axis.with_minor_ticks(Default::default());
+            }
+            "grid" => {
+                axis = axis.with_grid(Default::default());
+            }
+            "minor-grid" => {
+                axis = axis.with_minor_grid(Default::default());
             }
             _ => {
                 return Err(Error::Parse(
