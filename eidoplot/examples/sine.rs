@@ -10,10 +10,13 @@ fn main() {
     let x_axis = ir::Axis::new()
         .with_title("x".to_string().into())
         .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into());
+
     let y_axis = ir::Axis::new()
         .with_title("y".to_string().into())
         .with_ticks(Default::default())
-        .with_minor_ticks(Default::default());
+        .with_grid(Default::default())
+        .with_minor_ticks(Default::default())
+        .with_minor_grid(Default::default());
 
     let series = ir::Series::Line(
         ir::series::Line::new(

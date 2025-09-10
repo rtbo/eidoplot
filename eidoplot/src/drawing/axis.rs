@@ -723,11 +723,11 @@ impl<D, T> Ctx<'_, D, T> {
 
                 let ticks = ir
                     .ticks()
-                    .map(|major_ticks| self.setup_num_ticks(major_ticks, nb, side))
+                    .map(|major_ticks| self.setup_num_ticks(major_ticks, ir.grid(), nb, side))
                     .transpose()?;
 
                 let minor_ticks = if let Some(mt) = ir.minor_ticks() {
-                    Some(self.setup_minor_ticks(mt, ticks.as_ref(), nb)?)
+                    Some(self.setup_minor_ticks(mt, ir.minor_grid(), ticks.as_ref(), nb)?)
                 } else {
                     None
                 };
@@ -752,12 +752,13 @@ impl<D, T> Ctx<'_, D, T> {
     fn setup_num_ticks(
         &self,
         major_ticks: &ir::axis::Ticks,
+        major_grid: Option<&ir::axis::Grid>,
         nb: NumBounds,
         side: Side,
     ) -> Result<NumTicks, Error> {
         let db: &font::Database = self.fontdb();
         let font = major_ticks.font();
-        let grid = major_ticks.grid().map(|g| g.0.clone());
+        let grid = major_grid.map(|g| g.0.clone());
 
         let ticks_opts = side.ticks_labels_opts();
         let annot_opts = side.annot_opts();
@@ -796,6 +797,7 @@ impl<D, T> Ctx<'_, D, T> {
     fn setup_minor_ticks(
         &self,
         minor_ticks: &ir::axis::MinorTicks,
+        minor_grid: Option<&ir::axis::MinorGrid>,
         major_ticks: Option<&NumTicks>,
         nb: NumBounds,
     ) -> Result<MinorTicks, Error> {
@@ -810,7 +812,7 @@ impl<D, T> Ctx<'_, D, T> {
                     .is_none()
         });
         let mut line: theme::Line = theme::Col::Foreground.into();
-        if let Some(grid) = minor_ticks.grid() {
+        if let Some(grid) = minor_grid {
             line = line.with_width(grid.0.width);
         } else {
             line = line.with_width(missing_params::MINOR_TICK_LINE_WIDTH);
@@ -824,7 +826,7 @@ impl<D, T> Ctx<'_, D, T> {
         Ok(MinorTicks {
             locs,
             mark,
-            grid: minor_ticks.grid().map(|g| g.0.clone()),
+            grid: minor_grid.map(|g| g.0.clone()),
         })
     }
 

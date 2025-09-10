@@ -142,7 +142,9 @@ fn axes_minor_ticks() {
 fn axes_x_major_grid() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series]).with_x_axis(
-        ir::Axis::new().with_ticks(ir::axis::Ticks::new().with_grid(Default::default())),
+        ir::Axis::new()
+            .with_ticks(Default::default())
+            .with_grid(Default::default()),
     );
     let fig = fig_small(plot);
 
@@ -153,7 +155,9 @@ fn axes_x_major_grid() {
 fn axes_y_major_grid() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series]).with_y_axis(
-        ir::Axis::new().with_ticks(ir::axis::Ticks::new().with_grid(Default::default())),
+        ir::Axis::new()
+            .with_ticks(Default::default())
+            .with_grid(Default::default()),
     );
     let fig = fig_small(plot);
 
@@ -163,7 +167,9 @@ fn axes_y_major_grid() {
 #[test]
 fn axes_major_grid() {
     let series = line().into();
-    let axis = ir::Axis::new().with_ticks(ir::axis::Ticks::new().with_grid(Default::default()));
+    let axis = ir::Axis::new()
+        .with_ticks(Default::default())
+        .with_grid(Default::default());
     let plot = ir::Plot::new(vec![series])
         .with_x_axis(axis.clone())
         .with_y_axis(axis);
@@ -176,8 +182,10 @@ fn axes_major_grid() {
 fn axes_minor_grid() {
     let series = line().into();
     let axis = ir::Axis::new()
-        .with_ticks(ir::axis::Ticks::new().with_grid(Default::default()))
-        .with_minor_ticks(ir::axis::MinorTicks::new().with_grid(Default::default()));
+        .with_ticks(Default::default())
+        .with_grid(Default::default())
+        .with_minor_ticks(Default::default())
+        .with_minor_grid(Default::default());
 
     let plot = ir::Plot::new(vec![series])
         .with_x_axis(axis.clone())

@@ -118,8 +118,6 @@ pub mod ticks {
         font: TicksFont,
         /// Color for the ticks and the labels
         color: theme::Color,
-        /// Gridline style
-        grid: Option<Grid>,
     }
 
     impl Default for Ticks {
@@ -129,7 +127,6 @@ pub mod ticks {
                 formatter: Formatter::default(),
                 font: TicksFont::default(),
                 color: theme::Col::Foreground.into(),
-                grid: None,
             }
         }
     }
@@ -155,13 +152,6 @@ pub mod ticks {
         pub fn with_color(self, color: theme::Color) -> Self {
             Self { color, ..self }
         }
-        /// Returns a new ticks with the specified grid
-        pub fn with_grid(self, grid: Grid) -> Self {
-            Self {
-                grid: Some(grid),
-                ..self
-            }
-        }
 
         /// The locator
         pub fn locator(&self) -> &Locator {
@@ -178,10 +168,6 @@ pub mod ticks {
         /// The color
         pub fn color(&self) -> theme::Color {
             self.color
-        }
-        /// The grid
-        pub fn grid(&self) -> Option<&Grid> {
-            self.grid.as_ref()
         }
     }
 
@@ -221,8 +207,6 @@ pub mod ticks {
         locator: Locator,
         /// Ticks color
         color: theme::Color,
-        /// Gridline style
-        grid: Option<MinorGrid>,
     }
 
     impl Default for MinorTicks {
@@ -230,7 +214,6 @@ pub mod ticks {
             MinorTicks {
                 locator: Locator::default(),
                 color: theme::Col::Foreground.into(),
-                grid: None,
             }
         }
     }
@@ -254,18 +237,12 @@ pub mod ticks {
         pub fn with_color(self, color: theme::Color) -> Self {
             Self { color, ..self }
         }
-        pub fn with_grid(self, grid: MinorGrid) -> Self {
-            Self { grid: Some(grid), ..self }
-        }
 
         pub fn locator(&self) -> &Locator {
             &self.locator
         }
         pub fn color(&self) -> theme::Color {
             self.color
-        }
-        pub fn grid(&self) -> Option<&MinorGrid> {
-            self.grid.as_ref()
         }
     }
 }
@@ -338,6 +315,8 @@ pub struct Axis {
     title: Option<Title>,
     ticks: Option<Ticks>,
     minor_ticks: Option<MinorTicks>,
+    grid: Option<Grid>,
+    minor_grid: Option<MinorGrid>,
 }
 
 impl Default for Axis {
@@ -347,6 +326,8 @@ impl Default for Axis {
             scale: Default::default(),
             ticks: None,
             minor_ticks: None,
+            grid: None,
+            minor_grid: None,
         }
     }
 }
@@ -381,6 +362,28 @@ impl Axis {
         }
     }
 
+    /// Returns a new axis with the specified grid
+    /// If this axis has no major ticks, default ticks are
+    /// created and used to locate the grid
+    pub fn with_grid(self, grid: Grid) -> Self {
+        Self {
+            ticks: Some(self.ticks.unwrap_or_default()),
+            grid: Some(grid),
+            ..self
+        }
+    }
+
+    /// Returns a new axis with the specified minor grid
+    /// If this axis has no minor ticks, default ticks are
+    /// created and used to locate the grid
+    pub fn with_minor_grid(self, minor_grid: MinorGrid) -> Self {
+        Self {
+            minor_ticks: Some(self.minor_ticks.unwrap_or_default()),
+            minor_grid: Some(minor_grid),
+            ..self
+        }
+    }
+
     pub fn title(&self) -> Option<&Title> {
         self.title.as_ref()
     }
@@ -392,5 +395,13 @@ impl Axis {
     }
     pub fn minor_ticks(&self) -> Option<&MinorTicks> {
         self.minor_ticks.as_ref()
+    }
+    /// Gridline style
+    pub fn grid(&self) -> Option<&Grid> {
+        self.grid.as_ref()
+    }
+    /// Minor gridline style
+    pub fn minor_grid(&self) -> Option<&MinorGrid> {
+        self.minor_grid.as_ref()
     }
 }
