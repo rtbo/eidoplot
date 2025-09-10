@@ -2,7 +2,6 @@ use std::path;
 
 use eidoplot::data;
 use eidoplot::data::Source;
-use eidoplot::ir;
 
 mod common;
 
@@ -95,5 +94,5 @@ fn main() {
     let eplt = include_str!("iris.eplt");
     let fig = eidoplot::parse_eplt(eplt).unwrap();
 
-    common::save_figure(&fig[0], &source, "iris");
+    common::save_figure(&fig[0], &source, "iris_eplt");
 }
