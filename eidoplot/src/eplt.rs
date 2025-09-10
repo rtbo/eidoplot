@@ -4,17 +4,29 @@ use eidoplot_dsl::{self as dsl, ast};
 
 use crate::ir;
 
+pub use dsl::{Diagnostic, Source};
+
 #[derive(Debug, Clone)]
 pub enum Error {
     Dsl(dsl::Error),
-    Parse(dsl::Span, String),
+    Parse {
+        span: dsl::Span,
+        reason: String,
+        help: Option<String>,
+    },
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::Dsl(err) => err.fmt(f),
-            Error::Parse(_, reason) => write!(f, "Parse error: {reason}"),
+            Error::Parse { reason, help, .. } => {
+                write!(f, "Parse error: {reason}")?;
+                if let Some(help) = help {
+                    write!(f, "\nHelp: {help}")?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -25,7 +37,30 @@ impl From<dsl::Error> for Error {
     }
 }
 
-pub fn parse_eplt<S: AsRef<str>>(input: S) -> Result<Vec<ir::Figure>, Error> {
+impl dsl::DiagTrait for Error {
+    fn span(&self) -> dsl::Span {
+        match self {
+            Error::Dsl(err) => err.span(),
+            Error::Parse { span, .. } => *span,
+        }
+    }
+
+    fn message(&self) -> String {
+        match self {
+            Error::Dsl(err) => err.message(),
+            Error::Parse { reason, .. } => format!("Parse error: {reason}"),
+        }
+    }
+
+    fn help(&self) -> Option<String> {
+        match self {
+            Error::Dsl(err) => err.help(),
+            Error::Parse { help, .. } => help.clone(),
+        }
+    }
+}
+
+pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<ir::Figure>, Error> {
     let props = dsl::parse(input.as_ref().chars())?;
 
     let mut figs = vec![];
@@ -45,20 +80,22 @@ fn expect_string_val(prop: ast::Prop) -> Result<String, Error> {
         ..
     })) = prop.value
     else {
-        return Err(Error::Parse(
-            prop.span(),
-            format!("expected string value (i.e. {}: \"...\" )", prop.name.name),
-        ));
+        return Err(Error::Parse {
+            span: prop.span(),
+            reason: format!("expected string value (i.e. {}: \"...\" )", prop.name.name),
+            help: None,
+        });
     };
     Ok(val)
 }
 
 fn expect_struct_val(prop: ast::Prop) -> Result<ast::Struct, Error> {
     let Some(ast::Value::Struct(val)) = prop.value else {
-        return Err(Error::Parse(
-            prop.span(),
-            format!("expected struct value (i.e. {}: {{ ... }}", prop.name.name),
-        ));
+        return Err(Error::Parse {
+            span: prop.span(),
+            reason: format!("expected struct value (i.e. {}: {{ ... }}", prop.name.name),
+            help: None,
+        });
     };
     Ok(val)
 }
@@ -66,15 +103,16 @@ fn expect_struct_val(prop: ast::Prop) -> Result<ast::Struct, Error> {
 fn check_opt_type(val: &ast::Struct, type_name: &str) -> Result<(), Error> {
     if let Some(typ) = &val.typ {
         if typ.name != type_name {
-            return Err(Error::Parse(
-                typ.span,
-                format!(
-                    "expected struct of type '{type_name}', found '{}'.\n",
+            return Err(Error::Parse {
+                span: typ.span,
+                reason: format!(
+                    "expected struct of type '{type_name}', found '{}'",
                     typ.name
-                ) + &format!(
-                    "In this case, '{type_name}' can be inferred from context and not be specified at all."
                 ),
-            ));
+                help: Some(format!(
+                    "In this case, '{type_name}' can be inferred from context and not be specified at all."
+                )),
+            });
         }
     }
     Ok(())
@@ -83,10 +121,11 @@ fn check_opt_type(val: &ast::Struct, type_name: &str) -> Result<(), Error> {
 fn parse_fig(val: ast::Struct) -> Result<ir::Figure, Error> {
     let plot_def_count = val.has_prop("plot") as u8 + val.has_prop("subplots") as u8;
     if plot_def_count != 1 {
-        return Err(Error::Parse(
-            val.span,
-            "figure must have exactly one of 'plot' or 'subplots' property".into(),
-        ));
+        return Err(Error::Parse {
+            span: val.span,
+            reason: "figure must have exactly one of 'plot' or 'subplots' property".into(),
+            help: None,
+        });
     }
 
     check_opt_type(&val, "Figure")?;
@@ -167,17 +206,19 @@ fn parse_plot_legend(value: Option<ast::Value>) -> Result<ir::plot::PlotLegend, 
             "InLeft" => legend = legend.with_pos(ir::plot::LegendPos::InLeft),
             "InTopLeft" => legend = legend.with_pos(ir::plot::LegendPos::InTopLeft),
             _ => {
-                return Err(Error::Parse(
+                return Err(Error::Parse {
                     span,
-                    format!("unknown legend position: {}", ident),
-                ));
+                    reason: format!("unknown legend position: {}", ident),
+                    help: None,
+                });
             }
         },
         Some(_) => {
-            return Err(Error::Parse(
-                value.as_ref().unwrap().span(),
-                "Could not parse legend".into(),
-            ));
+            return Err(Error::Parse {
+                span: value.as_ref().unwrap().span(),
+                reason: "Could not parse legend".into(),
+                help: None,
+            });
         }
         None => (),
     }
@@ -187,10 +228,11 @@ fn parse_plot_legend(value: Option<ast::Value>) -> Result<ir::plot::PlotLegend, 
 
 fn parse_series(val: ast::Struct) -> Result<ir::Series, Error> {
     let Some(ident) = &val.typ else {
-        return Err(Error::Parse(
-            val.span,
-            "series type can't be inferred and must be speficied".into(),
-        ));
+        return Err(Error::Parse {
+            span: val.span,
+            reason: "series type can't be inferred and must be speficied".into(),
+            help: None,
+        });
     };
 
     match ident.name.as_str() {
@@ -199,18 +241,20 @@ fn parse_series(val: ast::Struct) -> Result<ir::Series, Error> {
         "Histogram" => Ok(parse_histogram(val)?.into()),
         "Bars" => Ok(parse_bars(val)?.into()),
         "BarsGroup" => Ok(parse_bars_group(val)?.into()),
-        _ => Err(Error::Parse(
-            ident.span,
-            format!("unknown series type: {}", ident.name),
-        )),
+        _ => Err(Error::Parse {
+            span: ident.span,
+            reason: format!("unknown series type: {}", ident.name),
+            help: None,
+        }),
     }
 }
 
 fn expect_prop(val: &mut ast::Struct, name: &str) -> Result<ast::Prop, Error> {
-    val.take_prop(name).ok_or(Error::Parse(
-        val.span,
-        format!("expected '{name}' property"),
-    ))
+    val.take_prop(name).ok_or(Error::Parse {
+        span: val.span,
+        reason: format!("expected '{name}' property"),
+        help: None,
+    })
 }
 
 fn expect_data_prop(val: &mut ast::Struct, prop_name: &str) -> Result<ir::DataCol, Error> {
@@ -232,10 +276,11 @@ fn expect_data_prop(val: &mut ast::Struct, prop_name: &str) -> Result<ir::DataCo
             kind: ast::ArrayKind::Str(vals),
             ..
         })) => Ok(ir::DataCol::Inline(vals.into())),
-        _ => Err(Error::Parse(
-            prop.span(),
-            format!("Could not parse '{prop_name}' as a data column"),
-        )),
+        _ => Err(Error::Parse {
+            span: prop.span(),
+            reason: format!("Could not parse '{prop_name}' as a data column"),
+            help: None,
+        }),
     }
 }
 
@@ -313,7 +358,11 @@ fn parse_axis(prop: ast::Prop) -> Result<ir::Axis, Error> {
 
         ast::Value::Struct(val) => parse_axis_struct(val),
 
-        _ => Err(Error::Parse(val.span(), "Could not parse axis".into())),
+        _ => Err(Error::Parse {
+            span: val.span(),
+            reason: "Could not parse axis".into(),
+            help: None,
+        }),
     }
 }
 
@@ -323,10 +372,11 @@ fn axis_set_enum_field(axis: ir::Axis, span: dsl::Span, ident: &str) -> Result<i
         "MinorTicks" => Ok(axis.with_minor_ticks(Default::default())),
         "Grid" => Ok(axis.with_grid(Default::default())),
         "MinorGrid" => Ok(axis.with_minor_grid(Default::default())),
-        _ => Err(Error::Parse(
+        _ => Err(Error::Parse {
             span,
-            format!("unknown axis property enum: {}", ident),
-        )),
+            reason: format!("unknown axis property enum: {}", ident),
+            help: None,
+        }),
     }
 }
 
@@ -342,7 +392,13 @@ fn parse_axis_seq(seq: ast::Seq) -> Result<ir::Axis, Error> {
                 kind: ast::ScalarKind::Enum(ident),
                 span,
             } => axis = axis_set_enum_field(axis, span, ident.as_str())?,
-            _ => return Err(Error::Parse(seq.span, "Could not parse axis".into())),
+            _ => {
+                return Err(Error::Parse {
+                    span: seq.span,
+                    reason: "Could not parse axis".into(),
+                    help: None,
+                });
+            }
         }
     }
     Ok(axis)
@@ -369,10 +425,11 @@ fn parse_axis_struct(val: ast::Struct) -> Result<ir::Axis, Error> {
                 axis = axis.with_minor_grid(Default::default());
             }
             _ => {
-                return Err(Error::Parse(
-                    prop.span(),
-                    format!("unknown axis property: {}", prop.name.name),
-                ));
+                return Err(Error::Parse {
+                    span: prop.span(),
+                    reason: format!("unknown axis property: {}", prop.name.name),
+                    help: None,
+                });
             }
         }
     }

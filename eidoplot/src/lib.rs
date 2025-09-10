@@ -41,8 +41,6 @@ pub mod eplt;
 pub mod render;
 pub mod style;
 
-pub use eplt::{parse_eplt};
-
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters
 mod missing_params {

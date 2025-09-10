@@ -1,6 +1,6 @@
 use std::path;
 
-use eidoplot::data;
+use eidoplot::{data, eplt};
 use eidoplot::data::Source;
 
 mod common;
@@ -92,7 +92,19 @@ fn main() {
     );
 
     let eplt = include_str!("iris.eplt");
-    let fig = eidoplot::parse_eplt(eplt).unwrap();
+    match eplt::parse(eplt) {
+        Ok(figs) => {
+            common::save_figure(&figs[0], &source, "iris_eplt");
+        }
+        Err(err) => {
+            let src = eplt::Source {
+                name: Some("iris.eplt"),
+                src: eplt,
+            };
+            let diag = eplt::Diagnostic::new(Box::new(err), src);
+            let report = miette::Report::new(diag);
+            println!("{report:?}");
+        }
+    }
 
-    common::save_figure(&fig[0], &source, "iris_eplt");
 }

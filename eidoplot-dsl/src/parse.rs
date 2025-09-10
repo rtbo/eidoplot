@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::ast;
+use crate::DiagTrait;
 use crate::lex::{self, Span, Token, TokenKind};
 
 #[derive(Debug, Clone)]
@@ -8,6 +9,9 @@ pub enum Error {
     Lex(lex::Error),
     UnexpectedEndOfInput(Span),
     UnexpectedToken(Token, Option<String>),
+}
+
+impl Error {
 }
 
 impl From<lex::Error> for Error {
@@ -31,6 +35,20 @@ impl fmt::Display for Error {
                 Ok(())
             }
         }
+    }
+}
+
+impl DiagTrait for Error {
+    fn span(&self) -> Span {
+        match self {
+            Error::Lex(err) => err.span(),
+            Error::UnexpectedEndOfInput(span) => *span,
+            Error::UnexpectedToken(tok, _) => tok.span,
+        }
+    }
+
+    fn message(&self) -> String {
+        format!("{}", self)
     }
 }
 
@@ -508,8 +526,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::input::Pos;
-
     use super::*;
 
     #[test]
@@ -528,18 +544,7 @@ mod tests {
             &[ast::Prop {
                 name: ast::Ident {
                     name: "foo".to_string(),
-                    span: (
-                        Pos {
-                            index: 0,
-                            line: 1,
-                            column: 1
-                        },
-                        Pos {
-                            index: 3,
-                            line: 1,
-                            column: 4
-                        },
-                    ),
+                    span: (0, 3,),
                 },
                 value: None,
             }]
@@ -555,32 +560,10 @@ mod tests {
             &[ast::Prop {
                 name: ast::Ident {
                     name: "foo".to_string(),
-                    span: (
-                        Pos {
-                            index: 0,
-                            line: 1,
-                            column: 1
-                        },
-                        Pos {
-                            index: 3,
-                            line: 1,
-                            column: 4
-                        },
-                    ),
+                    span: (0, 3,),
                 },
                 value: Some(ast::Value::Scalar(ast::Scalar {
-                    span: (
-                        Pos {
-                            index: 5,
-                            line: 1,
-                            column: 6
-                        },
-                        Pos {
-                            index: 9,
-                            line: 1,
-                            column: 10
-                        },
-                    ),
+                    span: (5, 9,),
                     kind: ast::ScalarKind::Int(1234),
                 })),
             }]
@@ -596,32 +579,10 @@ mod tests {
             &[ast::Prop {
                 name: ast::Ident {
                     name: "foo".to_string(),
-                    span: (
-                        Pos {
-                            index: 0,
-                            line: 1,
-                            column: 1
-                        },
-                        Pos {
-                            index: 3,
-                            line: 1,
-                            column: 4
-                        },
-                    ),
+                    span: (0, 3,),
                 },
                 value: Some(ast::Value::Scalar(ast::Scalar {
-                    span: (
-                        Pos {
-                            index: 5,
-                            line: 1,
-                            column: 6
-                        },
-                        Pos {
-                            index: 10,
-                            line: 1,
-                            column: 11
-                        },
-                    ),
+                    span: (5, 10,),
                     kind: ast::ScalarKind::Float(12.34),
                 })),
             }]
@@ -637,32 +598,10 @@ mod tests {
             &[ast::Prop {
                 name: ast::Ident {
                     name: "foo".to_string(),
-                    span: (
-                        Pos {
-                            index: 0,
-                            line: 1,
-                            column: 1
-                        },
-                        Pos {
-                            index: 3,
-                            line: 1,
-                            column: 4
-                        },
-                    ),
+                    span: (0, 3,),
                 },
                 value: Some(ast::Value::Scalar(ast::Scalar {
-                    span: (
-                        Pos {
-                            index: 5,
-                            line: 1,
-                            column: 6
-                        },
-                        Pos {
-                            index: 13,
-                            line: 1,
-                            column: 14
-                        },
-                    ),
+                    span: (5, 13,),
                     kind: ast::ScalarKind::Str("string".into()),
                 })),
             }]
@@ -676,18 +615,7 @@ mod tests {
         assert_eq!(
             props[0].value,
             Some(ast::Value::Scalar(ast::Scalar {
-                span: (
-                    Pos {
-                        index: 5,
-                        line: 1,
-                        column: 6
-                    },
-                    Pos {
-                        index: 16,
-                        line: 1,
-                        column: 17
-                    }
-                ),
+                span: (5, 16),
                 kind: ast::ScalarKind::Str("abc".into()),
             }))
         );
@@ -702,32 +630,10 @@ mod tests {
             &[ast::Prop {
                 name: ast::Ident {
                     name: "foo".to_string(),
-                    span: (
-                        Pos {
-                            index: 0,
-                            line: 1,
-                            column: 1
-                        },
-                        Pos {
-                            index: 3,
-                            line: 1,
-                            column: 4
-                        }
-                    ),
+                    span: (0, 3),
                 },
                 value: Some(ast::Value::Scalar(ast::Scalar {
-                    span: (
-                        Pos {
-                            index: 5,
-                            line: 1,
-                            column: 6
-                        },
-                        Pos {
-                            index: 8,
-                            line: 1,
-                            column: 9
-                        }
-                    ),
+                    span: (5, 8),
                     kind: ast::ScalarKind::Enum("Bar".into()),
                 })),
             }]
@@ -741,62 +647,18 @@ mod tests {
         assert_eq!(
             props[0].value,
             Some(ast::Value::Seq(ast::Seq {
-                span: (
-                    Pos {
-                        index: 5,
-                        line: 1,
-                        column: 6
-                    },
-                    Pos {
-                        index: 12,
-                        line: 1,
-                        column: 13
-                    }
-                ),
+                span: (5, 12),
                 scalars: vec![
                     ast::Scalar {
-                        span: (
-                            Pos {
-                                index: 5,
-                                line: 1,
-                                column: 6
-                            },
-                            Pos {
-                                index: 6,
-                                line: 1,
-                                column: 7
-                            }
-                        ),
+                        span: (5, 6),
                         kind: ast::ScalarKind::Int(1),
                     },
                     ast::Scalar {
-                        span: (
-                            Pos {
-                                index: 8,
-                                line: 1,
-                                column: 9
-                            },
-                            Pos {
-                                index: 9,
-                                line: 1,
-                                column: 10
-                            }
-                        ),
+                        span: (8, 9),
                         kind: ast::ScalarKind::Int(2),
                     },
                     ast::Scalar {
-                        span: (
-                            Pos {
-                                index: 11,
-                                line: 1,
-                                column: 12
-                            },
-                            Pos {
-                                index: 12,
-                                line: 1,
-                                column: 13
-                            }
-                        ),
+                        span: (11, 12),
                         kind: ast::ScalarKind::Int(3),
                     },
                 ]
@@ -811,18 +673,7 @@ mod tests {
         assert_eq!(
             props[0].value,
             Some(ast::Value::Array(ast::Array {
-                span: (
-                    Pos {
-                        index: 5,
-                        line: 1,
-                        column: 6
-                    },
-                    Pos {
-                        index: 14,
-                        line: 1,
-                        column: 15
-                    }
-                ),
+                span: (5, 14),
                 kind: ast::ArrayKind::Int(vec![1, 2, 3]),
             }))
         );
@@ -835,18 +686,7 @@ mod tests {
         assert_eq!(
             props[0].value,
             Some(ast::Value::Array(ast::Array {
-                span: (
-                    Pos {
-                        index: 5,
-                        line: 1,
-                        column: 6
-                    },
-                    Pos {
-                        index: 20,
-                        line: 1,
-                        column: 21
-                    }
-                ),
+                span: (5, 20,),
                 kind: ast::ArrayKind::Float(vec![1.1, 2.2, 3.3]),
             }))
         );
@@ -859,18 +699,7 @@ mod tests {
         assert_eq!(
             props[0].value,
             Some(ast::Value::Array(ast::Array {
-                span: (
-                    Pos {
-                        index: 5,
-                        line: 1,
-                        column: 6
-                    },
-                    Pos {
-                        index: 20,
-                        line: 1,
-                        column: 21
-                    }
-                ),
+                span: (5, 20,),
                 kind: ast::ArrayKind::Str(vec!["a".into(), "b".into(), "c".into()]),
             }))
         );
@@ -883,62 +712,18 @@ mod tests {
         assert_eq!(
             props[0].value,
             Some(ast::Value::Struct(ast::Struct {
-                span: (
-                    Pos {
-                        index: 5,
-                        line: 1,
-                        column: 6
-                    },
-                    Pos {
-                        index: 19,
-                        line: 1,
-                        column: 20
-                    }
-                ),
+                span: (5, 19),
                 typ: Some(ast::Ident {
                     name: "Bar".into(),
-                    span: (
-                        Pos {
-                            index: 5,
-                            line: 1,
-                            column: 6
-                        },
-                        Pos {
-                            index: 8,
-                            line: 1,
-                            column: 9
-                        }
-                    ),
+                    span: (5, 8),
                 }),
                 props: vec![ast::Prop {
                     name: ast::Ident {
                         name: "baz".into(),
-                        span: (
-                            Pos {
-                                index: 11,
-                                line: 1,
-                                column: 12
-                            },
-                            Pos {
-                                index: 14,
-                                line: 1,
-                                column: 15
-                            }
-                        ),
+                        span: (11, 14),
                     },
                     value: Some(ast::Value::Scalar(ast::Scalar {
-                        span: (
-                            Pos {
-                                index: 16,
-                                line: 1,
-                                column: 17
-                            },
-                            Pos {
-                                index: 17,
-                                line: 1,
-                                column: 18
-                            }
-                        ),
+                        span: (16, 17),
                         kind: ast::ScalarKind::Int(1),
                     })),
                 }]
@@ -953,48 +738,15 @@ mod tests {
         assert_eq!(
             props[0].value,
             Some(ast::Value::Struct(ast::Struct {
-                span: (
-                    Pos {
-                        index: 5,
-                        line: 1,
-                        column: 6
-                    },
-                    Pos {
-                        index: 15,
-                        line: 1,
-                        column: 16
-                    }
-                ),
+                span: (5, 15),
                 typ: None,
                 props: vec![ast::Prop {
                     name: ast::Ident {
                         name: "bar".into(),
-                        span: (
-                            Pos {
-                                index: 7,
-                                line: 1,
-                                column: 8
-                            },
-                            Pos {
-                                index: 10,
-                                line: 1,
-                                column: 11
-                            }
-                        ),
+                        span: (7, 10),
                     },
                     value: Some(ast::Value::Scalar(ast::Scalar {
-                        span: (
-                            Pos {
-                                index: 12,
-                                line: 1,
-                                column: 13
-                            },
-                            Pos {
-                                index: 13,
-                                line: 1,
-                                column: 14
-                            }
-                        ),
+                        span: (12, 13),
                         kind: ast::ScalarKind::Int(2),
                     })),
                 }]
@@ -1009,18 +761,7 @@ mod tests {
         assert_eq!(
             props[0].value,
             Some(ast::Value::Struct(ast::Struct {
-                span: (
-                    Pos {
-                        index: 5,
-                        line: 1,
-                        column: 6
-                    },
-                    Pos {
-                        index: 8,
-                        line: 1,
-                        column: 9
-                    }
-                ),
+                span: (5, 8),
                 typ: None,
                 props: vec![],
             }))
@@ -1042,7 +783,6 @@ bar: 2 // another comment
     }
 }
 
-
 #[cfg(test)]
 mod fail_tests {
     use super::*;
@@ -1053,7 +793,10 @@ mod fail_tests {
         let res = parse(dsl.chars());
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(matches!(err, Error::Lex(lex::Error::UnterminatedString{..})));
+        assert!(matches!(
+            err,
+            Error::Lex(lex::Error::UnterminatedString { .. })
+        ));
         assert!(err.to_string().contains("Unterminated string"));
     }
 

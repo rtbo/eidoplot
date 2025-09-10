@@ -1,6 +1,6 @@
 use std::{fmt, iter::FusedIterator};
 
-use crate::input::{Cursor, Pos};
+use crate::{DiagTrait, input::{Cursor, Pos}};
 
 /// Byte span into an input stream
 /// (first pos, one past last pos)
@@ -32,7 +32,7 @@ impl fmt::Display for Error {
                 expected, found, ..
             } => write!(
                 f,
-                "Unexpected character: expected {}, found {}",
+                "Unexpected character: expected '{}', found '{}'",
                 expected, found
             ),
             Error::UnexpectedEndOfFile(..) => write!(f, "Unexpected end of file"),
@@ -48,6 +48,24 @@ impl fmt::Display for Error {
             }
             Error::InvalidPascalIdent(_, s) => write!(f, "Invalid pascal-case identifier {}", s,),
         }
+    }
+}
+
+impl DiagTrait for Error {
+    fn span(&self) -> Span {
+        match self {
+            Error::UnexpectedChar { pos, .. } => (*pos, *pos + 1),
+            Error::UnexpectedEndOfFile(pos) => (*pos, *pos),
+            Error::UnterminatedString { span, .. } => *span,
+            Error::InvalidEscSequence(span, _) => *span,
+            Error::InvalidNumber(span, _) => *span,
+            Error::InvalidKebabIdent(span, _) => *span,
+            Error::InvalidPascalIdent(span, _) => *span,
+        }
+    }
+
+    fn message(&self) -> String {
+        format!("{}", self)
     }
 }
 
@@ -498,12 +516,7 @@ mod tests {
     #[test]
     fn test_comment_without_eol() {
         let toks = tokenize_str("// bar");
-        assert_eq!(
-            toks,
-            vec![
-                TokenKind::Comment,
-            ]
-        );
+        assert_eq!(toks, vec![TokenKind::Comment,]);
     }
 }
 
@@ -512,13 +525,20 @@ mod fail_tests {
     use super::*;
 
     fn tokenize_str(s: &str) -> Result<Vec<Token>> {
-        tokenize(s.chars())
-            .collect()
+        tokenize(s.chars()).collect()
     }
 
     #[test]
     fn test_malformed_comment() {
-        let toks = tokenize_str("/ bar");
+        let toks = tokenize_str("foo: 1\n / bar");
         assert!(toks.is_err());
+        assert!(matches!(
+            toks.unwrap_err(),
+            Error::UnexpectedChar {
+                pos: 9,
+                expected: '/',
+                found: ' '
+            }
+        ));
     }
 }

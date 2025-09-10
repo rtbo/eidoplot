@@ -103,60 +103,21 @@ impl Struct {
 
 #[cfg(test)]
 mod tests {
-    use crate::input::Pos;
-
     use super::*;
 
     #[test]
     fn test_prop_span() {
-
         let prop = Prop {
             name: Ident {
-                span: (
-                    Pos {
-                        index: 0,
-                        line: 1,
-                        column: 1
-                    },
-                    Pos {
-                        index: 3,
-                        line: 1,
-                        column: 4
-                    },
-                ),
+                span: (0, 3),
                 name: "foo".to_string(),
             },
             value: Some(Value::Array(Array {
-                span: (
-                    Pos {
-                        index: 5,
-                        line: 1,
-                        column: 6
-                    },
-                    Pos {
-                        index: 14,
-                        line: 1,
-                        column: 15
-                    }
-                ),
+                span: (5, 14),
                 kind: ArrayKind::Int(vec![1, 2, 3]),
-            }))
+            })),
         };
 
-        assert_eq!(
-            prop.span(),
-            (
-                Pos {
-                    index: 0,
-                    line: 1,
-                    column: 1
-                },
-                Pos {
-                    index: 14,
-                    line: 1,
-                    column: 15
-                }
-            )
-        );
+        assert_eq!(prop.span(), (0, 14));
     }
 }

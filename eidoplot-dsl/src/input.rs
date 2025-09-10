@@ -1,22 +1,7 @@
 use std::iter::FusedIterator;
 
 /// Position into an input stream
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Pos {
-    pub index: usize,
-    pub line: u32,
-    pub column: u32,
-}
-
-impl Default for Pos {
-    fn default() -> Self {
-        Self {
-            index: 0,
-            line: 1,
-            column: 1,
-        }
-    }
-}
+pub type Pos = usize;
 
 /// A cursor over an input stream of characters.
 /// It keeps track of the current position in the stream.
@@ -59,13 +44,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.input.next();
         if let Some(c) = next {
-            self.pos.index += c.len_utf8();
-            if c == '\n' {
-                self.pos.line += 1;
-                self.pos.column = 1;
-            } else {
-                self.pos.column += 1;
-            }
+            self.pos += c.len_utf8();
         }
         next
     }
@@ -75,7 +54,7 @@ impl<I> FusedIterator for Cursor<I> where I: FusedIterator<Item = char> {}
 
 #[cfg(test)]
 mod tests {
-    use super::{Cursor, Pos};
+    use super::*;
 
     #[test]
     fn test_input_cursor() {
@@ -85,71 +64,29 @@ mod tests {
         assert_eq!(c.next(), Some('o'));
         assert_eq!(c.next(), Some('m'));
         assert_eq!(c.next(), Some('e'));
-        assert_eq!(
-            c.pos(),
-            Pos {
-                index: 4,
-                line: 1,
-                column: 5
-            }
-        );
+        assert_eq!(c.pos(), 4);
         let string: String = c.by_ref().take(7).collect();
         assert_eq!(string, " string");
 
-        assert_eq!(
-            c.pos(),
-            Pos {
-                index: 11,
-                line: 1,
-                column: 12
-            }
-        );
+        assert_eq!(c.pos(), 11);
         assert_eq!(c.next(), Some('\n'));
-        assert_eq!(
-            c.pos(),
-            Pos {
-                index: 12,
-                line: 2,
-                column: 1
-            }
-        );
+        assert_eq!(c.pos(), 12);
 
         let cloned = c.clone();
         let cloned_pos = cloned.pos();
 
         let a_second_line: String = c.by_ref().take(13).collect();
         assert_eq!(a_second_line, "a second line");
-        assert_eq!(
-            c.pos(),
-            Pos {
-                index: 25,
-                line: 2,
-                column: 14
-            }
-        );
+        assert_eq!(c.pos(), 25);
 
         // checking independence of cloned cursor
         assert_eq!(cloned.pos(), cloned_pos);
         let a_second_line: String = cloned.take(13).collect();
         assert_eq!(a_second_line, "a second line");
 
-        assert_eq!(
-            c.pos(),
-            Pos {
-                index: 25,
-                line: 2,
-                column: 14
-            }
-        );
+        assert_eq!(c.pos(), 25);
         assert_eq!(c.next(), Some('\n'));
-        assert_eq!(
-            c.pos(),
-            Pos {
-                index: 26,
-                line: 3,
-                column: 1
-            }
-        );
+        assert_eq!(c.pos(), 26);
         assert_eq!(c.next(), None);
     }
 }
