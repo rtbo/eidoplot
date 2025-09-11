@@ -45,13 +45,13 @@ impl DiagTrait for parse::Error {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct Source<'a> {
-    pub name: Option<&'a str>,
-    pub src: &'a str,
+#[derive(Debug, Clone)]
+pub struct Source {
+    pub name: Option<String>,
+    pub src: String,
 }
 
-impl miette::SourceCode for Source<'_> {
+impl miette::SourceCode for Source {
     fn read_span<'a>(
         &'a self,
         span: &miette::SourceSpan,
@@ -71,7 +71,7 @@ impl miette::SourceCode for Source<'_> {
             context_lines_before,
             context_lines_after,
         )?;
-        if let Some(name) = self.name {
+        if let Some(name) = self.name.as_deref() {
             let content = MietteSpanContents::new_named(
                 name.to_string(),
                 content.data(),
@@ -89,18 +89,18 @@ impl miette::SourceCode for Source<'_> {
 }
 
 #[derive(Debug)]
-pub struct Diagnostic<'a> {
+pub struct Diagnostic {
     diag: Box<dyn DiagTrait>,
-    source: Source<'a>,
+    source: Source,
 }
 
-impl<'a> Diagnostic<'a> {
-    pub fn new(diag: Box<dyn DiagTrait>, source: Source<'a>) -> Self {
+impl<'a> Diagnostic {
+    pub fn new(diag: Box<dyn DiagTrait>, source: Source) -> Self {
         Self { diag, source }
     }
 }
 
-impl fmt::Display for Diagnostic<'_> {
+impl fmt::Display for Diagnostic {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.diag.message())?;
         if let Some(help) = self.diag.help() {
@@ -110,12 +110,12 @@ impl fmt::Display for Diagnostic<'_> {
     }
 }
 
-impl std::error::Error for Diagnostic<'_> {}
+impl std::error::Error for Diagnostic {}
 
-unsafe impl Send for Diagnostic<'_> {}
-unsafe impl Sync for Diagnostic<'_> {}
+unsafe impl Send for Diagnostic {}
+unsafe impl Sync for Diagnostic {}
 
-impl miette::Diagnostic for Diagnostic<'_> {
+impl miette::Diagnostic for Diagnostic {
     fn code<'a>(&'a self) -> Option<Box<dyn fmt::Display + 'a>> {
         None
     }

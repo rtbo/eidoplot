@@ -1,7 +1,7 @@
 use std::path;
 
-use eidoplot::{data, eplt};
 use eidoplot::data::Source;
+use eidoplot::{data, eplt};
 
 mod common;
 
@@ -91,20 +91,13 @@ fn main() {
         &virginica_petal_length as &dyn data::Column,
     );
 
-    let eplt = include_str!("iris.eplt");
-    match eplt::parse(eplt) {
-        Ok(figs) => {
-            common::save_figure(&figs[0], &source, "iris_eplt");
-        }
-        Err(err) => {
-            let src = eplt::Source {
-                name: Some("iris.eplt"),
-                src: eplt,
-            };
-            let diag = eplt::Diagnostic::new(Box::new(err), src);
-            let report = miette::Report::new(diag);
-            println!("{report:?}");
-        }
-    }
+    let file_name = file!();
+    let eplt_file = path::Path::new(file_name)
+        .parent()
+        .unwrap()
+        .join("iris.eplt");
+    let eplt = std::fs::read_to_string(&eplt_file).unwrap();
 
+    let figs = eplt::parse_diag(&eplt, Some(&eplt_file)).unwrap();
+    common::save_figure(&figs[0], &source, "iris_eplt");
 }

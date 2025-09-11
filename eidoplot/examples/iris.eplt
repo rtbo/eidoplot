@@ -2,7 +2,7 @@
 // it can be assigned multiple times to generate multiple figures
 figure: {
     title: "Iris dataset"
-    plot: {
+    plot: Plog {
         // 'x-axis' is a property of type 'Axis'
         // the type is optional though as it can be inferred from
         // the property name

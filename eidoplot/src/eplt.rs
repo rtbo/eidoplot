@@ -1,4 +1,6 @@
 use std::fmt;
+#[cfg(feature = "dsl-diag")]
+use std::path;
 
 use eidoplot_dsl::{self as dsl, ast};
 
@@ -76,6 +78,23 @@ pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<ir::Figure>, Error> {
     Ok(figs)
 }
 
+#[cfg(feature = "dsl-diag")]
+pub fn parse_diag<'a>(input: &'a str, file_name: Option<&'a path::Path>) -> miette::Result<Vec<ir::Figure>> {
+    match parse(input) {
+        Ok(figs) => Ok(figs),
+        Err(err) => {
+            let src = Source {
+                name: file_name.map(|s| s.to_str().unwrap_or("(non-utf8 filename)").to_string()),
+                src: input.to_string(),
+            };
+            let diag = Diagnostic::new(Box::new(err), src);
+            let report = miette::Report::new(diag);
+            Err(report)
+        }
+    }
+
+}
+
 fn expect_string_val(prop: ast::Prop) -> Result<String, Error> {
     let Some(ast::Value::Scalar(ast::Scalar {
         kind: ast::ScalarKind::Str(val),
@@ -112,7 +131,7 @@ fn check_opt_type(val: &ast::Struct, type_name: &str) -> Result<(), Error> {
                     typ.name
                 ),
                 help: Some(format!(
-                    "In this case, '{type_name}' can be inferred from context and not be specified at all."
+                    "In this case, '{type_name}' can be inferred from context and is optional"
                 )),
             });
         }
