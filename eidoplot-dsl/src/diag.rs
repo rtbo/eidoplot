@@ -3,12 +3,45 @@ use core::fmt;
 use miette::MietteSpanContents;
 
 use crate::Span;
+use crate::{parse, lex};
 
 pub trait DiagTrait: fmt::Debug + fmt::Display {
     fn span(&self) -> Span;
     fn message(&self) -> String;
     fn help(&self) -> Option<String> {
         None
+    }
+}
+
+impl DiagTrait for lex::Error {
+    fn span(&self) -> Span {
+        match self {
+            lex::Error::UnexpectedChar { pos, .. } => (*pos, *pos + 1),
+            lex::Error::UnexpectedEndOfFile(pos) => (*pos, *pos),
+            lex::Error::UnterminatedString { span, .. } => *span,
+            lex::Error::InvalidEscSequence(span, _) => *span,
+            lex::Error::InvalidNumber(span, _) => *span,
+            lex::Error::InvalidKebabIdent(span, _) => *span,
+            lex::Error::InvalidPascalIdent(span, _) => *span,
+        }
+    }
+
+    fn message(&self) -> String {
+        format!("{}", self)
+    }
+}
+
+impl DiagTrait for parse::Error {
+    fn span(&self) -> Span {
+        match self {
+            parse::Error::Lex(err) => err.span(),
+            parse::Error::UnexpectedEndOfInput(span) => *span,
+            parse::Error::UnexpectedToken(tok, _) => tok.span,
+        }
+    }
+
+    fn message(&self) -> String {
+        format!("{}", self)
     }
 }
 

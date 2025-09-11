@@ -23,6 +23,7 @@ rand_chacha = "0.9.0"
 
 [features]
 polars = ["dep:polars"]
+dsl-diag = ["eidoplot-dsl/diag"]
 
 [[example]]
 name = "sine"
@@ -35,6 +36,7 @@ name = "iris"
 
 [[example]]
 name = "iris_eplt"
+required-features = ["dsl-diag"]
 
 [[example]]
 name = "bars"

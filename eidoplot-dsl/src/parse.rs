@@ -1,7 +1,6 @@
 use std::fmt;
 
 use crate::ast;
-use crate::DiagTrait;
 use crate::lex::{self, Span, Token, TokenKind};
 
 #[derive(Debug, Clone)]
@@ -35,20 +34,6 @@ impl fmt::Display for Error {
                 Ok(())
             }
         }
-    }
-}
-
-impl DiagTrait for Error {
-    fn span(&self) -> Span {
-        match self {
-            Error::Lex(err) => err.span(),
-            Error::UnexpectedEndOfInput(span) => *span,
-            Error::UnexpectedToken(tok, _) => tok.span,
-        }
-    }
-
-    fn message(&self) -> String {
-        format!("{}", self)
     }
 }
 

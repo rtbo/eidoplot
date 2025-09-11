@@ -1,6 +1,6 @@
 use std::{fmt, iter::FusedIterator};
 
-use crate::{DiagTrait, input::{Cursor, Pos}};
+use crate::input::{Cursor, Pos};
 
 /// Byte span into an input stream
 /// (first pos, one past last pos)
@@ -48,24 +48,6 @@ impl fmt::Display for Error {
             }
             Error::InvalidPascalIdent(_, s) => write!(f, "Invalid pascal-case identifier {}", s,),
         }
-    }
-}
-
-impl DiagTrait for Error {
-    fn span(&self) -> Span {
-        match self {
-            Error::UnexpectedChar { pos, .. } => (*pos, *pos + 1),
-            Error::UnexpectedEndOfFile(pos) => (*pos, *pos),
-            Error::UnterminatedString { span, .. } => *span,
-            Error::InvalidEscSequence(span, _) => *span,
-            Error::InvalidNumber(span, _) => *span,
-            Error::InvalidKebabIdent(span, _) => *span,
-            Error::InvalidPascalIdent(span, _) => *span,
-        }
-    }
-
-    fn message(&self) -> String {
-        format!("{}", self)
     }
 }
 

@@ -4,6 +4,7 @@ use eidoplot_dsl::{self as dsl, ast};
 
 use crate::ir;
 
+#[cfg(feature = "dsl-diag")]
 pub use dsl::{Diagnostic, Source};
 
 #[derive(Debug, Clone)]
@@ -37,6 +38,7 @@ impl From<dsl::Error> for Error {
     }
 }
 
+#[cfg(feature = "dsl-diag")]
 impl dsl::DiagTrait for Error {
     fn span(&self) -> dsl::Span {
         match self {
@@ -48,7 +50,7 @@ impl dsl::DiagTrait for Error {
     fn message(&self) -> String {
         match self {
             Error::Dsl(err) => err.message(),
-            Error::Parse { reason, .. } => format!("Parse error: {reason}"),
+            Error::Parse { reason, .. } => format!("{reason}"),
         }
     }
 
