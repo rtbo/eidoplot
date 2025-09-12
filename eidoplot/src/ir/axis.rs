@@ -26,6 +26,8 @@ pub enum Scale {
     Auto,
     /// Linear axis
     Linear(Range),
+    /// Logarithmic axis
+    Log(Range),
 }
 
 /// Describe the ticks of an axis
@@ -310,9 +312,8 @@ impl From<String> for Title {
 
 #[derive(Debug, Clone)]
 pub struct Axis {
-    scale: Scale,
-
     title: Option<Title>,
+    scale: Scale,
     ticks: Option<Ticks>,
     minor_ticks: Option<MinorTicks>,
     grid: Option<Grid>,

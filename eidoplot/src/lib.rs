@@ -82,3 +82,62 @@ pub fn bundled_font_db() -> fontdb::Database {
 
     db
 }
+
+#[cfg(test)]
+pub(crate) mod tests {
+    pub trait CloseTo {
+        fn close_to_abs(&self, other: &Self, tol: f64) -> bool;
+        fn close_to_rel(&self, other: &Self, err: f64) -> bool;
+    }
+
+    impl CloseTo for f64 {
+        fn close_to_abs(&self, other: &Self, tol: f64) -> bool {
+            (self - other).abs() <= tol
+        }
+
+        fn close_to_rel(&self, other: &Self, err: f64) -> bool {
+            let diff = (self - other).abs();
+            let largest = self.abs().max(other.abs());
+            diff <= largest * err
+        }
+    }
+
+    impl CloseTo for f32 {
+        fn close_to_abs(&self, other: &Self, tol: f64) -> bool {
+            (self - other).abs() as f64 <= tol
+        }
+
+        fn close_to_rel(&self, other: &Self, err: f64) -> bool {
+            let diff = (self - other).abs() as f64;
+            let largest = self.abs().max(other.abs()) as f64;
+            diff <= largest * err
+        }
+    }
+
+    macro_rules! assert_close_to {
+        (abs, $a:expr, $b:expr, $tol:expr) => {
+            assert!($a.close_to_abs(&$b, $tol), "Assertion failed: Values are not close enough.\nValue 1: {:?}\nValue 2: {:?}\nTolerance: {}", $a, $b, $tol);
+        };
+        (abs, $a:expr, $b:expr) => {
+            assert_close_to!(abs, $a, $b, 1e-8);
+        };
+        (rel, $a:expr, $b:expr, $err:expr) => {
+            assert!($a.close_to_rel(&$b, $err), "Assertion failed: Values are not close enough.\nValue 1: {:?}\nValue 2: {:?}\nRelative error: {}", $a, $b, $err);
+        };
+        (rel, $a:expr, $b:expr) => {
+            assert_close_to!(rel, $a, $b, 1e-8);
+        };
+    }
+
+    pub(crate) use assert_close_to;
+
+    #[test]
+    fn test_close_to() {
+        let a = 1.0;
+        let b = 1.0 + 1e-9;
+        assert_close_to!(abs, a, b);
+        assert!(!a.close_to_abs(&b, 1e-10));
+        assert_close_to!(rel, a, b);
+        assert!(!a.close_to_rel(&b, 1e-10));
+    }
+}

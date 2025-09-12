@@ -195,6 +195,10 @@ impl NumBounds {
         self.1 - self.0
     }
 
+    pub fn log_span(&self, base: f64) -> f64 {
+        self.1.log(base) - self.0.log(base)
+    }
+
     pub fn contains(&self, point: f64) -> bool {
         // TODO: handle very large and very low values
         const EPS: f64 = 1e-10;
@@ -209,6 +213,95 @@ impl NumBounds {
     pub fn unite_with(&mut self, bounds: &NumBounds) {
         self.0 = self.0.min(bounds.0);
         self.1 = self.1.max(bounds.1);
+    }
+}
+
+#[cfg(test)]
+impl crate::tests::CloseTo for NumBounds {
+    fn close_to_abs(&self, other: &Self, tol: f64) -> bool {
+        self.0.close_to_abs(&other.0, tol) && self.1.close_to_abs(&other.1, tol)
+    }
+
+    fn close_to_rel(&self, other: &Self, err: f64) -> bool {
+        self.0.close_to_rel(&other.0, err) && self.1.close_to_rel(&other.1, err)
+    }
+}
+
+#[cfg(test)]
+impl crate::tests::CloseTo for Bounds {
+    fn close_to_abs(&self, other: &Self, tol: f64) -> bool {
+        match (self, other) {
+            (&Bounds::Num(a), &Bounds::Num(b)) => a.close_to_abs(&b, tol),
+            (Bounds::Cat(a), Bounds::Cat(b)) => {
+                if a.len() != b.len() {
+                    return false;
+                }
+                for (ac, bc) in a.iter().zip(b.iter()) {
+                    if ac != bc {
+                        return false;
+                    }
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn close_to_rel(&self, other: &Self, err: f64) -> bool {
+        match (self, other) {
+            (&Bounds::Num(a), &Bounds::Num(b)) => a.close_to_rel(&b, err),
+            (Bounds::Cat(a), Bounds::Cat(b)) => {
+                if a.len() != b.len() {
+                    return false;
+                }
+                for (ac, bc) in a.iter().zip(b.iter()) {
+                    if ac != bc {
+                        return false;
+                    }
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+}
+
+#[cfg(test)]
+impl crate::tests::CloseTo for BoundsRef<'_> {
+    fn close_to_abs(&self, other: &Self, tol: f64) -> bool {
+        match (self, other) {
+            (&BoundsRef::Num(a), &BoundsRef::Num(b)) => a.close_to_abs(&b, tol),
+            (&BoundsRef::Cat(a), &BoundsRef::Cat(b)) => {
+                if a.len() != b.len() {
+                    return false;
+                }
+                for (ac, bc) in a.iter().zip(b.iter()) {
+                    if ac != bc {
+                        return false;
+                    }
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn close_to_rel(&self, other: &Self, err: f64) -> bool {
+        match (self, other) {
+            (&BoundsRef::Num(a), &BoundsRef::Num(b)) => a.close_to_rel(&b, err),
+            (&BoundsRef::Cat(a), &BoundsRef::Cat(b)) => {
+                if a.len() != b.len() {
+                    return false;
+                }
+                for (ac, bc) in a.iter().zip(b.iter()) {
+                    if ac != bc {
+                        return false;
+                    }
+                }
+                true
+            }
+            _ => false,
+        }
     }
 }
 
