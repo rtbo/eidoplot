@@ -1,4 +1,5 @@
 use std::env;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use eidoplot::drawing::{self, SurfaceExt};
@@ -7,6 +8,13 @@ use eidoplot::{data, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 use eidoplot_text::fontdb;
+
+/// Get the path to a file in the examples folder
+#[allow(dead_code)]
+pub fn example_res(path: &str) -> PathBuf {
+    let root = env!("CARGO_MANIFEST_DIR");
+    PathBuf::from(root).join("examples").join(path)
+}
 
 #[derive(Debug, Clone, Default)]
 enum Png {
@@ -242,7 +250,9 @@ fn save_fig_with_theme<T, D>(
             fontdb,
             &format!("{}.svg", default_name),
         ),
-        Svg::YesToFile(file_name) => save_fig_as_svg(fig, data_source, theme.clone(), fontdb, &file_name),
+        Svg::YesToFile(file_name) => {
+            save_fig_as_svg(fig, data_source, theme.clone(), fontdb, &file_name)
+        }
     }
 }
 

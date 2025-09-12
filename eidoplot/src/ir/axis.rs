@@ -16,6 +16,25 @@ pub enum Range {
     MinMax(f64, f64),
 }
 
+/// Describe a logarithmic scale options
+#[derive(Debug, Clone, Copy)]
+pub struct LogScale {
+    pub base: f64,
+    pub range: Range,
+}
+
+impl LogScale {
+    pub fn new(base: f64, range: Range) -> Self {
+        Self { base, range }
+    }
+}
+
+impl Default for LogScale {
+    fn default() -> Self {
+        Self::new(10.0, Range::Auto)
+    }
+}
+
 /// Describes the type of an axis scale
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Scale {
@@ -27,7 +46,19 @@ pub enum Scale {
     /// Linear axis
     Linear(Range),
     /// Logarithmic axis
-    Log(Range),
+    Log(LogScale),
+}
+
+impl From<Range> for Scale {
+    fn from(range: Range) -> Self {
+        Scale::Linear(range)
+    }
+}
+
+impl From<LogScale> for Scale {
+    fn from(scale: LogScale) -> Self {
+        Scale::Log(scale)
+    }
 }
 
 /// Describe the ticks of an axis
@@ -39,7 +70,8 @@ pub mod ticks {
     /// Describes how to locate the ticks of an axis
     #[derive(Debug, Default, Clone)]
     pub enum Locator {
-        /// Automatic tick placement. This is equvalent to `MaxN { bins: 10 }` with relevant decimal steps
+        /// Automatic tick placement, that depends on the type of axis (linear, logarithmic, categories),
+        /// on the axis data range (bounds) and whether the ticks are major or minor
         #[default]
         Auto,
         /// Places ticks automatically, using the specified number of bins and steps
@@ -53,6 +85,13 @@ pub mod ticks {
         /// Places the ticks automatically, using the specified number of bins and multiples of PI.
         /// The axis will be annotated with `× π`
         PiMultiple {
+            /// Number of bins (that is number of ticks - 1)
+            bins: u32,
+        },
+        /// Places ticks on a logarithmic scale, using the specified base and max number of bins
+        Log {
+            /// Logarithm base
+            base: f64,
             /// Number of bins (that is number of ticks - 1)
             bins: u32,
         },

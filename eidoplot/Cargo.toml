@@ -49,3 +49,7 @@ required-features = ["polars"]
 [[example]]
 name = "polars_iris"
 required-features = ["polars"]
+
+[[example]]
+name = "rlc_bode"
+required-features = ["dsl-diag"]

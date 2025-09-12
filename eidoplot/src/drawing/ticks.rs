@@ -1,18 +1,30 @@
 use crate::data;
 use crate::drawing::{Categories, axis};
+use crate::ir::axis::{Scale, LogScale};
 use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
 
-pub fn locate_num(locator: &Locator, nb: axis::NumBounds) -> Vec<f64> {
-    match locator {
-        Locator::Auto => MaxN::new_auto().ticks(nb),
-        Locator::MaxN { bins, steps } => {
+pub fn locate_num(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<f64> {
+    match (locator, scale) {
+        (Locator::Auto, Scale::Auto | Scale::Linear { .. }) => MaxN::new_auto().ticks(nb),
+        (Locator::Auto, Scale::Log (LogScale{ base, .. })) => MaxNLog::new(*base).ticks(nb),
+        (Locator::MaxN { bins, steps }, Scale::Auto | Scale::Linear { .. }) => {
             let ticker = MaxN::new(*bins, steps.as_slice());
             ticker.ticks(nb)
         }
-        Locator::PiMultiple { bins } => {
+        (Locator::PiMultiple { bins }, Scale::Auto | Scale::Linear { .. }) => {
             let ticker = MaxN::new_pi(*bins);
             ticker.ticks(nb)
         }
+        (Locator::Log { base, .. }, Scale::Auto)  => {
+            MaxNLog::new(*base).ticks(nb)
+        }
+        (Locator::Log { base: loc_base, .. }, Scale::Log(LogScale { base, .. })) if loc_base == base => {
+            MaxNLog::new(*base).ticks(nb)
+        }
+        _ => panic!(
+            "Unsupported locator/scale combination: {:?}/{:?}\n(FIXME: error check during IR construction)",
+            locator, scale
+        ),
     }
 }
 
@@ -151,18 +163,53 @@ impl MaxNEdgeInteger {
     }
 }
 
-pub fn num_label_formatter(ticks: &Ticks, ab: axis::NumBounds) -> Box<dyn LabelFormatter> {
+struct MaxNLog {
+    base: f64,
+}
+
+impl<'a> MaxNLog {
+    fn new(base: f64) -> Self {
+        Self { base }
+    }
+
+    fn ticks(&self, nb: axis::NumBounds) -> Vec<f64> {
+        assert!((nb.start() > 0.0 && nb.end() > 0.0) || (nb.start() < 0.0 && nb.end() < 0.0));
+
+        let (min, max) = if nb.start() < nb.end() {
+            (nb.start(), nb.end())
+        } else {
+            (nb.end(), nb.start())
+        };
+
+        // Compute the integer exponents that cover the range
+        let min_exp = min.log(self.base).ceil() as i32;
+        let max_exp = max.log(self.base).floor() as i32;
+
+        let mut ticks = Vec::new();
+        for exp in min_exp..=max_exp {
+            let tick = self.base.powi(exp);
+            // Only include ticks within the bounds (in case of rounding)
+            if tick >= min && tick <= max {
+                ticks.push(tick);
+            }
+        }
+        ticks
+    }
+}
+
+pub fn num_label_formatter(ticks: &Ticks, ab: axis::NumBounds, scale: &Scale) -> Box<dyn LabelFormatter> {
     match ticks.formatter() {
-        Formatter::Auto => auto_label_formatter(ticks.locator(), ab),
+        Formatter::Auto => auto_label_formatter(ticks.locator(), ab, scale),
         Formatter::Prec(prec) => Box::new(PrecLabelFormat(*prec)),
         Formatter::Percent => Box::new(PercentLabelFormat),
     }
 }
 
-fn auto_label_formatter(locator: &Locator, _ab: axis::NumBounds) -> Box<dyn LabelFormatter> {
-    match locator {
-        Locator::PiMultiple { .. } => Box::new(PiMultipleLabelFormat { prec: 2 }),
-        Locator::Auto => Box::new(PrecLabelFormat(2)),
+fn auto_label_formatter(locator: &Locator, _ab: axis::NumBounds, scale: &Scale) -> Box<dyn LabelFormatter> {
+    match (locator, scale) {
+        (Locator::PiMultiple { .. }, _) => Box::new(PiMultipleLabelFormat { prec: 2 }),
+        (Locator::Auto, Scale::Log(LogScale { base, .. })) if *base == 10.0 => Box::new(SciLabelFormat),
+        (Locator::Auto, _) => Box::new(PrecLabelFormat(2)),
         _ => todo!(),
     }
 }
@@ -177,7 +224,10 @@ pub trait LabelFormatter {
 impl LabelFormatter for Categories {
     fn format_label(&self, data: data::Sample) -> String {
         let cat = data.as_cat().expect("Should be a category");
-        self.iter().find(|c| *c == cat).map(str::to_string).unwrap_or_default()
+        self.iter()
+            .find(|c| *c == cat)
+            .map(str::to_string)
+            .unwrap_or_default()
     }
 }
 
@@ -187,6 +237,15 @@ impl LabelFormatter for PrecLabelFormat {
     fn format_label(&self, data: data::Sample) -> String {
         let data = data.as_num().unwrap();
         format!("{data:.*}", self.0)
+    }
+}
+
+struct SciLabelFormat;
+
+impl LabelFormatter for SciLabelFormat {
+    fn format_label(&self, data: data::Sample) -> String {
+        let data = data.as_num().unwrap();
+        format!("{data:e}")
     }
 }
 
@@ -219,13 +278,14 @@ mod tests {
     use super::*;
     use crate::drawing::axis;
 
-    fn is_close(a: f64, b: f64, tol: f64) -> bool {
-        (a - b).abs() < tol
-    }
+    use crate::tests::Near;
 
-    fn slice_contains_sample_f64(slice: &[f64], sample: &[f64], tol: f64) -> bool {
+    fn contains_near<N>(slice: &[f64], sample: &[f64], near: N) -> bool
+    where
+        N: Fn(f64, f64) -> bool,
+    {
         let fst_sample = sample[0];
-        let idx = slice.iter().position(|x| is_close(*x, fst_sample, tol));
+        let idx = slice.iter().position(|x| near(*x, fst_sample));
         if idx.is_none() {
             return false;
         }
@@ -233,24 +293,32 @@ mod tests {
         if slice.len() - idx < sample.len() {
             return false;
         }
-        slice
-            .iter()
-            .skip(idx)
-            .zip(sample.iter())
-            .all(|(a, b)| is_close(*a, *b, tol))
+        let slice = &slice[idx..idx + sample.len()];
+        slice.iter().zip(sample.iter()).all(|(a, b)| near(*a, *b))
     }
 
-    macro_rules! assert_contains_f64 {
-        ($slice:expr, $sample:expr, $tol:expr) => {
+    macro_rules! assert_contains_near {
+        (abs, $slice:expr, $sample:expr, $tol:expr) => {
             assert!(
-                slice_contains_sample_f64(&$slice, &$sample, $tol),
+                contains_near(&$slice, &$sample, |a, b| a.near_abs(&b, $tol)),
                 "Assertion failed: Slice doesn't contain sample.\nSlice:  {:?}\nSample: {:?}",
                 $slice,
                 $sample
             );
         };
-        ($slice:expr, $sample:expr) => {
-            assert_contains_f64!($slice, $sample, 1e-8);
+        (abs, $slice:expr, $sample:expr) => {
+            assert_contains_near!(abs, $slice, $sample, 1e-8);
+        };
+        (rel, $slice:expr, $sample:expr, $err:expr) => {
+            assert!(
+                contains_near(&$slice, &$sample, |a, b| a.near_rel(&b, $err)),
+                "Assertion failed: Slice doesn't contain sample.\nSlice:  {:?}\nSample: {:?}",
+                $slice,
+                $sample
+            );
+        };
+        (rel, $slice:expr, $sample:expr) => {
+            assert_contains_near!(rel, $slice, $sample, 1e-8);
         };
     }
 
@@ -260,19 +328,19 @@ mod tests {
 
         let ticks = locator.ticks(axis::NumBounds::from((-1.0, 1.0)));
         let expected = vec![-1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
-        assert_contains_f64!(ticks, expected);
+        assert_contains_near!(abs, ticks, expected);
 
         let ticks = locator.ticks(axis::NumBounds::from((0.0, 0.195)));
         let expected = vec![
             0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2,
         ];
-        assert_contains_f64!(ticks, expected);
+        assert_contains_near!(abs, ticks, expected);
 
         let ticks = locator.ticks(axis::NumBounds::from((0.005, 0.195)));
         let expected = vec![
             0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2,
         ];
-        assert_contains_f64!(ticks, expected);
+        assert_contains_near!(abs, ticks, expected);
     }
 
     #[test]
@@ -292,11 +360,11 @@ mod tests {
             1.75 * PI,
             2.0 * PI,
         ];
-        assert_contains_f64!(ticks, expected);
+        assert_contains_near!(abs, ticks, expected);
 
         let locator = MaxN::new_pi(4);
         let ticks = locator.ticks(axis::NumBounds::from((0.0, 2.0 * PI)));
         let expected = vec![0.0, 0.5 * PI, 1.0 * PI, 1.5 * PI, 2.0 * PI];
-        assert_contains_f64!(ticks, expected);
+        assert_contains_near!(abs, ticks, expected);
     }
 }
