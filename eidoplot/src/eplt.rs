@@ -389,6 +389,7 @@ fn parse_axis(prop: ast::Prop) -> Result<ir::Axis, Error> {
 
 fn axis_set_enum_field(axis: ir::Axis, span: dsl::Span, ident: &str) -> Result<ir::Axis, Error> {
     match ident {
+        "LogScale" => Ok(axis.with_scale(ir::axis::LogScale::default().into())),
         "Ticks" => Ok(axis.with_ticks(Default::default())),
         "MinorTicks" => Ok(axis.with_minor_ticks(Default::default())),
         "Grid" => Ok(axis.with_grid(Default::default())),

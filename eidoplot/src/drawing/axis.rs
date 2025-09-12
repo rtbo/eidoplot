@@ -217,21 +217,21 @@ impl NumBounds {
 }
 
 #[cfg(test)]
-impl crate::tests::CloseTo for NumBounds {
-    fn close_to_abs(&self, other: &Self, tol: f64) -> bool {
-        self.0.close_to_abs(&other.0, tol) && self.1.close_to_abs(&other.1, tol)
+impl crate::tests::Near for NumBounds {
+    fn near_abs(&self, other: &Self, tol: f64) -> bool {
+        self.0.near_abs(&other.0, tol) && self.1.near_abs(&other.1, tol)
     }
 
-    fn close_to_rel(&self, other: &Self, err: f64) -> bool {
-        self.0.close_to_rel(&other.0, err) && self.1.close_to_rel(&other.1, err)
+    fn near_rel(&self, other: &Self, err: f64) -> bool {
+        self.0.near_rel(&other.0, err) && self.1.near_rel(&other.1, err)
     }
 }
 
 #[cfg(test)]
-impl crate::tests::CloseTo for Bounds {
-    fn close_to_abs(&self, other: &Self, tol: f64) -> bool {
+impl crate::tests::Near for Bounds {
+    fn near_abs(&self, other: &Self, tol: f64) -> bool {
         match (self, other) {
-            (&Bounds::Num(a), &Bounds::Num(b)) => a.close_to_abs(&b, tol),
+            (&Bounds::Num(a), &Bounds::Num(b)) => a.near_abs(&b, tol),
             (Bounds::Cat(a), Bounds::Cat(b)) => {
                 if a.len() != b.len() {
                     return false;
@@ -247,9 +247,9 @@ impl crate::tests::CloseTo for Bounds {
         }
     }
 
-    fn close_to_rel(&self, other: &Self, err: f64) -> bool {
+    fn near_rel(&self, other: &Self, err: f64) -> bool {
         match (self, other) {
-            (&Bounds::Num(a), &Bounds::Num(b)) => a.close_to_rel(&b, err),
+            (&Bounds::Num(a), &Bounds::Num(b)) => a.near_rel(&b, err),
             (Bounds::Cat(a), Bounds::Cat(b)) => {
                 if a.len() != b.len() {
                     return false;
@@ -267,10 +267,10 @@ impl crate::tests::CloseTo for Bounds {
 }
 
 #[cfg(test)]
-impl crate::tests::CloseTo for BoundsRef<'_> {
-    fn close_to_abs(&self, other: &Self, tol: f64) -> bool {
+impl crate::tests::Near for BoundsRef<'_> {
+    fn near_abs(&self, other: &Self, tol: f64) -> bool {
         match (self, other) {
-            (&BoundsRef::Num(a), &BoundsRef::Num(b)) => a.close_to_abs(&b, tol),
+            (&BoundsRef::Num(a), &BoundsRef::Num(b)) => a.near_abs(&b, tol),
             (&BoundsRef::Cat(a), &BoundsRef::Cat(b)) => {
                 if a.len() != b.len() {
                     return false;
@@ -286,9 +286,9 @@ impl crate::tests::CloseTo for BoundsRef<'_> {
         }
     }
 
-    fn close_to_rel(&self, other: &Self, err: f64) -> bool {
+    fn near_rel(&self, other: &Self, err: f64) -> bool {
         match (self, other) {
-            (&BoundsRef::Num(a), &BoundsRef::Num(b)) => a.close_to_rel(&b, err),
+            (&BoundsRef::Num(a), &BoundsRef::Num(b)) => a.near_rel(&b, err),
             (&BoundsRef::Cat(a), &BoundsRef::Cat(b)) => {
                 if a.len() != b.len() {
                     return false;
@@ -816,7 +816,7 @@ impl<D, T> Ctx<'_, D, T> {
 
                 let ticks = ir
                     .ticks()
-                    .map(|major_ticks| self.setup_num_ticks(major_ticks, ir.grid(), nb, side))
+                    .map(|major_ticks| self.setup_num_ticks(major_ticks, ir.grid(), nb, ir.scale(), side))
                     .transpose()?;
 
                 let minor_ticks = if let Some(mt) = ir.minor_ticks() {
@@ -847,6 +847,7 @@ impl<D, T> Ctx<'_, D, T> {
         major_ticks: &ir::axis::Ticks,
         major_grid: Option<&ir::axis::Grid>,
         nb: NumBounds,
+        scale: &ir::axis::Scale,
         side: Side,
     ) -> Result<NumTicks, Error> {
         let db: &font::Database = self.fontdb();
@@ -856,10 +857,10 @@ impl<D, T> Ctx<'_, D, T> {
         let ticks_opts = side.ticks_labels_opts();
         let annot_opts = side.annot_opts();
 
-        let mut major_locs = ticks::locate_num(major_ticks.locator(), nb);
+        let mut major_locs = ticks::locate_num(major_ticks.locator(), nb, scale);
         major_locs.retain(|l| nb.contains(*l));
 
-        let lbl_formatter = ticks::num_label_formatter(major_ticks, nb);
+        let lbl_formatter = ticks::num_label_formatter(major_ticks, nb, scale);
         let mut ticks = Vec::new();
         for loc in major_locs.into_iter() {
             let text = lbl_formatter.format_label(loc.into());
