@@ -418,6 +418,10 @@ fn axis_set_enum_field(axis: ir::Axis, span: dsl::Span, ident: &str) -> Result<i
     match ident {
         "LogScale" => Ok(axis.with_scale(ir::axis::LogScale::default().into())),
         "Ticks" => Ok(axis.with_ticks(Default::default())),
+        "PiMultipleTicks" => Ok(axis.with_ticks(
+            ir::axis::Ticks::default()
+                .with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 9 }),
+        )),
         "MinorTicks" => Ok(axis.with_minor_ticks(Default::default())),
         "Grid" => Ok(axis.with_grid(Default::default())),
         "MinorGrid" => Ok(axis.with_minor_grid(Default::default())),
@@ -462,7 +466,7 @@ fn parse_axis_struct(val: ast::Struct) -> Result<ir::Axis, Error> {
                 axis = axis.with_title(expect_string_val(prop)?.into());
             }
             "ticks" => {
-                axis = axis.with_ticks(Default::default());
+                axis = axis.with_ticks(parse_ticks(prop)?);
             }
             "minor-ticks" => {
                 axis = axis.with_minor_ticks(Default::default());
@@ -483,4 +487,81 @@ fn parse_axis_struct(val: ast::Struct) -> Result<ir::Axis, Error> {
         }
     }
     Ok(axis)
+}
+
+fn parse_ticks(prop: ast::Prop) -> Result<ir::axis::Ticks, Error> {
+    let Some(val) = prop.value else {
+        return Ok(Default::default());
+    };
+    match val {
+        ast::Value::Scalar(ast::Scalar {
+            kind: ast::ScalarKind::Enum(ident),
+            span
+        }) => {
+            Ok(ticks_set_enum_field(ir::axis::Ticks::default(), span, &ident)?)
+        },
+        ast::Value::Seq(val) => parse_ticks_seq(val),
+        ast::Value::Struct(val) => parse_ticks_struct(val),
+        _ => Err(Error::Parse {
+            span: val.span(),
+            reason: "Could not parse ticks".into(),
+            help: None,
+        }),
+    }
+}
+
+fn parse_ticks_seq(val: ast::Seq) -> Result<ir::axis::Ticks, Error> {
+    let mut ticks = ir::axis::Ticks::default();
+    for scalar in val.scalars {
+        match scalar {
+            ast::Scalar {
+                kind: ast::ScalarKind::Enum(ident),
+                span,
+            } => ticks = ticks_set_enum_field(ticks, span, ident.as_str())?,
+            _ => {
+                return Err(Error::Parse {
+                    span: val.span,
+                    reason: "Could not parse ticks".into(),
+                    help: None,
+                });
+            }
+        }
+    }
+    Ok(ticks)
+}
+
+fn ticks_set_enum_field(
+    ticks: ir::axis::Ticks,
+    span: dsl::Span,
+    ident: &str,
+) -> Result<ir::axis::Ticks, Error> {
+    match ident {
+        "Locator" => Ok(ticks.with_locator(ir::axis::ticks::Locator::default())),
+        "PiMultiple" => Ok(ticks.with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 9 })),
+        _ => Err(Error::Parse {
+            span,
+            reason: format!("unknown ticks property enum: {}", ident),
+            help: None,
+        }),
+    }
+}
+
+fn parse_ticks_struct(val: ast::Struct) -> Result<ir::axis::Ticks, Error> {
+    check_opt_type(&val, "Ticks")?;
+    let mut ticks = ir::axis::Ticks::default();
+    for prop in val.props {
+        match prop.name.name.as_str() {
+            "locator" => {
+                ticks = ticks.with_locator(ir::axis::ticks::Locator::default());
+            }
+            _ => {
+                return Err(Error::Parse {
+                    span: prop.span(),
+                    reason: format!("unknown ticks property: {}", prop.name.name),
+                    help: None,
+                });
+            }
+        }
+    }
+    Ok(ticks)
 }

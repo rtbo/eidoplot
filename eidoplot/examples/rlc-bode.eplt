@@ -13,6 +13,7 @@ figure: {
         x-axis: "Freq. [Hz]", LogScale, Ticks
         y-axis: {
             title: "Phase [rad]"
+            ticks: PiMultiple
             grid
         }
         series: Line {
