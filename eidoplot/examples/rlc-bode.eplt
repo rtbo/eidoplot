@@ -1,26 +1,24 @@
-// figure is one of the root properties.
-// it can be assigned multiple times to generate multiple figures
 figure: {
     title: "RLC bode"
-    subplots: {
-        rows: 2,
-        plot: {
-            x-axis: "Freq. [Hz]", LogScale, Ticks
-            y-axis: "Magnitude [dB]", Ticks, Grid
-            series: Line {
-                name: "RLC"
-                x-data: "freq"
-                y-data: "mag"
-            }
+    plot: {
+        x-axis: "Freq. [Hz]", LogScale, Ticks
+        y-axis: "Magnitude [dB]", Ticks, Grid
+        series: Line {
+            name: "RLC"
+            x-data: "freq"
+            y-data: "mag"
         }
-        plot: {
-            x-axis: "Freq. [Hz]", LogScale, Ticks
-            y-axis: "Phase [rad]", Ticks, Grid
-            series: Line {
-                name: "RLC"
-                x-data: "freq"
-                y-data: "phase"
-            }
+    }
+    plot: {
+        x-axis: "Freq. [Hz]", LogScale, Ticks
+        y-axis: {
+            title: "Phase [rad]"
+            grid
+        }
+        series: Line {
+            name: "RLC"
+            x-data: "freq"
+            y-data: "phase"
         }
     } 
 }

@@ -2,11 +2,12 @@ use std::fmt;
 #[cfg(feature = "dsl-diag")]
 use std::path;
 
-#[cfg(feature = "dsl-diag")]
-pub use dsl::{Diagnostic, Source};
 use eidoplot_dsl::{self as dsl, ast};
 
 use crate::ir;
+
+#[cfg(feature = "dsl-diag")]
+pub use dsl::{Diagnostic, Source};
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -170,26 +171,26 @@ fn check_opt_type(val: &ast::Struct, type_name: &str) -> Result<(), Error> {
     Ok(())
 }
 
-fn parse_fig(val: ast::Struct) -> Result<ir::Figure, Error> {
-    let plot_def_count = val.has_prop("plot") as u8 + val.has_prop("subplots") as u8;
-    if plot_def_count != 1 {
-        return Err(Error::Parse {
-            span: val.span,
-            reason: "figure must have exactly one of 'plot' or 'subplots' property".into(),
-            help: None,
-        });
-    }
-
+fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
     check_opt_type(&val, "Figure")?;
 
-    let mut val = val;
+    let mut plots = vec![];
+    while let Some(prop) = val.take_prop("plot") {
+        plots.push(parse_plot(expect_struct_val(prop)?)?);
+    }
 
-    let plots = if let Some(prop) = val.take_prop("plot") {
-        ir::figure::Plots::Plot(parse_plot(expect_struct_val(prop)?)?)
-    } else if let Some(prop) = val.take_prop("subplots") {
-        ir::figure::Plots::Subplots(parse_subplots(expect_struct_val(prop)?)?)
+    let plots = if plots.len() == 1 {
+        let plot = plots.into_iter().next().unwrap();
+        plot.into()
     } else {
-        unreachable!()
+        let mut subplots = ir::Subplots::new(plots);
+        if let Some(prop) = val.take_prop("cols") {
+            subplots = subplots.with_cols(expect_int_val(prop)? as _);
+        }
+        if let Some(prop) = val.take_prop("space") {
+            subplots = subplots.with_space(expect_float_val(prop)? as _);
+        }
+        subplots.into()
     };
 
     let mut fig = ir::Figure::new(plots);
@@ -200,29 +201,6 @@ fn parse_fig(val: ast::Struct) -> Result<ir::Figure, Error> {
     }
 
     Ok(fig)
-}
-
-fn parse_subplots(mut val: ast::Struct) -> Result<ir::Subplots, Error> {
-    check_opt_type(&val, "Subplots")?;
-    let mut plots = vec![];
-
-    loop {
-        let Some(prop) = val.take_prop("plot") else {
-            break;
-        };
-        plots.push(parse_plot(expect_struct_val(prop)?)?);
-    }
-
-    let mut subplots = ir::Subplots::new(plots);
-
-    if let Some(prop) = val.take_prop("cols") {
-        subplots = subplots.with_cols(expect_int_val(prop)? as _);
-    }
-    if let Some(prop) = val.take_prop("space") {
-        subplots = subplots.with_space(expect_float_val(prop)? as _);
-    }
-
-    Ok(subplots)
 }
 
 fn parse_plot(mut val: ast::Struct) -> Result<ir::plot::Plot, Error> {
