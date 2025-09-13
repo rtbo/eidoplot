@@ -12,5 +12,5 @@ pub mod series;
 pub use axis::Axis;
 pub use figure::{FigLegend, Figure};
 pub use legend::Legend;
-pub use plot::{Plot, PlotLegend};
+pub use plot::{Plot, PlotLegend, Subplots};
 pub use series::{DataCol, Series};

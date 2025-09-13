@@ -119,7 +119,6 @@ impl PlotLegend {
     }
 }
 
-
 impl From<LegendPos> for PlotLegend {
     fn from(pos: LegendPos) -> Self {
         PlotLegend {
@@ -163,7 +162,7 @@ impl Plot {
     pub fn with_y_axis(self, y_axis: Axis) -> Self {
         Self { y_axis, ..self }
     }
-    
+
     pub fn with_title(self, title: String) -> Self {
         Self {
             title: Some(title),
@@ -187,7 +186,10 @@ impl Plot {
     }
 
     pub fn with_legend(self, legend: PlotLegend) -> Self {
-        Self { legend: Some(legend), ..self }
+        Self {
+            legend: Some(legend),
+            ..self
+        }
     }
 
     pub fn series(&self) -> &[Series] {
@@ -220,5 +222,68 @@ impl Plot {
 
     pub fn legend(&self) -> Option<&PlotLegend> {
         self.legend.as_ref()
+    }
+}
+
+/// A collection of plots, arranged in a grid
+#[derive(Debug, Clone)]
+pub struct Subplots {
+    plots: Vec<Plot>,
+    cols: u32,
+    space: f32,
+}
+
+impl Subplots {
+    pub fn new(plots: Vec<Plot>) -> Self {
+        Subplots {
+            plots,
+            cols: 1,
+            space: 0.0,
+        }
+    }
+
+    pub fn with_cols(self, cols: u32) -> Self {
+        Self { cols, ..self }
+    }
+
+    pub fn with_space(self, space: f32) -> Self {
+        Self { space, ..self }
+    }
+
+    pub fn plots(&self) -> &[Plot] {
+        &self.plots
+    }
+
+    pub fn cols(&self) -> u32 {
+        self.cols
+    }
+
+    pub fn rows(&self) -> u32 {
+        calc_rows(self.plots.len() as u32, self.cols)
+    }
+
+    pub fn space(&self) -> f32 {
+        self.space
+    }
+}
+
+fn calc_rows(num_plots: u32, num_cols: u32) -> u32 {
+    (num_plots + num_cols - 1) / num_cols
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calc_rows() {
+        assert_eq!(calc_rows(0, 1), 0);
+        assert_eq!(calc_rows(1, 1), 1);
+        assert_eq!(calc_rows(1, 2), 1);
+        assert_eq!(calc_rows(2, 1), 2);
+        assert_eq!(calc_rows(2, 2), 1);
+        assert_eq!(calc_rows(3, 2), 2);
+        assert_eq!(calc_rows(4, 2), 2);
+        assert_eq!(calc_rows(5, 2), 3);
     }
 }

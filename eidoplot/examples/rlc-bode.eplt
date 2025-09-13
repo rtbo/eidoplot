@@ -1,27 +1,26 @@
 // figure is one of the root properties.
 // it can be assigned multiple times to generate multiple figures
 figure: {
-    title: "RLC magnitude"
-    plot: {
-        x-axis: "Freq. [Hz]", LogScale, Ticks
-        y-axis: "Magnitude [dB]", Ticks, Grid
-        series: Line {
-            name: "RLC"
-            x-data: "freq"
-            y-data: "mag"
+    title: "RLC bode"
+    subplots: {
+        rows: 2,
+        plot: {
+            x-axis: "Freq. [Hz]", LogScale, Ticks
+            y-axis: "Magnitude [dB]", Ticks, Grid
+            series: Line {
+                name: "RLC"
+                x-data: "freq"
+                y-data: "mag"
+            }
         }
-    }
-}
-
-figure: {
-    title: "RLC phase"
-    plot: {
-        x-axis: "Freq. [Hz]", LogScale, Ticks
-        y-axis: "Phase [Radians]", Ticks, Grid
-        series: Line {
-            name: "RLC"
-            x-data: "freq"
-            y-data: "phase"
+        plot: {
+            x-axis: "Freq. [Hz]", LogScale, Ticks
+            y-axis: "Phase [rad]", Ticks, Grid
+            series: Line {
+                name: "RLC"
+                x-data: "freq"
+                y-data: "phase"
+            }
         }
-    }
+    } 
 }

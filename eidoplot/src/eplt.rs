@@ -95,6 +95,36 @@ pub fn parse_diag<'a>(input: &'a str, file_name: Option<&'a path::Path>) -> miet
 
 }
 
+fn expect_int_val(prop: ast::Prop) -> Result<i64, Error> {
+    let Some(ast::Value::Scalar(ast::Scalar {
+        kind: ast::ScalarKind::Int(val),
+        ..
+    })) = prop.value
+    else {
+        return Err(Error::Parse {
+            span: prop.span(),
+            reason: format!("expected integer value (i.e. {}: 2 )", prop.name.name),
+            help: None,
+        });
+    };
+    Ok(val)
+}
+
+fn expect_float_val(prop: ast::Prop) -> Result<f64, Error> {
+    let Some(ast::Value::Scalar(ast::Scalar {
+        kind: ast::ScalarKind::Float(val),
+        ..
+    })) = prop.value
+    else {
+        return Err(Error::Parse {
+            span: prop.span(),
+            reason: format!("expected float value (i.e. {}: 2.0 )", prop.name.name),
+            help: None,
+        });
+    };
+    Ok(val)
+}
+
 fn expect_string_val(prop: ast::Prop) -> Result<String, Error> {
     let Some(ast::Value::Scalar(ast::Scalar {
         kind: ast::ScalarKind::Str(val),
@@ -171,9 +201,27 @@ fn parse_fig(val: ast::Struct) -> Result<ir::Figure, Error> {
     Ok(fig)
 }
 
-fn parse_subplots(val: ast::Struct) -> Result<ir::figure::Subplots, Error> {
+fn parse_subplots(mut val: ast::Struct) -> Result<ir::Subplots, Error> {
     check_opt_type(&val, "Subplots")?;
-    todo!()
+    let mut plots = vec![];
+
+    loop {
+        let Some(prop) = val.take_prop("plot") else {
+            break;
+        };
+        plots.push(parse_plot(expect_struct_val(prop)?)?);
+    }
+
+    let mut subplots = ir::Subplots::new(plots);
+
+    if let Some(prop) = val.take_prop("cols") {
+        subplots = subplots.with_cols(expect_int_val(prop)? as _);
+    }
+    if let Some(prop) = val.take_prop("space") {
+        subplots = subplots.with_space(expect_float_val(prop)? as _);
+    }
+
+    Ok(subplots)
 }
 
 fn parse_plot(mut val: ast::Struct) -> Result<ir::plot::Plot, Error> {

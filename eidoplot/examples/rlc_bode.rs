@@ -60,6 +60,5 @@ fn main() {
     source.add_column("phase", &phase as &dyn data::Column);
 
     let figs = eplt::parse_diag(&content, Some(&filename)).unwrap();
-    common::save_figure(&figs[0], &source, "bode_rlc_mag");
-    common::save_figure(&figs[1], &source, "bode_rlc_phase");
+    common::save_figure(&figs[0], &source, "bode_rlc");
 }

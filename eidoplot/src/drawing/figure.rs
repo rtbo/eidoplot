@@ -133,21 +133,21 @@ where
         match plots {
             ir::figure::Plots::Plot(plot) => Ok(self.draw_plot(ctx, plot, rect)?),
             ir::figure::Plots::Subplots(subplots) => {
-                let w = (rect.width() - subplots.space * (subplots.cols - 1) as f32)
-                    / subplots.cols as f32;
-                let h = (rect.height() - subplots.space * (subplots.rows - 1) as f32)
-                    / subplots.rows as f32;
+                let (rows, cols) = (subplots.rows(), subplots.cols());
+                let space = subplots.space();
+                let w = (rect.width() - space * (subplots.cols() - 1) as f32) / cols as f32;
+                let h = (rect.height() - space * (rows - 1) as f32) / rows as f32;
                 let mut y = rect.y();
-                for c in 0..subplots.cols {
+                for r in 0..rows {
                     let mut x = rect.x();
-                    for r in 0..subplots.rows {
-                        let cols = subplots.cols as u32;
+                    for c in 0..cols {
+                        let cols = cols as u32;
                         let idx = (r * cols + c) as usize;
-                        let plot = &subplots.plots[idx];
+                        let plot = &subplots.plots()[idx];
                         self.draw_plot(ctx, plot, &geom::Rect::from_xywh(x, y, w, h))?;
-                        x += w + subplots.space;
+                        x += w + space;
                     }
-                    y += h + subplots.space;
+                    y += h + space;
                 }
                 Ok(())
             }

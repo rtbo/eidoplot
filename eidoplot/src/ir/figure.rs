@@ -1,7 +1,7 @@
 use std::iter::FusedIterator;
 
 use crate::geom;
-use crate::ir::{Plot, Legend};
+use crate::ir::{Legend, Plot, Subplots};
 use crate::style::{self, defaults, theme};
 
 #[derive(Debug, Clone)]
@@ -89,7 +89,11 @@ pub struct FigLegend {
 impl FigLegend {
     /// Build a new legend
     pub fn new(pos: LegendPos, legend: Legend) -> Self {
-        FigLegend { pos, legend, margin: defaults::LEGEND_MARGIN }
+        FigLegend {
+            pos,
+            legend,
+            margin: defaults::LEGEND_MARGIN,
+        }
     }
 
     /// The position of the legend relatively to the plot
@@ -161,7 +165,10 @@ impl Figure {
     }
 
     pub fn with_legend(self, legend: FigLegend) -> Self {
-        Figure { legend: Some(legend), ..self }
+        Figure {
+            legend: Some(legend),
+            ..self
+        }
     }
 
     pub fn with_fill(self, fill: Option<theme::Fill>) -> Self {
@@ -206,14 +213,6 @@ pub enum Plots {
     Subplots(Subplots),
 }
 
-#[derive(Debug, Clone)]
-pub struct Subplots {
-    pub rows: u32,
-    pub cols: u32,
-    pub space: f32,
-    pub plots: Vec<Plot>,
-}
-
 impl From<Plot> for Plots {
     fn from(plot: Plot) -> Self {
         Plots::Plot(plot)
@@ -256,8 +255,8 @@ impl<'a> Iterator for PlotIter<'a> {
                 }
             }
             Plots::Subplots(subplots) => {
-                if self.index < subplots.plots.len() {
-                    let plot = &subplots.plots[self.index];
+                if self.index < subplots.plots().len() {
+                    let plot = &subplots.plots()[self.index];
                     self.index += 1;
                     Some(plot)
                 } else {
