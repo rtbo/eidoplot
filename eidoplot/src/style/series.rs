@@ -103,7 +103,10 @@ pub type Fill = style::Fill<Color>;
 
 impl From<ColorU8> for Fill {
     fn from(color: ColorU8) -> Self {
-        Fill::Solid { color: color.into(), opacity: None }
+        Fill::Solid {
+            color: color.into(),
+            opacity: None,
+        }
     }
 }
 
@@ -114,7 +117,10 @@ impl From<ColorU8> for Marker {
         Marker {
             size: Default::default(),
             shape: Default::default(),
-            fill: Some(Fill::Solid { color: color.into(), opacity: None }),
+            fill: Some(Fill::Solid {
+                color: color.into(),
+                opacity: None,
+            }),
             stroke: None,
         }
     }

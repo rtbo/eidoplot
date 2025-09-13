@@ -46,8 +46,9 @@ trait IsDark {
     fn is_dark() -> bool;
 }
 
-impl<F> style::theme::Theme for F 
-where F: Flavors + IsDark + style::series::Palette,
+impl<F> style::theme::Theme for F
+where
+    F: Flavors + IsDark + style::series::Palette,
 {
     type Palette = Self;
 
@@ -80,8 +81,9 @@ where F: Flavors + IsDark + style::series::Palette,
     }
 }
 
-impl<F> style::series::Palette for F 
-where F: Flavors 
+impl<F> style::series::Palette for F
+where
+    F: Flavors,
 {
     fn len(&self) -> usize {
         14
@@ -367,7 +369,7 @@ impl Flavors for Macchiato {
         ColorU8::from_html(b"#5b6078")
     }
     fn _surface1() -> ColorU8 {
-        ColorU8::from_html(b"#494d64") 
+        ColorU8::from_html(b"#494d64")
     }
     fn surface0() -> ColorU8 {
         ColorU8::from_html(b"#363a4f")
@@ -469,4 +471,3 @@ impl Flavors for Mocha {
         ColorU8::from_html(b"#11111b")
     }
 }
-

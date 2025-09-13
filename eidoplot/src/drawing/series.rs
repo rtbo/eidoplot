@@ -1,11 +1,11 @@
+use axis::AsBoundRef;
+use scale::{CoordMap, CoordMapXy};
+
 use crate::drawing::{
     Categories, ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
 };
 use crate::render::{self, Surface as _};
 use crate::{data, geom, ir, style};
-
-use axis::AsBoundRef;
-use scale::{CoordMap, CoordMapXy};
 
 /// trait implemented by series, or any other item that
 /// has to populate the legend

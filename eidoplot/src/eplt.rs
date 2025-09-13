@@ -2,12 +2,11 @@ use std::fmt;
 #[cfg(feature = "dsl-diag")]
 use std::path;
 
+#[cfg(feature = "dsl-diag")]
+pub use dsl::{Diagnostic, Source};
 use eidoplot_dsl::{self as dsl, ast};
 
 use crate::ir;
-
-#[cfg(feature = "dsl-diag")]
-pub use dsl::{Diagnostic, Source};
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -79,7 +78,10 @@ pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<ir::Figure>, Error> {
 }
 
 #[cfg(feature = "dsl-diag")]
-pub fn parse_diag<'a>(input: &'a str, file_name: Option<&'a path::Path>) -> miette::Result<Vec<ir::Figure>> {
+pub fn parse_diag<'a>(
+    input: &'a str,
+    file_name: Option<&'a path::Path>,
+) -> miette::Result<Vec<ir::Figure>> {
     match parse(input) {
         Ok(figs) => Ok(figs),
         Err(err) => {
@@ -92,7 +94,6 @@ pub fn parse_diag<'a>(input: &'a str, file_name: Option<&'a path::Path>) -> miet
             Err(report)
         }
     }
-
 }
 
 fn expect_int_val(prop: ast::Prop) -> Result<i64, Error> {

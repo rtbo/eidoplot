@@ -1,4 +1,3 @@
-
 use crate::{geom, style};
 
 const SQRT2: f32 = 1.41421356237;
@@ -7,8 +6,7 @@ pub fn marker_path<C: style::Color>(marker: &style::Marker<C>) -> geom::Path {
     match marker.shape {
         style::MarkerShape::Circle => {
             let radius = marker.size.0 / 2.0;
-            geom::PathBuilder::from_circle(0.0, 0.0, radius)
-                .expect("Should be a valid path")
+            geom::PathBuilder::from_circle(0.0, 0.0, radius).expect("Should be a valid path")
         }
         style::MarkerShape::Square => {
             let half_w = marker.size.0 / 2.0;

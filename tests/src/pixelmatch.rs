@@ -11,7 +11,6 @@
 // is released under the ISC license with the following copyright:
 // Copyright (c) 2025, Mapbox
 
-
 use core::f64;
 
 use tiny_skia::{ColorU8, Pixmap, PixmapRef};

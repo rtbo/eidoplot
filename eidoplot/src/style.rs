@@ -91,17 +91,14 @@ const DOT_DASH: &[f32] = &[1.0, 1.0];
 
 impl<C: Color> Line<C> {
     pub fn with_width(self, width: f32) -> Self {
-        Line {
-            width,
-            ..self
-        }
+        Line { width, ..self }
     }
 
     pub fn with_opacity(self, opacity: f32) -> Self {
         Line {
             opacity: Some(opacity),
             ..self
-        }         
+        }
     }
 
     pub fn as_stroke<'a, R>(&'a self, rc: &R) -> render::Stroke<'a>
@@ -140,7 +137,9 @@ impl<C: Color> From<C> for Line<C> {
 }
 
 impl<C: Color> From<f32> for Line<C>
-where C: Color + Default {
+where
+    C: Color + Default,
+{
     fn from(value: f32) -> Self {
         Line {
             width: value,
@@ -288,10 +287,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::style::theme;
     use theme::Theme;
 
     use super::*;
+    use crate::style::theme;
 
     #[test]
     fn test_color_resolve() {

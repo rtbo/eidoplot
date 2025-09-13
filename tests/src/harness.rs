@@ -1,12 +1,8 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
-use eidoplot::{
-    drawing::{self, SurfaceExt},
-    ir, style,
-};
+use eidoplot::drawing::{self, SurfaceExt};
+use eidoplot::{ir, style};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 

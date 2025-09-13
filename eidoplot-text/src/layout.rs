@@ -301,7 +301,10 @@ impl TextLayout {
     }
 
     pub fn metrics(&self) -> ScaledMetrics {
-        self.lines.first().map(|l| l.metrics).unwrap_or_else(|| ScaledMetrics::null())
+        self.lines
+            .first()
+            .map(|l| l.metrics)
+            .unwrap_or_else(|| ScaledMetrics::null())
     }
 
     pub fn line_direction(&self, lidx: usize) -> Direction {
@@ -410,11 +413,7 @@ mod single_font {
             Some(self.metrics.scale(font_size))
         }
 
-        fn line_scaled_metrics(
-            &self,
-            _idx: usize,
-            font_size: f32,
-        ) -> Option<font::ScaledMetrics> {
+        fn line_scaled_metrics(&self, _idx: usize, font_size: f32) -> Option<font::ScaledMetrics> {
             Some(self.metrics.scaled(font_size))
         }
 
@@ -519,11 +518,7 @@ mod fallback_font {
             }
         }
 
-        fn line_scaled_metrics(
-            &self,
-            idx: usize,
-            font_size: f32,
-        ) -> Option<font::ScaledMetrics> {
+        fn line_scaled_metrics(&self, idx: usize, font_size: f32) -> Option<font::ScaledMetrics> {
             let line = &self.lines[idx];
             if line.glyphs.is_empty() {
                 return None;
@@ -636,7 +631,7 @@ where
 
         let metrics = if lidx == 0 {
             fst_metrics
-        } else if lidx == lines_len-1 {
+        } else if lidx == lines_len - 1 {
             lst_metrics
         } else {
             lines.line_scaled_metrics(lidx, font_size).unwrap()

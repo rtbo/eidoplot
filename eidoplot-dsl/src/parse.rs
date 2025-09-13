@@ -10,8 +10,7 @@ pub enum Error {
     UnexpectedToken(Token, Option<String>),
 }
 
-impl Error {
-}
+impl Error {}
 
 impl From<lex::Error> for Error {
     fn from(e: lex::Error) -> Self {

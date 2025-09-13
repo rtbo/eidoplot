@@ -1,22 +1,11 @@
 use eidoplot_text as text;
-use text::TextLayout;
-use text::font;
-
-use crate::drawing::SurfWrapper;
-use crate::geom;
-use crate::render;
-use crate::style;
-use crate::style::Color;
-use crate::{
-    drawing::{
-        Categories, Ctx, Error,
-        scale::{self, CoordMap},
-        ticks,
-    },
-    ir, missing_params,
-    style::theme,
-};
 use render::Surface;
+use text::{TextLayout, font};
+
+use crate::drawing::scale::{self, CoordMap};
+use crate::drawing::{Categories, Ctx, Error, SurfWrapper, ticks};
+use crate::style::{Color, theme};
+use crate::{geom, ir, missing_params, render, style};
 
 /// Bounds of an axis
 #[derive(Debug, Clone, PartialEq)]
@@ -816,7 +805,9 @@ impl<D, T> Ctx<'_, D, T> {
 
                 let ticks = ir
                     .ticks()
-                    .map(|major_ticks| self.setup_num_ticks(major_ticks, ir.grid(), nb, ir.scale(), side))
+                    .map(|major_ticks| {
+                        self.setup_num_ticks(major_ticks, ir.grid(), nb, ir.scale(), side)
+                    })
                     .transpose()?;
 
                 let minor_ticks = if let Some(mt) = ir.minor_ticks() {

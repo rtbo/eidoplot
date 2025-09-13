@@ -1,8 +1,7 @@
 use std::path;
 
-use eidoplot::data;
 use eidoplot::data::Source;
-use eidoplot::ir;
+use eidoplot::{data, ir};
 
 mod common;
 

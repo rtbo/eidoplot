@@ -1,6 +1,6 @@
 use std::num::NonZeroU32;
 
-use crate::style::{self, theme, defaults};
+use crate::style::{self, defaults, theme};
 
 #[derive(Debug, Clone)]
 pub struct EntryFont {
@@ -84,7 +84,10 @@ impl Legend {
     }
 
     pub fn with_columns(self, columns: NonZeroU32) -> Self {
-        Self { columns: Some(columns), ..self }
+        Self {
+            columns: Some(columns),
+            ..self
+        }
     }
 
     pub fn with_padding(self, padding: f32) -> Self {

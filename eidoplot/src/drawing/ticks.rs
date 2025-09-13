@@ -1,12 +1,12 @@
 use crate::data;
 use crate::drawing::{Categories, axis};
-use crate::ir::axis::{Scale, LogScale};
 use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
+use crate::ir::axis::{LogScale, Scale};
 
 pub fn locate_num(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<f64> {
     match (locator, scale) {
         (Locator::Auto, Scale::Auto | Scale::Linear { .. }) => MaxN::new_auto().ticks(nb),
-        (Locator::Auto, Scale::Log (LogScale{ base, .. })) => MaxNLog::new(*base).ticks(nb),
+        (Locator::Auto, Scale::Log(LogScale { base, .. })) => MaxNLog::new(*base).ticks(nb),
         (Locator::MaxN { bins, steps }, Scale::Auto | Scale::Linear { .. }) => {
             let ticker = MaxN::new(*bins, steps.as_slice());
             ticker.ticks(nb)
@@ -15,10 +15,10 @@ pub fn locate_num(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<
             let ticker = MaxN::new_pi(*bins);
             ticker.ticks(nb)
         }
-        (Locator::Log { base, .. }, Scale::Auto)  => {
-            MaxNLog::new(*base).ticks(nb)
-        }
-        (Locator::Log { base: loc_base, .. }, Scale::Log(LogScale { base, .. })) if loc_base == base => {
+        (Locator::Log { base, .. }, Scale::Auto) => MaxNLog::new(*base).ticks(nb),
+        (Locator::Log { base: loc_base, .. }, Scale::Log(LogScale { base, .. }))
+            if loc_base == base =>
+        {
             MaxNLog::new(*base).ticks(nb)
         }
         _ => panic!(
@@ -197,7 +197,11 @@ impl<'a> MaxNLog {
     }
 }
 
-pub fn num_label_formatter(ticks: &Ticks, ab: axis::NumBounds, scale: &Scale) -> Box<dyn LabelFormatter> {
+pub fn num_label_formatter(
+    ticks: &Ticks,
+    ab: axis::NumBounds,
+    scale: &Scale,
+) -> Box<dyn LabelFormatter> {
     match ticks.formatter() {
         Formatter::Auto => auto_label_formatter(ticks.locator(), ab, scale),
         Formatter::Prec(prec) => Box::new(PrecLabelFormat(*prec)),
@@ -205,10 +209,16 @@ pub fn num_label_formatter(ticks: &Ticks, ab: axis::NumBounds, scale: &Scale) ->
     }
 }
 
-fn auto_label_formatter(locator: &Locator, _ab: axis::NumBounds, scale: &Scale) -> Box<dyn LabelFormatter> {
+fn auto_label_formatter(
+    locator: &Locator,
+    _ab: axis::NumBounds,
+    scale: &Scale,
+) -> Box<dyn LabelFormatter> {
     match (locator, scale) {
         (Locator::PiMultiple { .. }, _) => Box::new(PiMultipleLabelFormat { prec: 2 }),
-        (Locator::Auto, Scale::Log(LogScale { base, .. })) if *base == 10.0 => Box::new(SciLabelFormat),
+        (Locator::Auto, Scale::Log(LogScale { base, .. })) if *base == 10.0 => {
+            Box::new(SciLabelFormat)
+        }
         (Locator::Auto, _) => Box::new(PrecLabelFormat(2)),
         _ => todo!(),
     }
@@ -277,7 +287,6 @@ impl LabelFormatter for PercentLabelFormat {
 mod tests {
     use super::*;
     use crate::drawing::axis;
-
     use crate::tests::Near;
 
     fn contains_near<N>(slice: &[f64], sample: &[f64], near: N) -> bool

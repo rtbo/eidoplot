@@ -1,4 +1,5 @@
-use std::{fmt, iter::FusedIterator};
+use std::fmt;
+use std::iter::FusedIterator;
 
 use crate::input::{Cursor, Pos};
 
@@ -383,9 +384,7 @@ mod tests {
     use super::*;
 
     fn tokenize_str(s: &str) -> Vec<TokenKind> {
-        tokenize(s.chars())
-            .map(|r| r.unwrap().kind)
-            .collect()
+        tokenize(s.chars()).map(|r| r.unwrap().kind).collect()
     }
 
     #[test]

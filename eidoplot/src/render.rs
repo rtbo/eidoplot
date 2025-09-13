@@ -2,7 +2,8 @@ use std::fmt;
 
 use eidoplot_text as text;
 
-use crate::{geom, style::ColorU8};
+use crate::geom;
+use crate::style::ColorU8;
 
 #[derive(Debug)]
 pub enum Error {

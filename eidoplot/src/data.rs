@@ -44,8 +44,7 @@ impl From<f64> for Sample<'_> {
         if val.is_finite() {
             Sample::Num(val)
         } else {
-
-        Sample::Num(val)
+            Sample::Num(val)
         }
     }
 }
@@ -88,7 +87,6 @@ impl<'a> From<Option<&'a str>> for Sample<'a> {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub enum OwnedSample {
@@ -133,8 +131,7 @@ impl From<f64> for OwnedSample {
         if val.is_finite() {
             OwnedSample::Num(val)
         } else {
-
-        OwnedSample::Num(val)
+            OwnedSample::Num(val)
         }
     }
 }
@@ -192,7 +189,7 @@ pub trait Column: std::fmt::Debug {
 
     fn iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
         if let Some(iter) = self.as_i64_iter() {
-            Box::new(iter.map(Sample::from)) 
+            Box::new(iter.map(Sample::from))
         } else if let Some(iter) = self.as_f64_iter() {
             Box::new(iter.map(Sample::from))
         } else {
@@ -300,7 +297,7 @@ impl Source for () {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct FCol<'a> (pub &'a [f64]);
+pub struct FCol<'a>(pub &'a [f64]);
 
 impl F64Column for FCol<'_> {
     fn len(&self) -> usize {
@@ -331,9 +328,8 @@ impl Column for FCol<'_> {
     }
 }
 
-
 #[derive(Debug, Clone, Copy)]
-pub struct ICol<'a> (pub &'a [i64]);
+pub struct ICol<'a>(pub &'a [i64]);
 
 impl I64Column for ICol<'_> {
     fn len(&self) -> usize {
@@ -343,12 +339,7 @@ impl I64Column for ICol<'_> {
         self.0.len()
     }
     fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
-        Box::new(
-            self.0
-                .iter()
-                .copied()
-                .map(Some)
-        )
+        Box::new(self.0.iter().copied().map(Some))
     }
 }
 
@@ -360,12 +351,7 @@ impl F64Column for ICol<'_> {
         self.0.len()
     }
     fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
-        Box::new(
-            self.0
-                .iter()
-                .map(|i| *i as f64)
-                .map(Some)
-        )
+        Box::new(self.0.iter().map(|i| *i as f64).map(Some))
     }
 }
 
@@ -384,11 +370,13 @@ impl Column for ICol<'_> {
     }
 }
 
-
 #[derive(Debug)]
-pub struct SCol<'a, T> (pub &'a [T]);
+pub struct SCol<'a, T>(pub &'a [T]);
 
-impl<T> StrColumn for SCol<'_, T> where T: AsRef<str> + std::fmt::Debug {
+impl<T> StrColumn for SCol<'_, T>
+where
+    T: AsRef<str> + std::fmt::Debug,
+{
     fn len(&self) -> usize {
         self.0.len()
     }
@@ -400,7 +388,10 @@ impl<T> StrColumn for SCol<'_, T> where T: AsRef<str> + std::fmt::Debug {
     }
 }
 
-impl<T> Column for SCol<'_, T> where T: AsRef<str> + std::fmt::Debug {
+impl<T> Column for SCol<'_, T>
+where
+    T: AsRef<str> + std::fmt::Debug,
+{
     fn len(&self) -> usize {
         self.0.len()
     }
@@ -783,26 +774,19 @@ impl std::fmt::Debug for TableSource {
                         _ => "(null)".to_string(),
                     }
                 }
-                VecColumn::I64(v) => {
-                    match v.get(row).copied().flatten() {
-                        Some(x) => format!("{}", x),
-                        None => "(null)".to_string(),
-                    }
-                }
-                VecColumn::Str(v) => {
-                    match v.get(row) {
-                        Some(Some(s)) => s.clone(),
-                        _ => "(null)".to_string(),
-                    }
-                }
+                VecColumn::I64(v) => match v.get(row).copied().flatten() {
+                    Some(x) => format!("{}", x),
+                    None => "(null)".to_string(),
+                },
+                VecColumn::Str(v) => match v.get(row) {
+                    Some(Some(s)) => s.clone(),
+                    _ => "(null)".to_string(),
+                },
             }
         }
 
         // Compute max width for each shown column (header, and up to 5+5 rows)
-        let mut col_widths: Vec<usize> = col_indices
-            .iter()
-            .map(|&i| self.heads[i].len())
-            .collect();
+        let mut col_widths: Vec<usize> = col_indices.iter().map(|&i| self.heads[i].len()).collect();
 
         let row_indices: Vec<usize> = if rows <= 10 {
             (0..rows).collect()

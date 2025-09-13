@@ -1,5 +1,4 @@
-use crate::data;
-use crate::style;
+use crate::{data, style};
 
 #[derive(Debug, Clone)]
 pub enum DataCol {
@@ -90,7 +89,10 @@ impl Line {
     }
 
     pub fn with_name(self, name: String) -> Self {
-        Self { name: Some(name), ..self }
+        Self {
+            name: Some(name),
+            ..self
+        }
     }
 
     pub fn with_line(mut self, line: style::series::Line) -> Self {
@@ -136,7 +138,10 @@ impl Scatter {
     }
 
     pub fn with_name(self, name: String) -> Self {
-        Self { name: Some(name), ..self }
+        Self {
+            name: Some(name),
+            ..self
+        }
     }
 
     pub fn with_marker(mut self, marker: style::series::Marker) -> Self {
@@ -186,7 +191,10 @@ impl Histogram {
     }
 
     pub fn with_name(self, name: String) -> Self {
-        Self { name: Some(name), ..self }
+        Self {
+            name: Some(name),
+            ..self
+        }
     }
 
     pub fn with_fill(self, fill: style::series::Fill) -> Self {
@@ -279,7 +287,10 @@ impl Bars {
     }
 
     pub fn with_name(self, name: String) -> Self {
-        Self { name: Some(name), ..self }
+        Self {
+            name: Some(name),
+            ..self
+        }
     }
 
     pub fn with_fill(self, fill: style::series::Fill) -> Self {
@@ -287,7 +298,10 @@ impl Bars {
     }
 
     pub fn with_line(self, line: style::series::Line) -> Self {
-        Self { line: Some(line), ..self }
+        Self {
+            line: Some(line),
+            ..self
+        }
     }
 
     pub fn with_position(self, position: BarsPosition) -> Self {
@@ -341,7 +355,10 @@ impl BarSeries {
     }
 
     pub fn with_name(self, name: String) -> Self {
-        Self { name: Some(name), ..self }
+        Self {
+            name: Some(name),
+            ..self
+        }
     }
 
     pub fn with_fill(self, fill: style::series::Fill) -> Self {
@@ -349,7 +366,10 @@ impl BarSeries {
     }
 
     pub fn with_line(self, line: style::series::Line) -> Self {
-        Self { line: Some(line), ..self }
+        Self {
+            line: Some(line),
+            ..self
+        }
     }
 
     pub fn data(&self) -> &DataCol {
@@ -455,11 +475,17 @@ impl BarsGroup {
     }
 
     pub fn with_orientation(self, orientation: BarsOrientation) -> Self {
-        Self { orientation, ..self }
+        Self {
+            orientation,
+            ..self
+        }
     }
 
     pub fn with_arrangement(self, arrangement: BarsArrangement) -> Self {
-        Self { arrangement, ..self }
+        Self {
+            arrangement,
+            ..self
+        }
     }
 
     pub fn categories(&self) -> &DataCol {

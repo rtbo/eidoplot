@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use eidoplot::{eplt, data};
+use eidoplot::{data, eplt};
 
 mod common;
 
@@ -16,12 +16,7 @@ fn logspace(start: f64, end: f64, num: usize) -> Vec<f64> {
 /// Computes the transfer function of a series RLC circuit, with output across the capacitor.
 /// The input vector is the frequencies in Hz
 /// The returned vectors are the magnitude in dB and the phase in radians
-fn rlc_load_response(
-    frequencies: &[f64],
-    r: f64,
-    l: f64,
-    c: f64,
-) -> (Vec<f64>, Vec<f64>) {
+fn rlc_load_response(frequencies: &[f64], r: f64, l: f64, c: f64) -> (Vec<f64>, Vec<f64>) {
     let mut mags = Vec::with_capacity(frequencies.len());
     let mut phases = Vec::with_capacity(frequencies.len());
 
@@ -31,9 +26,9 @@ fn rlc_load_response(
 
         let num = 1.0;
         let denom_real = 1.0 - omega_sq * l * c;
-        let denom_imag = omega * r*c;
+        let denom_imag = omega * r * c;
 
-        let mag = num / ((denom_real.powi(2) + denom_imag.powi(2))).sqrt();
+        let mag = num / (denom_real.powi(2) + denom_imag.powi(2)).sqrt();
         let ph = -(denom_imag / denom_real).atan();
 
         mags.push(20.0 * mag.log10());
@@ -54,7 +49,7 @@ fn main() {
     let filename = common::example_res("rlc-bode.eplt");
     let content = std::fs::read_to_string(&filename).unwrap();
 
-    let mut source = data::NamedColumns::new(); 
+    let mut source = data::NamedColumns::new();
     source.add_column("freq", &freq as &dyn data::Column);
     source.add_column("mag", &mag as &dyn data::Column);
     source.add_column("phase", &phase as &dyn data::Column);

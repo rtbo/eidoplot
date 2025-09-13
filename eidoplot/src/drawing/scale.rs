@@ -1,6 +1,5 @@
-use crate::data;
 use crate::drawing::axis;
-use crate::ir;
+use crate::{data, ir};
 
 /// Maps coordinates from data space to surface space.
 /// The surface space starts at zero for lowest displayed data and goes up for higher data.

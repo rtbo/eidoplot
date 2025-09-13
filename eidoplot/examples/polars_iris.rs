@@ -1,8 +1,6 @@
 use std::path;
 
-use eidoplot::data;
-use eidoplot::ir;
-
+use eidoplot::{data, ir};
 use polars::prelude::*;
 
 mod common;

@@ -111,7 +111,8 @@ impl Legend {
             ver_align: text::layout::LineVerAlign::Middle.into(),
             ..Default::default()
         };
-        let text = text::shape_and_layout_str(entry.label, &font.font, &self.fontdb, font.size, &opts)?;
+        let text =
+            text::shape_and_layout_str(entry.label, &font.font, &self.fontdb, font.size, &opts)?;
         self.entries.push(LegendEntry {
             index,
             shape,

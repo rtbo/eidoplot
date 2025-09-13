@@ -2,8 +2,7 @@ use core::fmt;
 
 use miette::MietteSpanContents;
 
-use crate::Span;
-use crate::{parse, lex};
+use crate::{Span, lex, parse};
 
 pub trait DiagTrait: fmt::Debug + fmt::Display {
     fn span(&self) -> Span;

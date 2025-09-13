@@ -90,8 +90,7 @@ struct Ctx<'a, D, T> {
     fontdb: Arc<fontdb::Database>,
 }
 
-impl<'a, D, T> Ctx<'a, D, T>
-{
+impl<'a, D, T> Ctx<'a, D, T> {
     pub fn new(data_source: &'a D, theme: T, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D, T> {
         Ctx {
             data_source,

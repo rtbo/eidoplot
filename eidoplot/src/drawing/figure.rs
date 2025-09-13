@@ -1,8 +1,7 @@
 use eidoplot_text as text;
 
 use crate::drawing::legend::Legend;
-use crate::drawing::plot;
-use crate::drawing::{Ctx, Error, SurfWrapper};
+use crate::drawing::{Ctx, Error, SurfWrapper, plot};
 use crate::render::{self, Surface as _};
 use crate::{data, geom, ir, missing_params, style};
 

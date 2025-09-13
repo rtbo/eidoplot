@@ -899,7 +899,7 @@ pub struct ScaledMetrics {
     pub ascent: f32,
     /// Height between baseline and bottom of the font face (negative value)
     pub descent: f32,
-    /// Height between baseline and top of most letters 
+    /// Height between baseline and top of most letters
     /// (the half of this height is used for the "middle" alignment)
     pub x_height: f32,
     /// Height between baseline and top of capitals (used for the "hanging" alignment)
