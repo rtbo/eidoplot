@@ -61,7 +61,8 @@ impl LegendEntry {
     }
 }
 
-pub struct Legend {
+#[derive(Debug)]
+pub struct LegendBuilder {
     font: ir::legend::EntryFont,
     fill: Option<theme::Fill>,
     border: Option<theme::Line>,
@@ -72,22 +73,30 @@ pub struct Legend {
     avail_width: f32,
     fontdb: Arc<fontdb::Database>,
     entries: Vec<LegendEntry>,
-
-    size: Option<geom::Size>,
 }
 
-impl Legend {
+#[derive(Debug)]
+pub struct Legend {
+    font: ir::legend::EntryFont,
+    fill: Option<theme::Fill>,
+    border: Option<theme::Line>,
+    entries: Vec<LegendEntry>,
+
+    size: geom::Size,
+}
+
+impl LegendBuilder {
     pub fn from_ir(
         legend: &ir::Legend,
         prefers_vertical: bool,
         avail_width: f32,
         fontdb: Arc<fontdb::Database>,
-    ) -> Legend {
+    ) -> LegendBuilder {
         let mut columns = legend.columns();
         if columns.is_none() && prefers_vertical {
             columns.replace(NonZeroU32::new(1).unwrap());
         }
-        Legend {
+        LegendBuilder {
             font: legend.font().clone(),
             fill: legend.fill().cloned(),
             border: legend.border().cloned(),
@@ -98,8 +107,6 @@ impl Legend {
             avail_width: avail_width,
             fontdb,
             entries: Vec::new(),
-
-            size: None,
         }
     }
 
@@ -123,7 +130,7 @@ impl Legend {
         Ok(())
     }
 
-    pub fn layout(&mut self) -> Option<geom::Size> {
+    pub fn layout(mut self) -> Option<Legend> {
         if self.entries.is_empty() {
             return None;
         }
@@ -153,8 +160,13 @@ impl Legend {
             }
         }
         let sz = geom::Size::new(w + self.padding, h + self.padding);
-        self.size.replace(sz);
-        Some(sz)
+        Some(Legend {
+            font: self.font,
+            fill: self.fill,
+            border: self.border,
+            entries: self.entries,
+            size: sz,
+        })
     }
 
     fn max_label_width(&self) -> f32 {
@@ -177,6 +189,12 @@ impl Legend {
     }
 }
 
+impl Legend {
+    pub fn size(&self) -> geom::Size {
+        self.size
+    }
+}
+
 impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
@@ -190,7 +208,7 @@ where
     where
         T: style::Theme,
     {
-        let rect = geom::Rect::from_ps(*top_left, legend.size.unwrap());
+        let rect = geom::Rect::from_ps(*top_left, legend.size);
         if legend.fill.is_some() || legend.border.is_some() {
             self.draw_rect(&render::Rect {
                 rect,

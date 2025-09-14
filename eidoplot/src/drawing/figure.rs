@@ -1,6 +1,6 @@
 use eidoplot_text as text;
 
-use crate::drawing::legend::Legend;
+use crate::drawing::legend::LegendBuilder;
 use crate::drawing::{Ctx, Error, SurfWrapper, plot};
 use crate::render::{self, Surface as _};
 use crate::{data, geom, ir, missing_params, style};
@@ -67,7 +67,7 @@ where
     where
         T: style::Theme,
     {
-        let mut dlegend = Legend::from_ir(
+        let mut builder = LegendBuilder::from_ir(
             legend.legend(),
             legend.pos().prefers_vertical(),
             rect.width(),
@@ -78,17 +78,18 @@ where
         for plot in fig.plots().iter() {
             plot::for_each_series(plot, |s| {
                 if let Some(entry) = s.legend_entry() {
-                    dlegend.add_entry(idx, entry)?;
+                    builder.add_entry(idx, entry)?;
                     idx += 1;
                 }
                 Ok(())
             })?;
         }
 
-        let Some(sz) = dlegend.layout() else {
+        let Some(leg) = builder.layout() else {
             return Ok(());
         };
 
+        let sz = leg.size();
         let top_left = match legend.pos() {
             ir::figure::LegendPos::Top => {
                 let tl = geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.top());
@@ -115,7 +116,7 @@ where
                 tl
             }
         };
-        self.draw_legend(ctx, &dlegend, &top_left)?;
+        self.draw_legend(ctx, &leg, &top_left)?;
         Ok(())
     }
 
@@ -130,7 +131,10 @@ where
         T: style::Theme,
     {
         match plots {
-            ir::figure::Plots::Plot(plot) => Ok(self.draw_plot(ctx, plot, rect)?),
+            ir::figure::Plots::Plot(ir_plot) => {
+                let plot = ctx.setup_plot(ir_plot, rect)?;
+                self.draw_plot(ctx, ir_plot, &plot)
+            }
             ir::figure::Plots::Subplots(subplots) => {
                 let (rows, cols) = (subplots.rows(), subplots.cols());
                 let space = subplots.space();
@@ -142,8 +146,10 @@ where
                     for c in 0..cols {
                         let cols = cols as u32;
                         let idx = (r * cols + c) as usize;
-                        let plot = &subplots.plots()[idx];
-                        self.draw_plot(ctx, plot, &geom::Rect::from_xywh(x, y, w, h))?;
+                        let ir_plot = &subplots.plots()[idx];
+                        let rect = geom::Rect::from_xywh(x, y, w, h);
+                        let plot = ctx.setup_plot(ir_plot, &rect)?;
+                        self.draw_plot(ctx, ir_plot, &plot)?;
                         x += w + space;
                     }
                     y += h + space;
