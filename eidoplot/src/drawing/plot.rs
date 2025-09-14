@@ -15,6 +15,16 @@ pub struct Plot {
     legend: Option<Legend>,
 }
 
+impl Plot {
+    pub fn rect(&self) -> geom::Rect {
+        self.rect
+    }
+
+    pub fn rect_mut(&mut self) -> &mut geom::Rect {
+        &mut self.rect
+    }
+}
+
 fn plot_insets(plot: &ir::Plot) -> geom::Padding {
     match plot.insets() {
         Some(&ir::plot::Insets::Fixed(x, y)) => geom::Padding::Center { v: y, h: x },

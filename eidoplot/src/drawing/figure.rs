@@ -1,6 +1,7 @@
 use eidoplot_text as text;
 
 use crate::drawing::legend::LegendBuilder;
+use crate::drawing::plot::Plot;
 use crate::drawing::{Ctx, Error, SurfWrapper, plot};
 use crate::render::{self, Surface as _};
 use crate::{data, geom, ir, missing_params, style};
@@ -136,6 +137,8 @@ where
                 self.draw_plot(ctx, ir_plot, &plot)
             }
             ir::figure::Plots::Subplots(subplots) => {
+                // collect plots in a grid
+                let mut plots = Vec::with_capacity(subplots.plots().len());
                 let (rows, cols) = (subplots.rows(), subplots.cols());
                 let space = subplots.space();
                 let w = (rect.width() - space * (subplots.cols() - 1) as f32) / cols as f32;
@@ -148,14 +151,78 @@ where
                         let idx = (r * cols + c) as usize;
                         let ir_plot = &subplots.plots()[idx];
                         let rect = geom::Rect::from_xywh(x, y, w, h);
-                        let plot = ctx.setup_plot(ir_plot, &rect)?;
-                        self.draw_plot(ctx, ir_plot, &plot)?;
+                        plots.push(ctx.setup_plot(ir_plot, &rect)?);
                         x += w + space;
                     }
                     y += h + space;
                 }
+                let mut grid = PlotGrid{plots, rows, cols};
+                for c in 0..cols {
+                    grid.align_axes_for_col(c);
+                }
+                for r in 0..rows {
+                    grid.align_axes_for_row(r);
+                }
+                for r in 0..rows {
+                    for c in 0..cols {
+                        let idx = (r * cols + c) as usize;
+                        let plot = &grid.plots[idx];
+                        let ir_plot = &subplots.plots()[idx];
+                        self.draw_plot(ctx, ir_plot, plot)?;
+                    }
+                }
                 Ok(())
             }
+        }
+    }
+}
+
+struct PlotGrid {
+    plots: Vec<Plot>,
+    rows: u32,
+    cols: u32,
+}
+
+impl PlotGrid {
+    fn align_axes_for_col(&mut self, col: u32) {
+        let mut left_right: Option<(f32, f32)> = None;
+        for r in 0..self.rows {
+            let idx = (r * self.cols + col) as usize;
+            let pr = self.plots[idx].rect();
+            if let Some((left, right)) = left_right.as_mut() {
+                *left = left.max(pr.left());
+                *right = right.min(pr.right());
+            } else {
+                left_right = Some((pr.left(), pr.right()));
+            }
+        }
+        let Some((left, right)) = left_right else { return };
+        for r in 0..self.rows {
+            let idx = (r * self.cols + col) as usize;
+            let plot = &mut self.plots[idx];
+            plot.rect_mut().set_left(left);
+            plot.rect_mut().set_right(right);
+        }
+    }
+
+    fn align_axes_for_row(&mut self, row: u32) {
+        let mut top_bottom: Option<(f32, f32)> = None;
+        for c in 0..self.cols {
+            let idx = (row * self.cols + c) as usize;
+            let pr = self.plots[idx].rect();
+            if let Some((top, bottom)) = top_bottom.as_mut() {
+                *top = top.max(pr.top());
+                *bottom = bottom.min(pr.bottom());
+            } else {
+                top_bottom = Some((pr.top(), pr.bottom()));
+            }
+        }
+        let Some((top, bottom)) = top_bottom else { return };
+        for c in 0..self.cols {
+            let idx = (row * self.cols + c) as usize;
+            let plot = &mut self.plots[idx];
+            plot.rect_mut().set_top(top);
+            plot.rect_mut().set_bottom(bottom);
         }
     }
 }

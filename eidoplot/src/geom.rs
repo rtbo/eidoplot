@@ -218,6 +218,26 @@ impl Rect {
         self.x
     }
 
+    /// Set the top Y coordinate
+    pub const fn set_top(&mut self, top: f32) {
+        self.y = top;
+    }
+
+    /// Set the right X coordinate
+    pub const fn set_right(&mut self, right: f32) {
+        self.w = right - self.x();
+    }
+
+    /// Set the bottom Y coordinate
+    pub const fn set_bottom(&mut self, bottom: f32) {
+        self.h = bottom - self.y();
+    }
+
+    /// Set the left X coordinate
+    pub const fn set_left(&mut self, left: f32) {
+        self.x = left;
+    }
+
     /// Shift the top side down by shift
     pub const fn shifted_top_side(&self, shift: f32) -> Rect {
         Rect {

@@ -1,6 +1,7 @@
 figure: {
     title: "RLC bode"
     share-x
+    space: 10
     plot: {
         x-axis: "Freq. [Hz]", LogScale, Ticks
         y-axis: "Magnitude [dB]", Ticks, Grid
