@@ -23,6 +23,20 @@ impl Plot {
     pub fn rect_mut(&mut self) -> &mut geom::Rect {
         &mut self.rect
     }
+
+    pub fn axes_insets(&self) -> Option<geom::Padding> {
+        self.axes.as_ref().map(|a| a.insets())
+    }
+
+    pub fn x_bounds(&self) -> Option<axis::BoundsRef<'_>> {
+        self.axes.as_ref().map(|axes| axes.bottom().bounds())
+    }
+
+    pub fn set_shared_axis_config(&mut self, config: axis::SharedConfig) {
+        if let Some(axes) = &mut self.axes {
+            axes.set_shared_config(config);
+        }
+    }
 }
 
 fn plot_insets(plot: &ir::Plot) -> geom::Padding {
@@ -174,10 +188,7 @@ where
         let height = rect.height() - bottom_axis.size_across();
         left_axis.set_size_along(height);
 
-        Ok(axis::Axes {
-            left: left_axis,
-            bottom: bottom_axis,
-        })
+        Ok(axis::Axes::new(bottom_axis, left_axis, insets))
     }
 
     fn estimate_hor_axis_height(&self, x_axis: &ir::Axis) -> f32 {
@@ -388,8 +399,8 @@ where
         })?;
 
         let cm = CoordMapXy {
-            x: axes.bottom.coord_map(),
-            y: axes.left.coord_map(),
+            x: axes.bottom().coord_map(),
+            y: axes.left().coord_map(),
         };
 
         for (ir_series, series) in ir_series.iter().zip(series.iter()) {

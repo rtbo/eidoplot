@@ -6,6 +6,7 @@
  * Y low coordinates are at the top.
  */
 
+use strict_num::PositiveF32;
 pub use tiny_skia_path::{Path, PathBuilder, PathSegment, Transform};
 
 /// A point in 2D space reprensented by x and y coordinates
@@ -85,38 +86,43 @@ impl Size {
 pub struct Rect {
     x: f32,
     y: f32,
-    w: f32,
-    h: f32,
+    w: PositiveF32,
+    h: PositiveF32,
 }
 
 impl Rect {
     /// Build a rectangle from x, y, width and height
-    pub const fn from_xywh(x: f32, y: f32, w: f32, h: f32) -> Self {
-        Rect { x, y, w, h }
+    pub fn from_xywh(x: f32, y: f32, w: f32, h: f32) -> Self {
+        Rect {
+            x,
+            y,
+            w: PositiveF32::new(w).unwrap(),
+            h: PositiveF32::new(h).unwrap(),
+        }
     }
 
     /// Build a rectangle from top, right, bottom and left
-    pub const fn from_trbl(top: f32, right: f32, bottom: f32, left: f32) -> Self {
+    pub fn from_trbl(top: f32, right: f32, bottom: f32, left: f32) -> Self {
         Rect {
             x: left,
             y: top,
-            w: right - left,
-            h: bottom - top,
+            w: PositiveF32::new(right - left).unwrap(), 
+            h: PositiveF32::new(bottom - top).unwrap(),
         }
     }
 
     /// Build a rectnagle from top left point and size
-    pub const fn from_ps(top_left: Point, size: Size) -> Self {
+    pub fn from_ps(top_left: Point, size: Size) -> Self {
         Rect::from_xywh(top_left.x, top_left.y, size.w, size.h)
     }
 
     /// Pad the rectangle, removing padding from 4 sides
-    pub const fn pad(&self, padding: &Padding) -> Self {
+    pub fn pad(&self, padding: &Padding) -> Self {
         Rect {
             x: self.x + padding.left(),
             y: self.y + padding.top(),
-            w: self.w - padding.sum_hor(),
-            h: self.h - padding.sum_ver(),
+            w: PositiveF32::new(self.w.get() - padding.sum_hor()).unwrap(),
+            h: PositiveF32::new(self.h.get() - padding.sum_ver()).unwrap(),
         }
     }
 
@@ -155,8 +161,8 @@ impl Rect {
     /// The size of the rectangle
     pub const fn size(&self) -> Size {
         Size {
-            w: self.w,
-            h: self.h,
+            w: self.width(),
+            h: self.height(),
         }
     }
 
@@ -190,12 +196,12 @@ impl Rect {
 
     /// The width of the rectangle
     pub const fn width(&self) -> f32 {
-        self.w
+        self.w.get()
     }
 
     /// The height of the rectangle
     pub const fn height(&self) -> f32 {
-        self.h
+        self.h.get()
     }
 
     /// The top Y coordinate
@@ -205,12 +211,12 @@ impl Rect {
 
     /// The right X coordinate
     pub const fn right(&self) -> f32 {
-        self.x + self.w
+        self.x + self.w.get()
     }
 
     /// The bottom Y coordinate
     pub const fn bottom(&self) -> f32 {
-        self.y + self.h
+        self.y + self.h.get()
     }
 
     /// The left X coordinate
@@ -224,13 +230,13 @@ impl Rect {
     }
 
     /// Set the right X coordinate
-    pub const fn set_right(&mut self, right: f32) {
-        self.w = right - self.x();
+    pub fn set_right(&mut self, right: f32) {
+        self.w = PositiveF32::new(right - self.x()).unwrap();
     }
 
     /// Set the bottom Y coordinate
-    pub const fn set_bottom(&mut self, bottom: f32) {
-        self.h = bottom - self.y();
+    pub fn set_bottom(&mut self, bottom: f32) {
+        self.h = PositiveF32::new(bottom - self.y()).unwrap();
     }
 
     /// Set the left X coordinate
@@ -239,97 +245,101 @@ impl Rect {
     }
 
     /// Shift the top side down by shift
-    pub const fn shifted_top_side(&self, shift: f32) -> Rect {
+    pub fn shifted_top_side(&self, shift: f32) -> Rect {
         Rect {
             x: self.x,
             y: self.y + shift,
             w: self.w,
-            h: self.h - shift,
+            h: PositiveF32::new(self.h.get() - shift).unwrap(),
         }
     }
 
     /// Shift the right side right by shift
-    pub const fn shifted_right_side(&self, shift: f32) -> Rect {
+    pub fn shifted_right_side(&self, shift: f32) -> Rect {
         Rect {
             x: self.x,
             y: self.y,
-            w: self.w + shift,
+            w: PositiveF32::new(self.w.get() + shift).unwrap(),
             h: self.h,
         }
     }
 
     /// Shift the bottom side down by shift
-    pub const fn shifted_bottom_side(&self, shift: f32) -> Rect {
+    pub fn shifted_bottom_side(&self, shift: f32) -> Rect {
         Rect {
             x: self.x,
             y: self.y,
             w: self.w,
-            h: self.h + shift,
+            h: PositiveF32::new(self.h.get() + shift).unwrap(),
         }
     }
 
     /// Shift the left side right by shift
-    pub const fn shifted_left_side(&self, shift: f32) -> Rect {
+    pub fn shifted_left_side(&self, shift: f32) -> Rect {
         Rect {
             x: self.x + shift,
             y: self.y,
-            w: self.w - shift,
+            w: PositiveF32::new(self.w.get() - shift).unwrap(),
             h: self.h,
         }
     }
 
-    /// Shift the top side down by shift
-    pub const fn shift_top_side(&mut self, shift: f32) {
+    /// Shift the top side down by shift (in-place)
+    pub fn shift_top_side(&mut self, shift: f32) {
         self.y += shift;
-        self.h -= shift;
+        self.h = PositiveF32::new(self.h.get() - shift).unwrap();
     }
 
-    /// Shift the right side right by shift
-    pub const fn shift_right_side(&mut self, shift: f32) {
-        self.w += shift;
+    /// Shift the right side right by shift (in-place)
+    pub fn shift_right_side(&mut self, shift: f32) {
+        self.w = PositiveF32::new(self.w.get() + shift).unwrap();
     }
 
-    /// Shift the bottom side down by shift
-    pub const fn shift_bottom_side(&mut self, shift: f32) {
-        self.h += shift;
+    /// Shift the bottom side down by shift (in-place)
+    pub fn shift_bottom_side(&mut self, shift: f32) {
+        self.h = PositiveF32::new(self.h.get() + shift).unwrap();
     }
 
-    /// Shift the left side right by shift
-    pub const fn shift_left_side(&mut self, shift: f32) {
+    /// Shift the left side right by shift (in-place)
+    pub fn shift_left_side(&mut self, shift: f32) {
         self.x += shift;
-        self.w -= shift;
+        self.w = PositiveF32::new(self.w.get() - shift).unwrap();
     }
 
     /// Build a copy of the rect with a new top side
-    pub const fn with_top(self, top: f32) -> Rect {
+    pub fn with_top(self, top: f32) -> Rect {
+        let new_h = self.bottom() - top;
         Rect {
             y: top,
-            h: self.bottom() - top,
+            h: PositiveF32::new(new_h).unwrap(),
             ..self
         }
     }
 
     /// Build a copy of the rect with a new right side
-    pub const fn with_right(self, right: f32) -> Rect {
+    pub fn with_right(self, right: f32) -> Rect {
+        let new_w = right - self.x;
         Rect {
-            w: right - self.x,
+            w: PositiveF32::new(new_w).unwrap(),
             ..self
         }
     }
 
     /// Build a copy of the rect with a new bottom side
-    pub const fn with_bottom(self, bottom: f32) -> Rect {
+    pub fn with_bottom(self, bottom: f32) -> Rect {
+        let new_h = bottom - self.y;
         Rect {
-            h: bottom - self.y,
+            h: PositiveF32::new(new_h).unwrap(),
             ..self
         }
     }
 
     /// Build a copy of the rect with a new left side
-    pub const fn with_left(self, left: f32) -> Rect {
+    pub fn with_left(self, left: f32) -> Rect {
+        let new_w = self.right() - left;
         Rect {
             x: left,
-            w: self.right() - left,
+            w: PositiveF32::new(new_w).unwrap(),
             ..self
         }
     }
@@ -337,7 +347,7 @@ impl Rect {
     /// Build a path from the rectangle
     pub fn to_path(&self) -> Path {
         PathBuilder::from_rect(
-            tiny_skia_path::Rect::from_xywh(self.x, self.y, self.w, self.h).unwrap(),
+            tiny_skia_path::Rect::from_xywh(self.x, self.y, self.w.get(), self.h.get()).unwrap(),
         )
     }
 }

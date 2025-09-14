@@ -4,15 +4,6 @@ use eidoplot::{data, eplt};
 
 mod common;
 
-fn logspace(start: f64, end: f64, num: usize) -> Vec<f64> {
-    let log_start = start.log10();
-    let log_end = end.log10();
-    let step = (log_end - log_start) / (num as f64 - 1.0);
-    (0..num)
-        .map(|i| 10f64.powf(log_start + i as f64 * step))
-        .collect()
-}
-
 /// Computes the transfer function of a series RLC circuit, with output across the capacitor.
 /// The input vector is the frequencies in Hz
 /// The returned vectors are the magnitude in dB and the phase in radians
@@ -43,7 +34,7 @@ fn main() {
     const L: f64 = 10e-3; // 10 mH
     const C: f64 = 1e-6; // 1 uF
 
-    let freq = logspace(10.0, 10000.0, 500);
+    let freq = common::logspace(10.0, 10000.0, 500);
     let (mag, phase) = rlc_load_response(&freq, R, L, C);
 
     let filename = common::example_res("rlc-bode.eplt");

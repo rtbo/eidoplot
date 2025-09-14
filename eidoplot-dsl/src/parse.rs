@@ -143,7 +143,7 @@ where
             }
             TokenKind::PascalCaseIdent(name) => {
                 // both struct and enums can start with a pascal case identifier
-                Ok(self.parse_struct_or_enum(ast::Ident {
+                Ok(self.parse_struct_or_enum_or_seq(ast::Ident {
                     span: tok.span,
                     name,
                 })?)
@@ -272,7 +272,7 @@ where
         Ok((res_span, res_str))
     }
 
-    fn parse_struct_or_enum(&mut self, ident: ast::Ident) -> Result<ast::Value> {
+    fn parse_struct_or_enum_or_seq(&mut self, ident: ast::Ident) -> Result<ast::Value> {
         self.ignore_opt_sp();
         match self.first_token()? {
             Some(Token {
@@ -284,10 +284,13 @@ where
                     self.parse_struct(ident.span, Some(ident))?,
                 ))
             }
-            _ => Ok(ast::Value::Scalar(ast::Scalar {
-                span: ident.span,
-                kind: ast::ScalarKind::Enum(ident.name),
-            })),
+            _ => {
+                let starter = ast::Scalar {
+                    span: ident.span,
+                    kind: ast::ScalarKind::Enum(ident.name),
+                };
+                self.parse_scalar_or_seq(starter)
+            }
         }
     }
 
@@ -732,6 +735,38 @@ mod tests {
                     value: Some(ast::Value::Scalar(ast::Scalar {
                         span: (12, 13),
                         kind: ast::ScalarKind::Int(2),
+                    })),
+                }]
+            }))
+        );
+    }
+
+    #[test]
+    fn test_nested_seq() {
+        let dsl = "foo: { bar: 2, \"3\" }";
+        let props = parse(dsl.chars()).unwrap();
+        assert_eq!(
+            props[0].value,
+            Some(ast::Value::Struct(ast::Struct {
+                span: (5, 20),
+                typ: None,
+                props: vec![ast::Prop {
+                    name: ast::Ident {
+                        name: "bar".into(),
+                        span: (7, 10),
+                    },
+                    value: Some(ast::Value::Seq(ast::Seq {
+                        span: (12, 18),
+                        scalars: vec![
+                            ast::Scalar {
+                                span: (12, 13),
+                                kind: ast::ScalarKind::Int(2),
+                            },
+                            ast::Scalar {
+                                span: (15, 18),
+                                kind: ast::ScalarKind::Str("3".into()),
+                            }
+                        ]
                     })),
                 }]
             }))

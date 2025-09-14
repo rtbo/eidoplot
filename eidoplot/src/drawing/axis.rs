@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use eidoplot_text as text;
 use render::Surface;
 use text::{TextLayout, font};
@@ -294,16 +296,63 @@ impl crate::tests::Near for BoundsRef<'_> {
     }
 }
 
+#[derive(Debug)]
+pub enum SharedConfig {
+    /// a shared axis, which is attached for this plot
+    Shared(Arc<Axis>),
+    /// a shared axis, which is attached for another plot
+    /// ticks wont be drawn, but grid can be drawn from it
+    SharedGrid(Arc<Axis>),
+}
+
+impl SharedConfig {
+    fn side(&self) -> Side {
+        match self {
+            SharedConfig::Shared(axis) => axis.side,
+            SharedConfig::SharedGrid(axis) => axis.side,
+        }
+    }
+}
+
 /// Collection of all axis of a plot
 // At the moment, only single bottom and left axis are supported
 // TODO: support multiple axes with vec of axis for left and right
 #[derive(Debug)]
 pub struct Axes {
-    pub bottom: Axis,
-    pub left: Axis,
+    bottom: Axis,
+    left: Axis,
+    insets: geom::Padding,
+    bottom_shared: Option<SharedConfig>,
+    left_shared: Option<SharedConfig>,
 }
 
 impl Axes {
+    pub fn new(bottom: Axis, left: Axis, insets: geom::Padding) -> Self {
+        Axes {
+            bottom,
+            left,
+            insets,
+            bottom_shared: None,
+            left_shared: None,
+        }
+    }
+
+    pub fn insets(&self) -> geom::Padding {
+        self.insets
+    }
+
+    pub fn bottom(&self) -> &Axis {
+        // if there is a shared axis for this plot,
+        // we always want to use it
+        self.get_axis(Side::Bottom)
+    }
+
+    pub fn left(&self) -> &Axis {
+        // if there is a shared axis for this plot,
+        // we always want to use it
+        self.get_axis(Side::Left)
+    }
+
     pub fn total_plot_padding(&self) -> geom::Padding {
         geom::Padding::Custom {
             t: 0.0,
@@ -311,6 +360,50 @@ impl Axes {
             b: self.bottom.size_across(),
             l: self.left.size_across(),
         }
+    }
+
+    pub fn set_shared_config(&mut self, config: SharedConfig) {
+        match config.side() {
+            Side::Bottom => {
+                self.bottom_shared = Some(config);
+            }
+            Side::Left => {
+                self.left_shared = Some(config);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn get_drawn_axis(&self, side: Side) -> Option<&Axis> {
+        match side {
+            Side::Bottom => get_drawn_axis(&self.bottom, self.bottom_shared.as_ref()),
+            Side::Left => get_drawn_axis(&self.left, self.left_shared.as_ref()),
+            _ => unreachable!(),
+        }
+    }
+
+    fn get_axis(&self, side: Side) -> &Axis {
+        match side {
+            Side::Bottom => get_axis(&self.bottom, self.bottom_shared.as_ref()),
+            Side::Left => get_axis(&self.left, self.left_shared.as_ref()),
+            _ => unreachable!(),
+        }
+    }
+}
+
+fn get_drawn_axis<'a>(axis: &'a Axis, shared_config: Option<&'a SharedConfig>) -> Option<&'a Axis> {
+    match shared_config {
+        None => Some(axis),
+        Some(SharedConfig::SharedGrid(_)) => None,
+        Some(SharedConfig::Shared(axis)) => Some(&*axis),
+    }
+}
+
+fn get_axis<'a>(axis: &'a Axis, shared_config: Option<&'a SharedConfig>) -> &'a Axis {
+    match shared_config {
+        None => axis,
+        Some(SharedConfig::SharedGrid(axis)) => &*axis,
+        Some(SharedConfig::Shared(axis)) => &*axis,
     }
 }
 
@@ -356,6 +449,20 @@ impl Axis {
         match &self.scale {
             AxisScale::Num { cm, .. } => &**cm,
             AxisScale::Cat { bins, .. } => bins,
+        }
+    }
+
+    pub fn bounds(&self) -> BoundsRef<'_> {
+        match &self.scale {
+            AxisScale::Num { cm, .. } => cm.axis_bounds(),
+            AxisScale::Cat { bins, .. } => bins.axis_bounds(),
+        }
+    }
+
+    pub fn set_bounds(&mut self, bounds: Bounds) -> Result<(), Error> {
+        match &mut self.scale {
+            AxisScale::Num { cm, .. } => cm.set_axis_bounds(bounds),
+            AxisScale::Cat { bins, .. } => bins.set_axis_bounds(bounds),
         }
     }
 }
@@ -483,16 +590,18 @@ struct CategoryBins {
     categories: Categories,
     inset: (f32, f32),
     bin_size: f32,
+    plot_size: f32,
 }
 
 impl CategoryBins {
     fn new(plot_size: f32, inset: (f32, f32), categories: Categories) -> Self {
         // separate the plot_size into one bin per category and place the category in the middle
-        let bin_size = (plot_size - inset.0 - inset.1) / categories.len() as f32;
+        let bin_size = Self::calc_bin_size(plot_size, inset, categories.len());
         CategoryBins {
             categories,
             inset,
             bin_size,
+            plot_size,
         }
     }
 
@@ -508,6 +617,10 @@ impl CategoryBins {
     /// return the location of a category at index `cat_idx`
     fn cat_location(&self, cat_idx: usize) -> f32 {
         self.inset.0 + (cat_idx as f32 + 0.5) * self.bin_size
+    }
+
+    fn calc_bin_size(plot_size: f32, inset: (f32, f32), n_cats: usize) -> f32 {
+        (plot_size - inset.0 - inset.1) / n_cats as f32
     }
 }
 
@@ -526,7 +639,20 @@ impl CoordMap for CategoryBins {
     }
 
     fn set_plot_size(&mut self, plot_size: f32) {
-        self.bin_size = (plot_size - self.inset.0 - self.inset.1) / self.categories.len() as f32;
+        self.plot_size = plot_size;
+        self.bin_size = Self::calc_bin_size(plot_size, self.inset, self.categories.len());
+    }
+
+    fn set_axis_bounds(&mut self, bounds: Bounds) -> Result<(), Error> {
+        let Bounds::Cat(cats) = bounds else {
+            return Err(Error::InconsistentAxisBounds(
+                "expected categorical bounds".into(),
+            ));
+        };
+        let n_cats = cats.len();
+        self.categories = cats;
+        self.bin_size = Self::calc_bin_size(self.plot_size, self.inset, n_cats);
+        Ok(())
     }
 }
 
@@ -964,10 +1090,13 @@ where
     where
         T: style::Theme,
     {
-        self.draw_axis_minor_grids(ctx, &axes.bottom, rect)?;
-        self.draw_axis_minor_grids(ctx, &axes.left, rect)?;
-        self.draw_axis_major_grids(ctx, &axes.bottom, rect)?;
-        self.draw_axis_major_grids(ctx, &axes.left, rect)?;
+        let bottom = axes.get_axis(Side::Bottom);
+        let left = axes.get_axis(Side::Bottom);
+
+        self.draw_axis_minor_grids(ctx, bottom, rect)?;
+        self.draw_axis_minor_grids(ctx, left, rect)?;
+        self.draw_axis_major_grids(ctx, bottom, rect)?;
+        self.draw_axis_major_grids(ctx, left, rect)?;
         Ok(())
     }
 
@@ -1057,8 +1186,14 @@ where
     where
         T: style::Theme,
     {
-        self.draw_axis(ctx, &axes.bottom, plot_rect)?;
-        self.draw_axis(ctx, &axes.left, plot_rect)?;
+        let bottom = axes.get_drawn_axis(Side::Bottom);
+        let left = axes.get_drawn_axis(Side::Left);
+        if let Some(bottom) = bottom {
+            self.draw_axis(ctx, bottom, plot_rect)?;
+        }
+        if let Some(left) = left {
+            self.draw_axis(ctx, left, plot_rect)?;
+        }
         Ok(())
     }
 

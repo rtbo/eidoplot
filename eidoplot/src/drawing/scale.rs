@@ -1,4 +1,4 @@
-use crate::drawing::axis;
+use crate::drawing::{axis, Error};
 use crate::{data, ir};
 
 /// Maps coordinates from data space to surface space.
@@ -30,6 +30,10 @@ pub trait CoordMap: std::fmt::Debug {
     fn axis_bounds(&self) -> axis::BoundsRef<'_>;
 
     fn set_plot_size(&mut self, plot_size: f32);
+    
+    /// Set the axis bounds. Returns Error::InconsistentAxisBounds if the bounds 
+    /// are not compatible with the scale.
+    fn set_axis_bounds(&mut self, bounds: axis::Bounds) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -130,6 +134,16 @@ impl CoordMap for LinCoordMap {
         self.plot_size = plot_size;
         self.ab = Self::extend_bounds_with_insets(plot_size, self.insets, self.orig_ab);
     }
+
+    fn set_axis_bounds(&mut self, bounds: axis::Bounds) -> Result<(), Error> {
+        if let axis::Bounds::Num(nb) = bounds {
+            self.orig_ab = nb;
+            self.ab = Self::extend_bounds_with_insets(self.plot_size, self.insets, nb);
+            Ok(())
+        } else {
+            Err(Error::InconsistentAxisBounds("expected numerical bounds".into()))
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -188,6 +202,21 @@ impl CoordMap for LogCoordMap {
     fn set_plot_size(&mut self, plot_size: f32) {
         self.plot_size = plot_size;
         self.ab = Self::extend_bounds_with_insets(self.base, plot_size, self.insets, self.orig_ab);
+    }
+
+    fn set_axis_bounds(&mut self, bounds: axis::Bounds) -> Result<(), Error> {
+        if let axis::Bounds::Num(nb) = bounds {
+            if nb.start() <= 0.0 || nb.end() <= 0.0 {
+                return Err(Error::InconsistentAxisBounds(
+                    "log scale requires positive bounds".into(),
+                ));
+            }
+            self.orig_ab = nb;
+            self.ab = Self::extend_bounds_with_insets(self.base, self.plot_size, self.insets, nb);
+            Ok(())
+        } else {
+            Err(Error::InconsistentAxisBounds("expected numerical bounds".into()))
+        }
     }
 }
 

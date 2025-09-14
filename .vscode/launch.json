@@ -59,6 +59,18 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "subplots example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "subplots",
+                    "--features", "dsl-diag"
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "bidi_layout example",
             "cargo": {
                 "args": [

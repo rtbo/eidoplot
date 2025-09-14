@@ -10,6 +10,7 @@ eidoplot-text = { path = "../eidoplot-text" }
 rustybuzz.workspace = true
 ttf-parser.workspace = true
 tiny-skia-path.workspace = true
+strict-num.workspace = true
 miette = { workspace = true, optional = true }
 polars = { version = "0.50.0", features = ["lazy"], optional = true }
 
@@ -34,6 +35,10 @@ name = "gauss"
 
 [[example]]
 name = "iris"
+
+[[example]]
+name = "subplots"
+required-features = ["dsl-diag"]
 
 [[example]]
 name = "iris_eplt"
