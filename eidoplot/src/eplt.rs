@@ -118,18 +118,21 @@ fn expect_int_val(prop: ast::Prop) -> Result<i64, Error> {
 }
 
 fn expect_float_val(prop: ast::Prop) -> Result<f64, Error> {
-    let Some(ast::Value::Scalar(ast::Scalar {
-        kind: ast::ScalarKind::Float(val),
-        ..
-    })) = prop.value
-    else {
-        return Err(Error::Parse {
+    match prop.value {
+        Some(ast::Value::Scalar(ast::Scalar {
+            kind: ast::ScalarKind::Float(val),
+            ..
+        })) => Ok(val),
+        Some(ast::Value::Scalar(ast::Scalar {
+            kind: ast::ScalarKind::Int(val),
+            ..
+        })) => Ok(val as f64),
+        _ => Err(Error::Parse {
             span: prop.span(),
             reason: format!("expected float value (i.e. {}: 2.0 )", prop.name.name),
             help: None,
-        });
-    };
-    Ok(val)
+        }),
+    }
 }
 
 fn expect_string_val(prop: ast::Prop) -> Result<String, Error> {
@@ -156,6 +159,23 @@ fn expect_struct_val(prop: ast::Prop) -> Result<ast::Struct, Error> {
         });
     };
     Ok(val)
+}
+
+fn check_empty_bool_val(prop: &ast::Prop) -> Result<(), Error> {
+    if prop.value.is_some() {
+        return Err(Error::Parse {
+            span: prop.span(),
+            reason: format!(
+                "boolean property '{}' doesn't expect a value",
+                prop.name.name
+            ),
+            help: Some(format!(
+                "To set true, only state the name '{}'. To set false, omit the property.",
+                prop.name.name
+            )),
+        });
+    }
+    Ok(())
 }
 
 fn check_opt_type(val: &ast::Struct, type_name: &str) -> Result<(), Error> {
@@ -195,6 +215,14 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
         if let Some(prop) = val.take_prop("space") {
             subplots = subplots.with_space(expect_float_val(prop)? as _);
         }
+        if let Some(prop) = val.take_prop("share-x") {
+            check_empty_bool_val(&prop)?;
+            subplots = subplots.with_share_x();
+        }
+        if let Some(prop) = val.take_prop("share-y") {
+            check_empty_bool_val(&prop)?;
+            subplots = subplots.with_share_y();
+        }
         subplots.into()
     };
 
@@ -203,6 +231,10 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
     for prop in val.props {
         match prop.name.name.as_str() {
             "title" => fig = fig.with_title(expect_string_val(prop)?.into()),
+            // Subplots props that were not parsed for single plot 
+            // or stated multiple times for subplots.
+            // We just ignore them.
+            "cols" | "space" | "share-x" | "share-y" => (),
             _ => {
                 return Err(Error::Parse {
                     span: prop.span(),
@@ -234,12 +266,14 @@ fn parse_plot(mut val: ast::Struct) -> Result<ir::plot::Plot, Error> {
             "y-axis" => plot = plot.with_y_axis(parse_axis(prop)?),
             "title" => plot = plot.with_title(expect_string_val(prop)?.into()),
             "legend" => plot = plot.with_legend(parse_plot_legend(prop.value)?),
-            _ => return Err(Error::Parse {
-                span: prop.span(),
-                reason: format!("Unknown plot property: '{}'", prop.name.name),
-                help: None,
-            }),
-        } 
+            _ => {
+                return Err(Error::Parse {
+                    span: prop.span(),
+                    reason: format!("Unknown plot property: '{}'", prop.name.name),
+                    help: None,
+                });
+            }
+        }
     }
 
     Ok(plot)
@@ -508,10 +542,12 @@ fn parse_ticks(prop: ast::Prop) -> Result<ir::axis::Ticks, Error> {
     match val {
         ast::Value::Scalar(ast::Scalar {
             kind: ast::ScalarKind::Enum(ident),
-            span
-        }) => {
-            Ok(ticks_set_enum_field(ir::axis::Ticks::default(), span, &ident)?)
-        },
+            span,
+        }) => Ok(ticks_set_enum_field(
+            ir::axis::Ticks::default(),
+            span,
+            &ident,
+        )?),
         ast::Value::Seq(val) => parse_ticks_seq(val),
         ast::Value::Struct(val) => parse_ticks_struct(val),
         _ => Err(Error::Parse {

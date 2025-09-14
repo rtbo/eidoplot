@@ -231,6 +231,8 @@ pub struct Subplots {
     plots: Vec<Plot>,
     cols: u32,
     space: f32,
+    share_x: bool,
+    share_y: bool,
 }
 
 impl Subplots {
@@ -239,6 +241,8 @@ impl Subplots {
             plots,
             cols: 1,
             space: 0.0,
+            share_x: false,
+            share_y: false,
         }
     }
 
@@ -248,6 +252,14 @@ impl Subplots {
 
     pub fn with_space(self, space: f32) -> Self {
         Self { space, ..self }
+    }
+
+    pub fn with_share_x(self) -> Self {
+        Self { share_x: true, ..self }
+    }
+
+    pub fn with_share_y(self) -> Self {
+        Self { share_y: true, ..self }
     }
 
     pub fn plots(&self) -> &[Plot] {
@@ -265,8 +277,17 @@ impl Subplots {
     pub fn space(&self) -> f32 {
         self.space
     }
+
+    pub fn share_x(&self) -> bool {
+        self.share_x
+    }
+
+    pub fn share_y(&self) -> bool {
+        self.share_y
+    }
 }
 
+#[inline]
 fn calc_rows(num_plots: u32, num_cols: u32) -> u32 {
     (num_plots + num_cols - 1) / num_cols
 }
