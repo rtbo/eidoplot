@@ -68,10 +68,15 @@ pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<ir::Figure>, Error> {
     let props = dsl::parse(input.as_ref().chars())?;
 
     let mut figs = vec![];
-
     for prop in props {
         if prop.name.name == "figure" {
             figs.push(parse_fig(expect_struct_val(prop)?)?);
+        } else {
+            return Err(Error::Parse {
+                span: prop.span(),
+                reason: format!("unknown top-level property: {}", prop.name.name),
+                help: None,
+            });
         }
     }
 
@@ -195,9 +200,17 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
 
     let mut fig = ir::Figure::new(plots);
 
-    if let Some(prop) = val.take_prop("title") {
-        // TODO: parse also as struct with font options, or seq with color
-        fig = fig.with_title(expect_string_val(prop)?.into());
+    for prop in val.props {
+        match prop.name.name.as_str() {
+            "title" => fig = fig.with_title(expect_string_val(prop)?.into()),
+            _ => {
+                return Err(Error::Parse {
+                    span: prop.span(),
+                    reason: format!("Unknown figure property: '{}'", prop.name.name),
+                    help: None,
+                });
+            }
+        }
     }
 
     Ok(fig)
@@ -215,19 +228,18 @@ fn parse_plot(mut val: ast::Struct) -> Result<ir::plot::Plot, Error> {
     }
     let mut plot = ir::Plot::new(series);
 
-    if let Some(prop) = val.take_prop("x-axis") {
-        plot = plot.with_x_axis(parse_axis(prop)?);
-    }
-    if let Some(prop) = val.take_prop("y-axis") {
-        plot = plot.with_y_axis(parse_axis(prop)?);
-    }
-
-    if let Some(prop) = val.take_prop("title") {
-        plot = plot.with_title(expect_string_val(prop)?.into());
-    }
-
-    if let Some(prop) = val.take_prop("legend") {
-        plot = plot.with_legend(parse_plot_legend(prop.value)?);
+    for prop in val.props {
+        match prop.name.name.as_str() {
+            "x-axis" => plot = plot.with_x_axis(parse_axis(prop)?),
+            "y-axis" => plot = plot.with_y_axis(parse_axis(prop)?),
+            "title" => plot = plot.with_title(expect_string_val(prop)?.into()),
+            "legend" => plot = plot.with_legend(parse_plot_legend(prop.value)?),
+            _ => return Err(Error::Parse {
+                span: prop.span(),
+                reason: format!("Unknown plot property: '{}'", prop.name.name),
+                help: None,
+            }),
+        } 
     }
 
     Ok(plot)
