@@ -1,5 +1,5 @@
 use crate::data;
-use crate::drawing::{Categories, axis};
+use crate::drawing::{Categories, axis as axis};
 use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
 use crate::ir::axis::{LogScale, Scale};
 

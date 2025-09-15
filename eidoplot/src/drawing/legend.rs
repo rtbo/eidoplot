@@ -75,7 +75,7 @@ pub struct LegendBuilder {
     entries: Vec<LegendEntry>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Legend {
     font: ir::legend::EntryFont,
     fill: Option<theme::Fill>,

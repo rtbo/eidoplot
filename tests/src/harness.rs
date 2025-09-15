@@ -6,7 +6,7 @@ use eidoplot::{ir, style};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 
-use crate::pixelmatch::pixelmatch;
+use crate::pixelmatch;
 
 #[cfg(feature = "regenerate-refs")]
 const REGENERATE_REFS: bool = true;
@@ -157,8 +157,14 @@ impl TestHarness for PxlHarness {
     }
 
     fn diff_fig(actual_fig: &Self::DrawnFig, ref_fig: &Self::DrawnFig) -> Option<Self::DiffFig> {
+        // highlight in green what is darker in actual, and in red what is darker in ref
+        let opts = pixelmatch::Options {
+            diff_color: tiny_skia::ColorU8::from_rgba(0, 200, 0, 255),
+            diff_color_alt: Some(tiny_skia::ColorU8::from_rgba(200, 0, 0, 255)),
+            ..Default::default()
+        };
         let (diff_pxl, diff_count) =
-            pixelmatch(actual_fig.as_ref(), ref_fig.as_ref(), Default::default());
+            pixelmatch::pixelmatch(actual_fig.as_ref(), ref_fig.as_ref(), Some(opts));
         if diff_count > 0 {
             Some(diff_pxl.unwrap())
         } else {

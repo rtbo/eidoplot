@@ -1,482 +1,75 @@
+
 use std::sync::Arc;
 
 use eidoplot_text as text;
-use render::Surface;
 use text::{TextLayout, font};
 
-use crate::drawing::scale::{self, CoordMap};
-use crate::drawing::{Categories, Ctx, Error, SurfWrapper, ticks};
-use crate::style::{Color, theme};
-use crate::{geom, ir, missing_params, render, style};
+mod bounds;
+mod side;
 
-/// Bounds of an axis
-#[derive(Debug, Clone, PartialEq)]
-pub enum Bounds {
-    /// Numeric bounds, used by both float and integer
-    Num(NumBounds),
-    /// Category bounds
-    Cat(Categories),
-}
+pub use bounds::{Bounds, BoundsRef, NumBounds, AsBoundRef};
+pub use side::Side;
 
-impl From<NumBounds> for Bounds {
-    fn from(value: NumBounds) -> Self {
-        Self::Num(value)
-    }
-}
+use crate::{
+    data,
+    drawing::{
+        Categories, Ctx, Error, SurfWrapper,
+        scale::{self, CoordMap},
+        ticks,
+    },
+    geom, ir, missing_params,
+    render::{self, Surface},
+    style::{self, Color, theme},
+};
 
-impl From<Categories> for Bounds {
-    fn from(value: Categories) -> Self {
-        Self::Cat(value)
-    }
-}
-
-impl Bounds {
-    pub fn unite_with<B>(&mut self, other: &B) -> Result<(), Error>
-    where
-        B: AsBoundRef,
-    {
-        let other = other.as_bound_ref();
-
-        match (self, other) {
-            (Bounds::Num(a), BoundsRef::Num(b)) => {
-                a.unite_with(&b);
-                Ok(())
-            }
-            (Bounds::Cat(a), BoundsRef::Cat(b)) => {
-                for s in b.iter() {
-                    a.push_if_not_present(s);
-                }
-                Ok(())
-            }
-            _ => Err(Error::InconsistentAxisBounds(
-                "Cannot unite numerical and categorical axis bounds".into(),
-            )),
-        }
-    }
-}
-
-/// Bounds of an axis, borrowing internal its data
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum BoundsRef<'a> {
-    /// Numeric bounds, used by both float and integer
-    Num(NumBounds),
-    /// Category bounds
-    Cat(&'a Categories),
-}
-
-impl BoundsRef<'_> {
-    pub fn to_bounds(&self) -> Bounds {
-        match self {
-            &BoundsRef::Num(n) => n.into(),
-            &BoundsRef::Cat(c) => c.clone().into(),
-        }
-    }
-}
-
-impl From<NumBounds> for BoundsRef<'_> {
-    fn from(value: NumBounds) -> Self {
-        Self::Num(value)
-    }
-}
-
-impl<'a> From<&'a Categories> for BoundsRef<'a> {
-    fn from(value: &'a Categories) -> Self {
-        Self::Cat(value)
-    }
-}
-
-impl BoundsRef<'_> {
-    pub fn as_num(&self) -> Option<NumBounds> {
-        match self {
-            &BoundsRef::Num(n) => Some(n),
-            _ => None,
-        }
-    }
-}
-
-impl std::cmp::PartialEq<Bounds> for BoundsRef<'_> {
-    fn eq(&self, other: &Bounds) -> bool {
-        match (self, other) {
-            (&BoundsRef::Num(a), &Bounds::Num(b)) => a == b,
-            (&BoundsRef::Cat(a), Bounds::Cat(b)) => a == b,
-            _ => false,
-        }
-    }
-}
-
-impl std::cmp::PartialEq<BoundsRef<'_>> for Bounds {
-    fn eq(&self, other: &BoundsRef) -> bool {
-        match (self, other) {
-            (&Bounds::Num(a), &BoundsRef::Num(b)) => a == b,
-            (Bounds::Cat(a), &BoundsRef::Cat(b)) => a == b,
-            _ => false,
-        }
-    }
-}
-
-pub trait AsBoundRef {
-    fn as_bound_ref(&self) -> BoundsRef<'_>;
-    fn as_cat(&self) -> Option<&Categories>;
-}
-
-impl AsBoundRef for Bounds {
-    fn as_bound_ref(&self) -> BoundsRef<'_> {
-        match self {
-            &Bounds::Num(n) => n.into(),
-            &Bounds::Cat(ref c) => c.into(),
-        }
-    }
-
-    fn as_cat(&self) -> Option<&Categories> {
-        match self {
-            Bounds::Num(..) => None,
-            Bounds::Cat(c) => Some(c),
-        }
-    }
-}
-
-impl AsBoundRef for BoundsRef<'_> {
-    fn as_bound_ref(&self) -> BoundsRef<'_> {
-        *self
-    }
-
-    fn as_cat(&self) -> Option<&Categories> {
-        match self {
-            BoundsRef::Num(..) => None,
-            &BoundsRef::Cat(c) => Some(c),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct NumBounds(f64, f64);
-
-impl NumBounds {
-    pub const NAN: Self = Self(f64::NAN, f64::NAN);
-}
-
-impl Default for NumBounds {
-    fn default() -> Self {
-        Self::NAN
-    }
-}
-
-impl From<f64> for NumBounds {
-    fn from(value: f64) -> Self {
-        Self(value, value)
-    }
-}
-
-impl From<(f64, f64)> for NumBounds {
-    fn from(value: (f64, f64)) -> Self {
-        Self(value.0.min(value.1), value.0.max(value.1))
-    }
-}
-
-impl NumBounds {
-    pub fn start(&self) -> f64 {
-        self.0
-    }
-
-    pub fn end(&self) -> f64 {
-        self.1
-    }
-
-    pub fn span(&self) -> f64 {
-        self.1 - self.0
-    }
-
-    pub fn log_span(&self, base: f64) -> f64 {
-        self.1.log(base) - self.0.log(base)
-    }
-
-    pub fn contains(&self, point: f64) -> bool {
-        // TODO: handle very large and very low values
-        const EPS: f64 = 1e-10;
-        point >= (self.0 - EPS) && point <= (self.1 + EPS)
-    }
-
-    pub fn add_sample(&mut self, point: f64) {
-        self.0 = self.0.min(point);
-        self.1 = self.1.max(point);
-    }
-
-    pub fn unite_with(&mut self, bounds: &NumBounds) {
-        self.0 = self.0.min(bounds.0);
-        self.1 = self.1.max(bounds.1);
-    }
-}
-
-#[cfg(test)]
-impl crate::tests::Near for NumBounds {
-    fn near_abs(&self, other: &Self, tol: f64) -> bool {
-        self.0.near_abs(&other.0, tol) && self.1.near_abs(&other.1, tol)
-    }
-
-    fn near_rel(&self, other: &Self, err: f64) -> bool {
-        self.0.near_rel(&other.0, err) && self.1.near_rel(&other.1, err)
-    }
-}
-
-#[cfg(test)]
-impl crate::tests::Near for Bounds {
-    fn near_abs(&self, other: &Self, tol: f64) -> bool {
-        match (self, other) {
-            (&Bounds::Num(a), &Bounds::Num(b)) => a.near_abs(&b, tol),
-            (Bounds::Cat(a), Bounds::Cat(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                for (ac, bc) in a.iter().zip(b.iter()) {
-                    if ac != bc {
-                        return false;
-                    }
-                }
-                true
-            }
-            _ => false,
-        }
-    }
-
-    fn near_rel(&self, other: &Self, err: f64) -> bool {
-        match (self, other) {
-            (&Bounds::Num(a), &Bounds::Num(b)) => a.near_rel(&b, err),
-            (Bounds::Cat(a), Bounds::Cat(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                for (ac, bc) in a.iter().zip(b.iter()) {
-                    if ac != bc {
-                        return false;
-                    }
-                }
-                true
-            }
-            _ => false,
-        }
-    }
-}
-
-#[cfg(test)]
-impl crate::tests::Near for BoundsRef<'_> {
-    fn near_abs(&self, other: &Self, tol: f64) -> bool {
-        match (self, other) {
-            (&BoundsRef::Num(a), &BoundsRef::Num(b)) => a.near_abs(&b, tol),
-            (&BoundsRef::Cat(a), &BoundsRef::Cat(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                for (ac, bc) in a.iter().zip(b.iter()) {
-                    if ac != bc {
-                        return false;
-                    }
-                }
-                true
-            }
-            _ => false,
-        }
-    }
-
-    fn near_rel(&self, other: &Self, err: f64) -> bool {
-        match (self, other) {
-            (&BoundsRef::Num(a), &BoundsRef::Num(b)) => a.near_rel(&b, err),
-            (&BoundsRef::Cat(a), &BoundsRef::Cat(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                for (ac, bc) in a.iter().zip(b.iter()) {
-                    if ac != bc {
-                        return false;
-                    }
-                }
-                true
-            }
-            _ => false,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum SharedConfig {
-    /// a shared axis, which is attached for this plot
-    Shared(Arc<Axis>),
-    /// a shared axis, which is attached for another plot
-    /// ticks wont be drawn, but grid can be drawn from it
-    SharedGrid(Arc<Axis>),
-}
-
-impl SharedConfig {
-    fn side(&self) -> Side {
-        match self {
-            SharedConfig::Shared(axis) => axis.side,
-            SharedConfig::SharedGrid(axis) => axis.side,
-        }
-    }
-}
-
-/// Collection of all axis of a plot
-// At the moment, only single bottom and left axis are supported
-// TODO: support multiple axes with vec of axis for left and right
-#[derive(Debug)]
-pub struct Axes {
-    bottom: Axis,
-    left: Axis,
-    insets: geom::Padding,
-    bottom_shared: Option<SharedConfig>,
-    left_shared: Option<SharedConfig>,
-}
-
-impl Axes {
-    pub fn new(bottom: Axis, left: Axis, insets: geom::Padding) -> Self {
-        Axes {
-            bottom,
-            left,
-            insets,
-            bottom_shared: None,
-            left_shared: None,
-        }
-    }
-
-    pub fn insets(&self) -> geom::Padding {
-        self.insets
-    }
-
-    pub fn bottom(&self) -> &Axis {
-        // if there is a shared axis for this plot,
-        // we always want to use it
-        self.get_axis(Side::Bottom)
-    }
-
-    pub fn left(&self) -> &Axis {
-        // if there is a shared axis for this plot,
-        // we always want to use it
-        self.get_axis(Side::Left)
-    }
-
-    pub fn total_plot_padding(&self) -> geom::Padding {
-        geom::Padding::Custom {
-            t: 0.0,
-            r: 0.0,
-            b: self.bottom.size_across(),
-            l: self.left.size_across(),
-        }
-    }
-
-    pub fn set_shared_config(&mut self, config: SharedConfig) {
-        match config.side() {
-            Side::Bottom => {
-                self.bottom_shared = Some(config);
-            }
-            Side::Left => {
-                self.left_shared = Some(config);
-            }
-            _ => unreachable!(),
-        }
-    }
-
-    fn get_drawn_axis(&self, side: Side) -> Option<&Axis> {
-        match side {
-            Side::Bottom => get_drawn_axis(&self.bottom, self.bottom_shared.as_ref()),
-            Side::Left => get_drawn_axis(&self.left, self.left_shared.as_ref()),
-            _ => unreachable!(),
-        }
-    }
-
-    fn get_axis(&self, side: Side) -> &Axis {
-        match side {
-            Side::Bottom => get_axis(&self.bottom, self.bottom_shared.as_ref()),
-            Side::Left => get_axis(&self.left, self.left_shared.as_ref()),
-            _ => unreachable!(),
-        }
-    }
-}
-
-fn get_drawn_axis<'a>(axis: &'a Axis, shared_config: Option<&'a SharedConfig>) -> Option<&'a Axis> {
-    match shared_config {
-        None => Some(axis),
-        Some(SharedConfig::SharedGrid(_)) => None,
-        Some(SharedConfig::Shared(axis)) => Some(&*axis),
-    }
-}
-
-fn get_axis<'a>(axis: &'a Axis, shared_config: Option<&'a SharedConfig>) -> &'a Axis {
-    match shared_config {
-        None => axis,
-        Some(SharedConfig::SharedGrid(axis)) => &*axis,
-        Some(SharedConfig::Shared(axis)) => &*axis,
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Axis {
-    /// The location of this axis
     side: Side,
-    /// The title of this axis
-    title: Option<(TextLayout, theme::Color)>,
-    /// The scale of this axis
-    scale: AxisScale,
+    scale: Arc<AxisScale>,
+    draw_opts: DrawOpts,
 }
 
 impl Axis {
-    /// Compute the size of the axis in its orthogonal direction
-    /// For horizontal axis, this is the height, for vertical it is the width
-    /// The width needs the text layouts
+    pub fn scale(&self) -> &Arc<AxisScale> {
+        &self.scale
+    }
+
     pub fn size_across(&self) -> f32 {
-        let mut size = match &self.scale {
+        let mark_size = self.draw_opts.marks.as_ref().map_or(0.0, |m| m.size_out);
+        let mut size = match self.scale.as_ref() {
             AxisScale::Num {
                 ticks: Some(ticks), ..
-            } => ticks.size_across(self.side),
+            } => ticks.size_across(self.side, mark_size),
             AxisScale::Cat {
                 ticks: Some(ticks), ..
             } => ticks.size_across(self.side),
             _ => 0.0,
         };
-        if let Some((title, _)) = self.title.as_ref() {
+        if let Some((title, _)) = self.draw_opts.title.as_ref() {
             // vertical axis rotate the title, therefore we take the height in all cases.
             size += title.height() + missing_params::AXIS_TITLE_MARGIN;
         }
         size
     }
 
-    pub fn set_size_along(&mut self, size: f32) {
-        match &mut self.scale {
-            AxisScale::Num { cm, .. } => cm.set_plot_size(size),
-            AxisScale::Cat { bins, .. } => bins.set_plot_size(size),
-        }
-    }
-
     pub fn coord_map(&self) -> &dyn CoordMap {
-        match &self.scale {
+        match self.scale.as_ref() {
             AxisScale::Num { cm, .. } => &**cm,
             AxisScale::Cat { bins, .. } => bins,
-        }
-    }
-
-    pub fn bounds(&self) -> BoundsRef<'_> {
-        match &self.scale {
-            AxisScale::Num { cm, .. } => cm.axis_bounds(),
-            AxisScale::Cat { bins, .. } => bins.axis_bounds(),
-        }
-    }
-
-    pub fn set_bounds(&mut self, bounds: Bounds) -> Result<(), Error> {
-        match &mut self.scale {
-            AxisScale::Num { cm, .. } => cm.set_axis_bounds(bounds),
-            AxisScale::Cat { bins, .. } => bins.set_axis_bounds(bounds),
         }
     }
 }
 
 /// Implement the scale for an axis
 #[derive(Debug)]
-enum AxisScale {
+pub enum AxisScale {
     /// Numerical axis
     Num {
         /// The coordinate mapper
         cm: Box<dyn CoordMap>,
         /// The ticks and labels for the axis
         ticks: Option<NumTicks>,
-        /// The minor ticks locations and grid
+        /// The minor ticks locations
         minor_ticks: Option<MinorTicks>,
     },
     /// Category axis
@@ -487,26 +80,20 @@ enum AxisScale {
 }
 
 #[derive(Debug, Clone)]
-struct NumTicks {
+pub struct NumTicks {
     /// The color of the ticks labels
     lbl_color: theme::Color,
     /// The list of ticks
     ticks: Vec<NumTick>,
-    /// The marker for the ticks
-    mark: Option<TickMark>,
     /// Annotation of the axis (e.g. a multiplication factor)
     annot: Option<TextLayout>,
-    /// The major grid-lines
-    grid: Option<theme::Line>,
 }
 
 impl NumTicks {
-    fn size_across(&self, side: Side) -> f32 {
+    fn size_across(&self, side: Side, mark_size: f32) -> f32 {
         let mut size = 0.0;
 
-        if let Some(mark) = self.mark.as_ref() {
-            size += mark.size_out;
-        }
+        size += mark_size;
 
         match side {
             Side::Bottom | Side::Top => {
@@ -531,40 +118,7 @@ impl NumTicks {
     }
 }
 
-#[derive(Debug, Clone)]
-struct CategoryTicks {
-    lbl_color: theme::Color,
-    lbls: Vec<TextLayout>,
-    sep: Option<TickMark>,
-}
-
-impl CategoryTicks {
-    fn size_across(&self, side: Side) -> f32 {
-        let mut size = 0.0;
-
-        match side {
-            Side::Bottom | Side::Top => {
-                if let Some(lbl) = self.lbls.first() {
-                    size += missing_params::TICK_LABEL_MARGIN + lbl.font_size();
-                }
-            }
-            Side::Left | Side::Right => {
-                if !self.lbls.is_empty() {
-                    size += missing_params::TICK_LABEL_MARGIN;
-                }
-                let max_w = self
-                    .lbls
-                    .iter()
-                    .map(|t| t.width())
-                    .max_by(|a, b| a.partial_cmp(b).unwrap())
-                    .unwrap_or(0.0);
-                size += max_w;
-            }
-        }
-        size
-    }
-}
-
+/// A numeric tick location and its label
 #[derive(Debug, Clone)]
 struct NumTick {
     loc: f64,
@@ -579,18 +133,15 @@ struct TickMark {
 }
 
 #[derive(Debug, Clone)]
-struct MinorTicks {
+pub struct MinorTicks {
     locs: Vec<f64>,
-    mark: Option<TickMark>,
-    grid: Option<theme::Line>,
 }
 
 #[derive(Debug, Clone)]
-struct CategoryBins {
+pub struct CategoryBins {
     categories: Categories,
     inset: (f32, f32),
     bin_size: f32,
-    plot_size: f32,
 }
 
 impl CategoryBins {
@@ -601,7 +152,6 @@ impl CategoryBins {
             categories,
             inset,
             bin_size,
-            plot_size,
         }
     }
 
@@ -637,307 +187,136 @@ impl CoordMap for CategoryBins {
     fn cat_bin_size(&self) -> f32 {
         self.bin_size
     }
+}
 
-    fn set_plot_size(&mut self, plot_size: f32) {
-        self.plot_size = plot_size;
-        self.bin_size = Self::calc_bin_size(plot_size, self.inset, self.categories.len());
-    }
+#[derive(Debug, Clone)]
+pub struct CategoryTicks {
+    lbl_color: theme::Color,
+    lbls: Vec<TextLayout>,
+    sep: Option<TickMark>,
+}
 
-    fn set_axis_bounds(&mut self, bounds: Bounds) -> Result<(), Error> {
-        let Bounds::Cat(cats) = bounds else {
-            return Err(Error::InconsistentAxisBounds(
-                "expected categorical bounds".into(),
-            ));
-        };
-        let n_cats = cats.len();
-        self.categories = cats;
-        self.bin_size = Self::calc_bin_size(self.plot_size, self.inset, n_cats);
-        Ok(())
+impl CategoryTicks {
+    fn size_across(&self, side: Side) -> f32 {
+        // not counting tick mark as it is between labels and not shifting them down
+        let mut size = 0.0;
+
+        match side {
+            Side::Bottom | Side::Top => {
+                if let Some(lbl) = self.lbls.first() {
+                    size += missing_params::TICK_LABEL_MARGIN + lbl.font_size();
+                }
+            }
+            Side::Left | Side::Right => {
+                if !self.lbls.is_empty() {
+                    size += missing_params::TICK_LABEL_MARGIN;
+                }
+                let max_w = self
+                    .lbls
+                    .iter()
+                    .map(|t| t.width())
+                    .max_by(|a, b| a.partial_cmp(b).unwrap())
+                    .unwrap_or(0.0);
+                size += max_w;
+            }
+        }
+        size
     }
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy)]
-pub enum Side {
-    Bottom,
-    Top,
-    Left,
-    Right,
+/// Axis drawing options
+/// Especially important in the context of subplots and shared axes
+/// The location of ticks and their labels is determined by the shared scale
+#[derive(Debug, Clone)]
+struct DrawOpts {
+    title: Option<(TextLayout, theme::Color)>,
+    marks: Option<TickMark>,
+    minor_marks: Option<TickMark>,
+    ticks_labels: bool,
+    grid: Option<theme::Line>,
+    minor_grid: Option<theme::Line>,
 }
 
-#[derive(Debug, Clone, Copy)]
-enum Direction {
-    Horizontal,
-    Vertical,
-}
+impl<D, T> Ctx<'_, D, T>
+where
+    D: data::Source,
+{
+    /// Estimate the height taken by a horizontal axis.
+    /// It includes ticks marks, ticks labels and axis title.
+    /// This is the height without any additional margin
+    pub fn estimate_bottom_axis_height(&self, x_axis: &ir::Axis) -> f32 {
+        let mut height = 0.0;
+        if let Some(ticks) = x_axis.ticks() {
+            height +=
+                missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size;
+        }
+        if let Some(label) = x_axis.title() {
+            height += missing_params::AXIS_TITLE_MARGIN + label.font().size;
+        }
+        height
+    }
 
-impl Side {
-    fn direction(&self) -> Direction {
-        match self {
-            Side::Bottom | Side::Top => Direction::Horizontal,
-            Side::Left | Side::Right => Direction::Vertical,
+    /// Estimate the height taken by a shared horizontal axis.
+    /// It includes ticks marks only.
+    /// This is the height without any additional margin
+    pub fn estimate_bottom_shared_axis_height(&self, x_axis: &ir::Axis) -> f32 {
+        if x_axis.ticks().is_some() {
+            missing_params::TICK_SIZE
+        } else {
+            0.0
         }
     }
 
-    /// Layout options for axis title
-    fn title_opts(&self) -> text::layout::Options {
-        match self {
-            Side::Bottom => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-            Side::Top => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Left => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Right => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-        }
-    }
-
-    fn title_transform(&self, shift_across: f32, rect: &geom::Rect) -> geom::Transform {
-        match self {
-            Side::Bottom => {
-                geom::Transform::from_translate(rect.center_x(), rect.bottom() + shift_across)
-            }
-            Side::Top => {
-                geom::Transform::from_translate(rect.center_x(), rect.top() - shift_across)
-            }
-            Side::Left => {
-                geom::Transform::from_translate(rect.left() - shift_across, rect.center_y())
-                    .pre_rotate(-90.0)
-            }
-            Side::Right => {
-                geom::Transform::from_translate(rect.right() + shift_across, rect.center_y())
-                    .pre_rotate(-90.0)
-            }
-        }
-    }
-
-    fn ticks_labels_opts(&self) -> text::layout::Options {
-        match self {
-            Side::Bottom => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-            Side::Top => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Left => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Middle.into(),
-                ..Default::default()
-            },
-            Side::Right => text::layout::Options {
-                hor_align: text::layout::HorAlign::Left,
-                ver_align: text::layout::LineVerAlign::Middle.into(),
-                ..Default::default()
-            },
-        }
-    }
-
-    /// Return the transform to be applied to a tick label
-    /// `pos` is the position along the axis in figure units
-    /// `shift` is the distance from the axis in figure units
-    /// E.g. for bottom axis, position shifts towards right, and shift shifts towards bottom
-    fn tick_label_transform(
-        &self,
-        pos_along: f32,
-        shift_across: f32,
-        rect: &geom::Rect,
-    ) -> geom::Transform {
-        match self {
-            Side::Bottom => geom::Transform::from_translate(
-                rect.left() + pos_along,
-                rect.bottom() + shift_across,
-            ),
-            Side::Top => {
-                geom::Transform::from_translate(rect.left() + pos_along, rect.top() - shift_across)
-            }
-            Side::Left => geom::Transform::from_translate(
-                rect.left() - shift_across,
-                rect.bottom() - pos_along,
-            ),
-            Side::Right => geom::Transform::from_translate(
-                rect.right() + shift_across,
-                rect.bottom() - pos_along,
-            ),
-        }
-    }
-
-    fn annot_opts(&self) -> text::layout::Options {
-        match self {
-            Side::Bottom => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-            Side::Top => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Left => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Right => text::layout::Options {
-                hor_align: text::layout::HorAlign::Left,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-        }
-    }
-
-    fn annot_transform(&self, shift_across: f32, rect: &geom::Rect) -> geom::Transform {
-        match self {
-            Side::Bottom => {
-                geom::Transform::from_translate(rect.right(), rect.bottom() + shift_across)
-            }
-            Side::Top => geom::Transform::from_translate(rect.right(), rect.top() - shift_across),
-            Side::Left => geom::Transform::from_translate(rect.left() - shift_across, rect.top()),
-            Side::Right => geom::Transform::from_translate(rect.right() + shift_across, rect.top()),
-        }
-    }
-
-    #[allow(dead_code)]
-    fn size_along(&self, size: &geom::Size) -> f32 {
-        match self.direction() {
-            Direction::Horizontal => size.width(),
-            Direction::Vertical => size.height(),
-        }
-    }
-
-    fn size_across(&self, avail_size: &geom::Size) -> f32 {
-        match self.direction() {
-            Direction::Horizontal => avail_size.height(),
-            Direction::Vertical => avail_size.width(),
-        }
-    }
-
-    fn insets(&self, padding: &geom::Padding) -> (f32, f32) {
-        match self.direction() {
-            Direction::Horizontal => (padding.left(), padding.right()),
-            Direction::Vertical => (padding.bottom(), padding.top()),
-        }
-    }
-
-    fn grid_line_points(
-        &self,
-        data_num: f64,
-        cm: &dyn CoordMap,
-        plot_rect: &geom::Rect,
-    ) -> (geom::Point, geom::Point) {
-        match self {
-            Side::Bottom => {
-                let x = plot_rect.left() + cm.map_coord_num(data_num);
-                let p1 = geom::Point::new(x, plot_rect.bottom());
-                let p2 = geom::Point::new(x, plot_rect.top());
-                (p1, p2)
-            }
-            Side::Top => {
-                let x = plot_rect.left() + cm.map_coord_num(data_num);
-                let p1 = geom::Point::new(x, plot_rect.top());
-                let p2 = geom::Point::new(x, plot_rect.bottom());
-                (p1, p2)
-            }
-            Side::Left => {
-                let y = plot_rect.bottom() - cm.map_coord_num(data_num);
-                let p1 = geom::Point::new(plot_rect.left(), y);
-                let p2 = geom::Point::new(plot_rect.right(), y);
-                (p1, p2)
-            }
-            Side::Right => {
-                let y = plot_rect.bottom() - cm.map_coord_num(data_num);
-                let p1 = geom::Point::new(plot_rect.right(), y);
-                let p2 = geom::Point::new(plot_rect.left(), y);
-                (p1, p2)
-            }
-        }
-    }
-
-    /// Returns the transform to be applied to the ticks to align them with the axis.
-    /// Identity will map ticks horizontally from the top left corner.
-    fn ticks_marks_transform(&self, rect: &geom::Rect) -> geom::Transform {
-        // FIXME: for left axis, and top axis, the ticks are inside out (doesn't matter if symmetrical)
-        match self {
-            Side::Bottom => geom::Transform::from_translate(rect.left(), rect.bottom()),
-            Side::Top => geom::Transform::from_translate(rect.left(), rect.top()),
-            Side::Left => {
-                geom::Transform::from_translate(rect.left(), rect.bottom()).pre_rotate(-90.0)
-            }
-            Side::Right => {
-                geom::Transform::from_translate(rect.right(), rect.bottom()).pre_rotate(-90.0)
-            }
-        }
-    }
-}
-
-impl<D, T> Ctx<'_, D, T> {
     pub fn setup_axis(
         &self,
-        ir: &ir::Axis,
-        ab: &Bounds,
+        ir_axis: &ir::Axis,
+        bounds: &Bounds,
         side: Side,
         size_along: f32,
         insets: &geom::Padding,
+        shared_scale: Option<Arc<AxisScale>>,
     ) -> Result<Axis, Error> {
         let insets = side.insets(insets);
-        let scale = self.setup_scale(ir, ab, side, size_along, insets)?;
 
-        let title = ir
-            .title()
-            .map(|title| {
-                text::shape_and_layout_str(
-                    title.text(),
-                    title.font().font(),
-                    self.fontdb(),
-                    title.font().size,
-                    &side.title_opts(),
-                )
-                .map(|layout| (layout, title.font().color))
-            })
-            .transpose()?;
+        let uses_shared = shared_scale.is_some();
 
-        Ok(Axis { side, title, scale })
+        let scale = if let Some(scale) = shared_scale {
+            scale
+        } else {
+            Arc::new(self.setup_axis_scale(ir_axis, bounds, side, size_along, insets)?)
+        };
+
+        let draw_opts = self.setup_axis_draw_opts(ir_axis, side, uses_shared)?;
+
+        Ok(Axis {
+            side,
+            scale,
+            draw_opts,
+        })
     }
 
-    fn setup_scale(
+    fn setup_axis_scale(
         &self,
-        ir: &ir::axis::Axis,
-        ab: &Bounds,
+        ir_axis: &ir::Axis,
+        bounds: &Bounds,
         side: Side,
         size_along: f32,
         insets: (f32, f32),
     ) -> Result<AxisScale, Error> {
-        match ab {
+        match bounds {
             Bounds::Num(nb) => {
-                let cm = scale::map_scale_coord_num(ir.scale(), size_along, &nb, insets);
+                let cm = scale::map_scale_coord_num(ir_axis.scale(), size_along, &nb, insets);
                 let nb = cm.axis_bounds().as_num().unwrap();
 
-                let ticks = ir
+                let ticks = ir_axis
                     .ticks()
                     .map(|major_ticks| {
-                        self.setup_num_ticks(major_ticks, ir.grid(), nb, ir.scale(), side)
+                        self.setup_num_ticks(major_ticks, nb, ir_axis.scale(), side)
                     })
                     .transpose()?;
 
-                let minor_ticks = if let Some(mt) = ir.minor_ticks() {
-                    Some(self.setup_minor_ticks(mt, ir.minor_grid(), ticks.as_ref(), nb)?)
+                let minor_ticks = if let Some(mt) = ir_axis.minor_ticks() {
+                    Some(self.setup_minor_ticks(mt, ticks.as_ref(), nb)?)
                 } else {
                     None
                 };
@@ -950,7 +329,7 @@ impl<D, T> Ctx<'_, D, T> {
             }
             Bounds::Cat(cats) => {
                 let bins = CategoryBins::new(size_along, insets, cats.clone());
-                let ticks = ir
+                let ticks = ir_axis
                     .ticks()
                     .map(|t| self.setup_cat_ticks(t, cats, side))
                     .transpose()?;
@@ -962,14 +341,12 @@ impl<D, T> Ctx<'_, D, T> {
     fn setup_num_ticks(
         &self,
         major_ticks: &ir::axis::Ticks,
-        major_grid: Option<&ir::axis::Grid>,
         nb: NumBounds,
         scale: &ir::axis::Scale,
         side: Side,
     ) -> Result<NumTicks, Error> {
         let db: &font::Database = self.fontdb();
         let font = major_ticks.font();
-        let grid = major_grid.map(|g| g.0.clone());
 
         let ticks_opts = side.ticks_labels_opts();
         let annot_opts = side.annot_opts();
@@ -990,25 +367,16 @@ impl<D, T> Ctx<'_, D, T> {
             .map(|l| text::shape_and_layout_str(l, &font.font, db, font.size, &annot_opts))
             .transpose()?;
 
-        let mark = Some(TickMark {
-            line: major_ticks.color().into(),
-            size_in: missing_params::TICK_SIZE,
-            size_out: missing_params::TICK_SIZE,
-        });
-
         Ok(NumTicks {
             ticks,
             lbl_color: major_ticks.color(),
-            mark,
             annot,
-            grid,
         })
     }
 
     fn setup_minor_ticks(
         &self,
         minor_ticks: &ir::axis::MinorTicks,
-        minor_grid: Option<&ir::axis::MinorGrid>,
         major_ticks: Option<&NumTicks>,
         nb: NumBounds,
     ) -> Result<MinorTicks, Error> {
@@ -1022,23 +390,8 @@ impl<D, T> Ctx<'_, D, T> {
                     .find(|nt| tick_loc_is_close(nt.loc, *l))
                     .is_none()
         });
-        let mut line: theme::Line = theme::Col::Foreground.into();
-        if let Some(grid) = minor_grid {
-            line = line.with_width(grid.0.width);
-        } else {
-            line = line.with_width(missing_params::MINOR_TICK_LINE_WIDTH);
-        }
-        let mark = Some(TickMark {
-            line,
-            size_in: missing_params::MINOR_TICK_SIZE,
-            size_out: missing_params::MINOR_TICK_SIZE,
-        });
 
-        Ok(MinorTicks {
-            locs,
-            mark,
-            grid: minor_grid.map(|g| g.0.clone()),
-        })
+        Ok(MinorTicks { locs })
     }
 
     fn setup_cat_ticks(
@@ -1070,6 +423,51 @@ impl<D, T> Ctx<'_, D, T> {
             sep,
         })
     }
+
+    fn setup_axis_draw_opts(
+        &self,
+        ir_axis: &ir::Axis,
+        side: Side,
+        uses_shared: bool,
+    ) -> Result<DrawOpts, Error> {
+        let title = ir_axis
+            .title()
+            .map(|title| {
+                text::shape_and_layout_str(
+                    title.text(),
+                    title.font().font(),
+                    self.fontdb(),
+                    title.font().size,
+                    &side.title_opts(),
+                )
+                .map(|layout| (layout, title.font().color))
+            })
+            .transpose()?;
+
+        let ticks_labels = !uses_shared;
+        let marks = ir_axis.ticks().map(|ticks| TickMark {
+            line: ticks.color().into(),
+            size_in: missing_params::TICK_SIZE,
+            size_out: missing_params::TICK_SIZE,
+        });
+        let minor_marks = ir_axis.minor_ticks().map(|ticks| TickMark {
+            line: theme::Line::from(ticks.color())
+                .with_width(missing_params::MINOR_TICK_LINE_WIDTH),
+            size_in: missing_params::MINOR_TICK_SIZE,
+            size_out: missing_params::MINOR_TICK_SIZE,
+        });
+        let grid = ir_axis.grid().map(|grid| grid.0.clone());
+        let minor_grid = ir_axis.minor_grid().map(|grid| grid.0.clone());
+
+        Ok(DrawOpts {
+            title,
+            ticks_labels,
+            marks,
+            minor_marks,
+            grid,
+            minor_grid,
+        })
+    }
 }
 
 fn tick_loc_is_close(a: f64, b: f64) -> bool {
@@ -1081,26 +479,7 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_axes_grids<D, T>(
-        &mut self,
-        ctx: &Ctx<D, T>,
-        axes: &Axes,
-        rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
-        T: style::Theme,
-    {
-        let bottom = axes.get_axis(Side::Bottom);
-        let left = axes.get_axis(Side::Bottom);
-
-        self.draw_axis_minor_grids(ctx, bottom, rect)?;
-        self.draw_axis_minor_grids(ctx, left, rect)?;
-        self.draw_axis_major_grids(ctx, bottom, rect)?;
-        self.draw_axis_major_grids(ctx, left, rect)?;
-        Ok(())
-    }
-
-    fn draw_axis_minor_grids<D, T>(
+    pub fn draw_axis_minor_grids<D, T>(
         &mut self,
         ctx: &Ctx<D, T>,
         axis: &Axis,
@@ -1111,12 +490,13 @@ where
     {
         let AxisScale::Num {
             cm, minor_ticks, ..
-        } = &axis.scale
+        } = axis.scale.as_ref()
         else {
             return Ok(());
         };
+
         if let Some(minor_ticks) = minor_ticks {
-            if let Some(grid) = &minor_ticks.grid {
+            if let Some(grid) = &axis.draw_opts.minor_grid {
                 let mut pathb = geom::PathBuilder::with_capacity(
                     2 * minor_ticks.locs.len(),
                     2 * minor_ticks.locs.len(),
@@ -1141,7 +521,7 @@ where
         Ok(())
     }
 
-    fn draw_axis_major_grids<D, T>(
+    pub fn draw_axis_major_grids<D, T>(
         &mut self,
         ctx: &Ctx<D, T>,
         axis: &Axis,
@@ -1150,11 +530,11 @@ where
     where
         T: style::Theme,
     {
-        let AxisScale::Num { cm, ticks, .. } = &axis.scale else {
+        let AxisScale::Num { cm, ticks, .. } = axis.scale.as_ref() else {
             return Ok(());
         };
         if let Some(ticks) = ticks {
-            if let Some(grid) = &ticks.grid {
+            if let Some(grid) = &axis.draw_opts.grid {
                 let mut pathb =
                     geom::PathBuilder::with_capacity(2 * ticks.ticks.len(), 2 * ticks.ticks.len());
                 let stroke = Some(grid.as_stroke(ctx.theme()));
@@ -1177,27 +557,7 @@ where
         Ok(())
     }
 
-    pub fn draw_axes<D, T>(
-        &mut self,
-        ctx: &Ctx<D, T>,
-        axes: &Axes,
-        plot_rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
-        T: style::Theme,
-    {
-        let bottom = axes.get_drawn_axis(Side::Bottom);
-        let left = axes.get_drawn_axis(Side::Left);
-        if let Some(bottom) = bottom {
-            self.draw_axis(ctx, bottom, plot_rect)?;
-        }
-        if let Some(left) = left {
-            self.draw_axis(ctx, left, plot_rect)?;
-        }
-        Ok(())
-    }
-
-    fn draw_axis<D, T>(
+    pub fn draw_axis<D, T>(
         &mut self,
         ctx: &Ctx<D, T>,
         axis: &Axis,
@@ -1206,7 +566,7 @@ where
     where
         T: style::Theme,
     {
-        let mut shift_across = match &axis.scale {
+        let mut shift_across = match axis.scale.as_ref() {
             AxisScale::Num {
                 cm,
                 ticks,
@@ -1216,28 +576,27 @@ where
                 if let Some(minor_ticks) = minor_ticks.as_ref() {
                     shift = shift.max(self.draw_minor_ticks(
                         ctx,
+                        axis,
                         &**cm,
                         minor_ticks,
-                        axis.side,
                         plot_rect,
                     )?);
                 }
                 if let Some(ticks) = ticks {
-                    shift =
-                        shift.max(self.draw_major_ticks(ctx, &**cm, ticks, axis.side, plot_rect)?);
+                    shift = shift.max(self.draw_major_ticks(ctx, axis, &**cm, ticks, plot_rect)?);
                 }
                 shift
             }
             AxisScale::Cat { bins, ticks, .. } => {
                 if let Some(ticks) = ticks {
-                    self.draw_category_ticks(ctx, bins, ticks, axis.side, plot_rect)?
+                    self.draw_category_ticks(ctx, axis, bins, ticks, plot_rect)?
                 } else {
                     0.0
                 }
             }
         };
 
-        if let Some((layout, color)) = axis.title.as_ref() {
+        if let Some((layout, color)) = axis.draw_opts.title.as_ref() {
             shift_across += missing_params::AXIS_TITLE_MARGIN;
             let transform = axis.side.title_transform(shift_across, plot_rect);
             let fill = color.resolve(ctx.theme()).into();
@@ -1256,34 +615,40 @@ where
     fn draw_major_ticks<D, T>(
         &mut self,
         ctx: &Ctx<D, T>,
+        axis: &Axis,
         cm: &dyn CoordMap,
         ticks: &NumTicks,
-        side: Side,
         plot_rect: &geom::Rect,
     ) -> Result<f32, Error>
     where
         T: style::Theme,
     {
-        let shift_across = if let Some(mark) = ticks.mark.as_ref() {
-            let transform = side.ticks_marks_transform(plot_rect);
+        let mut shift_across = 0.0;
+
+        if let Some(mark) = axis.draw_opts.marks.as_ref() {
+            let transform = axis.side.ticks_marks_transform(plot_rect);
             let ticks = ticks.ticks.iter().map(|t| cm.map_coord_num(t.loc));
-            self.draw_ticks_marks(ctx, ticks, mark, &transform)?
-        } else {
-            0.0
-        };
+            shift_across += self.draw_ticks_marks(ctx, ticks, mark, &transform)?
+        }
+
+        if !axis.draw_opts.ticks_labels {
+            return Ok(shift_across);
+        }
 
         let color = ticks.lbl_color.resolve(ctx.theme());
         let paint: render::Paint = color.into();
 
-        let shift_across = shift_across + missing_params::TICK_LABEL_MARGIN;
+        shift_across += missing_params::TICK_LABEL_MARGIN;
         let mut max_lbl_size: f32 = 0.0;
 
         for t in ticks.ticks.iter() {
             let lbl_size = geom::Size::new(t.lbl.width(), t.lbl.height());
-            max_lbl_size = max_lbl_size.max(side.size_across(&lbl_size));
+            max_lbl_size = max_lbl_size.max(axis.side.size_across(&lbl_size));
 
             let pos_along = cm.map_coord_num(t.loc);
-            let transform = side.tick_label_transform(pos_along, shift_across, plot_rect);
+            let transform = axis
+                .side
+                .tick_label_transform(pos_along, shift_across, plot_rect);
             let layout = render::TextLayout {
                 layout: &t.lbl,
                 fill: paint,
@@ -1291,9 +656,11 @@ where
             };
             self.draw_text_layout(&layout)?;
         }
-        let shift_across = shift_across + max_lbl_size;
+
+        shift_across += max_lbl_size;
+
         if let Some(annot) = ticks.annot.as_ref() {
-            let transform = side.annot_transform(shift_across, plot_rect);
+            let transform = axis.side.annot_transform(shift_across, plot_rect);
             let layout = render::TextLayout {
                 layout: &annot,
                 fill: paint,
@@ -1307,18 +674,18 @@ where
     fn draw_minor_ticks<D, T>(
         &mut self,
         ctx: &Ctx<D, T>,
+        axis: &Axis,
         cm: &dyn CoordMap,
         minor_ticks: &MinorTicks,
-        side: Side,
         plot_rect: &geom::Rect,
     ) -> Result<f32, Error>
     where
         T: style::Theme,
     {
-        let Some(mark) = minor_ticks.mark.as_ref() else {
+        let Some(mark) = axis.draw_opts.minor_marks.as_ref() else {
             return Ok(0.0);
         };
-        let transform = side.ticks_marks_transform(plot_rect);
+        let transform = axis.side.ticks_marks_transform(plot_rect);
         let ticks = minor_ticks
             .locs
             .iter()
@@ -1330,9 +697,9 @@ where
     fn draw_category_ticks<D, T>(
         &mut self,
         ctx: &Ctx<D, T>,
+        axis: &Axis,
         bins: &CategoryBins,
         ticks: &CategoryTicks,
-        side: Side,
         plot_rect: &geom::Rect,
     ) -> Result<f32, Error>
     where
@@ -1340,7 +707,7 @@ where
     {
         if let Some(sep) = ticks.sep.as_ref() {
             let locs = (0..bins.len() + 1).map(|i| bins.sep_location(i));
-            let transform = side.ticks_marks_transform(plot_rect);
+            let transform = axis.side.ticks_marks_transform(plot_rect);
             self.draw_ticks_marks(ctx, locs, sep, &transform)?;
         }
         // tick marks are separators, so not counted in shift_across, because not supposed to overlap
@@ -1353,10 +720,12 @@ where
 
         for (i, lbl) in ticks.lbls.iter().enumerate() {
             let txt_size = geom::Size::new(lbl.width(), lbl.height());
-            max_lbl_size = max_lbl_size.max(side.size_across(&txt_size));
+            max_lbl_size = max_lbl_size.max(axis.side.size_across(&txt_size));
 
             let pos_along = bins.cat_location(i);
-            let transform = side.tick_label_transform(pos_along, shift_across, plot_rect);
+            let transform = axis
+                .side
+                .tick_label_transform(pos_along, shift_across, plot_rect);
             let layout = render::TextLayout {
                 layout: lbl,
                 fill,

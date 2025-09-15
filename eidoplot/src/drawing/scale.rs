@@ -1,4 +1,4 @@
-use crate::drawing::{axis, Error};
+use crate::drawing::axis;
 use crate::{data, ir};
 
 /// Maps coordinates from data space to surface space.
@@ -28,12 +28,6 @@ pub trait CoordMap: std::fmt::Debug {
     }
 
     fn axis_bounds(&self) -> axis::BoundsRef<'_>;
-
-    fn set_plot_size(&mut self, plot_size: f32);
-    
-    /// Set the axis bounds. Returns Error::InconsistentAxisBounds if the bounds 
-    /// are not compatible with the scale.
-    fn set_axis_bounds(&mut self, bounds: axis::Bounds) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -88,22 +82,15 @@ fn adjusted_nb_insets(
 struct LinCoordMap {
     plot_size: f32,
     ab: axis::NumBounds,
-
-    // next fields are there for `set_plot_size`
-    orig_ab: axis::NumBounds,
-    insets: (f32, f32),
 }
 
 impl LinCoordMap {
     fn new(plot_size: f32, insets: (f32, f32), ab: axis::NumBounds) -> Self {
-        let orig_ab = ab;
         let ab = Self::extend_bounds_with_insets(plot_size, insets, ab);
 
         LinCoordMap {
             plot_size,
             ab,
-            orig_ab,
-            insets,
         }
     }
 
@@ -129,21 +116,6 @@ impl CoordMap for LinCoordMap {
     fn axis_bounds(&self) -> axis::BoundsRef<'_> {
         self.ab.into()
     }
-
-    fn set_plot_size(&mut self, plot_size: f32) {
-        self.plot_size = plot_size;
-        self.ab = Self::extend_bounds_with_insets(plot_size, self.insets, self.orig_ab);
-    }
-
-    fn set_axis_bounds(&mut self, bounds: axis::Bounds) -> Result<(), Error> {
-        if let axis::Bounds::Num(nb) = bounds {
-            self.orig_ab = nb;
-            self.ab = Self::extend_bounds_with_insets(self.plot_size, self.insets, nb);
-            Ok(())
-        } else {
-            Err(Error::InconsistentAxisBounds("expected numerical bounds".into()))
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -151,23 +123,16 @@ struct LogCoordMap {
     base: f64,
     plot_size: f32,
     ab: axis::NumBounds,
-
-    // next fields are there for `set_plot_size`
-    orig_ab: axis::NumBounds,
-    insets: (f32, f32),
 }
 
 impl LogCoordMap {
     fn new(base: f64, plot_size: f32, insets: (f32, f32), ab: axis::NumBounds) -> Self {
-        let orig_ab = ab;
         let ab = Self::extend_bounds_with_insets(base, plot_size, insets, ab);
 
         LogCoordMap {
             base,
             plot_size,
             ab,
-            orig_ab,
-            insets,
         }
     }
 
@@ -197,26 +162,6 @@ impl CoordMap for LogCoordMap {
 
     fn axis_bounds(&self) -> axis::BoundsRef<'_> {
         self.ab.into()
-    }
-
-    fn set_plot_size(&mut self, plot_size: f32) {
-        self.plot_size = plot_size;
-        self.ab = Self::extend_bounds_with_insets(self.base, plot_size, self.insets, self.orig_ab);
-    }
-
-    fn set_axis_bounds(&mut self, bounds: axis::Bounds) -> Result<(), Error> {
-        if let axis::Bounds::Num(nb) = bounds {
-            if nb.start() <= 0.0 || nb.end() <= 0.0 {
-                return Err(Error::InconsistentAxisBounds(
-                    "log scale requires positive bounds".into(),
-                ));
-            }
-            self.orig_ab = nb;
-            self.ab = Self::extend_bounds_with_insets(self.base, self.plot_size, self.insets, nb);
-            Ok(())
-        } else {
-            Err(Error::InconsistentAxisBounds("expected numerical bounds".into()))
-        }
     }
 }
 
