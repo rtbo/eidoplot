@@ -2,7 +2,7 @@ use axis::AsBoundRef;
 use scale::{CoordMap, CoordMapXy};
 
 use crate::drawing::{
-    Categories, ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis as axis, legend, marker, scale,
+    Categories, ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
 };
 use crate::render::{self, Surface as _};
 use crate::{data, geom, ir, style};
@@ -134,8 +134,11 @@ impl Series {
         Ok(Series(series))
     }
 
-    pub fn unite_x_bounds<'a, S>(series: S, starter: Option<axis::Bounds>) -> Result<Option<axis::Bounds>, Error> 
-    where 
+    pub fn unite_x_bounds<'a, S>(
+        series: S,
+        starter: Option<axis::Bounds>,
+    ) -> Result<Option<axis::Bounds>, Error>
+    where
         S: IntoIterator<Item = &'a Series>,
     {
         let mut a: Option<axis::Bounds> = starter;
@@ -150,11 +153,14 @@ impl Series {
         Ok(a)
     }
 
-    pub fn unite_y_bounds<'a, S>(series: S, starter: Option<axis::Bounds>) -> Result<Option<axis::Bounds>, Error> 
-    where 
+    pub fn unite_y_bounds<'a, S>(
+        series: S,
+        starter: Option<axis::Bounds>,
+    ) -> Result<Option<axis::Bounds>, Error>
+    where
         S: IntoIterator<Item = &'a Series>,
     {
-        let mut a  = starter;
+        let mut a = starter;
         for s in series {
             let b = s.bounds();
             if let Some(a) = &mut a {

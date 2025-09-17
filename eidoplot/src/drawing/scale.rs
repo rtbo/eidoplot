@@ -88,10 +88,7 @@ impl LinCoordMap {
     fn new(plot_size: f32, insets: (f32, f32), ab: axis::NumBounds) -> Self {
         let ab = Self::extend_bounds_with_insets(plot_size, insets, ab);
 
-        LinCoordMap {
-            plot_size,
-            ab,
-        }
+        LinCoordMap { plot_size, ab }
     }
 
     fn extend_bounds_with_insets(

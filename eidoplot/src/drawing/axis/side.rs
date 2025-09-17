@@ -1,6 +1,7 @@
 use eidoplot_text as text;
-use crate::geom;
+
 use crate::drawing::scale::CoordMap;
+use crate::geom;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]

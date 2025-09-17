@@ -106,7 +106,7 @@ impl Rect {
         Rect {
             x: left,
             y: top,
-            w: PositiveF32::new(right - left).unwrap(), 
+            w: PositiveF32::new(right - left).unwrap(),
             h: PositiveF32::new(bottom - top).unwrap(),
         }
     }

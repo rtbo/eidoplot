@@ -255,11 +255,17 @@ impl Subplots {
     }
 
     pub fn with_share_x(self) -> Self {
-        Self { share_x: true, ..self }
+        Self {
+            share_x: true,
+            ..self
+        }
     }
 
     pub fn with_share_y(self) -> Self {
-        Self { share_y: true, ..self }
+        Self {
+            share_y: true,
+            ..self
+        }
     }
 
     pub fn plots(&self) -> &[Plot] {

@@ -1,19 +1,13 @@
 use core::slice;
 use std::sync::Arc;
 
-use crate::{
-    data,
-    drawing::{
-        Ctx, Error, SurfWrapper,
-        axis::{self, Axis, AxisScale},
-        legend::{Legend, LegendBuilder},
-        scale,
-        series::{Series, SeriesExt},
-    },
-    geom, ir, missing_params,
-    render::{self, Surface},
-    style::{self, defaults},
-};
+use crate::drawing::axis::{self, Axis, AxisScale};
+use crate::drawing::legend::{Legend, LegendBuilder};
+use crate::drawing::series::{Series, SeriesExt};
+use crate::drawing::{Ctx, Error, SurfWrapper, scale};
+use crate::render::{self, Surface};
+use crate::style::{self, defaults};
+use crate::{data, geom, ir, missing_params};
 
 mod grid_idx;
 use grid_idx::GridIdx;

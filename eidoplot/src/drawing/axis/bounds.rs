@@ -1,4 +1,3 @@
-
 use crate::drawing::{Categories, Error};
 
 /// Bounds of an axis

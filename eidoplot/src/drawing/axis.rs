@@ -1,4 +1,3 @@
-
 use std::sync::Arc;
 
 use eidoplot_text as text;
@@ -7,20 +6,14 @@ use text::{TextLayout, font};
 mod bounds;
 mod side;
 
-pub use bounds::{Bounds, BoundsRef, NumBounds, AsBoundRef};
+pub use bounds::{AsBoundRef, Bounds, BoundsRef, NumBounds};
 pub use side::Side;
 
-use crate::{
-    data,
-    drawing::{
-        Categories, Ctx, Error, SurfWrapper,
-        scale::{self, CoordMap},
-        ticks,
-    },
-    geom, ir, missing_params,
-    render::{self, Surface},
-    style::{self, Color, theme},
-};
+use crate::drawing::scale::{self, CoordMap};
+use crate::drawing::{Categories, Ctx, Error, SurfWrapper, ticks};
+use crate::render::{self, Surface};
+use crate::style::{self, Color, theme};
+use crate::{data, geom, ir, missing_params};
 
 #[derive(Debug, Clone)]
 pub struct Axis {

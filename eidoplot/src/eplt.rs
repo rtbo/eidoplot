@@ -2,12 +2,11 @@ use std::fmt;
 #[cfg(feature = "dsl-diag")]
 use std::path;
 
+#[cfg(feature = "dsl-diag")]
+pub use dsl::{Diagnostic, Source};
 use eidoplot_dsl::{self as dsl, ast};
 
 use crate::ir;
-
-#[cfg(feature = "dsl-diag")]
-pub use dsl::{Diagnostic, Source};
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -231,7 +230,7 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
     for prop in val.props {
         match prop.name.name.as_str() {
             "title" => fig = fig.with_title(expect_string_val(prop)?.into()),
-            // Subplots props that were not parsed for single plot 
+            // Subplots props that were not parsed for single plot
             // or stated multiple times for subplots.
             // We just ignore them.
             "cols" | "space" | "share-x" | "share-y" => (),
