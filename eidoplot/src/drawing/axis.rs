@@ -29,13 +29,14 @@ impl Axis {
 
     pub fn size_across(&self) -> f32 {
         let mark_size = self.draw_opts.marks.as_ref().map_or(0.0, |m| m.size_out);
+        let with_labels = self.draw_opts.ticks_labels;
         let mut size = match self.scale.as_ref() {
             AxisScale::Num {
                 ticks: Some(ticks), ..
-            } => ticks.size_across(self.side, mark_size),
+            } => ticks.size_across(self.side, mark_size, with_labels),
             AxisScale::Cat {
                 ticks: Some(ticks), ..
-            } => ticks.size_across(self.side),
+            } => ticks.size_across(self.side, mark_size, with_labels),
             _ => 0.0,
         };
         if let Some((title, _)) = self.draw_opts.title.as_ref() {
@@ -83,21 +84,30 @@ pub struct NumTicks {
 }
 
 impl NumTicks {
-    fn size_across(&self, side: Side, mark_size: f32) -> f32 {
+    fn size_across(&self, side: Side, mark_size: f32, with_labels: bool) -> f32 {
         let mut size = 0.0;
 
         size += mark_size;
 
+        if !with_labels {
+            return size;
+        }
+
+        if !self.ticks.is_empty() {
+            size += missing_params::TICK_LABEL_MARGIN;
+        }
+
         match side {
             Side::Bottom | Side::Top => {
-                if let Some(tick) = self.ticks.first() {
-                    size += missing_params::TICK_LABEL_MARGIN + tick.lbl.font_size();
-                }
+                let max_h = self
+                    .ticks
+                    .iter()
+                    .map(|t| t.lbl.height())
+                    .max_by(|a, b| a.partial_cmp(b).unwrap())
+                    .unwrap_or(0.0);
+                size += max_h;
             }
             Side::Left | Side::Right => {
-                if !self.ticks.is_empty() {
-                    size += missing_params::TICK_LABEL_MARGIN;
-                }
                 let max_w = self
                     .ticks
                     .iter()
@@ -190,8 +200,14 @@ pub struct CategoryTicks {
 }
 
 impl CategoryTicks {
-    fn size_across(&self, side: Side) -> f32 {
-        // not counting tick mark as it is between labels and not shifting them down
+    fn size_across(&self, side: Side, mark_size: f32, with_labels: bool) -> f32 {
+        // Marks are separators rather than ticks, they don't shift the labels.
+        // As such, they are only counted if labels are not there.
+
+        if !with_labels {
+            return mark_size;
+        }
+
         let mut size = 0.0;
 
         match side {

@@ -1,68 +1,68 @@
 <svg height="300" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg">
 <rect fill="#ffffff" height="100%" width="100%"/>
 <clipPath id="eidoplot-clip1">
-<path d="M56.808,25 L375,25 L375,255 L56.808,255 z"/>
+<path d="M56.808,25 L375,25 L375,250.656 L56.808,250.656 z"/>
 </clipPath>
 <g clip-path="url(#eidoplot-clip1)">
-<path d="M76.808,235 L215.904,140 L355,45" fill="none" stroke="#000000" stroke-width="1"/>
+<path d="M76.808,230.656 L215.904,137.828 L355,45" fill="none" stroke="#000000" stroke-width="1"/>
 </g>
-<path d="M6.090399,-2 L6.090399,2 M13.045199,-2 L13.045199,2 M26.9548,-2 L26.9548,2 M33.909603,-2 L33.909603,2 M40.864403,-2 L40.864403,2 M47.8192,-2 L47.8192,2 M61.7288,-2 L61.7288,2 M68.6836,-2 L68.6836,2 M75.638405,-2 L75.638405,2 M82.59321,-2 L82.59321,2 M96.5028,-2 L96.5028,2 M103.4576,-2 L103.4576,2 M110.4124,-2 L110.4124,2 M117.36721,-2 L117.36721,2 M131.27681,-2 L131.27681,2 M138.23161,-2 L138.23161,2 M145.1864,-2 L145.1864,2 M152.1412,-2 L152.1412,2 M166.05081,-2 L166.05081,2 M173.0056,-2 L173.0056,2 M179.9604,-2 L179.9604,2 M186.9152,-2 L186.9152,2 M200.82481,-2 L200.82481,2 M207.77962,-2 L207.77962,2 M214.73442,-2 L214.73442,2 M221.68921,-2 L221.68921,2 M235.59882,-2 L235.59882,2 M242.5536,-2 L242.5536,2 M249.5084,-2 L249.5084,2 M256.46323,-2 L256.46323,2 M270.3728,-2 L270.3728,2 M277.3276,-2 L277.3276,2 M284.2824,-2 L284.2824,2 M291.2372,-2 L291.2372,2 M305.14682,-2 L305.14682,2 M312.10162,-2 L312.10162,2" fill="none" stroke="#000000" stroke-width="0.5" transform="matrix(1 0 0 1 56.808 255)"/>
-<path d="M20.000002,-4 L20.000002,4 M54.774002,-4 L54.774002,4 M89.548004,-4 L89.548004,4 M124.32201,-4 L124.32201,4 M159.09601,-4 L159.09601,4 M193.87,-4 L193.87,4 M228.64401,-4 L228.64401,4 M263.418,-4 L263.418,4 M298.19202,-4 L298.19202,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(1 0 0 1 56.808 255)"/>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 76.808 267.26)">
+<path d="M6.090399,-2 L6.090399,2 M13.045199,-2 L13.045199,2 M26.9548,-2 L26.9548,2 M33.909603,-2 L33.909603,2 M40.864403,-2 L40.864403,2 M47.8192,-2 L47.8192,2 M61.7288,-2 L61.7288,2 M68.6836,-2 L68.6836,2 M75.638405,-2 L75.638405,2 M82.59321,-2 L82.59321,2 M96.5028,-2 L96.5028,2 M103.4576,-2 L103.4576,2 M110.4124,-2 L110.4124,2 M117.36721,-2 L117.36721,2 M131.27681,-2 L131.27681,2 M138.23161,-2 L138.23161,2 M145.1864,-2 L145.1864,2 M152.1412,-2 L152.1412,2 M166.05081,-2 L166.05081,2 M173.0056,-2 L173.0056,2 M179.9604,-2 L179.9604,2 M186.9152,-2 L186.9152,2 M200.82481,-2 L200.82481,2 M207.77962,-2 L207.77962,2 M214.73442,-2 L214.73442,2 M221.68921,-2 L221.68921,2 M235.59882,-2 L235.59882,2 M242.5536,-2 L242.5536,2 M249.5084,-2 L249.5084,2 M256.46323,-2 L256.46323,2 M270.3728,-2 L270.3728,2 M277.3276,-2 L277.3276,2 M284.2824,-2 L284.2824,2 M291.2372,-2 L291.2372,2 M305.14682,-2 L305.14682,2 M312.10162,-2 L312.10162,2" fill="none" stroke="#000000" stroke-width="0.5" transform="matrix(1 0 0 1 56.808 250.656)"/>
+<path d="M20.000002,-4 L20.000002,4 M54.774002,-4 L54.774002,4 M89.548004,-4 L89.548004,4 M124.32201,-4 L124.32201,4 M159.09601,-4 L159.09601,4 M193.87,-4 L193.87,4 M228.64401,-4 L228.64401,4 M263.418,-4 L263.418,4 M298.19202,-4 L298.19202,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(1 0 0 1 56.808 250.656)"/>
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 76.808 262.91602)">
 1.00
 </text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 111.582 267.26)">
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 111.582 262.91602)">
 1.25
 </text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 146.356 267.26)">
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 146.356 262.91602)">
 1.50
 </text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 181.13 267.26)">
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 181.13 262.91602)">
 1.75
 </text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 215.904 267.26)">
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 215.904 262.91602)">
 2.00
 </text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 250.678 267.26)">
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 250.678 262.91602)">
 2.25
 </text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 285.45203 267.26)">
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 285.45203 262.91602)">
 2.50
 </text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 320.226 267.26)">
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 320.226 262.91602)">
 2.75
 </text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 355 267.26)">
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 355 262.91602)">
 3.00
 </text>
-<path d="M0.99999994,-2 L0.99999994,2 M5.75,-2 L5.75,2 M10.5,-2 L10.5,2 M15.25,-2 L15.25,2 M24.75,-2 L24.75,2 M29.5,-2 L29.5,2 M34.25,-2 L34.25,2 M39,-2 L39,2 M48.5,-2 L48.5,2 M53.25,-2 L53.25,2 M57.999996,-2 L57.999996,2 M62.749996,-2 L62.749996,2 M72.25,-2 L72.25,2 M77,-2 L77,2 M81.75,-2 L81.75,2 M86.5,-2 L86.5,2 M96,-2 L96,2 M100.75,-2 L100.75,2 M105.5,-2 L105.5,2 M110.25,-2 L110.25,2 M119.75,-2 L119.75,2 M124.5,-2 L124.5,2 M129.25,-2 L129.25,2 M134,-2 L134,2 M143.5,-2 L143.5,2 M148.25,-2 L148.25,2 M153,-2 L153,2 M157.75,-2 L157.75,2 M167.25,-2 L167.25,2 M172,-2 L172,2 M176.75,-2 L176.75,2 M181.5,-2 L181.5,2 M191,-2 L191,2 M195.75,-2 L195.75,2 M200.5,-2 L200.5,2 M205.25,-2 L205.25,2 M214.75,-2 L214.75,2 M219.5,-2 L219.5,2 M224.25,-2 L224.25,2 M229,-2 L229,2" fill="none" stroke="#000000" stroke-width="0.5" transform="matrix(-0.00000004371139 -1 1 -0.00000004371139 56.808 255)"/>
-<path d="M20,-4 L20,4 M43.75,-4 L43.75,4 M67.5,-4 L67.5,4 M91.25,-4 L91.25,4 M115,-4 L115,4 M138.75,-4 L138.75,4 M162.5,-4 L162.5,4 M186.25,-4 L186.25,4 M210,-4 L210,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(-0.00000004371139 -1 1 -0.00000004371139 56.808 255)"/>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 235)">
+<path d="M1.4343995,-2 L1.4343995,2 M6.0757995,-2 L6.0757995,2 M10.7172,-2 L10.7172,2 M15.358599,-2 L15.358599,2 M24.641401,-2 L24.641401,2 M29.2828,-2 L29.2828,2 M33.924202,-2 L33.924202,2 M38.5656,-2 L38.5656,2 M47.8484,-2 L47.8484,2 M52.4898,-2 L52.4898,2 M57.131203,-2 L57.131203,2 M61.772602,-2 L61.772602,2 M71.0554,-2 L71.0554,2 M75.6968,-2 L75.6968,2 M80.3382,-2 L80.3382,2 M84.97961,-2 L84.97961,2 M94.262405,-2 L94.262405,2 M98.9038,-2 L98.9038,2 M103.545204,-2 L103.545204,2 M108.1866,-2 L108.1866,2 M117.469406,-2 L117.469406,2 M122.11081,-2 L122.11081,2 M126.7522,-2 L126.7522,2 M131.3936,-2 L131.3936,2 M140.6764,-2 L140.6764,2 M145.3178,-2 L145.3178,2 M149.9592,-2 L149.9592,2 M154.6006,-2 L154.6006,2 M163.88339,-2 L163.88339,2 M168.5248,-2 L168.5248,2 M173.1662,-2 L173.1662,2 M177.8076,-2 L177.8076,2 M187.09041,-2 L187.09041,2 M191.73181,-2 L191.73181,2 M196.37321,-2 L196.37321,2 M201.01462,-2 L201.01462,2 M210.29741,-2 L210.29741,2 M214.93881,-2 L214.93881,2 M219.58022,-2 L219.58022,2 M224.2216,-2 L224.2216,2" fill="none" stroke="#000000" stroke-width="0.5" transform="matrix(-0.00000004371139 -1 1 -0.00000004371139 56.808 250.656)"/>
+<path d="M20,-4 L20,4 M43.207,-4 L43.207,4 M66.414,-4 L66.414,4 M89.621,-4 L89.621,4 M112.828,-4 L112.828,4 M136.035,-4 L136.035,4 M159.242,-4 L159.242,4 M182.449,-4 L182.449,4 M205.656,-4 L205.656,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(-0.00000004371139 -1 1 -0.00000004371139 56.808 250.656)"/>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 230.656)">
 1.00
 </text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 211.25)">
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 207.449)">
 1.25
 </text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 187.5)">
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 184.242)">
 1.50
 </text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 163.75)">
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 161.035)">
 1.75
 </text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 140)">
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 137.828)">
 2.00
 </text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 116.25)">
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 114.621)">
 2.25
 </text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 92.5)">
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 91.414)">
 2.50
 </text>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 68.75)">
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 68.207)">
 2.75
 </text>
 <text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 48.808 45)">
 3.00
 </text>
-<rect fill="none" height="230" stroke="#000000" stroke-width="1" width="318.19202" x="56.808" y="25"/>
+<rect fill="none" height="225.656" stroke="#000000" stroke-width="1" width="318.19202" x="56.808" y="25"/>
 </svg>

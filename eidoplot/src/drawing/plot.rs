@@ -288,9 +288,9 @@ where
         let gi = GridIdx::from(ir_plots);
         let mut heights = Vec::with_capacity(gi.len());
 
-        for col in 0..gi.cols() {
+        for row in 0..gi.rows() {
             let mut max_height = f32::NAN;
-            for row in 0..gi.rows() {
+            for col in 0..gi.cols() {
                 if let Some(plot_idx) = gi.plot_idx(row, col) {
                     let ir_plot = &ir_plots.plots()[plot_idx];
                     let x_axis = &x_axes[plot_idx];
@@ -552,7 +552,7 @@ where
                 let axis = self.setup_axis(
                     ir_plot.x_axis(),
                     bounds,
-                    axis::Side::Left,
+                    axis::Side::Bottom,
                     width,
                     &plot_data.insets,
                     shared_scale.as_ref().cloned(),
