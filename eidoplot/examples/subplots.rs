@@ -7,8 +7,8 @@ use std::f64::consts::PI;
 fn main() {
     let x1 = common::linspace(0.0, 2.0 * PI, 400);
     let y1: Vec<f64> = x1.iter().map(|x| (x * x).sin()).collect();
-    let x2 = common::linspace(0.5 * PI, 2.0 * PI, 400);
-    let y2: Vec<f64> = x2.iter().map(|x| (x * x).sin()).collect();
+    let x2 = common::linspace(0.5 * PI, 2.5 * PI, 400);
+    let y2: Vec<f64> = x1.iter().map(|x| -(x * x).sin()).collect();
 
     let mut data_source = data::NamedColumns::new();
     data_source.add_column("x1", &x1 as &dyn data::Column);

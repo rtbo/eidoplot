@@ -3,6 +3,7 @@ figure: {
     share-x
     space: 10
     plot: {
+        x-axis: Grid
         y-axis: Ticks
         series: Line {
             x-data: "x1"
@@ -10,7 +11,7 @@ figure: {
         }
     }
     plot: {
-        x-axis: PiMultipleTicks
+        x-axis: PiMultipleTicks, Grid
         y-axis: Ticks
         series: Line {
             x-data: "x2"

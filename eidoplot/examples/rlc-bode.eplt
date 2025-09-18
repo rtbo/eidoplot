@@ -1,9 +1,9 @@
 figure: {
     title: "RLC bode"
     share-x
-    space: 10
+    space: 0
     plot: {
-        x-axis: "Freq. [Hz]", LogScale, Ticks
+        x-axis: Ticks, MinorTicks
         y-axis: "Magnitude [dB]", Ticks, Grid
         series: Line {
             name: "RLC"
@@ -12,7 +12,7 @@ figure: {
         }
     }
     plot: {
-        x-axis: "Freq. [Hz]", LogScale, Ticks
+        x-axis: "Freq. [Hz]", LogScale, Ticks, MinorTicks
         y-axis: {
             title: "Phase [rad]"
             ticks: PiMultiple
