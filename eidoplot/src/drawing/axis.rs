@@ -325,7 +325,7 @@ where
                     .transpose()?;
 
                 let minor_ticks = if let Some(mt) = ir_axis.minor_ticks() {
-                    Some(self.setup_minor_ticks(mt, ticks.as_ref(), nb)?)
+                    Some(self.setup_minor_ticks(mt, ticks.as_ref(), ir_axis.scale(), nb)?)
                 } else {
                     None
                 };
@@ -387,9 +387,10 @@ where
         &self,
         minor_ticks: &ir::axis::MinorTicks,
         major_ticks: Option<&NumTicks>,
+        scale: &ir::axis::Scale,
         nb: NumBounds,
     ) -> Result<MinorTicks, Error> {
-        let mut locs = ticks::locate_minor(minor_ticks.locator(), nb);
+        let mut locs = ticks::locate_minor(minor_ticks.locator(), nb, scale);
         let major_locs = major_ticks.map(|t| t.ticks.as_slice()).unwrap_or(&[]);
 
         locs.retain(|l| {

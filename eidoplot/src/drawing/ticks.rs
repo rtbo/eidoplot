@@ -6,7 +6,7 @@ use crate::ir::axis::{LogScale, Scale};
 pub fn locate_num(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<f64> {
     match (locator, scale) {
         (Locator::Auto, Scale::Auto | Scale::Linear { .. }) => MaxN::new_auto().ticks(nb),
-        (Locator::Auto, Scale::Log(LogScale { base, .. })) => MaxNLog::new(*base).ticks(nb),
+        (Locator::Auto, Scale::Log(LogScale { base, .. })) => LogLocator::new_major(*base).ticks(nb),
         (Locator::MaxN { bins, steps }, Scale::Auto | Scale::Linear { .. }) => {
             let ticker = MaxN::new(*bins, steps.as_slice());
             ticker.ticks(nb)
@@ -15,11 +15,11 @@ pub fn locate_num(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<
             let ticker = MaxN::new_pi(*bins);
             ticker.ticks(nb)
         }
-        (Locator::Log { base, .. }, Scale::Auto) => MaxNLog::new(*base).ticks(nb),
+        (Locator::Log { base, .. }, Scale::Auto) => LogLocator::new_major(*base).ticks(nb),
         (Locator::Log { base: loc_base, .. }, Scale::Log(LogScale { base, .. }))
             if loc_base == base =>
         {
-            MaxNLog::new(*base).ticks(nb)
+            LogLocator::new_major(*base).ticks(nb)
         }
         _ => panic!(
             "Unsupported locator/scale combination: {:?}/{:?}\n(FIXME: error check during IR construction)",
@@ -28,11 +28,28 @@ pub fn locate_num(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<
     }
 }
 
-pub fn locate_minor(locator: &Locator, ab: axis::NumBounds) -> Vec<f64> {
-    match locator {
-        Locator::Auto => MaxN::new_auto_minor().ticks(ab),
-        Locator::PiMultiple { bins } => MaxN::new_pi(*bins).ticks(ab),
-        _ => todo!("minor locators"),
+pub fn locate_minor(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<f64> {
+    match (locator, scale) {
+        (Locator::Auto, Scale::Auto | Scale::Linear { .. }) => MaxN::new_auto_minor().ticks(nb),
+        (Locator::Auto, Scale::Log(LogScale { base, .. })) => LogLocator::new_minor(*base).ticks(nb),
+        (Locator::MaxN { bins, steps }, Scale::Auto | Scale::Linear { .. }) => {
+            let ticker = MaxN::new(*bins, steps.as_slice());
+            ticker.ticks(nb)
+        }
+        (Locator::PiMultiple { bins }, Scale::Auto | Scale::Linear { .. }) => {
+            let ticker = MaxN::new_pi(*bins);
+            ticker.ticks(nb)
+        }
+        (Locator::Log { base, .. }, Scale::Auto) => LogLocator::new_minor(*base).ticks(nb),
+        (Locator::Log { base: loc_base, .. }, Scale::Log(LogScale { base, .. }))
+            if loc_base == base =>
+        {
+            LogLocator::new_minor(*base).ticks(nb)
+        }
+        _ => panic!(
+            "Unsupported locator/scale combination: {:?}/{:?}\n(FIXME: error check during IR construction)",
+            locator, scale
+        ),
     }
 }
 
@@ -163,13 +180,18 @@ impl MaxNEdgeInteger {
     }
 }
 
-struct MaxNLog {
+struct LogLocator {
     base: f64,
+    include_minor: bool,
 }
 
-impl<'a> MaxNLog {
-    fn new(base: f64) -> Self {
-        Self { base }
+impl LogLocator {
+    fn new_major(base: f64) -> Self {
+        Self { base, include_minor: false, }
+    }
+
+    fn new_minor(base: f64) -> Self {
+        Self { base, include_minor: true, }
     }
 
     fn ticks(&self, nb: axis::NumBounds) -> Vec<f64> {
@@ -188,10 +210,18 @@ impl<'a> MaxNLog {
         let mut ticks = Vec::new();
         for exp in min_exp..=max_exp {
             let tick = self.base.powi(exp);
-            // Only include ticks within the bounds (in case of rounding)
-            if tick >= min && tick <= max {
-                ticks.push(tick);
+            if self.include_minor {
+                let minor_incr = tick / self.base;
+                let mut minor_tick = minor_incr;
+                while minor_tick < tick {
+                    if is_close(minor_tick, tick) {
+                        break;
+                    }
+                    ticks.push(minor_tick);
+                    minor_tick += minor_incr;
+                }    
             }
+            ticks.push(tick);
         }
         ticks
     }
