@@ -1,7 +1,7 @@
 /*!
  * This module deals with colors and style of data series.
  */
-use crate::style;
+use crate::style::{self, defaults};
 use crate::style::ColorU8;
 
 /// A series color palette
@@ -92,7 +92,7 @@ impl From<ColorU8> for Line {
     fn from(color: ColorU8) -> Self {
         Line {
             color: color.into(),
-            width: 1.0,
+            width: defaults::SERIES_LINE_WIDTH,
             pattern: style::LinePattern::Solid,
             opacity: None,
         }

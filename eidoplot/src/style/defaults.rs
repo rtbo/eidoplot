@@ -14,6 +14,7 @@ pub const AXIS_LABEL_FONT_SIZE: f32 = 16.0;
 pub const TICKS_LABEL_FONT_FAMILY: &str = FONT_FAMILY;
 pub const TICKS_LABEL_FONT_SIZE: f32 = 12.0;
 
+pub const SERIES_LINE_WIDTH: f32 = 1.5;
 pub const MARKER_SIZE: f32 = 10.0;
 
 pub const LEGEND_LABEL_FONT_SIZE: f32 = 13.0;

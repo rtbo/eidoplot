@@ -1,4 +1,7 @@
-use crate::{data, style};
+use crate::{
+    data,
+    style::{self, defaults},
+};
 
 #[derive(Debug, Clone)]
 pub enum DataCol {
@@ -84,7 +87,7 @@ impl Line {
             y_data,
 
             name: None,
-            line: style::series::Line::default(),
+            line: style::series::Line::default().with_width(defaults::SERIES_LINE_WIDTH),
         }
     }
 
