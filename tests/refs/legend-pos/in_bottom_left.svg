@@ -1,15 +1,15 @@
 <svg height="300" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg">
 <rect fill="#ffffff" height="100%" width="100%"/>
 <clipPath id="eidoplot-clip1">
-<path d="M25,25 L375,25 L375,275 L25,275 z"/>
+<path d="M20,20 L380,20 L380,280 L20,280 z"/>
 </clipPath>
 <g clip-path="url(#eidoplot-clip1)">
-<path d="M45,255 L200,150 L355,45" fill="none" stroke="#000000" stroke-width="1"/>
+<path d="M40,260 L200,150 L360,40" fill="none" stroke="#000000" stroke-width="1.5"/>
 </g>
-<rect fill="none" height="250" stroke="#000000" stroke-width="1" width="350" x="25" y="25"/>
-<rect fill="#ffffff" fill-opacity="0.5019608" height="33.706" stroke="#000000" stroke-width="1" width="73.074005" x="37" y="229.294"/>
-<path d="M45,246.147 L70,246.147" fill="none" stroke="#000000" stroke-width="1"/>
-<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="13" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 80 246.147)">
+<rect fill="none" height="260" stroke="#000000" stroke-width="1" width="360" x="20" y="20"/>
+<rect fill="#ffffff" fill-opacity="0.5019608" height="33.706" stroke="#000000" stroke-width="1" width="73.074005" x="32" y="234.294"/>
+<path d="M40,251.147 L65,251.147" fill="none" stroke="#000000" stroke-width="1.5"/>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="13" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 75 251.147)">
 line
 </text>
 </svg>

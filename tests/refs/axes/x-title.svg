@@ -1,13 +1,13 @@
 <svg height="300" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg">
 <rect fill="#ffffff" height="100%" width="100%"/>
 <clipPath id="eidoplot-clip1">
-<path d="M25,25 L375,25 L375,245.20801 L25,245.20801 z"/>
+<path d="M20,20 L380,20 L380,250.20801 L20,250.20801 z"/>
 </clipPath>
 <g clip-path="url(#eidoplot-clip1)">
-<path d="M45,225.20801 L200,135.104 L355,45" fill="none" stroke="#000000" stroke-width="1"/>
+<path d="M40,230.20801 L200,135.104 L360,40" fill="none" stroke="#000000" stroke-width="1.5"/>
 </g>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="16" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 200 258.888)">
+<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="16" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 200 263.888)">
 x axis
 </text>
-<rect fill="none" height="220.20801" stroke="#000000" stroke-width="1" width="350" x="25" y="25"/>
+<rect fill="none" height="230.20801" stroke="#000000" stroke-width="1" width="360" x="20" y="20"/>
 </svg>
