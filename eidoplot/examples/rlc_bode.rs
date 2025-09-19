@@ -30,20 +30,27 @@ fn rlc_load_response(frequencies: &[f64], r: f64, l: f64, c: f64) -> (Vec<f64>, 
 }
 
 fn main() {
-    const R: f64 = 10.0;
     const L: f64 = 10e-3; // 10 mH
     const C: f64 = 1e-6; // 1 uF
 
-    let freq = common::logspace(10.0, 10000.0, 500);
-    let (mag, phase) = rlc_load_response(&freq, R, L, C);
+    let params = [
+        (10.0, "mag10", "phase10"),
+        (40.0, "mag40", "phase40"),
+        (100.0, "mag100", "phase100"),
+    ];
+
+    let mut source = data::NamedOwnedColumns::new();
+
+    let freq = common::logspace(100.0, 10000.0, 500);
+    for (r, mag_col, phase_col) in params {
+        let (mag, phase) = rlc_load_response(&freq, r, L, C);
+        source.add_column(mag_col, Box::new(mag));
+        source.add_column(phase_col, Box::new(phase));
+    }
+    source.add_column("freq", Box::new(freq));
 
     let filename = common::example_res("rlc-bode.eplt");
     let content = std::fs::read_to_string(&filename).unwrap();
-
-    let mut source = data::NamedColumns::new();
-    source.add_column("freq", &freq as &dyn data::Column);
-    source.add_column("mag", &mag as &dyn data::Column);
-    source.add_column("phase", &phase as &dyn data::Column);
 
     let figs = eplt::parse_diag(&content, Some(&filename)).unwrap();
     common::save_figure(&figs[0], &source, "bode_rlc");

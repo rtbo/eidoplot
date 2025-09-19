@@ -1,14 +1,24 @@
 figure: {
     title: "RLC bode"
     share-x
-    space: 0
+    space: 10
     plot: {
-        x-axis: Ticks, MinorTicks
         y-axis: "Magnitude [dB]", Ticks, Grid
+        legend: Right
         series: Line {
-            name: "RLC"
+            name: "R = 10 Ω"
             x-data: "freq"
-            y-data: "mag"
+            y-data: "mag10"
+        }
+        series: Line {
+            name: "R = 40 Ω"
+            x-data: "freq"
+            y-data: "mag40"
+        }
+        series: Line {
+            name: "R = 100 Ω"
+            x-data: "freq"
+            y-data: "mag100"
         }
     }
     plot: {
@@ -19,9 +29,19 @@ figure: {
             grid
         }
         series: Line {
-            name: "RLC"
+            name: "R = 10 Ω"
             x-data: "freq"
-            y-data: "phase"
+            y-data: "phase10"
+        }
+        series: Line {
+            name: "R = 40 Ω"
+            x-data: "freq"
+            y-data: "phase40"
+        }
+        series: Line {
+            name: "R = 100 Ω"
+            x-data: "freq"
+            y-data: "phase100"
         }
     } 
 }
