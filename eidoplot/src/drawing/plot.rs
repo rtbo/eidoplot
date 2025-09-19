@@ -178,10 +178,10 @@ where
                         legend,
                     });
                 }
-                x += subplot_rect_width + right_widths[col];
+                x += subplot_rect_width + right_widths[col] + ir_plots.space();
             }
 
-            y += subplot_rect_height + bottom_heights[row];
+            y += subplot_rect_height + bottom_heights[row] + ir_plots.space();
         }
 
         let plots = plots.into_iter().map(|p| p.unwrap()).collect();
