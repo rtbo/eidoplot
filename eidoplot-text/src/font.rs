@@ -820,7 +820,16 @@ pub fn select_face_fallback(db: &Database, c: char, already_tried: &[ID]) -> Opt
     None
 }
 
-pub(crate) fn apply_variations(face: &mut ttf::Face, font: &Font) {
+pub(crate) fn apply_ttf_variations(face: &mut ttf::Face, font: &Font) {
+    if face.is_variable() && face.weight().to_number() != font.weight().to_number() {
+        let _ = face.set_variation(ttf::Tag::from_bytes(b"wght"), font.weight().to_var_value());
+    }
+    if face.is_variable() && face.width().to_number() != font.width().to_number() {
+        let _ = face.set_variation(ttf::Tag::from_bytes(b"wdth"), font.width().to_var_value());
+    }
+}
+
+pub(crate) fn apply_hb_variations(face: &mut rustybuzz::Face, font: &Font) {
     if face.is_variable() && face.weight().to_number() != font.weight().to_number() {
         let _ = face.set_variation(ttf::Tag::from_bytes(b"wght"), font.weight().to_var_value());
     }

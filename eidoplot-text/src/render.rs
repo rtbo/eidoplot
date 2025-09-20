@@ -46,7 +46,7 @@ fn render_glyphs_tiny_skia(
 ) {
     db.with_face_data(font_id, |data, index| {
         let mut face = ttf::Face::parse(data, index).unwrap();
-        font::apply_variations(&mut face, font);
+        font::apply_ttf_variations(&mut face, font);
 
         // the path builder for the entire string
         let mut str_pb = PathBuilder::new();

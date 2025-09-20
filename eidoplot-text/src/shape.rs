@@ -326,7 +326,7 @@ fn shape_text_with_font(
 ) -> Result<TextShape, Error> {
     db.with_face_data(font_id, |data, index| -> Result<TextShape, Error> {
         let mut face = ttf::Face::parse(data, index)?;
-        font::apply_variations(&mut face, font);
+        font::apply_ttf_variations(&mut face, font);
 
         let metrics = font::face_metrics(&face);
 
@@ -338,7 +338,7 @@ fn shape_text_with_font(
 
         for line in text.lines() {
             let (line, buf) =
-                shape_lines_with_font(line, &hbface, direction, &mut missing_glyphs, buffer)?;
+                shape_line_with_font(line, &hbface, direction, &mut missing_glyphs, buffer)?;
             buffer = buf;
 
             direction = Some(line.main_dir);
@@ -399,7 +399,7 @@ fn empty_line(previous_dir: Option<Direction>) -> single_font::Line {
 }
 
 // passing the rustybuzz buffer around is a bit hacky but allows us to reuse it
-fn shape_lines_with_font(
+fn shape_line_with_font(
     text: &str,
     hbface: &rustybuzz::Face,
     previous_dir: Option<Direction>,
