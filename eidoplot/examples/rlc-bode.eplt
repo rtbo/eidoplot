@@ -1,25 +1,10 @@
 figure: {
-    title: "RLC bode"
+    title: "RLC circuit bode diagram\nL = 0.1 mH / C = 1 µF"
     share-x
     space: 10
     plot: {
         y-axis: "Magnitude [dB]", Ticks, Grid
         legend: Right
-        series: Line {
-            name: "R = 10 Ω"
-            x-data: "freq"
-            y-data: "mag10"
-        }
-        series: Line {
-            name: "R = 40 Ω"
-            x-data: "freq"
-            y-data: "mag40"
-        }
-        series: Line {
-            name: "R = 100 Ω"
-            x-data: "freq"
-            y-data: "mag100"
-        }
     }
     plot: {
         x-axis: "Freq. [Hz]", LogScale, Ticks, MinorTicks
@@ -27,21 +12,6 @@ figure: {
             title: "Phase [rad]"
             ticks: PiMultiple
             grid
-        }
-        series: Line {
-            name: "R = 10 Ω"
-            x-data: "freq"
-            y-data: "phase10"
-        }
-        series: Line {
-            name: "R = 40 Ω"
-            x-data: "freq"
-            y-data: "phase40"
-        }
-        series: Line {
-            name: "R = 100 Ω"
-            x-data: "freq"
-            y-data: "phase100"
         }
     } 
 }
