@@ -1,7 +1,7 @@
 use eidoplot_text as text;
 
 use crate::drawing::scale::CoordMap;
-use crate::geom;
+use crate::{geom, missing_params};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
@@ -139,7 +139,7 @@ impl Side {
             },
             Side::Left => text::layout::Options {
                 hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
+                ver_align: text::layout::LineVerAlign::Top.into(),
                 ..Default::default()
             },
             Side::Right => text::layout::Options {
@@ -151,13 +151,20 @@ impl Side {
     }
 
     pub fn annot_transform(&self, shift_across: f32, rect: &geom::Rect) -> geom::Transform {
+        let margin = missing_params::AXIS_ANNOT_MARGIN;
         match self {
             Side::Bottom => {
-                geom::Transform::from_translate(rect.right(), rect.bottom() + shift_across)
+                geom::Transform::from_translate(rect.right(), rect.bottom() + shift_across + margin)
             }
-            Side::Top => geom::Transform::from_translate(rect.right(), rect.top() - shift_across),
-            Side::Left => geom::Transform::from_translate(rect.left() - shift_across, rect.top()),
-            Side::Right => geom::Transform::from_translate(rect.right() + shift_across, rect.top()),
+            Side::Top => {
+                geom::Transform::from_translate(rect.right(), rect.top() - shift_across - margin)
+            }
+            Side::Left => {
+                geom::Transform::from_translate(rect.left() - shift_across - margin, rect.top())
+            }
+            Side::Right => {
+                geom::Transform::from_translate(rect.right() + shift_across + margin, rect.top())
+            }
         }
     }
 
