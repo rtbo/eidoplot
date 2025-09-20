@@ -26,26 +26,24 @@ where
         let mut rect = geom::Rect::from_ps(geom::Point::ORIGIN, fig.size()).pad(fig.padding());
 
         if let Some(title) = fig.title() {
-            let title_rect = geom::Rect::from_xywh(
-                rect.x(),
-                rect.y(),
-                rect.width(),
-                title.font().size + 2.0 * missing_params::FIG_TITLE_MARGIN,
-            );
-            let text = render::Text {
-                text: title.text(),
-                font: title.font().font(),
-                font_size: title.font().size,
-                fill: ctx.theme().foreground().into(),
-                options: text::layout::Options {
+            let opts = text::layout::Options {
                     hor_align: text::layout::HorAlign::Center,
-                    ver_align: text::layout::VerAlign::Center,
+                    ver_align: text::layout::LineVerAlign::Hanging.into(),
                     ..Default::default()
-                },
-                transform: Some(&title_rect.center().translation()),
+                };
+            let title = eidoplot_text::shape_and_layout_str(title.text(), title.font().font(), ctx.fontdb(), title.font().size, &opts)?;
+            let anchor_x = rect.center_x();
+            let anchor_y = rect.top() + missing_params::FIG_TITLE_MARGIN;
+            let transform = geom::Transform::from_translate(anchor_x, anchor_y);
+            let text = render::TextLayout {
+                layout: &title,
+                fill: ctx.theme().foreground().into(),
+                transform: Some(&transform),
             };
-            self.draw_text(&text)?;
-            rect = rect.shifted_top_side(title_rect.height());
+            self.draw_text_layout(&text)?;
+            let metrics = title.metrics();
+            let visual_height = title.height() - (metrics.ascent - metrics.cap_height);
+            rect = rect.shifted_top_side(visual_height + 2.0 * missing_params::FIG_TITLE_MARGIN);
         }
 
         if let Some(legend) = fig.legend() {
