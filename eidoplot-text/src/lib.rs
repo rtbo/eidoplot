@@ -6,6 +6,7 @@ pub mod font;
 pub mod fontdb;
 pub mod layout;
 pub mod render;
+pub mod rich;
 pub mod shape;
 
 pub use font::{Font, ScaledMetrics, parse_font_families};
