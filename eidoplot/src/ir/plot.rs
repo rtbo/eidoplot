@@ -223,6 +223,10 @@ impl Plot {
     pub fn legend(&self) -> Option<&PlotLegend> {
         self.legend.as_ref()
     }
+
+    pub fn push_series(&mut self, series: Series) {
+        self.series.push(series);
+    }
 }
 
 /// A collection of plots, arranged in a grid
@@ -270,6 +274,10 @@ impl Subplots {
 
     pub fn plots(&self) -> &[Plot] {
         &self.plots
+    }
+
+    pub fn plots_mut(&mut self) -> &mut [Plot] {
+        &mut self.plots
     }
 
     pub fn cols(&self) -> u32 {

@@ -1,4 +1,5 @@
 use std::iter::FusedIterator;
+use std::slice;
 
 use crate::geom;
 use crate::ir::{Legend, Plot, Subplots};
@@ -191,6 +192,10 @@ impl Figure {
         &self.plots
     }
 
+    pub fn plots_mut(&mut self) -> &mut Plots {
+        &mut self.plots
+    }
+
     pub fn legend(&self) -> Option<&FigLegend> {
         self.legend.as_ref()
     }
@@ -226,6 +231,20 @@ impl From<Subplots> for Plots {
 }
 
 impl Plots {
+    pub fn plots(&self) -> &[Plot] {
+        match self {
+            Plots::Plot(plot) => slice::from_ref(plot),
+            Plots::Subplots(subplots) => subplots.plots(),
+        }
+    }
+
+    pub fn plots_mut(&mut self) -> &mut [Plot] {
+        match self {
+            Plots::Plot(plot) => slice::from_mut(plot),
+            Plots::Subplots(subplots) => subplots.plots_mut(),
+        }
+    }
+
     pub fn iter(&self) -> PlotIter<'_> {
         PlotIter {
             plots: self,
