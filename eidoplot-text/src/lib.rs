@@ -4,6 +4,7 @@ use ttf_parser as ttf;
 
 pub mod font;
 pub mod fontdb;
+pub mod fontlib;
 pub mod layout;
 pub mod render;
 pub mod shape;
