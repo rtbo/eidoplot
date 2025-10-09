@@ -1,6 +1,6 @@
 use crate::{
     font::{self, DatabaseExt},
-    fontdb,
+    fontdb, shape,
 };
 use std::fmt;
 use ttf_parser as ttf;
@@ -30,7 +30,7 @@ impl From<ttf::FaceParsingError> for Error {
 
 impl std::error::Error for Error {}
 
-/// Typographic alignment.
+/// Typographic alignment, possibly depending on the script direction.
 #[derive(Debug, Clone, Copy, Default)]
 pub enum TypeAlign {
     /// The start of the text is aligned with the reference point.
@@ -51,8 +51,8 @@ pub enum TypeAlign {
     Justify(f32),
 }
 
-/// Vertical alignment for a single line of text
-#[derive(Debug, Clone, Copy, Default)]
+/// Vertical alignment for a single line of horizontal text
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum LineAlign {
     /// Align the bottom of the descender
     Bottom,
@@ -65,6 +65,31 @@ pub enum LineAlign {
     Hanging,
     /// Align at the top of the ascender
     Top,
+}
+
+/// Vertical alignment for a whole horizontal text, possibly considering multiple lines
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Align {
+    /// Align at the specified line
+    Line(usize, LineAlign),
+    /// Align at the top (ascender) of the first line
+    Top,
+    /// Align at the center, that is (top + bottom) / 2
+    Center,
+    /// Align at the bottom (descender) of the last line
+    Bottom,
+}
+
+impl Default for Align {
+    fn default() -> Self {
+        Align::Line(0, Default::default())
+    }
+}
+
+impl From<LineAlign> for Align {
+    fn from(value: LineAlign) -> Self {
+        Self::Line(0, value)
+    }
 }
 
 /// A direction for horizontal text layout.
@@ -119,13 +144,13 @@ pub enum VerProgression {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Layout {
-    Horizontal(TypeAlign, LineAlign, Direction),
+    Horizontal(Align, TypeAlign, Direction),
     Vertical(TypeAlign, VerDirection, VerProgression),
 }
 
 impl Default for Layout {
     fn default() -> Self {
-        Layout::Horizontal(TypeAlign::default(), LineAlign::default(), Direction::default())
+        Layout::Horizontal(Align::default(), TypeAlign::default(), Direction::default())
     }
 }
 
@@ -274,10 +299,18 @@ impl RichTextBuilder {
             Layout::Horizontal(_, _, Direction::MixedRTL) => BidiAlgo::Yep {
                 default_lev: Some(unicode_bidi::RTL_LEVEL),
             },
-            Layout::Horizontal(_, _, Direction::LTR) => BidiAlgo::Nope(rustybuzz::Direction::LeftToRight),
-            Layout::Horizontal(_, _, Direction::RTL) => BidiAlgo::Nope(rustybuzz::Direction::RightToLeft),
-            Layout::Vertical(_, VerDirection::TTB, _) => BidiAlgo::Nope(rustybuzz::Direction::TopToBottom),
-            Layout::Vertical(_, VerDirection::BTT, _) => BidiAlgo::Nope(rustybuzz::Direction::BottomToTop),
+            Layout::Horizontal(_, _, Direction::LTR) => {
+                BidiAlgo::Nope(rustybuzz::Direction::LeftToRight)
+            }
+            Layout::Horizontal(_, _, Direction::RTL) => {
+                BidiAlgo::Nope(rustybuzz::Direction::RightToLeft)
+            }
+            Layout::Vertical(_, VerDirection::TTB, _) => {
+                BidiAlgo::Nope(rustybuzz::Direction::TopToBottom)
+            }
+            Layout::Vertical(_, VerDirection::BTT, _) => {
+                BidiAlgo::Nope(rustybuzz::Direction::BottomToTop)
+            }
         };
 
         let resolver = PropsResolver::new(self.init_props.clone());
@@ -463,6 +496,42 @@ impl TextLine {
         }
         metrics
     }
+
+    fn gap(&self) -> f32 {
+        self.shapes
+            .iter()
+            .map(|s| s.metrics.line_gap)
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
+
+    fn height(&self) -> f32 {
+        self.shapes
+            .iter()
+            .map(|s| s.metrics.height())
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
+
+    fn x_advance(&self) -> f32 {
+        self.shapes.iter().map(|s| s.x_advance()).sum()
+    }
+}
+
+trait Lines {
+    fn baseline(&self, idx: usize) -> f32;
+}
+
+impl Lines for [TextLine] {
+    fn baseline(&self, idx: usize) -> f32 {
+        let mut h = 0.0;
+        let mut l = 0;
+        while l < idx {
+            h += self[l].gap() + self[l].height();
+            l += 1;
+        }
+        h
+    }
 }
 
 #[derive(Debug)]
@@ -473,6 +542,12 @@ struct ShapeSpan {
     face_id: fontdb::ID,
     glyphs: Vec<Glyph>,
     metrics: font::ScaledMetrics,
+}
+
+impl ShapeSpan {
+    fn x_advance(&self) -> f32 {
+        self.glyphs.iter().map(|g| g.x_advance as f32).sum()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -486,10 +561,10 @@ struct PropsSpan {
 struct Glyph {
     id: ttf::GlyphId,
     cluster: usize,
-    x_advance: i32,
-    y_advance: i32,
-    x_offset: i32,
-    y_offset: i32,
+    x_advance: f32,
+    y_advance: f32,
+    x_offset: f32,
+    y_offset: f32,
     ts: tiny_skia::Transform,
 }
 
@@ -621,29 +696,26 @@ impl RichTextBuilder {
         buffer.guess_segment_properties();
 
         let (shape, metrics) = fontdb
-            .with_face_data(
-                face_id,
-                |data, index| -> Result<_, Error> {
-                    let face = ttf::Face::parse(data, index)?;
-                    let metrics = font::face_metrics(&face).scaled(shape_props.font_size);
-                    let mut hbface = rustybuzz::Face::from_face(face);
-                    font::apply_hb_variations(&mut hbface, &shape_props.font);
+            .with_face_data(face_id, |data, index| -> Result<_, Error> {
+                let face = ttf::Face::parse(data, index)?;
+                let metrics = font::face_metrics(&face).scaled(shape_props.font_size);
+                let mut hbface = rustybuzz::Face::from_face(face);
+                font::apply_hb_variations(&mut hbface, &shape_props.font);
 
-                    let kern = rustybuzz::Feature::new(ttf::Tag::from_bytes(b"kern"), 1, ..);
-                    Ok((rustybuzz::shape(&hbface, &[kern], buffer), metrics))
-                },
-            )
+                let kern = rustybuzz::Feature::new(ttf::Tag::from_bytes(b"kern"), 1, ..);
+                Ok((rustybuzz::shape(&hbface, &[kern], buffer), metrics))
+            })
             .expect("should be a valid face id")?;
-
+    
         let mut glyphs = Vec::with_capacity(shape.len());
         for (i, p) in shape.glyph_infos().iter().zip(shape.glyph_positions()) {
             glyphs.push(Glyph {
                 id: ttf::GlyphId(i.glyph_id as u16),
                 cluster: i.cluster as usize + start,
-                x_advance: p.x_advance,
-                y_advance: p.y_advance,
-                x_offset: p.x_offset,
-                y_offset: p.y_offset,
+                x_advance: p.x_advance as f32 * metrics.scale,
+                y_advance: p.y_advance as f32 * metrics.scale,
+                x_offset: p.x_offset as f32 * metrics.scale,
+                y_offset: p.y_offset as f32 * metrics.scale,
                 ts: tiny_skia::Transform::identity(),
             })
         }
@@ -660,7 +732,11 @@ impl RichTextBuilder {
         })
     }
 
-    fn build_layout(self, lines: Vec<TextLine>, fontdb: &fontdb::Database) -> Result<RichTextLayout, Error> {
+    fn build_layout(
+        self,
+        lines: Vec<TextLine>,
+        fontdb: &fontdb::Database,
+    ) -> Result<RichTextLayout, Error> {
         if lines.is_empty() {
             return Ok(RichTextLayout::empty());
         }
@@ -671,8 +747,12 @@ impl RichTextBuilder {
         }
     }
 
-    fn build_horizontal_layout(self, lines: Vec<TextLine>, fontdb: &fontdb::Database) -> Result<RichTextLayout, Error> {
-        let Layout::Horizontal(type_align, line_align, direction) = self.layout else {
+    fn build_horizontal_layout(
+        self,
+        mut lines: Vec<TextLine>,
+        fontdb: &fontdb::Database,
+    ) -> Result<RichTextLayout, Error> {
+        let Layout::Horizontal(align, type_align, direction) = self.layout else {
             unreachable!()
         };
 
@@ -680,10 +760,69 @@ impl RichTextBuilder {
 
         let fst_metrics = lines[0].metrics();
         let lst_metrics = lines[lines_len - 1].metrics();
+
+        // y-cursor must be placed at the baseline of the first line
+        let mut y_cursor = match align {
+            Align::Top => fst_metrics.ascent,
+            Align::Bottom => lst_metrics.descent - lines.baseline(lines_len - 1),
+            Align::Center => {
+                let top = fst_metrics.ascent;
+                let bottom = lst_metrics.descent - lines.baseline(lines_len - 1);
+                (top + bottom) / 2.0
+            }
+            Align::Line(line, align) => {
+                let baseline = lines.baseline(line);
+                match align {
+                    LineAlign::Bottom => lst_metrics.descent - baseline,
+                    LineAlign::Baseline => -baseline,
+                    LineAlign::Middle => lst_metrics.x_height / 2.0 - baseline,
+                    LineAlign::Hanging => lst_metrics.cap_height - baseline,
+                    LineAlign::Top => lst_metrics.ascent - baseline,
+                }
+            }
+        };
+
+        for lidx in 0..lines_len {
+            if lidx != 0 {
+                y_cursor += lines[lidx].height();
+            }
+
+            let metrics = if lidx == 0 {
+                fst_metrics
+            } else if lidx == lines_len - 1 {
+                lst_metrics
+            } else {
+                lines[lidx].metrics()
+            };
+
+            Self::layout_horizontal_line(&mut lines[lidx], y_cursor, &metrics, type_align, direction);
+        }
         todo!()
     }
 
-    fn build_vertical_layout(self, lines: Vec<TextLine>, fontdb: &fontdb::Database) -> Result<RichTextLayout, Error> {
+    fn layout_horizontal_line(
+        line: &mut TextLine,
+        y_baseline: f32,
+        metrics: &font::ScaledMetrics,
+        type_align: TypeAlign,
+        direction: Direction,
+    ) {
+        let width = line.x_advance();
+        // FIXME: count spaces and justify only with spaces width
+        let (width, justify_fact) = match type_align {
+            TypeAlign::Justify(wid) => {
+                let wid = wid.max(width);
+                (wid, wid / width)
+            },
+            _ => (width, 1.0),
+        };
+    }
+
+    fn build_vertical_layout(
+        self,
+        lines: Vec<TextLine>,
+        fontdb: &fontdb::Database,
+    ) -> Result<RichTextLayout, Error> {
         let Layout::Vertical(type_align, direction, prograssion) = self.layout else {
             unreachable!()
         };
@@ -691,7 +830,6 @@ impl RichTextBuilder {
         todo!()
     }
 }
-
 
 #[cfg(test)]
 mod tests {
