@@ -12,6 +12,7 @@ pub mod shape;
 pub use font::{Font, ScaledMetrics, parse_font_families};
 pub use layout::{Anchor, BBox, HorAlign, LineVerAlign, TextLayout, VerAlign};
 pub use render::{render_text, render_text_tiny_skia};
+pub use rich::{RichTextLayout, RichTextBuilder};
 pub use shape::{Direction, TextShape};
 
 #[derive(Debug, Clone)]

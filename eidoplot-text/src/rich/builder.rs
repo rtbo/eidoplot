@@ -1,6 +1,6 @@
 use super::{
-    Direction, Error, Layout, RichTextLayout, TextOptProps, TextProps, TextSpan, VerDirection,
-    TextLine, ShapeSpan, PropsSpan, Align, TypeAlign, LineAlign, Glyph,
+    Align, Direction, Error, Glyph, Layout, LineAlign, PropsSpan, RichTextLayout, ShapeSpan,
+    TextLine, TextOptProps, TextProps, TextSpan, TypeAlign, VerDirection,
 };
 use crate::font::{self, DatabaseExt};
 use crate::fontdb;
@@ -146,10 +146,17 @@ enum Justify {
     Glyph { fact: f32 },
 }
 
+impl ShapeSpan {
+    fn x_advance(&self) -> f32 {
+        self.glyphs.iter().map(|g| g.x_advance as f32).sum()
+    }
+}
+
 impl TextLine {
     fn metrics(&self) -> font::ScaledMetrics {
         let mut metrics = font::ScaledMetrics::null();
         for s in &self.shapes {
+            metrics.scale = metrics.scale.max(s.metrics.scale);
             metrics.ascent = metrics.ascent.max(s.metrics.ascent);
             metrics.descent = metrics.descent.max(s.metrics.descent);
             metrics.x_height = metrics.x_height.max(s.metrics.x_height);
@@ -200,17 +207,17 @@ impl Lines for [TextLine] {
 #[derive(Debug, Clone)]
 pub struct RichTextBuilder {
     text: String,
-    init_props: TextProps,
+    root_props: TextProps,
     layout: Layout,
     spans: Vec<TextSpan>,
 }
 
 impl RichTextBuilder {
     /// Create a new RichTextBuilder
-    pub fn new(text: String, init_props: TextProps) -> RichTextBuilder {
+    pub fn new(text: String, root_props: TextProps) -> RichTextBuilder {
         RichTextBuilder {
             text,
-            init_props,
+            root_props,
             layout: Layout::default(),
             spans: vec![],
         }
@@ -259,7 +266,7 @@ impl RichTextBuilder {
             }
         };
 
-        let resolver = PropsResolver::new(self.init_props.clone());
+        let resolver = PropsResolver::new(self.root_props.clone());
 
         let mut ctx = BuilderCtx {
             resolver,
@@ -271,23 +278,37 @@ impl RichTextBuilder {
         // str.lines() isn't suitable because it splits either on \n or \r\n, without knowing which
         let mut lines = Vec::new();
         let mut line_start = 0;
-        for line in self.text.split_inclusive('\n') {
-            let eol_len = if line.len() > 1 && line.as_bytes()[line.len() - 2] == b'\r' {
-                2
-            } else {
-                1
-            };
-
-            lines.push(self.shape_line(
-                line_start,
-                line_start + line.len() - eol_len,
-                fontdb,
-                &mut ctx,
-            )?);
-
-            line_start += line.len();
+        let mut was_cr = false;
+        for (i, c) in self.text.char_indices() {
+            match c {
+                '\r' => {
+                    was_cr = true;
+                }
+                '\n' => {
+                    lines.push(self.shape_line(
+                        line_start,
+                        if was_cr { i - 1 } else { i },
+                        fontdb,
+                        &mut ctx,
+                    )?);
+                    line_start = i + 1;
+                }
+                '\u{85}' => {
+                    lines.push(self.shape_line(line_start, i, fontdb, &mut ctx)?);
+                    line_start = i + 2;
+                }
+                '\u{2028}' | '\u{2029}' => {
+                    lines.push(self.shape_line(line_start, i, fontdb, &mut ctx)?);
+                    line_start = i + 3;
+                }
+                _ => {
+                    was_cr = false;
+                }
+            }
         }
-
+        if line_start < self.text.len() {
+            lines.push(self.shape_line(line_start, self.text.len(), fontdb, &mut ctx)?);
+        }
         self.build_layout(lines)
     }
 
@@ -312,19 +333,24 @@ impl RichTextBuilder {
 
         let mut cur_start = start;
         let mut shapes = Vec::new();
+
         for (i, _) in line_txt.char_indices() {
             let i = i + start;
             let mut bump_start = false;
             for run in bidi_runs.iter() {
                 if (i == run.start || i == run.end) && run.start != run.end {
-                    shapes.push(self.shape_span(cur_start, i, cur_dir, fontdb, ctx)?);
+                    if i != cur_start {
+                        shapes.push(self.shape_span(cur_start, i, cur_dir, fontdb, ctx)?);
+                    }
                     cur_dir = run.dir;
                     bump_start = true;
                 }
             }
             for span in self.spans.iter().filter(|s| s.props.affect_shape()) {
                 if (i == span.start || i == span.end) && span.start != span.end {
-                    shapes.push(self.shape_span(cur_start, i, cur_dir, fontdb, ctx)?);
+                    if i != cur_start {
+                        shapes.push(self.shape_span(cur_start, i, cur_dir, fontdb, ctx)?);
+                    }
                     if i == span.start {
                         ctx.resolver.push_opts(span.props.clone());
                     }
@@ -360,9 +386,10 @@ impl RichTextBuilder {
     ) -> Result<ShapeSpan, Error> {
         debug_assert!(self.text.is_char_boundary(start) && self.text.is_char_boundary(end));
 
+        let txt = &self.text[start..end];
+
         let mut cur_start = start;
         let mut props_spans = Vec::new();
-        let txt = &self.text[start..end];
         for (i, _) in txt.char_indices() {
             let i = i + start;
             for span in self.spans.iter().filter(|s| !s.props.affect_shape()) {
@@ -498,17 +525,9 @@ impl RichTextBuilder {
                 y_cursor += lines[lidx].height();
             }
 
-            let metrics = if lidx == 0 {
-                fst_metrics
-            } else if lidx == lines_len - 1 {
-                lst_metrics
-            } else {
-                lines[lidx].metrics()
-            };
+            self.layout_horizontal_line(&mut lines[lidx], y_cursor, type_align);
 
-            self.layout_horizontal_line(&mut lines[lidx], y_cursor, &metrics, type_align);
-
-            y_cursor += metrics.line_gap;
+            y_cursor += lines[lidx].gap();
         }
 
         Ok(())
@@ -518,7 +537,6 @@ impl RichTextBuilder {
         &self,
         line: &mut TextLine,
         y_baseline: f32,
-        metrics: &font::ScaledMetrics,
         type_align: TypeAlign,
     ) {
         let ws = self.text[line.start..line.end]
@@ -557,7 +575,7 @@ impl RichTextBuilder {
 
         let y_flip = Transform::from_scale(1.0, -1.0);
         for shape in line.shapes.iter_mut() {
-            let scale_ts = Transform::from_scale(metrics.scale, metrics.scale);
+            let scale_ts = Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
             for glyph in shape.glyphs.iter_mut() {
                 let x = x_cursor + glyph.x_offset;
                 let y = y_cursor + glyph.y_offset;

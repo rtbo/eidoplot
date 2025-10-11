@@ -6,8 +6,10 @@ use std::fmt;
 use ttf_parser as ttf;
 
 mod builder;
+mod render;
 
 pub use builder::RichTextBuilder;
+pub use render::render_rich_text;
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -161,27 +163,68 @@ impl Default for Layout {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct RichTextLayout {
+    text: String,
+    lines: Vec<TextLine>,
+}
+
+impl RichTextLayout {
+    fn empty() -> Self {
+        Self {
+            text: String::new(),
+            lines: Vec::new(),
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    pub fn assert_flat_coverage(&self) {
+        let len = self.text.len();
+        let mut cursor = 0;
+        for l in self.lines.iter() {
+            assert_eq!(l.start, cursor);
+            cursor = l.end;
+            if cursor == len {
+                // last line might not end with a newline
+                break;
+            }
+            if self.text.as_bytes()[cursor] == b'\r' {
+                cursor += 1;
+            }
+            assert_eq!(self.text.as_bytes()[cursor], b'\n', "expected end of line, found {}", self.text[cursor..].chars().next().unwrap());
+            cursor += 1;
+            l.assert_flat_coverage();
+        }
+        assert_eq!(cursor, len);
+    }
+}
+
+/// A RGBA color
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Color {
+pub struct Color {
+    /// Red component
     pub r: u8,
+    /// Green component
     pub g: u8,
+    /// Blue component
     pub b: u8,
+    /// Alpha component
     pub a: u8,
 }
 
 /// A set of properties to be applied to a text span.
 /// If a property is `None`, value is inherited from the parent span.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct TextOptProps {
-    font_family: Option<Vec<font::Family>>,
-    font_weight: Option<font::Weight>,
-    font_width: Option<font::Width>,
-    font_style: Option<font::Style>,
-    font_size: Option<f32>,
-    fill: Option<Color>,
-    stroke: Option<Color>,
-    underline: Option<bool>,
-    strikeout: Option<bool>,
+    pub font_family: Option<Vec<font::Family>>,
+    pub font_weight: Option<font::Weight>,
+    pub font_width: Option<font::Width>,
+    pub font_style: Option<font::Style>,
+    pub font_size: Option<f32>,
+    pub fill: Option<Color>,
+    pub stroke: Option<(Color, f32)>,
+    pub underline: Option<bool>,
+    pub strikeout: Option<bool>,
 }
 
 impl TextOptProps {
@@ -197,10 +240,10 @@ impl TextOptProps {
 /// A set of resolved properties for a text span
 #[derive(Debug, Clone)]
 pub struct TextProps {
-    font: font::Font,
     font_size: f32,
+    font: font::Font,
     fill: Option<Color>,
-    stroke: Option<Color>,
+    outline: Option<(Color, f32)>,
     underline: bool,
     strikeout: bool,
 }
@@ -208,18 +251,43 @@ pub struct TextProps {
 impl TextProps {
     pub fn new(font_size: f32) -> TextProps {
         TextProps {
-            font: font::Font::default(),
             font_size,
+            font: font::Font::default(),
             fill: Some(Color {
                 r: 0,
                 g: 0,
                 b: 0,
                 a: 255,
             }),
-            stroke: None,
+            outline: None,
             underline: false,
             strikeout: false,
         }
+    }
+
+    pub fn with_font(mut self, font: font::Font) -> Self {
+        self.font = font;
+        self
+    }
+
+    pub fn with_fill(mut self, fill: Option<Color>) -> Self {
+        self.fill = fill;
+        self
+    }
+
+    pub fn with_outline(mut self, stroke: Option<(Color, f32)>) -> Self {
+        self.outline = stroke;
+        self
+    }
+
+    pub fn with_underline(mut self) -> Self {
+        self.underline = true;
+        self
+    }
+
+    pub fn with_strikeout(mut self) -> Self {
+        self.strikeout = true;
+        self
     }
 
     fn apply_opts(&mut self, opts: &TextOptProps) {
@@ -242,7 +310,7 @@ impl TextProps {
             self.fill = Some(fill);
         }
         if let Some(stroke) = opts.stroke {
-            self.stroke = Some(stroke);
+            self.outline = Some(stroke);
         }
         if let Some(underline) = opts.underline {
             self.underline = underline;
@@ -260,12 +328,26 @@ struct TextSpan {
     end: usize,
     props: TextOptProps,
 }
+
 #[derive(Debug, Clone)]
 struct TextLine {
     start: usize,
     end: usize,
     shapes: Vec<ShapeSpan>,
     main_dir: rustybuzz::Direction,
+}
+
+impl TextLine {
+    #[cfg(debug_assertions)]
+    fn assert_flat_coverage(&self) {
+        let mut cursor = self.start;
+        for s in self.shapes.iter() {
+            assert_eq!(s.start, cursor);
+            cursor = s.end;
+            s.assert_flat_coverage();
+        }
+        assert_eq!(cursor, self.end);
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -279,8 +361,14 @@ struct ShapeSpan {
 }
 
 impl ShapeSpan {
-    fn x_advance(&self) -> f32 {
-        self.glyphs.iter().map(|g| g.x_advance as f32).sum()
+    #[cfg(debug_assertions)]
+    fn assert_flat_coverage(&self) {
+        let mut cursor = self.start;
+        for s in self.spans.iter() {
+            assert_eq!(s.start, cursor);
+            cursor = s.end;
+        }
+        assert_eq!(cursor, self.end);
     }
 }
 
@@ -300,19 +388,4 @@ struct Glyph {
     x_offset: f32,
     y_offset: f32,
     ts: tiny_skia::Transform,
-}
-
-#[derive(Debug, Clone)]
-pub struct RichTextLayout {
-    text: String,
-    lines: Vec<TextLine>,
-}
-
-impl RichTextLayout {
-    fn empty() -> Self {
-        Self {
-            text: String::new(),
-            lines: Vec::new(),
-        }
-    }
 }
