@@ -1,0 +1,1358 @@
+RichTextBuilder {
+    text: "Bode diagram of RLC circuit\nL = 0.1 mH  -  C = 1 µF",
+    root_props: TextProps {
+        font_size: 36.0,
+        font: Font {
+            families: [
+                Named(
+                    "Noto Sans",
+                ),
+                Named(
+                    "DejaVu Sans",
+                ),
+                SansSerif,
+            ],
+            weight: Weight(
+                400,
+            ),
+            width: Normal,
+            style: Normal,
+        },
+        fill: Some(
+            Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 255,
+            },
+        ),
+        outline: None,
+        underline: false,
+        strikeout: false,
+    },
+    layout: Horizontal(
+        Center,
+        Center,
+        LTR,
+    ),
+    spans: [
+        TextSpan {
+            start: 16,
+            end: 19,
+            props: TextOptProps {
+                font_family: None,
+                font_weight: Some(
+                    Weight(
+                        700,
+                    ),
+                ),
+                font_width: None,
+                font_style: None,
+                font_size: None,
+                fill: None,
+                stroke: None,
+                underline: None,
+                strikeout: None,
+            },
+        },
+        TextSpan {
+            start: 16,
+            end: 27,
+            props: TextOptProps {
+                font_family: None,
+                font_weight: None,
+                font_width: None,
+                font_style: None,
+                font_size: None,
+                fill: None,
+                stroke: None,
+                underline: Some(
+                    true,
+                ),
+                strikeout: None,
+            },
+        },
+        TextSpan {
+            start: 28,
+            end: 52,
+            props: TextOptProps {
+                font_family: None,
+                font_weight: None,
+                font_width: None,
+                font_style: Some(
+                    Italic,
+                ),
+                font_size: Some(
+                    24.0,
+                ),
+                fill: None,
+                stroke: None,
+                underline: None,
+                strikeout: None,
+            },
+        },
+    ],
+}
+line span 0..27
+boundaries: BoundariesIter { start: 0, end: 27, i: 0, vec: [16, 19] }
+shape span 0..16
+pushing prop span 0..16
+shape span 16..19
+pushing font-weight 
+pushing underline 
+pushing prop span 16..19
+popping font-weight 
+shape span 19..27
+pushing prop span 19..27
+popping underline 
+line span 28..52
+boundaries: BoundariesIter { start: 28, end: 52, i: 0, vec: [] }
+shape span 28..52
+pushing font-style font-size 
+pushing prop span 28..52
+popping font-style font-size 
+RichTextLayout {
+    text: "Bode diagram of RLC circuit\nL = 0.1 mH  -  C = 1 µF",
+    lines: [
+        TextLine {
+            start: 0,
+            end: 27,
+            shapes: [
+                ShapeSpan {
+                    start: 0,
+                    end: 16,
+                    spans: [
+                        PropsSpan {
+                            start: 0,
+                            end: 16,
+                            props: TextProps {
+                                font_size: 36.0,
+                                font: Font {
+                                    families: [
+                                        Named(
+                                            "Noto Sans",
+                                        ),
+                                        Named(
+                                            "DejaVu Sans",
+                                        ),
+                                        SansSerif,
+                                    ],
+                                    weight: Weight(
+                                        400,
+                                    ),
+                                    width: Normal,
+                                    style: Normal,
+                                },
+                                fill: Some(
+                                    Color {
+                                        r: 0,
+                                        g: 0,
+                                        b: 0,
+                                        a: 255,
+                                    },
+                                ),
+                                outline: None,
+                                underline: false,
+                                strikeout: false,
+                            },
+                            bbox: BBox {
+                                top: -49.031998,
+                                right: 58.23,
+                                bottom: -9.536743e-7,
+                                left: -233.40599,
+                            },
+                        },
+                    ],
+                    face_id: ID(
+                        InnerId(
+                            205v1,
+                        ),
+                    ),
+                    glyphs: [
+                        Glyph {
+                            id: GlyphId(
+                                37,
+                            ),
+                            cluster: 0,
+                            x_advance: 23.4,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -233.40599,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                82,
+                            ),
+                            cluster: 1,
+                            x_advance: 21.779999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -210.006,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                71,
+                            ),
+                            cluster: 2,
+                            x_advance: 22.14,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -188.226,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                72,
+                            ),
+                            cluster: 3,
+                            x_advance: 20.303999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -166.086,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 4,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -145.782,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                71,
+                            ),
+                            cluster: 5,
+                            x_advance: 22.14,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -136.422,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                76,
+                            ),
+                            cluster: 6,
+                            x_advance: 9.287999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -114.282,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                68,
+                            ),
+                            cluster: 7,
+                            x_advance: 20.196,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -104.993996,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                74,
+                            ),
+                            cluster: 8,
+                            x_advance: 22.14,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -84.798,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                85,
+                            ),
+                            cluster: 9,
+                            x_advance: 14.148,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -62.657997,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                68,
+                            ),
+                            cluster: 10,
+                            x_advance: 20.196,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -48.51,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                80,
+                            ),
+                            cluster: 11,
+                            x_advance: 33.66,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -28.314,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 12,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 5.3460007,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                82,
+                            ),
+                            cluster: 13,
+                            x_advance: 21.779999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 14.706,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                73,
+                            ),
+                            cluster: 14,
+                            x_advance: 12.384,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 36.486,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 15,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 48.87,
+                                ty: -10.548,
+                            },
+                        },
+                    ],
+                    metrics: ScaledMetrics {
+                        scale: 0.036,
+                        ascent: 38.483997,
+                        descent: -10.547999,
+                        x_height: 19.296,
+                        cap_height: 25.703999,
+                        line_gap: 0.0,
+                        uline: ScaledLineMetrics {
+                            position: -3.6,
+                            thickness: 1.8,
+                        },
+                        strikeout: ScaledLineMetrics {
+                            position: 11.591999,
+                            thickness: 1.8,
+                        },
+                    },
+                    y_baseline: -10.548,
+                    bbox: BBox {
+                        top: -49.031998,
+                        right: 58.23,
+                        bottom: -9.536743e-7,
+                        left: -233.40599,
+                    },
+                },
+                ShapeSpan {
+                    start: 16,
+                    end: 19,
+                    spans: [
+                        PropsSpan {
+                            start: 16,
+                            end: 19,
+                            props: TextProps {
+                                font_size: 36.0,
+                                font: Font {
+                                    families: [
+                                        Named(
+                                            "Noto Sans",
+                                        ),
+                                        Named(
+                                            "DejaVu Sans",
+                                        ),
+                                        SansSerif,
+                                    ],
+                                    weight: Weight(
+                                        700,
+                                    ),
+                                    width: Normal,
+                                    style: Normal,
+                                },
+                                fill: Some(
+                                    Color {
+                                        r: 0,
+                                        g: 0,
+                                        b: 0,
+                                        a: 255,
+                                    },
+                                ),
+                                outline: None,
+                                underline: true,
+                                strikeout: false,
+                            },
+                            bbox: BBox {
+                                top: -49.031998,
+                                right: 121.51799,
+                                bottom: -9.536743e-7,
+                                left: 58.23,
+                            },
+                        },
+                    ],
+                    face_id: ID(
+                        InnerId(
+                            205v1,
+                        ),
+                    ),
+                    glyphs: [
+                        Glyph {
+                            id: GlyphId(
+                                53,
+                            ),
+                            cluster: 16,
+                            x_advance: 22.391998,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 58.23,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                47,
+                            ),
+                            cluster: 17,
+                            x_advance: 18.144,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 80.621994,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                38,
+                            ),
+                            cluster: 18,
+                            x_advance: 22.751999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 98.76599,
+                                ty: -10.548,
+                            },
+                        },
+                    ],
+                    metrics: ScaledMetrics {
+                        scale: 0.036,
+                        ascent: 38.483997,
+                        descent: -10.547999,
+                        x_height: 19.296,
+                        cap_height: 25.703999,
+                        line_gap: 0.0,
+                        uline: ScaledLineMetrics {
+                            position: -3.6,
+                            thickness: 1.8,
+                        },
+                        strikeout: ScaledLineMetrics {
+                            position: 11.591999,
+                            thickness: 1.8,
+                        },
+                    },
+                    y_baseline: -10.548,
+                    bbox: BBox {
+                        top: -49.031998,
+                        right: 121.51799,
+                        bottom: -9.536743e-7,
+                        left: 58.23,
+                    },
+                },
+                ShapeSpan {
+                    start: 19,
+                    end: 27,
+                    spans: [
+                        PropsSpan {
+                            start: 19,
+                            end: 27,
+                            props: TextProps {
+                                font_size: 36.0,
+                                font: Font {
+                                    families: [
+                                        Named(
+                                            "Noto Sans",
+                                        ),
+                                        Named(
+                                            "DejaVu Sans",
+                                        ),
+                                        SansSerif,
+                                    ],
+                                    weight: Weight(
+                                        400,
+                                    ),
+                                    width: Normal,
+                                    style: Normal,
+                                },
+                                fill: Some(
+                                    Color {
+                                        r: 0,
+                                        g: 0,
+                                        b: 0,
+                                        a: 255,
+                                    },
+                                ),
+                                outline: None,
+                                underline: true,
+                                strikeout: false,
+                            },
+                            bbox: BBox {
+                                top: -49.031998,
+                                right: 233.40598,
+                                bottom: -9.536743e-7,
+                                left: 121.51799,
+                            },
+                        },
+                    ],
+                    face_id: ID(
+                        InnerId(
+                            205v1,
+                        ),
+                    ),
+                    glyphs: [
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 19,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 121.51799,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                70,
+                            ),
+                            cluster: 20,
+                            x_advance: 17.279999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 130.87799,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                76,
+                            ),
+                            cluster: 21,
+                            x_advance: 9.287999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 148.15799,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                85,
+                            ),
+                            cluster: 22,
+                            x_advance: 14.148,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 157.44598,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                70,
+                            ),
+                            cluster: 23,
+                            x_advance: 17.279999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 171.59398,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                88,
+                            ),
+                            cluster: 24,
+                            x_advance: 22.248,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 188.87398,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                76,
+                            ),
+                            cluster: 25,
+                            x_advance: 9.287999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 211.12198,
+                                ty: -10.548,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                87,
+                            ),
+                            cluster: 26,
+                            x_advance: 12.995999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 220.40997,
+                                ty: -10.548,
+                            },
+                        },
+                    ],
+                    metrics: ScaledMetrics {
+                        scale: 0.036,
+                        ascent: 38.483997,
+                        descent: -10.547999,
+                        x_height: 19.296,
+                        cap_height: 25.703999,
+                        line_gap: 0.0,
+                        uline: ScaledLineMetrics {
+                            position: -3.6,
+                            thickness: 1.8,
+                        },
+                        strikeout: ScaledLineMetrics {
+                            position: 11.591999,
+                            thickness: 1.8,
+                        },
+                    },
+                    y_baseline: -10.548,
+                    bbox: BBox {
+                        top: -49.031998,
+                        right: 233.40598,
+                        bottom: -9.536743e-7,
+                        left: 121.51799,
+                    },
+                },
+            ],
+            main_dir: LeftToRight,
+            bbox: BBox {
+                top: -49.031998,
+                right: 233.40598,
+                bottom: -9.536743e-7,
+                left: -233.40599,
+            },
+        },
+        TextLine {
+            start: 28,
+            end: 52,
+            shapes: [
+                ShapeSpan {
+                    start: 28,
+                    end: 52,
+                    spans: [
+                        PropsSpan {
+                            start: 28,
+                            end: 52,
+                            props: TextProps {
+                                font_size: 24.0,
+                                font: Font {
+                                    families: [
+                                        Named(
+                                            "Noto Sans",
+                                        ),
+                                        Named(
+                                            "DejaVu Sans",
+                                        ),
+                                        SansSerif,
+                                    ],
+                                    weight: Weight(
+                                        400,
+                                    ),
+                                    width: Normal,
+                                    style: Italic,
+                                },
+                                fill: Some(
+                                    Color {
+                                        r: 0,
+                                        g: 0,
+                                        b: 0,
+                                        a: 255,
+                                    },
+                                ),
+                                outline: None,
+                                underline: false,
+                                strikeout: false,
+                            },
+                            bbox: BBox {
+                                top: 0.0,
+                                right: 180.43199,
+                                bottom: 49.031998,
+                                left: -180.43199,
+                            },
+                        },
+                    ],
+                    face_id: ID(
+                        InnerId(
+                            205v1,
+                        ),
+                    ),
+                    glyphs: [
+                        Glyph {
+                            id: GlyphId(
+                                47,
+                            ),
+                            cluster: 28,
+                            x_advance: 18.863998,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -180.43199,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 29,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -161.568,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                32,
+                            ),
+                            cluster: 30,
+                            x_advance: 20.592,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -152.208,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 31,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -131.616,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                19,
+                            ),
+                            cluster: 32,
+                            x_advance: 20.592,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -122.256,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                17,
+                            ),
+                            cluster: 33,
+                            x_advance: 9.648,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -101.664,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                20,
+                            ),
+                            cluster: 34,
+                            x_advance: 20.592,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -92.016,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 35,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -71.423996,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                80,
+                            ),
+                            cluster: 36,
+                            x_advance: 33.66,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -62.063995,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                43,
+                            ),
+                            cluster: 37,
+                            x_advance: 26.675999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -28.403996,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 38,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: -1.7279968,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 39,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 7.632003,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                16,
+                            ),
+                            cluster: 40,
+                            x_advance: 11.591999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 16.992002,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 41,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 28.584002,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 42,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 37.944,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                38,
+                            ),
+                            cluster: 43,
+                            x_advance: 22.751999,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 47.304,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 44,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 70.056,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                32,
+                            ),
+                            cluster: 45,
+                            x_advance: 20.592,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 79.416,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 46,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 100.007996,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                20,
+                            ),
+                            cluster: 47,
+                            x_advance: 20.592,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 109.368,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                3,
+                            ),
+                            cluster: 48,
+                            x_advance: 9.36,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 129.95999,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                119,
+                            ),
+                            cluster: 49,
+                            x_advance: 22.428,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 139.31999,
+                                ty: 38.483997,
+                            },
+                        },
+                        Glyph {
+                            id: GlyphId(
+                                41,
+                            ),
+                            cluster: 51,
+                            x_advance: 18.684,
+                            y_advance: 0.0,
+                            x_offset: 0.0,
+                            y_offset: 0.0,
+                            ts: Transform {
+                                sx: 0.036,
+                                kx: 0.0,
+                                ky: 0.0,
+                                sy: -0.036,
+                                tx: 161.74799,
+                                ty: 38.483997,
+                            },
+                        },
+                    ],
+                    metrics: ScaledMetrics {
+                        scale: 0.036,
+                        ascent: 38.483997,
+                        descent: -10.547999,
+                        x_height: 19.296,
+                        cap_height: 25.703999,
+                        line_gap: 0.0,
+                        uline: ScaledLineMetrics {
+                            position: -3.6,
+                            thickness: 1.8,
+                        },
+                        strikeout: ScaledLineMetrics {
+                            position: 11.591999,
+                            thickness: 1.8,
+                        },
+                    },
+                    y_baseline: 38.483997,
+                    bbox: BBox {
+                        top: 0.0,
+                        right: 180.43199,
+                        bottom: 49.031998,
+                        left: -180.43199,
+                    },
+                },
+            ],
+            main_dir: LeftToRight,
+            bbox: BBox {
+                top: 0.0,
+                right: 180.43199,
+                bottom: 49.031998,
+                left: -180.43199,
+            },
+        },
+    ],
+    bbox: BBox {
+        top: -49.031998,
+        right: 233.40598,
+        bottom: 49.031998,
+        left: -233.40599,
+    },
+}
+bbox: BBox { top: -49.031998, right: 121.51799, bottom: -9.536743e-7, left: 58.23 }, y_baseline: -10.548
+line: ScaledLineMetrics { position: -3.6, thickness: 1.8 }
+bbox: BBox { top: -49.031998, right: 233.40598, bottom: -9.536743e-7, left: 121.51799 }, y_baseline: -10.548
+line: ScaledLineMetrics { position: -3.6, thickness: 1.8 }

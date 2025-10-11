@@ -30,7 +30,7 @@ pub struct BBox {
 }
 
 impl BBox {
-    const fn unite(bb1: &BBox, bb2: &BBox) -> BBox {
+    pub(crate) const fn unite(bb1: &BBox, bb2: &BBox) -> BBox {
         BBox {
             top: bb1.top.min(bb2.top),
             right: bb1.right.max(bb2.right),
@@ -39,7 +39,7 @@ impl BBox {
         }
     }
 
-    const EMPTY: BBox = BBox {
+    pub(crate) const EMPTY: BBox = BBox {
         top: f32::MAX,
         right: f32::MIN,
         bottom: f32::MIN,

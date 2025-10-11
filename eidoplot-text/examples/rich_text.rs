@@ -1,4 +1,4 @@
-use eidoplot_text::RichTextBuilder;
+use eidoplot_text::{Font, RichTextBuilder};
 use eidoplot_text::{font, rich};
 use tiny_skia::Transform;
 
@@ -13,13 +13,13 @@ fn main() {
     let line2 = "L = 0.1 mH  -  C = 1 µF";
     let text = line1.to_string() + line2;
 
-    let start_rlc = line1.find("RLC").unwrap();
+    let start_rlc = text.find("RLC").unwrap();
     let end_rlc = start_rlc + "RLC".len();
 
     let start_line2 = line1.len();
     let end_line2 = line1.len() + line2.len();
 
-    let font = font::Font::default().with_families(vec![
+    let font = Font::default().with_families(vec![
         font::Family::Named("Noto Sans".to_string()),
         font::Family::Named("DejaVu Sans".to_string()),
         font::Family::SansSerif,
@@ -39,6 +39,7 @@ fn main() {
         end_rlc,
         rich::TextOptProps {
             font_weight: Some(font::Weight::BOLD),
+            font_style: Some(font::Style::Italic),
             ..Default::default()
         },
     );

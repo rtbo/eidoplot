@@ -1,15 +1,17 @@
 use crate::{
     font,
-    fontdb,
+    fontdb, BBox,
 };
 use std::fmt;
 use ttf_parser as ttf;
 
 mod builder;
+mod boundaries;
 mod render;
 
 pub use builder::RichTextBuilder;
 pub use render::render_rich_text;
+use boundaries::Boundaries;
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -167,13 +169,23 @@ impl Default for Layout {
 pub struct RichTextLayout {
     text: String,
     lines: Vec<TextLine>,
+    bbox: BBox,
 }
 
 impl RichTextLayout {
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
+    pub fn bbox(&self) -> BBox {
+        self.bbox
+    }
+
     fn empty() -> Self {
         Self {
             text: String::new(),
             lines: Vec::new(),
+            bbox: BBox::EMPTY,
         }
     }
 
@@ -335,6 +347,7 @@ struct TextLine {
     end: usize,
     shapes: Vec<ShapeSpan>,
     main_dir: rustybuzz::Direction,
+    bbox: BBox,
 }
 
 impl TextLine {
@@ -358,6 +371,8 @@ struct ShapeSpan {
     face_id: fontdb::ID,
     glyphs: Vec<Glyph>,
     metrics: font::ScaledMetrics,
+    y_baseline: f32,
+    bbox: BBox,
 }
 
 impl ShapeSpan {
@@ -377,6 +392,7 @@ struct PropsSpan {
     start: usize,
     end: usize,
     props: TextProps,
+    bbox: BBox,
 }
 
 #[derive(Debug, Clone, Copy)]
