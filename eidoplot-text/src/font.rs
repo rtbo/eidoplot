@@ -848,6 +848,8 @@ pub(crate) struct Metrics {
     pub(crate) x_height: i16,
     pub(crate) cap_height: i16,
     pub(crate) line_gap: i16,
+    pub(crate) uline: ttf::LineMetrics,
+    pub(crate) strikeout: ttf::LineMetrics,
 }
 
 impl Metrics {
@@ -876,6 +878,14 @@ impl Metrics {
             x_height: self.x_height as f32 * scale,
             cap_height: self.cap_height as f32 * scale,
             line_gap: self.line_gap as f32 * scale,
+            uline: ScaledLineMetrics {
+                position: self.uline.position as f32 * scale,
+                thickness: self.uline.thickness as f32 * scale,
+            },
+            strikeout: ScaledLineMetrics {
+                position: self.strikeout.position as f32 * scale,
+                thickness: self.strikeout.thickness as f32 * scale,
+            },
         }
     }
 }
@@ -892,6 +902,20 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> Metrics {
         .unwrap_or(((ascent - descent) as f32 * 0.8) as i16);
     let line_gap = face.line_gap();
 
+    let uline = face.underline_metrics().unwrap_or_else (|| {
+        ttf::LineMetrics {
+            position: -(ascent as f32 * 0.1) as i16,
+            thickness: (units_per_em as f32 / 14.0) as i16,
+        }
+    });
+
+    let strikeout = face.strikeout_metrics().unwrap_or_else (|| {
+        ttf::LineMetrics {
+            position: (x_height as f32 * 0.5) as i16,
+            thickness: (units_per_em as f32 / 14.0) as i16,
+        }
+    });
+
     Metrics {
         units_per_em,
         ascent,
@@ -899,7 +923,18 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> Metrics {
         x_height,
         cap_height,
         line_gap,
+        uline,
+        strikeout,
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+/// Metrics of a scaled line (underline or strikeout)
+pub struct ScaledLineMetrics {
+    /// Position of the line
+    pub position: f32,
+    /// Thickness of the line
+    pub thickness: f32,
 }
 
 /// Metrics of a font face, scaled to a font size
@@ -919,6 +954,10 @@ pub struct ScaledMetrics {
     /// Gap to be added (possibly zero) to the distance between two lines,
     /// from the bottom of the first line to the top of the following one)
     pub line_gap: f32,
+    /// Underline metrics
+    pub uline: ScaledLineMetrics,
+    /// Strikeout metrics
+    pub strikeout: ScaledLineMetrics,
 }
 
 impl ScaledMetrics {
@@ -935,6 +974,8 @@ impl ScaledMetrics {
             x_height: 0.0,
             cap_height: 0.0,
             line_gap: 0.0,
+            uline: ScaledLineMetrics { position: 0.0, thickness: 0.0 },
+            strikeout: ScaledLineMetrics { position: 0.0, thickness: 0.0 },
         }
     }
 }

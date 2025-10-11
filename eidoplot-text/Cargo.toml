@@ -31,3 +31,6 @@ fontconfig = ["fontconfig-parser", "fs"]
 
 [[example]]
 name="bidi_layout"
+
+[[example]]
+name="rich_text"
