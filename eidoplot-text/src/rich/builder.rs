@@ -1,13 +1,14 @@
-
 use super::{
-    Align, Boundaries, Direction, Error, Glyph, Layout, LineAlign, PropsSpan, RichTextLayout, ShapeSpan,
-    TextLine, TextOptProps, TextProps, TextSpan, TypeAlign, VerDirection,
+    Align, Boundaries, Direction, Error, Glyph, Layout, LineAlign, PropsSpan, RichTextLayout,
+    ShapeSpan, TextLine, TextOptProps, TextProps, TextSpan, TypeAlign, VerDirection,
 };
 use crate::font::{self, DatabaseExt};
+use crate::rich::VerProgression;
 use crate::{BBox, fontdb};
 
 use tiny_skia::Transform;
 use ttf_parser as ttf;
+use unicode_bidi::BidiClass;
 
 #[derive(Debug)]
 struct BuilderCtx {
@@ -185,6 +186,13 @@ impl ShapeSpan {
     }
 }
 
+// implementation specific to vertical text
+impl ShapeSpan {
+    fn col_y_advance(&self) -> f32 {
+        self.glyphs.iter().map(|g| g.y_advance as f32).sum()
+    }
+}
+
 impl TextLine {
     fn metrics(&self) -> font::ScaledMetrics {
         let mut metrics = font::ScaledMetrics::null();
@@ -197,6 +205,14 @@ impl TextLine {
             metrics.line_gap = metrics.line_gap.max(s.metrics.line_gap);
         }
         metrics
+    }
+
+    fn em_size(&self) -> f32 {
+        self.shapes
+            .iter()
+            .map(|s| s.metrics.em_size)
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
     }
 
     fn ascent(&self) -> f32 {
@@ -236,6 +252,22 @@ impl TextLine {
     }
 }
 
+// This implementation gathers method specific to vertical text
+impl TextLine {
+    /// The column width if this TextLine is a vertical text column
+    fn col_width(&self) -> f32 {
+        self.shapes
+            .iter()
+            .map(|s| s.x_advance())
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
+
+    fn col_height(&self) -> f32 {
+        self.shapes.iter().map(|s| s.col_y_advance()).sum()
+    }
+}
+
 trait Lines {
     fn baseline(&self, idx: usize) -> f32;
 }
@@ -259,6 +291,33 @@ pub struct RichTextBuilder {
     root_props: TextProps,
     layout: Layout,
     spans: Vec<TextSpan>,
+}
+
+impl VerProgression {
+    fn from_script(text: &str) -> VerProgression {
+        let mut in_doublt_rtl = false;
+        for c in text.chars() {
+            let bc = unicode_bidi::bidi_class(c);
+            match bc {
+                BidiClass::L | BidiClass::LRE | BidiClass::LRO | BidiClass::LRI => {
+                    return VerProgression::LTR;
+                }
+                BidiClass::R | BidiClass::AL | BidiClass::RLE | BidiClass::RLO | BidiClass::RLI => {
+                    return VerProgression::RTL;
+                }
+                BidiClass::AN => {
+                    // arabic number, can be in both contexts, but if we have only those, we chose RTL
+                    in_doublt_rtl = true;
+                }
+                _ => (),
+            }
+        }
+        if in_doublt_rtl {
+            VerProgression::RTL
+        } else {
+            VerProgression::LTR
+        }
+    }
 }
 
 impl RichTextBuilder {
@@ -307,10 +366,10 @@ impl RichTextBuilder {
             Layout::Horizontal(_, _, Direction::RTL) => {
                 BidiAlgo::Nope(rustybuzz::Direction::RightToLeft)
             }
-            Layout::Vertical(_, VerDirection::TTB, _) => {
+            Layout::Vertical(_, VerDirection::TTB, _, _) => {
                 BidiAlgo::Nope(rustybuzz::Direction::TopToBottom)
             }
-            Layout::Vertical(_, VerDirection::BTT, _) => {
+            Layout::Vertical(_, VerDirection::BTT, _, _) => {
                 BidiAlgo::Nope(rustybuzz::Direction::BottomToTop)
             }
         };
@@ -484,8 +543,7 @@ impl RichTextBuilder {
                 let mut hbface = rustybuzz::Face::from_face(face);
                 font::apply_hb_variations(&mut hbface, &shape_props.font);
 
-                let kern = rustybuzz::Feature::new(ttf::Tag::from_bytes(b"kern"), 1, ..);
-                Ok((rustybuzz::shape(&hbface, &[kern], buffer), metrics))
+                Ok((rustybuzz::shape(&hbface, &[], buffer), metrics))
             })
             .expect("should be a valid face id")?;
 
@@ -588,16 +646,16 @@ impl RichTextBuilder {
             .count();
         let width = line.x_advance();
         let (width, justify) = match type_align {
-            TypeAlign::Justify(wid) => {
-                let wid = wid.max(width);
+            TypeAlign::Justify(sz) => {
+                let sz = sz.max(width);
                 let justify = if ws > 0 {
                     Justify::Ws {
-                        added_gap: (wid - width) / ws as f32,
+                        added_gap: (sz - width) / ws as f32,
                     }
                 } else {
-                    Justify::Glyph { fact: wid / width }
+                    Justify::Glyph { fact: sz / width }
                 };
-                (wid, justify)
+                (sz, justify)
             }
             _ => (width, Justify::Nope),
         };
@@ -625,7 +683,7 @@ impl RichTextBuilder {
             let scale_ts = Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
             for glyph in shape.glyphs.iter_mut() {
                 let x = x_cursor + glyph.x_offset;
-                let y = y_cursor + glyph.y_offset;
+                let y = y_cursor - glyph.y_offset;
                 let pos_ts = Transform::from_translate(x, y);
                 glyph.ts = y_flip.post_concat(scale_ts).post_concat(pos_ts);
                 let glyph_start = x_cursor;
@@ -645,7 +703,7 @@ impl RichTextBuilder {
                         }
                     }
                 };
-                y_cursor += glyph.y_advance;
+                y_cursor -= glyph.y_advance;
                 for s in shape.spans.iter_mut() {
                     if s.start <= glyph.cluster && glyph.cluster < s.end {
                         s.bbox = BBox::unite(
@@ -676,12 +734,127 @@ impl RichTextBuilder {
         };
     }
 
-    fn build_vertical_layout(&self, lines: &mut Vec<TextLine>) -> Result<(), Error> {
-        let Layout::Vertical(type_align, direction, prograssion) = self.layout else {
+    fn build_vertical_layout(&self, cols: &mut Vec<TextLine>) -> Result<(), Error> {
+        let Layout::Vertical(type_align, _, progression, inter_col) = self.layout else {
             unreachable!()
         };
 
-        todo!()
+        let progression = match progression {
+            VerProgression::PerScript => VerProgression::from_script(&self.text),
+            progression => progression,
+        };
+
+        let move_x = |x_cursor: &mut f32, value: f32| match progression {
+            VerProgression::LTR => *x_cursor += value,
+            VerProgression::RTL => *x_cursor -= value,
+            VerProgression::PerScript => unreachable!(),
+        };
+
+        let mut x_cursor = 0.0;
+
+        for (idx, col) in cols.iter_mut().enumerate() {
+            if idx != 0 {
+                move_x(&mut x_cursor, col.col_width());
+            }
+
+            self.layout_vertical_column(col, x_cursor, type_align);
+
+            move_x(&mut x_cursor, col.em_size() * inter_col.0);
+        }
+
+        Ok(())
+    }
+
+    fn layout_vertical_column(&self, col: &mut TextLine, x_leftline: f32, type_align: TypeAlign) {
+        let ws = self.text[col.start..col.end]
+            .chars()
+            .filter(|c| c.is_whitespace())
+            .count();
+        let height = col.col_height();
+        let (height, justify) = match type_align {
+            TypeAlign::Justify(sz) => {
+                let sz = sz.max(height);
+                let justify = if ws > 0 {
+                    Justify::Ws {
+                        added_gap: (sz - height) / ws as f32,
+                    }
+                } else {
+                    Justify::Glyph { fact: sz / height }
+                };
+                (sz, justify)
+            }
+            _ => (height, Justify::Nope),
+        };
+
+        let y_start = match (type_align, col.main_dir) {
+            (TypeAlign::Start, rustybuzz::Direction::TopToBottom)
+            | (TypeAlign::End, rustybuzz::Direction::BottomToTop)
+            | (TypeAlign::Left, _) => 0.0,
+            (TypeAlign::Start, rustybuzz::Direction::BottomToTop)
+            | (TypeAlign::End, rustybuzz::Direction::TopToBottom)
+            | (TypeAlign::Right, _) => -height,
+            (TypeAlign::Center, _) => -height / 2.0,
+            _ => unreachable!(),
+        };
+
+        let left = x_leftline;
+        let right = x_leftline + col.col_width();
+
+        let mut x_cursor = x_leftline;
+        let mut y_cursor = y_start;
+
+        let y_flip = Transform::from_scale(1.0, -1.0);
+        for shape in col.shapes.iter_mut() {
+            let shape_start = x_cursor;
+            let scale_ts = Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
+            for glyph in shape.glyphs.iter_mut() {
+                let x = x_cursor + glyph.x_offset;
+                let y = y_cursor - glyph.y_offset;
+                let pos_ts = Transform::from_translate(x, y);
+                glyph.ts = y_flip.post_concat(scale_ts).post_concat(pos_ts);
+                let glyph_start = y_cursor;
+                y_cursor -= match justify {
+                    Justify::Nope => glyph.y_advance,
+                    Justify::Glyph { fact } => glyph.y_advance * fact,
+                    Justify::Ws { added_gap } => {
+                        let is_ws = self.text[glyph.cluster..]
+                            .chars()
+                            .next()
+                            .unwrap()
+                            .is_whitespace();
+                        if is_ws {
+                            glyph.y_advance + added_gap
+                        } else {
+                            glyph.y_advance
+                        }
+                    }
+                };
+                x_cursor += glyph.x_advance;
+                for s in shape.spans.iter_mut() {
+                    if s.start <= glyph.cluster && glyph.cluster < s.end {
+                        s.bbox = BBox::unite(
+                            &s.bbox,
+                            &BBox {
+                                top: glyph_start,
+                                right,
+                                bottom: x_cursor,
+                                left,
+                            },
+                        );
+                    }
+                }
+            }
+            // y_baseline is only used for underline and strikeout
+            // vertical underline is not supported, vertical strikeout doesn't use y_baseline
+            shape.y_baseline = f32::NAN;
+            shape.bbox = BBox {
+                top: shape_start,
+                right,
+                bottom: x_cursor,
+                left,
+            };
+            col.bbox = BBox::unite(&col.bbox, &shape.bbox);
+        }
     }
 }
 
@@ -712,12 +885,5 @@ mod tests {
         assert_eq!(text.lines[0].shapes[0].spans[0].props.underline, false);
         assert_eq!(text.lines[0].shapes[0].spans[1].props.underline, true);
         assert_eq!(text.lines[1].shapes[0].spans[0].props.underline, false);
-    }
-
-    #[test]
-    fn test_builder() {
-        let mut builder =
-            RichTextBuilder::new("Some RICH text string".to_string(), TextProps::new(12.0));
-        //builder.add_span(0, 5, TextOptProps::new().bold());
     }
 }

@@ -5,13 +5,13 @@ use crate::{
 use std::fmt;
 use ttf_parser as ttf;
 
-mod builder;
 mod boundaries;
+mod builder;
 mod render;
 
+use boundaries::Boundaries;
 pub use builder::RichTextBuilder;
 pub use render::render_rich_text;
-use boundaries::Boundaries;
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -150,13 +150,27 @@ pub enum VerProgression {
     RTL,
 }
 
+/// Space between two columns of vertical space.
+/// This value is a factor of the font em-box side size
+/// E.g. if the em-box after scaling is 40px wide, a value of 0.5 will yield
+/// to an inter-space of 20px. (0.5 is the default value)
+#[derive(Debug, Clone, Copy)]
+pub struct InterColumn(pub f32);
+
+impl Default for InterColumn {
+    fn default() -> Self {
+        InterColumn(0.5)
+    }
+}
+
+
 /// Layout options for rich text
 #[derive(Debug, Clone, Copy)]
 pub enum Layout {
     /// Horizontal text layout options
     Horizontal(Align, TypeAlign, Direction),
     /// Vertical text layout options
-    Vertical(TypeAlign, VerDirection, VerProgression),
+    Vertical(TypeAlign, VerDirection, VerProgression, InterColumn),
 }
 
 impl Default for Layout {

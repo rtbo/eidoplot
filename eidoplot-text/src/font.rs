@@ -873,6 +873,7 @@ impl Metrics {
         let scale = self.scale(size);
         ScaledMetrics {
             scale,
+            em_size: self.units_per_em as f32 * scale,
             ascent: self.ascent as f32 * scale,
             descent: self.descent as f32 * scale,
             x_height: self.x_height as f32 * scale,
@@ -943,6 +944,8 @@ pub struct ScaledLineMetrics {
 pub struct ScaledMetrics {
     /// Scale factor from the original font units metrics
     pub scale: f32,
+    /// Size of the em box after scaling
+    pub em_size: f32,
     /// Height between baseline and top of the font face
     pub ascent: f32,
     /// Height between baseline and bottom of the font face (negative value)
@@ -970,6 +973,7 @@ impl ScaledMetrics {
     pub(crate) const fn null() -> ScaledMetrics {
         ScaledMetrics {
             scale: 1.0,
+            em_size: 0.0,
             ascent: 0.0,
             descent: 0.0,
             x_height: 0.0,
