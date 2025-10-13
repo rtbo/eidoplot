@@ -64,7 +64,68 @@ fn main() {
     rich::render_rich_text(
         &text,
         &db,
-        Transform::from_translate(300.0, 250.0),
+        Transform::from_translate(330.0, 150.0),
+        None,
+        &mut pm_mut,
+    )
+    .unwrap();
+
+    // Vertical chinese text
+    let text = "縦書き";
+
+    let font = Font::default().with_families(vec![
+        font::Family::Named("Noto Sans CJK SC".to_string()),
+        font::Family::Named("Noto Serif CJK SC".to_string()),
+        font::Family::SansSerif,
+    ]);
+
+    let root_props = rich::TextProps::new(FS1).with_font(font);
+    let builder = RichTextBuilder::new(text.to_string(), root_props).with_layout(
+        rich::Layout::Vertical(
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+        ),
+    );
+
+    let text = builder.shape_and_layout(&db).unwrap();
+
+    rich::render_rich_text(
+        &text,
+        &db,
+        Transform::from_translate(500.0, 250.0),
+        None,
+        &mut pm_mut,
+    )
+    .unwrap();
+
+
+    // Vertical french text
+    let text = "Axe des ordonnées";
+
+    let font = Font::default().with_families(vec![
+        font::Family::Named("Noto Sans".to_string()),
+        font::Family::Named("DejaVu Sans".to_string()),
+        font::Family::SansSerif,
+    ]);
+
+    let root_props = rich::TextProps::new(20.0).with_font(font);
+    let builder = RichTextBuilder::new(text.to_string(), root_props).with_layout(
+        rich::Layout::Vertical(
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+        ),
+    );
+
+    let text = builder.shape_and_layout(&db).unwrap();
+
+    rich::render_rich_text(
+        &text,
+        &db,
+        Transform::from_translate(20.0, 020.0),
         None,
         &mut pm_mut,
     )
