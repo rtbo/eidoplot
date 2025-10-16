@@ -6,6 +6,7 @@ mod bidi;
 pub mod font;
 pub mod fontdb;
 pub mod layout;
+pub mod line;
 pub mod render;
 pub mod rich;
 pub mod shape;
