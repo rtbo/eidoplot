@@ -131,5 +131,5 @@ fn main() {
     )
     .unwrap();
 
-    pm.save_png("rich.png").unwrap();
+    pm.save_png("rich_text.png").unwrap();
 }
