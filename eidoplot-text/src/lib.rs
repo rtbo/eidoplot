@@ -2,6 +2,7 @@ use std::fmt;
 
 use ttf_parser as ttf;
 
+mod bidi;
 pub mod font;
 pub mod fontdb;
 pub mod layout;
