@@ -53,6 +53,8 @@ impl BidiAlgo {
                         } else {
                             rustybuzz::Direction::LeftToRight
                         };
+                        println!("run {:?} has dir {:?}", &text[run.start..run.end], dir);
+
                         if default_lev.is_none() {
                             // assign for following lines
                             *default_lev = Some(lev);

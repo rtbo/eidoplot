@@ -3,6 +3,65 @@ use ttf_parser as ttf;
 
 use crate::font::{self, Font};
 use crate::layout::{Glyph, TextLayout};
+use crate::line::Line;
+
+#[derive(Debug, Clone)]
+pub struct Options<'a> {
+    pub fill: Option<tiny_skia::Paint<'a>>,
+    pub outline: Option<(tiny_skia::Paint<'a>, tiny_skia::Stroke)>,
+    pub mask: Option<&'a tiny_skia::Mask>,
+    pub transform: tiny_skia_path::Transform,
+}
+
+pub fn render_line(
+    line: &Line,
+    opts: &Options<'_>,
+    db: &font::Database,
+    pixmap: &mut tiny_skia::PixmapMut<'_>,
+) {
+    for shape in line.shapes.iter() {
+        db.with_face_data(shape.face_id, |data, index| {
+            let mut face = ttf::Face::parse(data, index).unwrap();
+            font::apply_ttf_variations(&mut face, line.font());
+
+            // the path builder for the entire string
+            let mut str_pb = PathBuilder::new();
+            // the path builder for each glyph
+            let mut gl_pb = PathBuilder::new();
+
+            for gl in &shape.glyphs {
+                {
+                    let mut builder = Outliner(&mut gl_pb);
+                    face.outline_glyph(gl.id, &mut builder);
+                }
+
+                if let Some(path) = gl_pb.finish() {
+                    let path = path.transform(gl.ts).unwrap();
+                    str_pb.push_path(&path);
+
+                    gl_pb = path.clear();
+                } else {
+                    gl_pb = PathBuilder::new();
+                }
+            }
+
+            if let Some(path) = str_pb.finish() {
+                if let Some(paint) = opts.fill.as_ref() {
+                    pixmap.fill_path(
+                        &path,
+                        &paint,
+                        tiny_skia::FillRule::Winding,
+                        opts.transform,
+                        opts.mask,
+                    );
+                }
+                if let Some((paint, stroke)) = opts.outline.as_ref() {
+                    pixmap.stroke_path(&path, &paint, &stroke, opts.transform, opts.mask);
+                }
+            }
+        });
+    }
+}
 
 pub fn render_text<F>(text: &TextLayout, db: &font::Database, mut render_func: F)
 where
@@ -15,14 +74,6 @@ where
             render_func(&run.glyphs, font, run.font_id, db);
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct Options<'a> {
-    pub fill: Option<tiny_skia::Paint<'a>>,
-    pub outline: Option<(tiny_skia::Paint<'a>, tiny_skia::Stroke)>,
-    pub mask: Option<&'a tiny_skia::Mask>,
-    pub transform: tiny_skia_path::Transform,
 }
 
 pub fn render_text_tiny_skia(

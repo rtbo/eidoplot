@@ -9,7 +9,6 @@ use crate::{BBox, fontdb};
 
 use tiny_skia::Transform;
 use ttf_parser as ttf;
-use unicode_bidi::BidiClass;
 
 #[derive(Debug)]
 struct BuilderCtx {
@@ -207,24 +206,7 @@ pub struct RichTextBuilder {
 
 impl VerProgression {
     fn from_script(text: &str) -> VerProgression {
-        let mut in_doublt_rtl = false;
-        for c in text.chars() {
-            let bc = unicode_bidi::bidi_class(c);
-            match bc {
-                BidiClass::L | BidiClass::LRE | BidiClass::LRO | BidiClass::LRI => {
-                    return VerProgression::LTR;
-                }
-                BidiClass::R | BidiClass::AL | BidiClass::RLE | BidiClass::RLO | BidiClass::RLI => {
-                    return VerProgression::RTL;
-                }
-                BidiClass::AN => {
-                    // arabic number, can be in both contexts, but if we have only those, we chose RTL
-                    in_doublt_rtl = true;
-                }
-                _ => (),
-            }
-        }
-        if in_doublt_rtl {
+        if crate::script_is_rtl(text).unwrap_or(false) {
             VerProgression::RTL
         } else {
             VerProgression::LTR

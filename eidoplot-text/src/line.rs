@@ -3,10 +3,10 @@
 use std::fmt;
 
 use crate::{
-    BBox,
+    BBox, Font,
     bidi::{self, BidiAlgo},
-    fontdb,
     font::{self, DatabaseExt},
+    fontdb,
 };
 use tiny_skia_path::Transform;
 use ttf_parser as ttf;
@@ -71,11 +71,11 @@ pub enum Baseline {
 /// Options for the layout of text line
 pub struct Options {
     /// The horizontal alignment
-    align: Align,
+    pub align: Align,
     /// The vertical alignment
-    baseline: Baseline,
+    pub baseline: Baseline,
     /// The font to use
-    font: font::Font,
+    pub font: font::Font,
 }
 
 impl Default for Options {
@@ -92,8 +92,9 @@ impl Default for Options {
 #[derive(Debug, Clone)]
 pub struct Line {
     text: String,
+    font: Font,
     bbox: BBox,
-    shapes: Vec<Shape>,
+    pub(crate) shapes: Vec<Shape>,
 }
 
 impl Line {
@@ -101,23 +102,120 @@ impl Line {
         &self.text
     }
 
-    fn new_empty() -> Self {
+    pub fn font(&self) -> &Font {
+        &self.font
+    }
+
+    pub fn bbox(&self) -> &BBox {
+        &self.bbox
+    }
+
+    fn new_empty(font: Font) -> Self {
         Self {
             text: String::new(),
+            font,
             bbox: BBox::EMPTY,
             shapes: Vec::new(),
         }
+    }
+
+    /// Create a new text line
+    ///
+    /// This function will run the unicode bidirectional algorithm and shape the text.
+    /// The glyphs are laid out so that the origin point (0, 0) correspond to the provided
+    /// alignment options.
+    /// The final position on the text is defined by the transform provided to the render function.
+    pub fn new(
+        text: String,
+        font_size: f32,
+        opts: &Options,
+        db: &fontdb::Database,
+    ) -> Result<Self, Error> {
+        let default_lev = match crate::script_is_rtl(&text) {
+            Some(false) => Some(unicode_bidi::LTR_LEVEL),
+            Some(true) => Some(unicode_bidi::RTL_LEVEL),
+            None => None,
+        };
+        let mut bidi = BidiAlgo::Yep { default_lev };
+        let bidi_runs = bidi.visual_runs(&text, 0);
+        if bidi_runs.is_empty() {
+            return Ok(Line::new_empty(opts.font.clone()));
+        }
+        let main_dir = match default_lev {
+            Some(unicode_bidi::LTR_LEVEL) => rustybuzz::Direction::LeftToRight,
+            Some(unicode_bidi::RTL_LEVEL) => rustybuzz::Direction::RightToLeft,
+            _ => bidi_runs[0].dir,
+        };
+
+        let mut shapes = Vec::with_capacity(bidi_runs.len());
+        let mut ctx = Ctx { buffer: None };
+        for run in &bidi_runs {
+            let shape = Shape::shape_run(&text, run, font_size, &opts.font, db, &mut ctx)?;
+            shapes.push(shape);
+        }
+
+        let mut y_cursor = match opts.baseline {
+            Baseline::Bottom => shapes.descent(),
+            Baseline::Baseline => 0.0,
+            Baseline::Middle => shapes.x_height() / 2.0,
+            Baseline::Hanging => shapes.cap_height(),
+            Baseline::Top => shapes.ascent(),
+        };
+
+        let width = shapes.width();
+
+        let x_start = match (opts.align, main_dir) {
+            (Align::Start, rustybuzz::Direction::LeftToRight)
+            | (Align::End, rustybuzz::Direction::RightToLeft)
+            | (Align::Left, _) => 0.0,
+            (Align::Start, rustybuzz::Direction::RightToLeft)
+            | (Align::End, rustybuzz::Direction::LeftToRight)
+            | (Align::Right, _) => -width,
+            (Align::Center, _) => -width / 2.0,
+            _ => unreachable!(),
+        };
+
+        println!("x_start: {}, width: {}", x_start, width);
+
+        let top = y_cursor - shapes.ascent();
+        let bottom = y_cursor - shapes.descent();
+
+        let mut x_cursor = x_start;
+
+        let y_flip = Transform::from_scale(1.0, -1.0);
+
+        for shape in shapes.iter_mut() {
+            let scale_ts = Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
+            for glyph in shape.glyphs.iter_mut() {
+                let x = x_cursor + glyph.x_offset;
+                let y = y_cursor - glyph.y_offset;
+                let pos_ts = Transform::from_translate(x, y);
+                glyph.ts = y_flip.post_concat(scale_ts).post_concat(pos_ts);
+                x_cursor += glyph.x_advance;
+                y_cursor -= glyph.y_advance;
+            }
+        }
+
+        Ok(Line {
+            text,
+            font: opts.font.clone(),
+            bbox: BBox {
+                top,
+                right: x_cursor,
+                bottom,
+                left: x_start,
+            },
+            shapes,
+        })
     }
 }
 
 /// A shaped text run
 #[derive(Debug, Clone)]
-struct Shape {
-    start: usize,
-    end: usize,
-    face_id: fontdb::ID,
-    metrics: font::ScaledMetrics,
-    glyphs: Vec<Glyph>,
+pub(crate) struct Shape {
+    pub(crate) face_id: fontdb::ID,
+    pub(crate) metrics: font::ScaledMetrics,
+    pub(crate) glyphs: Vec<Glyph>,
 }
 
 impl Shape {
@@ -160,9 +258,9 @@ impl ShapesExt for [Shape] {
     }
 
     fn width(&self) -> f32 {
-        let w = 0.0;
+        let mut w = 0.0;
         for s in self {
-            w + s.width();
+            w += s.width();
         }
         w
     }
@@ -170,99 +268,18 @@ impl ShapesExt for [Shape] {
 
 /// A glyph in a shaped text run
 #[derive(Debug, Clone, Copy)]
-struct Glyph {
-    id: ttf::GlyphId,
-    cluster: usize,
+pub(crate) struct Glyph {
+    pub(crate) id: ttf::GlyphId,
     x_offset: f32,
     y_offset: f32,
     x_advance: f32,
     y_advance: f32,
-    ts: Transform,
+    pub(crate) ts: Transform,
 }
 
 #[derive(Debug)]
 struct Ctx {
     buffer: Option<rustybuzz::UnicodeBuffer>,
-}
-
-impl Line {
-    /// Create a new text line
-    ///
-    /// This function will run the unicode bidirectional algorithm and shape the text.
-    /// The glyphs are laid out so that the origin point (0, 0) correspond to the provided
-    /// alignment options.
-    /// The final position on the text is defined by the transform provided to the render function.
-    pub fn new(
-        text: String,
-        font_size: f32,
-        opts: &Options,
-        db: &fontdb::Database,
-    ) -> Result<Self, Error> {
-        let mut bidi = BidiAlgo::Yep { default_lev: None };
-        let bidi_runs = bidi.visual_runs(&text, 0);
-        if bidi_runs.is_empty() {
-            return Ok(Line::new_empty());
-        }
-        let main_dir = bidi_runs[0].dir;
-
-        let mut shapes = Vec::with_capacity(bidi_runs.len());
-        let mut ctx = Ctx { buffer: None };
-        for run in &bidi_runs {
-            let shape = Shape::shape_run(&text, run, font_size, &opts.font, db, &mut ctx)?;
-            shapes.push(shape);
-        }
-
-        let mut y_cursor = match opts.baseline {
-            Baseline::Bottom => shapes.descent(),
-            Baseline::Baseline => 0.0,
-            Baseline::Middle => shapes.x_height() / 2.0,
-            Baseline::Hanging => shapes.cap_height(),
-            Baseline::Top => shapes.ascent(),
-        };
-
-        let width = shapes.width();
-
-        let x_start = match (opts.align, main_dir) {
-            (Align::Start, rustybuzz::Direction::LeftToRight)
-            | (Align::End, rustybuzz::Direction::RightToLeft)
-            | (Align::Left, _) => 0.0,
-            (Align::Start, rustybuzz::Direction::RightToLeft)
-            | (Align::End, rustybuzz::Direction::LeftToRight)
-            | (Align::Right, _) => -width,
-            (Align::Center, _) => -width / 2.0,
-            _ => unreachable!(),
-        };
-
-        let top = y_cursor - shapes.ascent();
-        let bottom = y_cursor - shapes.descent();
-
-        let mut x_cursor = x_start;
-
-        let y_flip = Transform::from_scale(1.0, -1.0);
-
-        for shape in shapes.iter_mut() {
-            let scale_ts = Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
-            for glyph in shape.glyphs.iter_mut() {
-                let x = x_cursor + glyph.x_offset;
-                let y = y_cursor - glyph.y_offset;
-                let pos_ts = Transform::from_translate(x, y);
-                glyph.ts = y_flip.post_concat(scale_ts).post_concat(pos_ts);
-                x_cursor += glyph.x_advance;
-                y_cursor -= glyph.y_advance;
-            }
-        }
-
-        Ok(Line {
-            text,
-            bbox: BBox {
-                top,
-                right: x_cursor,
-                bottom,
-                left: x_start,
-            },
-            shapes,
-        })
-    }
 }
 
 impl Shape {
@@ -283,7 +300,7 @@ impl Shape {
             .buffer
             .take()
             .unwrap_or_else(|| rustybuzz::UnicodeBuffer::new());
-        buffer.push_str(text);
+        buffer.push_str(&text[run.start..run.end]);
         if run.start != 0 {
             buffer.set_pre_context(&text[..run.start]);
         }
@@ -309,7 +326,6 @@ impl Shape {
         for (i, p) in shape.glyph_infos().iter().zip(shape.glyph_positions()) {
             glyphs.push(Glyph {
                 id: ttf::GlyphId(i.glyph_id as u16),
-                cluster: i.cluster as usize + run.start,
                 x_advance: p.x_advance as f32 * metrics.scale,
                 y_advance: p.y_advance as f32 * metrics.scale,
                 x_offset: p.x_offset as f32 * metrics.scale,
@@ -321,11 +337,11 @@ impl Shape {
         ctx.buffer = Some(shape.clear());
 
         Ok(Shape {
-            start: run.start,
-            end: run.end,
             face_id,
             glyphs,
             metrics,
         })
     }
 }
+
+impl Line {}

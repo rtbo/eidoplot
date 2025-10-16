@@ -91,6 +91,18 @@
                     "rich_text"
                 ]
             },
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "text_line example",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example",
+                    "text_line"
+                ]
+            },
         }
     ]
 }

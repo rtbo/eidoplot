@@ -14,7 +14,7 @@ pub mod shape;
 pub use font::{Font, ScaledMetrics, parse_font_families};
 pub use layout::{Anchor, BBox, HorAlign, LineVerAlign, TextLayout, VerAlign};
 pub use render::{render_text, render_text_tiny_skia};
-pub use rich::{RichTextLayout, RichTextBuilder};
+pub use rich::{RichTextBuilder, RichTextLayout};
 pub use shape::{Direction, TextShape};
 
 #[derive(Debug, Clone)]
@@ -58,4 +58,26 @@ pub fn shape_and_layout_str(
 ) -> Result<TextLayout, Error> {
     let shape = TextShape::shape_str(text, font, db)?;
     Ok(TextLayout::from_shape(&shape, font_size, opts)?)
+}
+
+fn script_is_rtl(text: &str) -> Option<bool> {
+    use unicode_bidi::{BidiClass, bidi_class};
+    let mut in_doublt_rtl = false;
+    for c in text.chars() {
+        let bc = bidi_class(c);
+        match bc {
+            BidiClass::L | BidiClass::LRE | BidiClass::LRO | BidiClass::LRI => {
+                return Some(false);
+            }
+            BidiClass::R | BidiClass::AL | BidiClass::RLE | BidiClass::RLO | BidiClass::RLI => {
+                return Some(true);
+            }
+            BidiClass::AN => {
+                // arabic number, can be in both contexts, but if we have only those, we chose RTL
+                in_doublt_rtl = true;
+            }
+            _ => (),
+        }
+    }
+    if in_doublt_rtl { Some(true) } else { None }
 }

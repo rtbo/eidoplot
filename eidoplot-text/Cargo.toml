@@ -34,3 +34,6 @@ name="bidi_layout"
 
 [[example]]
 name="rich_text"
+
+[[example]]
+name="text_line"
