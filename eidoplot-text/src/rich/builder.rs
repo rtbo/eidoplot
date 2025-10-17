@@ -1,6 +1,6 @@
 use super::{
-    Align, Boundaries, Direction, Error, Glyph, Layout, LineAlign, PropsSpan, RichTextLayout,
-    ShapeSpan, TextLine, TextOptProps, TextProps, TextSpan, TypeAlign, VerDirection,
+    Align, Boundaries, Direction, Error, Glyph, Layout, LineAlign, PropsSpan, RichText,
+    ShapeSpan, LineSpan, TextOptProps, TextProps, RichTextBuilder, TypeAlign, VerDirection,
 };
 use crate::bidi::BidiAlgo;
 use crate::font::{self, DatabaseExt};
@@ -104,7 +104,7 @@ impl ShapeSpan {
     }
 }
 
-impl TextLine {
+impl LineSpan {
     fn metrics(&self) -> font::ScaledMetrics {
         let mut metrics = font::ScaledMetrics::null();
         for s in &self.shapes {
@@ -164,7 +164,7 @@ impl TextLine {
 }
 
 // This implementation gathers method specific to vertical text
-impl TextLine {
+impl LineSpan {
     /// The column width if this TextLine is a vertical text column
     fn col_width(&self) -> f32 {
         self.shapes
@@ -183,7 +183,7 @@ trait Lines {
     fn baseline(&self, idx: usize) -> f32;
 }
 
-impl Lines for [TextLine] {
+impl Lines for [LineSpan] {
     fn baseline(&self, idx: usize) -> f32 {
         let mut h = 0.0;
         let mut l = 0;
@@ -193,15 +193,6 @@ impl Lines for [TextLine] {
         }
         h
     }
-}
-
-/// A builder struct for rich text
-#[derive(Debug, Clone)]
-pub struct RichTextBuilder {
-    text: String,
-    root_props: TextProps,
-    layout: Layout,
-    spans: Vec<TextSpan>,
 }
 
 impl VerProgression {
@@ -214,36 +205,12 @@ impl VerProgression {
     }
 }
 
+
 impl RichTextBuilder {
-    /// Create a new RichTextBuilder
-    pub fn new(text: String, root_props: TextProps) -> RichTextBuilder {
-        RichTextBuilder {
-            text,
-            root_props,
-            layout: Layout::default(),
-            spans: vec![],
-        }
-    }
-
-    pub fn with_layout(mut self, layout: Layout) -> Self {
-        self.layout = layout;
-        self
-    }
-
-    /// Add a new text span
-    pub fn add_span(&mut self, start: usize, end: usize, props: TextOptProps) {
-        assert!(start <= end);
-        assert!(
-            self.text.is_char_boundary(start) && self.text.is_char_boundary(end),
-            "start and end must be on char boundaries"
-        );
-        self.spans.push(TextSpan { start, end, props });
-    }
-
-    /// Create a RichTextLayout from this builder
-    pub fn shape_and_layout(self, fontdb: &fontdb::Database) -> Result<RichTextLayout, Error> {
+    /// Create a RichText from this builder
+    pub(super) fn done_impl(self, fontdb: &fontdb::Database) -> Result<RichText, Error> {
         if self.text.is_empty() {
-            return Ok(RichTextLayout::empty());
+            return Ok(RichText::empty());
         }
 
         let bidi_algo = match &self.layout {
@@ -325,7 +292,7 @@ impl RichTextBuilder {
         _eol: usize,
         fontdb: &fontdb::Database,
         ctx: &mut BuilderCtx,
-    ) -> Result<TextLine, Error> {
+    ) -> Result<LineSpan, Error> {
         debug_assert!(self.text.is_char_boundary(start) && self.text.is_char_boundary(end));
         let line_txt = &self.text[start..end];
 
@@ -360,7 +327,7 @@ impl RichTextBuilder {
             shapes.push(self.shape_span(span_start, span_end, cur_dir, fontdb, ctx)?);
         }
 
-        Ok(TextLine {
+        Ok(LineSpan {
             start,
             end,
             shapes,
@@ -468,9 +435,9 @@ impl RichTextBuilder {
         })
     }
 
-    fn build_layout(self, mut lines: Vec<TextLine>) -> Result<RichTextLayout, Error> {
+    fn build_layout(self, mut lines: Vec<LineSpan>) -> Result<RichText, Error> {
         if lines.is_empty() {
-            return Ok(RichTextLayout::empty());
+            return Ok(RichText::empty());
         }
 
         match self.layout {
@@ -484,14 +451,14 @@ impl RichTextBuilder {
             .reduce(|a, b| BBox::unite(&a, &b));
         let bbox = bbox.unwrap_or_default();
 
-        Ok(RichTextLayout {
+        Ok(RichText {
             text: self.text,
             lines,
             bbox,
         })
     }
 
-    fn build_horizontal_layout(&self, lines: &mut Vec<TextLine>) -> Result<(), Error> {
+    fn build_horizontal_layout(&self, lines: &mut Vec<LineSpan>) -> Result<(), Error> {
         let Layout::Horizontal(align, type_align, _) = self.layout else {
             unreachable!()
         };
@@ -533,7 +500,7 @@ impl RichTextBuilder {
         Ok(())
     }
 
-    fn layout_horizontal_line(&self, line: &mut TextLine, y_baseline: f32, type_align: TypeAlign) {
+    fn layout_horizontal_line(&self, line: &mut LineSpan, y_baseline: f32, type_align: TypeAlign) {
         let ws = self.text[line.start..line.end]
             .chars()
             .filter(|c| c.is_whitespace())
@@ -628,7 +595,7 @@ impl RichTextBuilder {
         };
     }
 
-    fn build_vertical_layout(&self, cols: &mut Vec<TextLine>) -> Result<(), Error> {
+    fn build_vertical_layout(&self, cols: &mut Vec<LineSpan>) -> Result<(), Error> {
         let Layout::Vertical(type_align, _, progression, inter_col) = self.layout else {
             unreachable!()
         };
@@ -659,7 +626,7 @@ impl RichTextBuilder {
         Ok(())
     }
 
-    fn layout_vertical_column(&self, col: &mut TextLine, x_leftline: f32, type_align: TypeAlign) {
+    fn layout_vertical_column(&self, col: &mut LineSpan, x_leftline: f32, type_align: TypeAlign) {
         let ws = self.text[col.start..col.end]
             .chars()
             .filter(|c| c.is_whitespace())
@@ -770,7 +737,7 @@ mod tests {
                 ..Default::default()
             },
         );
-        let text = builder.shape_and_layout(&db).unwrap();
+        let text = builder.done(&db).unwrap();
         assert_eq!(text.lines.len(), 2);
         assert_eq!(text.lines[0].shapes.len(), 1);
         assert_eq!(text.lines[1].shapes.len(), 1);

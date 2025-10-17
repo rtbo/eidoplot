@@ -1,9 +1,8 @@
 //! Module that contains a simple single line text layout and rendering engine
 
-use std::fmt;
 
 use crate::{
-    BBox, Font,
+    BBox, Error, Font,
     bidi::{self, BidiAlgo},
     font::{self, DatabaseExt},
     fontdb,
@@ -11,34 +10,9 @@ use crate::{
 use tiny_skia_path::Transform;
 use ttf_parser as ttf;
 
-#[derive(Debug, Clone)]
-pub enum Error {
-    InvalidSpan(String),
-    NoSuchFont(font::Font),
-    FaceParsingError(ttf::FaceParsingError),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::InvalidSpan(s) => write!(f, "Invalid span: {}", s),
-            Error::NoSuchFont(font) => write!(f, "Could not find a face for {:?}", font),
-            Error::FaceParsingError(err) => err.fmt(f),
-        }
-    }
-}
-
-impl From<ttf::FaceParsingError> for Error {
-    fn from(err: ttf::FaceParsingError) -> Self {
-        Error::FaceParsingError(err)
-    }
-}
-
-impl std::error::Error for Error {}
-
 /// Horizontal alignment
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum Align {
+pub enum TypeAlign {
     /// Align the start of the text (left or right depending on the direction)
     #[default]
     Start,
@@ -70,14 +44,14 @@ pub enum Baseline {
 
 /// A single line of text
 #[derive(Debug, Clone)]
-pub struct Line {
+pub struct LineText {
     text: String,
     font: Font,
     bbox: BBox,
     pub(crate) shapes: Vec<Shape>,
 }
 
-impl Line {
+impl LineText {
     pub fn text(&self) -> &str {
         &self.text
     }
@@ -108,7 +82,7 @@ impl Line {
     pub fn new(
         text: String,
         font_size: f32,
-        align: Align,
+        align: TypeAlign,
         baseline: Baseline,
         font: Font,
         db: &fontdb::Database,
@@ -121,7 +95,7 @@ impl Line {
         let mut bidi = BidiAlgo::Yep { default_lev };
         let bidi_runs = bidi.visual_runs(&text, 0);
         if bidi_runs.is_empty() {
-            return Ok(Line::new_empty(font.clone()));
+            return Ok(LineText::new_empty(font.clone()));
         }
         let main_dir = match default_lev {
             Some(unicode_bidi::LTR_LEVEL) => rustybuzz::Direction::LeftToRight,
@@ -147,13 +121,13 @@ impl Line {
         let width = shapes.width();
 
         let x_start = match (align, main_dir) {
-            (Align::Start, rustybuzz::Direction::LeftToRight)
-            | (Align::End, rustybuzz::Direction::RightToLeft)
-            | (Align::Left, _) => 0.0,
-            (Align::Start, rustybuzz::Direction::RightToLeft)
-            | (Align::End, rustybuzz::Direction::LeftToRight)
-            | (Align::Right, _) => -width,
-            (Align::Center, _) => -width / 2.0,
+            (TypeAlign::Start, rustybuzz::Direction::LeftToRight)
+            | (TypeAlign::End, rustybuzz::Direction::RightToLeft)
+            | (TypeAlign::Left, _) => 0.0,
+            (TypeAlign::Start, rustybuzz::Direction::RightToLeft)
+            | (TypeAlign::End, rustybuzz::Direction::LeftToRight)
+            | (TypeAlign::Right, _) => -width,
+            (TypeAlign::Center, _) => -width / 2.0,
             _ => unreachable!(),
         };
 
@@ -176,7 +150,7 @@ impl Line {
             }
         }
 
-        Ok(Line {
+        Ok(LineText {
             text,
             font: font.clone(),
             bbox: BBox {
@@ -324,4 +298,4 @@ impl Shape {
     }
 }
 
-impl Line {}
+impl LineText {}

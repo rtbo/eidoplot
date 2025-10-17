@@ -3,7 +3,7 @@ use ttf_parser as ttf;
 
 use crate::font::{self, Font};
 use crate::layout::{Glyph, TextLayout};
-use crate::line::Line;
+use crate::line::LineText;
 
 #[derive(Debug, Clone)]
 pub struct Options<'a> {
@@ -14,7 +14,7 @@ pub struct Options<'a> {
 }
 
 pub fn render_line(
-    line: &Line,
+    line: &LineText,
     opts: &Options<'_>,
     db: &font::Database,
     pixmap: &mut tiny_skia::PixmapMut<'_>,

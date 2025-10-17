@@ -1,4 +1,4 @@
-use super::{RichTextLayout, ShapeSpan};
+use super::{RichText, ShapeSpan};
 use crate::{BBox, font, fontdb};
 
 use ttf_parser as ttf;
@@ -10,7 +10,7 @@ impl ShapeSpan {
 }
 
 pub fn render_rich_text(
-    text: &RichTextLayout,
+    text: &RichText,
     fontdb: &fontdb::Database,
     transform: tiny_skia_path::Transform,
     mask: Option<&tiny_skia::Mask>,

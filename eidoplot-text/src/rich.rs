@@ -1,8 +1,8 @@
 use crate::{
     font,
     fontdb, BBox,
+    Error,
 };
-use std::fmt;
 use ttf_parser as ttf;
 
 mod boundaries;
@@ -10,33 +10,8 @@ mod builder;
 mod render;
 
 use boundaries::Boundaries;
-pub use builder::RichTextBuilder;
 pub use render::render_rich_text;
 
-#[derive(Debug, Clone)]
-pub enum Error {
-    InvalidSpan(String),
-    NoSuchFont(font::Font),
-    FaceParsingError(ttf::FaceParsingError),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::InvalidSpan(s) => write!(f, "Invalid span: {}", s),
-            Error::NoSuchFont(font) => write!(f, "Could not find a face for {:?}", font),
-            Error::FaceParsingError(err) => err.fmt(f),
-        }
-    }
-}
-
-impl From<ttf::FaceParsingError> for Error {
-    fn from(err: ttf::FaceParsingError) -> Self {
-        Error::FaceParsingError(err)
-    }
-}
-
-impl std::error::Error for Error {}
 
 /// Typographic alignment, possibly depending on the script direction.
 #[derive(Debug, Clone, Copy, Default)]
@@ -179,14 +154,55 @@ impl Default for Layout {
     }
 }
 
+/// A builder struct for rich text
 #[derive(Debug, Clone)]
-pub struct RichTextLayout {
+pub struct RichTextBuilder {
     text: String,
-    lines: Vec<TextLine>,
+    root_props: TextProps,
+    layout: Layout,
+    spans: Vec<TextSpan>,
+}
+
+impl RichTextBuilder {
+    /// Create a new RichTextBuilder
+    pub fn new(text: String, root_props: TextProps) -> RichTextBuilder {
+        RichTextBuilder {
+            text,
+            root_props,
+            layout: Layout::default(),
+            spans: vec![],
+        }
+    }
+
+    pub fn with_layout(mut self, layout: Layout) -> Self {
+        self.layout = layout;
+        self
+    }
+
+    /// Add a new text span
+    pub fn add_span(&mut self, start: usize, end: usize, props: TextOptProps) {
+        assert!(start <= end);
+        assert!(
+            self.text.is_char_boundary(start) && self.text.is_char_boundary(end),
+            "start and end must be on char boundaries"
+        );
+        self.spans.push(TextSpan { start, end, props });
+    }
+
+    /// Create a RichText from this builder
+    pub fn done(self, fontdb: &fontdb::Database) -> Result<RichText, Error> {
+        self.done_impl(fontdb)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RichText {
+    text: String,
+    lines: Vec<LineSpan>,
     bbox: BBox,
 }
 
-impl RichTextLayout {
+impl RichText {
     pub fn text(&self) -> &str {
         &self.text
     }
@@ -356,7 +372,7 @@ struct TextSpan {
 }
 
 #[derive(Debug, Clone)]
-struct TextLine {
+struct LineSpan {
     start: usize,
     end: usize,
     shapes: Vec<ShapeSpan>,
@@ -364,7 +380,7 @@ struct TextLine {
     bbox: BBox,
 }
 
-impl TextLine {
+impl LineSpan {
     #[cfg(debug_assertions)]
     fn assert_flat_coverage(&self) {
         let mut cursor = self.start;

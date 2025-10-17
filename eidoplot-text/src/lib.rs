@@ -14,12 +14,14 @@ pub mod shape;
 pub use font::{Font, ScaledMetrics, parse_font_families};
 pub use layout::{Anchor, BBox, HorAlign, LineVerAlign, TextLayout, VerAlign};
 pub use render::{render_text, render_text_tiny_skia};
-pub use rich::{RichTextBuilder, RichTextLayout};
+pub use line::LineText;
+pub use rich::{RichTextBuilder, RichText};
 pub use shape::{Direction, TextShape};
 
 #[derive(Debug, Clone)]
 pub enum Error {
-    NoSuchFont(Font),
+    InvalidSpan(String),
+    NoSuchFont(font::Font),
     FaceParsingError(ttf::FaceParsingError),
     BadLayoutParamsError,
 }
@@ -27,6 +29,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Error::InvalidSpan(s) => write!(f, "Invalid span: {}", s),
             Error::NoSuchFont(font) => write!(f, "Could not find a face for {:?}", font),
             Error::FaceParsingError(err) => err.fmt(f),
             Error::BadLayoutParamsError => write!(f, "Bad text layout parameters"),
