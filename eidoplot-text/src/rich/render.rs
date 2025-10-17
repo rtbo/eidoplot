@@ -103,8 +103,6 @@ fn line_path(
     mut builder: tiny_skia_path::PathBuilder,
 ) -> tiny_skia::Path {
     // there is no y-flip transform on this one
-    println!("bbox: {:?}, y_baseline: {}", bbox, y_baseline);
-    println!("line: {:?}", line);
     builder.move_to(bbox.left, y_baseline - line.position);
     builder.line_to(bbox.right, y_baseline - line.position);
     builder.line_to(bbox.right, y_baseline - line.position + line.thickness);

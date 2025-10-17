@@ -904,7 +904,6 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> Metrics {
     let line_gap = face.line_gap();
 
     let uline = face.underline_metrics().unwrap_or_else (|| {
-        println!("no underline metrics");
         ttf::LineMetrics {
             position: -(ascent as f32 * 0.1) as i16,
             thickness: (units_per_em as f32 / 14.0) as i16,

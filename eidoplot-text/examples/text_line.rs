@@ -16,29 +16,20 @@ fn main() {
     let texts = &[
         (
             "Axe des abscisses",
-            line::Options {
-                align: line::Align::Start,
-                baseline: line::Baseline::Top,
-                font: font.clone(),
-            },
+            line::Align::Start,
+            line::Baseline::Top,
             (20.0, 20.0),
         ),
         (
-            "خط البيانات 123",
-            line::Options {
-                align: line::Align::Start,
-                baseline: line::Baseline::Baseline,
-                font: font.clone(),
-            },
+            "خط البيانات 124",
+            line::Align::Start,
+            line::Baseline::Baseline,
             (580.0, 80.0),
         ),
         (
             "Graph title",
-            line::Options {
-                align: line::Align::Start,
-                baseline: Default::default(),
-                font: font.clone(),
-            },
+            line::Align::Start,
+            Default::default(),
             (420.0, 236.0),
         ),
     ];
@@ -47,7 +38,7 @@ fn main() {
     let mut pm_mut = pm.as_mut();
     pm_mut.fill(tiny_skia::Color::WHITE);
 
-    for (text, line_opts, (x, y)) in texts {
+    for (text, align, baseline, (x, y)) in texts {
         let (tx, ty) = (*x, *y);
         let render_opts = text::render::Options {
             fill: Some(tiny_skia::Paint::default()),
@@ -55,7 +46,7 @@ fn main() {
             transform: tiny_skia::Transform::from_translate(tx, ty),
             mask: None,
         };
-        let line = Line::new(text.to_string(), 32.0, line_opts, &db).unwrap();
+        let line = Line::new(text.to_string(), 32.0, *align, *baseline, font.clone(), &db).unwrap();
         text::render::render_line(&line, &render_opts, &db, &mut pm_mut);
         draw_line_bbox(&line, (tx, ty), &mut pm_mut);
     }
@@ -72,16 +63,6 @@ fn draw_line_bbox(line: &line::Line, (tx, ty): (f32, f32), pm_mut: &mut tiny_ski
         false,
         pm_mut,
     );
-    // for lidx in 0..layout.lines_len() {
-    //     let bbox = layout.line_bbox(lidx).transform(&tr);
-    //     draw_bbox(
-    //         bbox,
-    //         tiny_skia::Color::from_rgba8(50, 50, 255, 255),
-    //         1.0,
-    //         true,
-    //         pm_mut,
-    //     );
-    // }
 }
 
 fn bbox_rect_path(bbox: text::BBox) -> tiny_skia_path::Path {

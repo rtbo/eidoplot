@@ -68,26 +68,6 @@ pub enum Baseline {
     Top,
 }
 
-/// Options for the layout of text line
-pub struct Options {
-    /// The horizontal alignment
-    pub align: Align,
-    /// The vertical alignment
-    pub baseline: Baseline,
-    /// The font to use
-    pub font: font::Font,
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Self {
-            align: Align::default(),
-            baseline: Baseline::default(),
-            font: font::Font::default(),
-        }
-    }
-}
-
 /// A single line of text
 #[derive(Debug, Clone)]
 pub struct Line {
@@ -128,7 +108,9 @@ impl Line {
     pub fn new(
         text: String,
         font_size: f32,
-        opts: &Options,
+        align: Align,
+        baseline: Baseline,
+        font: Font,
         db: &fontdb::Database,
     ) -> Result<Self, Error> {
         let default_lev = match crate::script_is_rtl(&text) {
@@ -139,7 +121,7 @@ impl Line {
         let mut bidi = BidiAlgo::Yep { default_lev };
         let bidi_runs = bidi.visual_runs(&text, 0);
         if bidi_runs.is_empty() {
-            return Ok(Line::new_empty(opts.font.clone()));
+            return Ok(Line::new_empty(font.clone()));
         }
         let main_dir = match default_lev {
             Some(unicode_bidi::LTR_LEVEL) => rustybuzz::Direction::LeftToRight,
@@ -150,11 +132,11 @@ impl Line {
         let mut shapes = Vec::with_capacity(bidi_runs.len());
         let mut ctx = Ctx { buffer: None };
         for run in &bidi_runs {
-            let shape = Shape::shape_run(&text, run, font_size, &opts.font, db, &mut ctx)?;
+            let shape = Shape::shape_run(&text, run, font_size, &font, db, &mut ctx)?;
             shapes.push(shape);
         }
 
-        let mut y_cursor = match opts.baseline {
+        let mut y_cursor = match baseline {
             Baseline::Bottom => shapes.descent(),
             Baseline::Baseline => 0.0,
             Baseline::Middle => shapes.x_height() / 2.0,
@@ -164,7 +146,7 @@ impl Line {
 
         let width = shapes.width();
 
-        let x_start = match (opts.align, main_dir) {
+        let x_start = match (align, main_dir) {
             (Align::Start, rustybuzz::Direction::LeftToRight)
             | (Align::End, rustybuzz::Direction::RightToLeft)
             | (Align::Left, _) => 0.0,
@@ -174,8 +156,6 @@ impl Line {
             (Align::Center, _) => -width / 2.0,
             _ => unreachable!(),
         };
-
-        println!("x_start: {}, width: {}", x_start, width);
 
         let top = y_cursor - shapes.ascent();
         let bottom = y_cursor - shapes.descent();
@@ -198,7 +178,7 @@ impl Line {
 
         Ok(Line {
             text,
-            font: opts.font.clone(),
+            font: font.clone(),
             bbox: BBox {
                 top,
                 right: x_cursor,
