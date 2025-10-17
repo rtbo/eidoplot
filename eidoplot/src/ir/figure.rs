@@ -1,64 +1,68 @@
 use std::iter::FusedIterator;
 use std::slice;
 
+use eidoplot_text::rich;
+
 use crate::geom;
 use crate::ir::{Legend, Plot, Subplots};
-use crate::style::{self, defaults, theme};
+use crate::style::{defaults, font, theme};
 
 #[derive(Debug, Clone)]
-pub struct TitleFont {
-    pub font: style::Font,
-    pub size: f32,
-    pub color: theme::Color,
-}
+pub struct TitleProps(pub rich::TextProps);
 
-impl Default for TitleFont {
+impl Default for TitleProps {
     fn default() -> Self {
-        TitleFont {
-            font: defaults::TITLE_FONT_FAMILY.parse().unwrap(),
-            size: defaults::TITLE_FONT_SIZE,
-            color: theme::Col::Foreground.into(),
-        }
-    }
-}
-
-impl TitleFont {
-    pub fn font(&self) -> &style::Font {
-        &self.font
+        TitleProps(
+            rich::TextProps::new(defaults::TITLE_FONT_SIZE)
+                .with_font(font::Font::default().with_families(
+                    font::parse_font_families(defaults::TITLE_FONT_FAMILY).unwrap(),
+                )),
+        )
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Title {
     text: String,
-    font: TitleFont,
+    props: TitleProps,
+    spans: Vec<(usize, usize, rich::TextOptProps)>,
+}
+
+impl From<String> for Title {
+    fn from(text: String) -> Self {
+        Title{
+            text,
+            props: TitleProps::default(),
+            spans: Vec::new(),
+        }
+    }
 }
 
 impl Title {
-    pub fn new(text: String) -> Self {
+    pub fn with_props(self, props: TitleProps) -> Self {
         Title {
-            text,
-            font: TitleFont::default(),
+            props,
+            ..self
         }
     }
 
-    pub fn with_font(mut self, font: TitleFont) -> Self {
-        self.font = font;
-        self
+    pub fn with_spans(self, spans: Vec<(usize, usize, rich::TextOptProps)>) -> Self {
+        Title {
+            spans,
+            ..self
+        }
     }
 
     pub fn text(&self) -> &str {
         &self.text
     }
 
-    pub fn font(&self) -> &TitleFont {
-        &self.font
+    pub fn props(&self) -> &TitleProps {
+        &self.props
     }
-}
 
-impl From<String> for Title {
-    fn from(text: String) -> Self {
-        Title::new(text)
+    pub fn spans(&self) -> &[(usize, usize, rich::TextOptProps)] {
+        &self.spans
     }
 }
 

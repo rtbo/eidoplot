@@ -26,24 +26,29 @@ where
         let mut rect = geom::Rect::from_ps(geom::Point::ORIGIN, fig.size()).pad(fig.padding());
 
         if let Some(title) = fig.title() {
-            let opts = text::layout::Options {
-                    hor_align: text::layout::HorAlign::Center,
-                    ver_align: text::layout::LineVerAlign::Hanging.into(),
-                    ..Default::default()
-                };
-            let title = eidoplot_text::shape_and_layout_str(title.text(), title.font().font(), ctx.fontdb(), title.font().size, &opts)?;
+            let layout = text::rich::Layout::Horizontal(
+                text::rich::LineAlign::Hanging.into(),
+                text::rich::TypeAlign::Center,
+                Default::default(),
+            );
+            let mut builder =
+                text::rich::RichTextBuilder::new(title.text().to_string(), title.props().0.clone())
+                    .with_layout(layout);
+            for (start, end, props) in title.spans() {
+                builder.add_span(*start, *end, props.clone());
+            }
+            let title = builder.done(&ctx.fontdb)?;
+
             let anchor_x = rect.center_x();
             let anchor_y = rect.top() + missing_params::FIG_TITLE_MARGIN;
             let transform = geom::Transform::from_translate(anchor_x, anchor_y);
-            let text = render::TextLayout {
-                layout: &title,
-                fill: ctx.theme().foreground().into(),
-                transform: Some(&transform),
+            let text = render::RichText {
+                text: &title,
+                transform,
             };
-            self.draw_text_layout(&text)?;
-            let metrics = title.metrics();
-            let visual_height = title.height() - (metrics.ascent - metrics.cap_height);
-            rect = rect.shifted_top_side(visual_height + 2.0 * missing_params::FIG_TITLE_MARGIN);
+            self.draw_rich_text(&text)?;
+            rect = rect
+                .shifted_top_side(title.bbox().height() + 2.0 * missing_params::FIG_TITLE_MARGIN);
         }
 
         if let Some(legend) = fig.legend() {

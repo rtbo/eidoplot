@@ -21,7 +21,7 @@ fn main() {
     source.add_column("stocks_2024", &stocks_2024);
     source.add_column("stocks_2025", &stocks_2025);
 
-    let title = ir::figure::Title::new("Categorical bars".into());
+    let title = ir::figure::Title::from("Categorical bars".to_string());
 
     let x_axis = ir::Axis::new()
         .with_title("Fruits".to_string().into())

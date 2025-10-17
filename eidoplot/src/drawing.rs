@@ -132,6 +132,10 @@ where
         self.surface.draw_rect(rect)
     }
 
+    fn draw_rich_text(&mut self, text: &render::RichText) -> Result<(), render::Error> {
+        self.surface.draw_rich_text(text)
+    }
+
     fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
         self.surface.draw_text(text)
     }
