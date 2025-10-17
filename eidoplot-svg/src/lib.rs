@@ -84,6 +84,10 @@ impl Surface for SvgSurface {
         Ok(())
     }
 
+    fn draw_rich_text(&mut self, _text: &render::RichText) -> Result<(), render::Error> {
+        todo!("SVG rich text")
+    }
+
     fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
         let mut node = element::Text::new(text.text)
             .set("text-rendering", "optimizeLegibility")

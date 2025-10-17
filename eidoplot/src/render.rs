@@ -24,6 +24,12 @@ impl From<text::Error> for Error {
     }
 }
 
+impl From<ttf_parser::FaceParsingError> for Error {
+    fn from(err: ttf_parser::FaceParsingError) -> Self {
+        Error::FontOrText(err.into())
+    }
+}
+
 impl std::error::Error for Error {}
 
 pub trait Surface {
@@ -38,6 +44,9 @@ pub trait Surface {
 
     /// Draw a path
     fn draw_path(&mut self, path: &Path) -> Result<(), Error>;
+
+    /// Draw some text
+    fn draw_rich_text(&mut self, text: &RichText) -> Result<(), Error>;
 
     /// Draw some text
     fn draw_text(&mut self, text: &Text) -> Result<(), Error>;
@@ -119,4 +128,16 @@ pub struct TextLayout<'a> {
     pub layout: &'a text::TextLayout,
     pub fill: Paint,
     pub transform: Option<&'a geom::Transform>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Line<'a> {
+    pub layout: &'a text::LineText,
+    pub transform: geom::Transform,
+}
+
+#[derive(Debug, Clone)]
+pub struct RichText<'a> {
+    pub text: &'a text::RichText,
+    pub transform: geom::Transform,
 }

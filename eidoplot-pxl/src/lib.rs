@@ -141,6 +141,18 @@ impl State {
         Ok(())
     }
 
+    fn draw_rich_text(&mut self, px: &mut PixmapMut<'_>, text: &render::RichText) -> Result<(), render::Error> {
+        let ts_text = text
+            .transform.post_concat(self.transform);
+
+        text::rich::render_rich_text(&text.text, &self.fontdb, ts_text, None, px)?;
+
+        #[cfg(feature = "debug-text-bbox")]
+        self.draw_text_bbox(px, text.text.bbox(), ts_text)?;
+
+        Ok(())
+    }
+
     fn draw_text(
         &mut self,
         px: &mut PixmapMut<'_>,
@@ -274,6 +286,11 @@ impl render::Surface for PxlSurface {
         self.state.draw_path(&mut px, path)
     }
 
+    fn draw_rich_text(&mut self, text: &render::RichText) -> Result<(), render::Error> {
+        let mut px = self.pixmap.as_mut();
+        self.state.draw_rich_text(&mut px, text)
+    }
+
     fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
         let mut px = self.pixmap.as_mut();
         self.state.draw_text(&mut px, text)
@@ -308,6 +325,10 @@ impl render::Surface for PxlSurfaceRef<'_> {
 
     fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
         self.state.draw_path(&mut self.pixmap, path)
+    }
+
+    fn draw_rich_text(&mut self, text: &render::RichText) -> Result<(), render::Error> {
+        self.state.draw_rich_text(&mut self.pixmap, text)
     }
 
     fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
