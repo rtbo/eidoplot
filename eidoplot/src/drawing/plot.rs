@@ -19,7 +19,8 @@ pub struct Plots {
 
 #[derive(Debug, Clone)]
 struct Plot {
-    rect: geom::Rect,
+    plot_rect: geom::Rect,
+    outer_rect: geom::Rect,
     // None when there is no series (empty plot)
     axes: Option<Axes>,
     series: Vec<Series>,
@@ -129,7 +130,7 @@ where
             + right_widths.iter().sum::<f32>()
             + ir_plots.space() * (ir_plots.cols() - 1) as f32;
 
-        // Now we can determine whidth of horizontal axes and set them all up
+        // Now we can determine width of horizontal axes and set them all up
         let subplot_rect_width = (rect.width() - vert_space_width) / ir_plots.cols() as f32;
         let x_axes = self.setup_x_axes(ir_plots, &plot_data, subplot_rect_width)?;
 
@@ -150,14 +151,19 @@ where
 
         let mut y = rect.y();
         for row in 0..gi.rows() {
-            y += top_heights[row];
-
+            let height = subplot_rect_height + top_heights[row] + bottom_heights[row];
             let mut x = rect.x();
 
             for col in 0..gi.cols() {
-                x += left_widths[col];
+                let width = subplot_rect_width + left_widths[col] + right_widths[col];
                 if let Some(plt_idx) = gi.plot_idx(row, col) {
-                    let rect = geom::Rect::from_xywh(x, y, subplot_rect_width, subplot_rect_height);
+                    let outer_rect = geom::Rect::from_xywh(x, y, width, height);
+                    let plot_rect = geom::Rect::from_xywh(
+                        x + left_widths[col],
+                        y + top_heights[col],
+                        subplot_rect_width,
+                        subplot_rect_height,
+                    );
                     let PlotData { series, legend, .. } = data.next().unwrap();
                     let x_axis = x_axes.next().unwrap();
                     let y_axis = y_axes.next().unwrap();
@@ -172,16 +178,17 @@ where
                         ),
                     };
                     plots[plt_idx] = Some(Plot {
-                        rect,
+                        plot_rect,
+                        outer_rect,
                         axes,
                         series,
                         legend,
                     });
                 }
-                x += subplot_rect_width + right_widths[col] + ir_plots.space();
+                x += width + ir_plots.space();
             }
 
-            y += subplot_rect_height + bottom_heights[row] + ir_plots.space();
+            y += height + ir_plots.space();
         }
 
         let plots = plots.into_iter().map(|p| p.unwrap()).collect();
@@ -643,19 +650,19 @@ where
         D: data::Source,
         T: style::Theme,
     {
-        self.draw_plot_background(ctx, ir_plot, &plot.rect)?;
+        self.draw_plot_background(ctx, ir_plot, &plot.plot_rect)?;
         let Some(axes) = &plot.axes else {
-            self.draw_plot_border(ctx, ir_plot.border(), &plot.rect)?;
+            self.draw_plot_border(ctx, ir_plot.border(), &plot.plot_rect)?;
             return Ok(());
         };
 
-        self.draw_plot_axes_grids(ctx, &axes, &plot.rect)?;
-        self.draw_plot_series(ctx, ir_plot.series(), &plot.series, &plot.rect, &axes)?;
-        self.draw_plot_axes(ctx, &axes, &plot.rect)?;
-        self.draw_plot_border(ctx, ir_plot.border(), &plot.rect)?;
+        self.draw_plot_axes_grids(ctx, &axes, &plot.plot_rect)?;
+        self.draw_plot_series(ctx, ir_plot.series(), &plot.series, &plot.plot_rect, &axes)?;
+        self.draw_plot_axes(ctx, &axes, &plot.plot_rect)?;
+        self.draw_plot_border(ctx, ir_plot.border(), &plot.plot_rect)?;
 
         if let (Some(leg), Some(ir_leg)) = (&plot.legend, ir_plot.legend()) {
-            self.draw_plot_legend(ctx, &leg, ir_leg, &plot.rect)?;
+            self.draw_plot_legend(ctx, &leg, ir_leg, &plot.plot_rect, &plot.outer_rect)?;
         }
 
         Ok(())
@@ -786,66 +793,73 @@ where
         ctx: &Ctx<D, T>,
         leg: &Legend,
         ir_leg: &ir::PlotLegend,
-        rect: &geom::Rect,
+        plot_rect: &geom::Rect,
+        outer_rect: &geom::Rect,
     ) -> Result<(), Error>
     where
         T: style::Theme,
     {
-        let top_left = legend_top_left(ir_leg, leg.size(), rect);
+        let top_left = legend_top_left(ir_leg, leg.size(), plot_rect, outer_rect);
         self.draw_legend(ctx, &leg, &top_left)?;
         Ok(())
     }
 }
 
-fn legend_top_left(legend: &ir::PlotLegend, sz: geom::Size, rect: &geom::Rect) -> geom::Point {
+fn legend_top_left(
+    legend: &ir::PlotLegend,
+    sz: geom::Size,
+    plot_rect: &geom::Rect,
+    outer_rect: &geom::Rect,
+) -> geom::Point {
     match legend.pos() {
         ir::plot::LegendPos::OutTop => geom::Point::new(
-            rect.center_x() - sz.width() / 2.0,
-            rect.top() - sz.height() - legend.margin(),
+            outer_rect.center_x() - sz.width() / 2.0,
+            outer_rect.top(),
         ),
         ir::plot::LegendPos::OutRight => geom::Point::new(
-            rect.right() + legend.margin(),
-            rect.center_y() - sz.height() / 2.0,
+            outer_rect.right() - sz.width(),
+            outer_rect.center_y() - sz.height() / 2.0,
         ),
         ir::plot::LegendPos::OutBottom => geom::Point::new(
-            rect.center_x() - sz.width() / 2.0,
-            rect.bottom() + legend.margin(),
+            outer_rect.center_x() - sz.width() / 2.0,
+            outer_rect.bottom() - sz.height(),
         ),
         ir::plot::LegendPos::OutLeft => geom::Point::new(
-            rect.left() - sz.width() - legend.margin(),
-            rect.center_y() - sz.height() / 2.0,
+            outer_rect.left(),
+            outer_rect.center_y() - sz.height() / 2.0,
         ),
 
         ir::plot::LegendPos::InTop => geom::Point::new(
-            rect.center_x() - sz.width() / 2.0,
-            rect.top() + legend.margin(),
+            plot_rect.center_x() - sz.width() / 2.0,
+            plot_rect.top() + legend.margin(),
         ),
         ir::plot::LegendPos::InTopRight => geom::Point::new(
-            rect.right() - sz.width() - legend.margin(),
-            rect.top() + legend.margin(),
+            plot_rect.right() - sz.width() - legend.margin(),
+            plot_rect.top() + legend.margin(),
         ),
         ir::plot::LegendPos::InRight => geom::Point::new(
-            rect.right() - sz.width() - legend.margin(),
-            rect.center_y() - sz.height() / 2.0,
+            plot_rect.right() - sz.width() - legend.margin(),
+            plot_rect.center_y() - sz.height() / 2.0,
         ),
         ir::plot::LegendPos::InBottomRight => geom::Point::new(
-            rect.right() - sz.width() - legend.margin(),
-            rect.bottom() - sz.height() - legend.margin(),
+            plot_rect.right() - sz.width() - legend.margin(),
+            plot_rect.bottom() - sz.height() - legend.margin(),
         ),
         ir::plot::LegendPos::InBottom => geom::Point::new(
-            rect.center_x() - sz.width() / 2.0,
-            rect.bottom() - sz.height() - legend.margin(),
+            plot_rect.center_x() - sz.width() / 2.0,
+            plot_rect.bottom() - sz.height() - legend.margin(),
         ),
         ir::plot::LegendPos::InBottomLeft => geom::Point::new(
-            rect.left() + legend.margin(),
-            rect.bottom() - sz.height() - legend.margin(),
+            plot_rect.left() + legend.margin(),
+            plot_rect.bottom() - sz.height() - legend.margin(),
         ),
         ir::plot::LegendPos::InLeft => geom::Point::new(
-            rect.left() + legend.margin(),
-            rect.center_y() - sz.height() / 2.0,
+            plot_rect.left() + legend.margin(),
+            plot_rect.center_y() - sz.height() / 2.0,
         ),
-        ir::plot::LegendPos::InTopLeft => {
-            geom::Point::new(rect.left() + legend.margin(), rect.top() + legend.margin())
-        }
+        ir::plot::LegendPos::InTopLeft => geom::Point::new(
+            plot_rect.left() + legend.margin(),
+            plot_rect.top() + legend.margin(),
+        ),
     }
 }
