@@ -15,7 +15,7 @@ pub use render::render_rich_text;
 
 /// Typographic alignment, possibly depending on the script direction.
 #[derive(Debug, Clone, Copy, Default)]
-pub enum TypeAlign {
+pub enum Align {
     /// The start of the text is aligned with the reference point.
     #[default]
     Start,
@@ -52,7 +52,7 @@ pub enum LineAlign {
 
 /// Vertical alignment for a whole horizontal text, possibly considering multiple lines
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Align {
+pub enum VerAlign {
     /// Align at the specified line
     Line(usize, LineAlign),
     /// Align at the top (ascender) of the first line
@@ -63,16 +63,29 @@ pub enum Align {
     Bottom,
 }
 
-impl Default for Align {
+
+impl Default for VerAlign {
     fn default() -> Self {
-        Align::Line(0, Default::default())
+        VerAlign::Line(0, Default::default())
     }
 }
 
-impl From<LineAlign> for Align {
+impl From<LineAlign> for VerAlign {
     fn from(value: LineAlign) -> Self {
         Self::Line(0, value)
     }
+}
+
+/// Horizontal alignement of vertical text
+/// This will not affect the placement of glyphs relative to each other,
+/// but will dictate how they are aligned relative to the reference X coordinate.
+/// The default is center.
+#[derive(Debug, Clone, Copy, Default)]
+pub enum HorAlign {
+    Left,
+    #[default]
+    Center,
+    Right,
 }
 
 /// A direction for horizontal text layout.
@@ -143,14 +156,14 @@ impl Default for InterColumn {
 #[derive(Debug, Clone, Copy)]
 pub enum Layout {
     /// Horizontal text layout options
-    Horizontal(Align, TypeAlign, Direction),
+    Horizontal(Align, VerAlign, Direction),
     /// Vertical text layout options
-    Vertical(TypeAlign, VerDirection, VerProgression, InterColumn),
+    Vertical(Align, HorAlign, VerDirection, VerProgression, InterColumn),
 }
 
 impl Default for Layout {
     fn default() -> Self {
-        Layout::Horizontal(Align::default(), TypeAlign::default(), Direction::default())
+        Layout::Horizontal(Default::default(), Default::default(), Default::default())
     }
 }
 

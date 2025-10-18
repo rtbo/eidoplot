@@ -12,7 +12,7 @@ use ttf_parser as ttf;
 
 /// Horizontal alignment
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum TypeAlign {
+pub enum Align {
     /// Align the start of the text (left or right depending on the direction)
     #[default]
     Start,
@@ -28,7 +28,7 @@ pub enum TypeAlign {
 
 /// Vertical alignment for a single line of text
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum Baseline {
+pub enum VerAlign {
     /// Align the bottom of the descender
     Bottom,
     /// Align the baseline
@@ -82,8 +82,8 @@ impl LineText {
     pub fn new(
         text: String,
         font_size: f32,
-        align: TypeAlign,
-        baseline: Baseline,
+        align: Align,
+        ver_align: VerAlign,
         font: Font,
         db: &fontdb::Database,
     ) -> Result<Self, Error> {
@@ -110,24 +110,24 @@ impl LineText {
             shapes.push(shape);
         }
 
-        let mut y_cursor = match baseline {
-            Baseline::Bottom => shapes.descent(),
-            Baseline::Baseline => 0.0,
-            Baseline::Middle => shapes.x_height() / 2.0,
-            Baseline::Hanging => shapes.cap_height(),
-            Baseline::Top => shapes.ascent(),
+        let mut y_cursor = match ver_align {
+            VerAlign::Bottom => shapes.descent(),
+            VerAlign::Baseline => 0.0,
+            VerAlign::Middle => shapes.x_height() / 2.0,
+            VerAlign::Hanging => shapes.cap_height(),
+            VerAlign::Top => shapes.ascent(),
         };
 
         let width = shapes.width();
 
         let x_start = match (align, main_dir) {
-            (TypeAlign::Start, rustybuzz::Direction::LeftToRight)
-            | (TypeAlign::End, rustybuzz::Direction::RightToLeft)
-            | (TypeAlign::Left, _) => 0.0,
-            (TypeAlign::Start, rustybuzz::Direction::RightToLeft)
-            | (TypeAlign::End, rustybuzz::Direction::LeftToRight)
-            | (TypeAlign::Right, _) => -width,
-            (TypeAlign::Center, _) => -width / 2.0,
+            (Align::Start, rustybuzz::Direction::LeftToRight)
+            | (Align::End, rustybuzz::Direction::RightToLeft)
+            | (Align::Left, _) => 0.0,
+            (Align::Start, rustybuzz::Direction::RightToLeft)
+            | (Align::End, rustybuzz::Direction::LeftToRight)
+            | (Align::Right, _) => -width,
+            (Align::Center, _) => -width / 2.0,
             _ => unreachable!(),
         };
 

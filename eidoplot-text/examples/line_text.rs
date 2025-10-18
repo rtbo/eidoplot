@@ -16,19 +16,19 @@ fn main() {
     let texts = &[
         (
             "Axe des abscisses",
-            line::TypeAlign::Start,
-            line::Baseline::Top,
+            line::Align::Start,
+            line::VerAlign::Top,
             (20.0, 20.0),
         ),
         (
             "خط البيانات 124",
-            line::TypeAlign::Start,
-            line::Baseline::Baseline,
+            line::Align::Start,
+            line::VerAlign::Baseline,
             (580.0, 80.0),
         ),
         (
             "Graph title",
-            line::TypeAlign::Start,
+            line::Align::Start,
             Default::default(),
             (420.0, 236.0),
         ),

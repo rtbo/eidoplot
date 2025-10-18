@@ -1,10 +1,10 @@
 use super::{
-    Align, Boundaries, Direction, Error, Glyph, Layout, LineAlign, PropsSpan, RichText,
-    ShapeSpan, LineSpan, TextOptProps, TextProps, RichTextBuilder, TypeAlign, VerDirection,
+    Align, Boundaries, Direction, Error, Glyph, HorAlign, Layout, LineAlign, LineSpan, PropsSpan,
+    RichText, RichTextBuilder, ShapeSpan, TextOptProps, TextProps, VerAlign, VerDirection,
+    VerProgression,
 };
 use crate::bidi::BidiAlgo;
 use crate::font::{self, DatabaseExt};
-use crate::rich::VerProgression;
 use crate::{BBox, fontdb};
 
 use tiny_skia::Transform;
@@ -205,7 +205,6 @@ impl VerProgression {
     }
 }
 
-
 impl RichTextBuilder {
     /// Create a RichText from this builder
     pub(super) fn done_impl(self, fontdb: &fontdb::Database) -> Result<RichText, Error> {
@@ -227,10 +226,10 @@ impl RichTextBuilder {
             Layout::Horizontal(_, _, Direction::RTL) => {
                 BidiAlgo::Nope(rustybuzz::Direction::RightToLeft)
             }
-            Layout::Vertical(_, VerDirection::TTB, _, _) => {
+            Layout::Vertical(_, _, VerDirection::TTB, _, _) => {
                 BidiAlgo::Nope(rustybuzz::Direction::TopToBottom)
             }
-            Layout::Vertical(_, VerDirection::BTT, _, _) => {
+            Layout::Vertical(_, _, VerDirection::BTT, _, _) => {
                 BidiAlgo::Nope(rustybuzz::Direction::BottomToTop)
             }
         };
@@ -459,22 +458,22 @@ impl RichTextBuilder {
     }
 
     fn build_horizontal_layout(&self, lines: &mut Vec<LineSpan>) -> Result<(), Error> {
-        let Layout::Horizontal(align, type_align, _) = self.layout else {
+        let Layout::Horizontal(align, ver_align, _) = self.layout else {
             unreachable!()
         };
 
         let lines_len = lines.len();
 
         // y-cursor must be placed at the baseline of the first line
-        let mut y_cursor = match align {
-            Align::Top => lines[0].ascent(),
-            Align::Bottom => lines[lines_len - 1].descent() - lines.baseline(lines_len - 1),
-            Align::Center => {
+        let mut y_cursor = match ver_align {
+            VerAlign::Top => lines[0].ascent(),
+            VerAlign::Bottom => lines[lines_len - 1].descent() - lines.baseline(lines_len - 1),
+            VerAlign::Center => {
                 let top = lines[0].ascent();
                 let bottom = lines[lines_len - 1].descent() - lines.baseline(lines_len - 1);
                 (top + bottom) / 2.0
             }
-            Align::Line(line, align) => {
+            VerAlign::Line(line, align) => {
                 let baseline = lines.baseline(line);
                 let lst_metrics = lines[lines_len - 1].metrics();
                 match align {
@@ -492,7 +491,7 @@ impl RichTextBuilder {
                 y_cursor += lines[lidx].height();
             }
 
-            self.layout_horizontal_line(&mut lines[lidx], y_cursor, type_align);
+            self.layout_horizontal_line(&mut lines[lidx], y_cursor, align);
 
             y_cursor += lines[lidx].gap();
         }
@@ -500,14 +499,14 @@ impl RichTextBuilder {
         Ok(())
     }
 
-    fn layout_horizontal_line(&self, line: &mut LineSpan, y_baseline: f32, type_align: TypeAlign) {
+    fn layout_horizontal_line(&self, line: &mut LineSpan, y_baseline: f32, align: Align) {
         let ws = self.text[line.start..line.end]
             .chars()
             .filter(|c| c.is_whitespace())
             .count();
         let width = line.x_advance();
-        let (width, justify) = match type_align {
-            TypeAlign::Justify(sz) => {
+        let (width, justify) = match align {
+            Align::Justify(sz) => {
                 let sz = sz.max(width);
                 let justify = if ws > 0 {
                     Justify::Ws {
@@ -521,14 +520,14 @@ impl RichTextBuilder {
             _ => (width, Justify::Nope),
         };
 
-        let x_start = match (type_align, line.main_dir) {
-            (TypeAlign::Start, rustybuzz::Direction::LeftToRight)
-            | (TypeAlign::End, rustybuzz::Direction::RightToLeft)
-            | (TypeAlign::Left, _) => 0.0,
-            (TypeAlign::Start, rustybuzz::Direction::RightToLeft)
-            | (TypeAlign::End, rustybuzz::Direction::LeftToRight)
-            | (TypeAlign::Right, _) => -width,
-            (TypeAlign::Center, _) => -width / 2.0,
+        let x_start = match (align, line.main_dir) {
+            (Align::Start, rustybuzz::Direction::LeftToRight)
+            | (Align::End, rustybuzz::Direction::RightToLeft)
+            | (Align::Left, _) => 0.0,
+            (Align::Start, rustybuzz::Direction::RightToLeft)
+            | (Align::End, rustybuzz::Direction::LeftToRight)
+            | (Align::Right, _) => -width,
+            (Align::Center, _) => -width / 2.0,
             _ => unreachable!(),
         };
 
@@ -596,7 +595,7 @@ impl RichTextBuilder {
     }
 
     fn build_vertical_layout(&self, cols: &mut Vec<LineSpan>) -> Result<(), Error> {
-        let Layout::Vertical(type_align, _, progression, inter_col) = self.layout else {
+        let Layout::Vertical(align, hor_align, _, progression, inter_col) = self.layout else {
             unreachable!()
         };
 
@@ -611,14 +610,20 @@ impl RichTextBuilder {
             VerProgression::PerScript => unreachable!(),
         };
 
-        let mut x_cursor = 0.0;
+        let width = cols[0].em_size();
+
+        let mut x_cursor = match hor_align {
+            HorAlign::Left => width / 2.0,
+            HorAlign::Center => 0.0,
+            HorAlign::Right => -width / 2.0,
+        };
 
         for (idx, col) in cols.iter_mut().enumerate() {
             if idx != 0 {
                 move_x(&mut x_cursor, col.col_width());
             }
 
-            self.layout_vertical_column(col, x_cursor, type_align);
+            self.layout_vertical_column(col, x_cursor, align);
 
             move_x(&mut x_cursor, col.em_size() * inter_col.0);
         }
@@ -626,14 +631,14 @@ impl RichTextBuilder {
         Ok(())
     }
 
-    fn layout_vertical_column(&self, col: &mut LineSpan, x_leftline: f32, type_align: TypeAlign) {
+    fn layout_vertical_column(&self, col: &mut LineSpan, x_leftline: f32, type_align: Align) {
         let ws = self.text[col.start..col.end]
             .chars()
             .filter(|c| c.is_whitespace())
             .count();
         let height = col.col_height();
         let (height, justify) = match type_align {
-            TypeAlign::Justify(sz) => {
+            Align::Justify(sz) => {
                 let sz = sz.max(height);
                 let justify = if ws > 0 {
                     Justify::Ws {
@@ -648,13 +653,13 @@ impl RichTextBuilder {
         };
 
         let y_start = match (type_align, col.main_dir) {
-            (TypeAlign::Start, rustybuzz::Direction::TopToBottom)
-            | (TypeAlign::End, rustybuzz::Direction::BottomToTop)
-            | (TypeAlign::Left, _) => 0.0,
-            (TypeAlign::Start, rustybuzz::Direction::BottomToTop)
-            | (TypeAlign::End, rustybuzz::Direction::TopToBottom)
-            | (TypeAlign::Right, _) => -height,
-            (TypeAlign::Center, _) => -height / 2.0,
+            (Align::Start, rustybuzz::Direction::TopToBottom)
+            | (Align::End, rustybuzz::Direction::BottomToTop)
+            | (Align::Left, _) => 0.0,
+            (Align::Start, rustybuzz::Direction::BottomToTop)
+            | (Align::End, rustybuzz::Direction::TopToBottom)
+            | (Align::Right, _) => height,
+            (Align::Center, _) => height / 2.0,
             _ => unreachable!(),
         };
 

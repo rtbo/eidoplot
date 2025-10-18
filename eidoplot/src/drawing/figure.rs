@@ -27,8 +27,8 @@ where
 
         if let Some(title) = fig.title() {
             let layout = text::rich::Layout::Horizontal(
+                text::rich::Align::Center,
                 text::rich::LineAlign::Hanging.into(),
-                text::rich::TypeAlign::Center,
                 Default::default(),
             );
             let mut builder =

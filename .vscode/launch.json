@@ -99,6 +99,18 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "line_text example",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example",
+                    "line_text"
+                ]
+            },
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "rich_text example",
             "cargo": {
                 "args": [
@@ -108,17 +120,5 @@
                 ]
             },
         },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "text_line example",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--example",
-                    "text_line"
-                ]
-            },
-        }
     ]
 }
