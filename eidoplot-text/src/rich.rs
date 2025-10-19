@@ -1,8 +1,4 @@
-use crate::{
-    font,
-    fontdb, BBox,
-    Error,
-};
+use crate::{BBox, Error, font, fontdb};
 use ttf_parser as ttf;
 
 mod boundaries;
@@ -11,7 +7,6 @@ mod render;
 
 use boundaries::Boundaries;
 pub use render::render_rich_text;
-
 
 /// Typographic alignment, possibly depending on the script direction.
 #[derive(Debug, Clone, Copy, Default)]
@@ -63,7 +58,6 @@ pub enum VerAlign {
     Bottom,
 }
 
-
 impl Default for VerAlign {
     fn default() -> Self {
         VerAlign::Line(0, Default::default())
@@ -100,11 +94,11 @@ pub enum Direction {
     #[default]
     Mixed,
     /// The main direction of the script is Left to Right.
-    /// Note that Right to Left script will still be rendered right to left,
+    /// Right to Left script will still be rendered right to left,
     /// but in case of mixed script, the main direction is left to right.
     MixedLTR,
     /// The main direction of the script is Right to Left.
-    /// Note that Left to Right script will still be rendered left to right,
+    /// Left to Right script will still be rendered left to right,
     /// but in case of mixed script, the main direction is right to left.
     MixedRTL,
     /// Left to right text. (no bidirectional algorithm applied)
@@ -150,7 +144,6 @@ impl Default for InterColumn {
         InterColumn(0.5)
     }
 }
-
 
 /// Layout options for rich text
 #[derive(Debug, Clone, Copy)]
@@ -211,6 +204,7 @@ impl RichTextBuilder {
 #[derive(Debug, Clone)]
 pub struct RichText {
     text: String,
+    layout: Layout,
     lines: Vec<LineSpan>,
     bbox: BBox,
 }
@@ -220,13 +214,33 @@ impl RichText {
         &self.text
     }
 
+    pub fn layout(&self) -> Layout {
+        self.layout
+    }
+
+    pub fn lines(&self) -> &[LineSpan] {
+        &self.lines
+    }
+
     pub fn bbox(&self) -> BBox {
         self.bbox
+    }
+
+    pub fn visual_bbox(&self) -> BBox {
+        if self.lines.is_empty() {
+            return BBox::NULL;
+        }
+        let mut bbox = BBox::EMPTY;
+        for l in &self.lines {
+            bbox = BBox::unite(&bbox, &l.visual_bbox());
+        }
+        bbox
     }
 
     fn empty() -> Self {
         Self {
             text: String::new(),
+            layout: Layout::default(),
             lines: Vec::new(),
             bbox: BBox::EMPTY,
         }
@@ -246,7 +260,12 @@ impl RichText {
             if self.text.as_bytes()[cursor] == b'\r' {
                 cursor += 1;
             }
-            assert_eq!(self.text.as_bytes()[cursor], b'\n', "expected end of line, found {}", self.text[cursor..].chars().next().unwrap());
+            assert_eq!(
+                self.text.as_bytes()[cursor],
+                b'\n',
+                "expected end of line, found {}",
+                self.text[cursor..].chars().next().unwrap()
+            );
             cursor += 1;
             l.assert_flat_coverage();
         }
@@ -345,6 +364,22 @@ impl TextProps {
         self
     }
 
+    pub fn font_size(&self) -> f32 {
+        self.font_size
+    }
+
+    pub fn font(&self) -> &font::Font {
+        &self.font
+    }
+
+    pub fn fill(&self) -> Option<Color> {
+        self.fill
+    }
+
+    pub fn outline(&self) -> Option<(Color, f32)> {
+        self.outline
+    }
+
     fn apply_opts(&mut self, opts: &TextOptProps) {
         if let Some(font_family) = &opts.font_family {
             self.font = self.font.clone().with_families(font_family.clone());
@@ -384,8 +419,9 @@ struct TextSpan {
     props: TextOptProps,
 }
 
+/// A line of rich text
 #[derive(Debug, Clone)]
-struct LineSpan {
+pub struct LineSpan {
     start: usize,
     end: usize,
     shapes: Vec<ShapeSpan>,
@@ -394,6 +430,102 @@ struct LineSpan {
 }
 
 impl LineSpan {
+    /// Byte index where the line starts in the text
+    pub fn start(&self) -> usize {
+        self.start
+    }
+
+    /// Byte index where the line ends in the text
+    pub fn end(&self) -> usize {
+        self.end
+    }
+
+    /// The text shapes in this line
+    pub fn shapes(&self) -> &[ShapeSpan] {
+        &self.shapes
+    }
+
+    /// The main text direction of this line
+    pub fn main_dir(&self) -> rustybuzz::Direction {
+        self.main_dir
+    }
+
+    /// Bounding box of the line
+    pub fn bbox(&self) -> BBox {
+        self.bbox
+    }
+
+    /// The total height of this line including the gap to the next one
+    pub fn total_height(&self) -> f32 {
+        self.height() + self.gap()
+    }
+
+    /// The vertical gap from this line to the next.
+    /// Can be zero if the font includes this in the height
+    pub fn gap(&self) -> f32 {
+        self.shapes
+            .iter()
+            .map(|s| s.metrics.line_gap)
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
+
+    pub fn height(&self) -> f32 {
+        self.shapes
+            .iter()
+            .map(|s| s.metrics.height())
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
+
+    pub fn ascent(&self) -> f32 {
+        self.shapes
+            .iter()
+            .map(|s| s.metrics.ascent)
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
+
+    pub fn descent(&self) -> f32 {
+        self.shapes
+            .iter()
+            .map(|s| s.metrics.descent)
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
+
+    /// The maximum capital height of this line.
+    /// If there are multiple shape sizes, the average is returned
+    pub fn cap_height(&self) -> f32 {
+        self.shapes
+            .iter()
+            .map(|s| s.metrics.cap_height)
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0)
+    }
+
+    /// The x-height of this line.
+    /// If there are multiple shape sizes, the average is returned
+    pub fn x_height(&self) -> f32 {
+        if self.shapes.is_empty() {
+            return 0.0;
+        }
+        let sum: f32 = self.shapes.iter().map(|s| s.metrics.x_height).sum();
+        sum / (self.shapes.len() as f32)
+    }
+
+    /// Visual bounding box of the line
+    pub fn visual_bbox(&self) -> BBox {
+        if self.shapes.is_empty() {
+            return BBox::NULL;
+        }
+        let mut bbox = BBox::EMPTY;
+        for s in &self.shapes {
+            bbox = BBox::unite(&bbox, &s.visual_bbox());
+        }
+        bbox
+    }
+
     #[cfg(debug_assertions)]
     fn assert_flat_coverage(&self) {
         let mut cursor = self.start;
@@ -406,8 +538,13 @@ impl LineSpan {
     }
 }
 
+/// A shape of text in a line
+/// A shape is a sequence of glyphs that share the same properties:
+///   - font
+///   - font size
+///   - script direction
 #[derive(Debug, Clone)]
-struct ShapeSpan {
+pub struct ShapeSpan {
     start: usize,
     end: usize,
     spans: Vec<PropsSpan>,
@@ -419,6 +556,53 @@ struct ShapeSpan {
 }
 
 impl ShapeSpan {
+    /// Byte index where the shape starts in the text
+    pub fn start(&self) -> usize {
+        self.start
+    }
+
+    /// Byte index where the shape ends in the text
+    pub fn end(&self) -> usize {
+        self.end
+    }
+
+    /// The font of this shape
+    pub fn font(&self) -> &font::Font {
+        &self.spans[0].props.font
+    }
+
+    /// The font of this shape
+    pub fn font_size(&self) -> f32 {
+        self.spans[0].props.font_size
+    }
+
+    /// The text spans in this shape
+    pub fn spans(&self) -> &[PropsSpan] {
+        &self.spans
+    }
+
+    /// The metrics of this shape
+    pub fn metrics(&self) -> font::ScaledMetrics {
+        self.metrics
+    }
+
+    /// The bounding box of this shape
+    pub fn bbox(&self) -> BBox {
+        self.bbox
+    }
+
+    /// The visual bounding box of this shape
+    pub fn visual_bbox(&self) -> BBox {
+        if self.glyphs.is_empty() {
+            return BBox::NULL;
+        }
+        let mut bbox = BBox::EMPTY;
+        for g in &self.glyphs {
+            bbox = BBox::unite(&bbox, &g.visual_bbox());
+        }
+        bbox
+    }
+
     #[cfg(debug_assertions)]
     fn assert_flat_coverage(&self) {
         let mut cursor = self.start;
@@ -430,12 +614,35 @@ impl ShapeSpan {
     }
 }
 
+/// A span of text with the same properties
 #[derive(Debug, Clone)]
-struct PropsSpan {
+pub struct PropsSpan {
     start: usize,
     end: usize,
     props: TextProps,
     bbox: BBox,
+}
+
+impl PropsSpan {
+    /// Byte index where the span starts in the text
+    pub fn start(&self) -> usize {
+        self.start
+    }
+
+    /// Byte index where the span ends in the text
+    pub fn end(&self) -> usize {
+        self.end
+    }
+
+    /// The properties of this span
+    pub fn props(&self) -> &TextProps {
+        &self.props
+    }
+
+    /// Bounding box of the span
+    pub fn bbox(&self) -> BBox {
+        self.bbox
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -447,4 +654,27 @@ struct Glyph {
     x_offset: f32,
     y_offset: f32,
     ts: tiny_skia::Transform,
+    rect: ttf::Rect,
+}
+
+impl Glyph {
+    fn visual_bbox(&self) -> BBox {
+        let mut tl_br = [
+            tiny_skia_path::Point {
+                x: self.rect.x_min as f32,
+                y: self.rect.y_max as f32,
+            },
+            tiny_skia_path::Point {
+                x: self.rect.x_max as f32,
+                y: self.rect.y_min as f32,
+            },
+        ];
+        self.ts.map_points(&mut tl_br);
+        BBox {
+            top: tl_br[0].y,
+            right: tl_br[1].x,
+            bottom: tl_br[1].y,
+            left: tl_br[0].x,
+        }
+    }
 }

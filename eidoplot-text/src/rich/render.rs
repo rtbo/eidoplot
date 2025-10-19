@@ -1,13 +1,7 @@
-use super::{RichText, ShapeSpan};
+use super::RichText;
 use crate::{BBox, font, fontdb};
 
 use ttf_parser as ttf;
-
-impl ShapeSpan {
-    fn font(&self) -> &font::Font {
-        &self.spans.first().unwrap().props.font
-    }
-}
 
 pub fn render_rich_text(
     text: &RichText,

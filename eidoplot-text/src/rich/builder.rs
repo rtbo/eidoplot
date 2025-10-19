@@ -126,38 +126,6 @@ impl LineSpan {
             .unwrap_or(0.0)
     }
 
-    fn ascent(&self) -> f32 {
-        self.shapes
-            .iter()
-            .map(|s| s.metrics.ascent)
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    fn descent(&self) -> f32 {
-        self.shapes
-            .iter()
-            .map(|s| s.metrics.descent)
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    fn gap(&self) -> f32 {
-        self.shapes
-            .iter()
-            .map(|s| s.metrics.line_gap)
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    fn height(&self) -> f32 {
-        self.shapes
-            .iter()
-            .map(|s| s.metrics.height())
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
     fn x_advance(&self) -> f32 {
         self.shapes.iter().map(|s| s.x_advance()).sum()
     }
@@ -188,7 +156,7 @@ impl Lines for [LineSpan] {
         let mut h = 0.0;
         let mut l = 0;
         while l < idx {
-            h += self[l].gap() + self[l].height();
+            h += self[l].total_height();
             l += 1;
         }
         h
@@ -396,33 +364,43 @@ impl RichTextBuilder {
         buffer.set_direction(dir);
         buffer.guess_segment_properties();
 
-        let (shape, metrics) = fontdb
+        let (glyphs, metrics, buffer) = fontdb
             .with_face_data(face_id, |data, index| -> Result<_, Error> {
                 let face = ttf::Face::parse(data, index)?;
                 let metrics = font::face_metrics(&face).scaled(shape_props.font_size);
                 let mut hbface = rustybuzz::Face::from_face(face);
                 font::apply_hb_variations(&mut hbface, &shape_props.font);
 
-                Ok((rustybuzz::shape(&hbface, &[], buffer), metrics))
+                let buffer = rustybuzz::shape(&hbface, &[], buffer);
+
+                let mut glyphs = Vec::with_capacity(buffer.len());
+                for (i, p) in buffer.glyph_infos().iter().zip(buffer.glyph_positions()) {
+                    let id = ttf::GlyphId(i.glyph_id as u16);
+                    let rect = hbface.glyph_bounding_box(id).unwrap_or(ttf::Rect {
+                        x_min: 0,
+                        y_min: 0,
+                        x_max: 0,
+                        y_max: 0,
+                    });
+                    glyphs.push(Glyph {
+                        id,
+                        cluster: i.cluster as usize + start,
+                        x_advance: p.x_advance as f32 * metrics.scale,
+                        y_advance: p.y_advance as f32 * metrics.scale,
+                        x_offset: p.x_offset as f32 * metrics.scale,
+                        y_offset: p.y_offset as f32 * metrics.scale,
+                        ts: tiny_skia::Transform::identity(),
+                        rect,
+                    })
+                }
+
+                Ok((glyphs, metrics, buffer))
             })
             .expect("should be a valid face id")?;
 
-        let mut glyphs = Vec::with_capacity(shape.len());
-        for (i, p) in shape.glyph_infos().iter().zip(shape.glyph_positions()) {
-            glyphs.push(Glyph {
-                id: ttf::GlyphId(i.glyph_id as u16),
-                cluster: i.cluster as usize + start,
-                x_advance: p.x_advance as f32 * metrics.scale,
-                y_advance: p.y_advance as f32 * metrics.scale,
-                x_offset: p.x_offset as f32 * metrics.scale,
-                y_offset: p.y_offset as f32 * metrics.scale,
-                ts: tiny_skia::Transform::identity(),
-            })
-        }
+        ctx.buffer = Some(buffer.clear());
 
-        ctx.buffer = Some(shape.clear());
-
-        Ok(ShapeSpan {
+        let shape = ShapeSpan {
             start,
             end,
             spans: props_spans,
@@ -431,7 +409,8 @@ impl RichTextBuilder {
             metrics,
             y_baseline: f32::NAN,
             bbox: BBox::EMPTY,
-        })
+        };
+        Ok(shape)
     }
 
     fn build_layout(self, mut lines: Vec<LineSpan>) -> Result<RichText, Error> {
@@ -439,10 +418,17 @@ impl RichTextBuilder {
             return Ok(RichText::empty());
         }
 
-        match self.layout {
-            Layout::Horizontal(..) => self.build_horizontal_layout(&mut lines)?,
-            Layout::Vertical(..) => self.build_vertical_layout(&mut lines)?,
-        }
+        let layout = match self.layout {
+            Layout::Horizontal(align, ver_align, direction) => {
+                self.build_horizontal_layout(&mut lines)?;
+                Layout::Horizontal(align, ver_align, direction)
+            }
+            Layout::Vertical(align, hor_align, direction, _, inter_col) => {
+                // assigning resolved progression
+                let progression = self.build_vertical_layout(&mut lines)?;
+                Layout::Vertical(align, hor_align, direction, progression, inter_col)
+            }
+        };
 
         let bbox = lines
             .iter()
@@ -452,6 +438,7 @@ impl RichTextBuilder {
 
         Ok(RichText {
             text: self.text,
+            layout,
             lines,
             bbox,
         })
@@ -594,7 +581,7 @@ impl RichTextBuilder {
         };
     }
 
-    fn build_vertical_layout(&self, cols: &mut Vec<LineSpan>) -> Result<(), Error> {
+    fn build_vertical_layout(&self, cols: &mut Vec<LineSpan>) -> Result<VerProgression, Error> {
         let Layout::Vertical(align, hor_align, _, progression, inter_col) = self.layout else {
             unreachable!()
         };
@@ -628,7 +615,7 @@ impl RichTextBuilder {
             move_x(&mut x_cursor, col.em_size() * inter_col.0);
         }
 
-        Ok(())
+        Ok(progression)
     }
 
     fn layout_vertical_column(&self, col: &mut LineSpan, x_leftline: f32, type_align: Align) {

@@ -46,6 +46,13 @@ impl BBox {
         left: f32::MAX,
     };
 
+    pub(crate) const NULL: BBox = BBox {
+        top: 0.0,
+        right: 0.0,
+        bottom: 0.0,
+        left: 0.0,
+    };
+
     pub const fn is_empty(&self) -> bool {
         self.top >= self.bottom || self.left >= self.right
     }
