@@ -39,9 +39,9 @@ impl Axis {
             } => ticks.size_across(self.side, mark_size, with_labels),
             _ => 0.0,
         };
-        if let Some((title, _)) = self.draw_opts.title.as_ref() {
+        if let Some(title )= self.draw_opts.title.as_ref() {
             // vertical axis rotate the title, therefore we take the height in all cases.
-            size += title.height() + missing_params::AXIS_TITLE_MARGIN;
+            size += title.bbox().height() + missing_params::AXIS_TITLE_MARGIN;
         }
         size
     }
@@ -238,7 +238,7 @@ impl CategoryTicks {
 /// The location of ticks and their labels is determined by the shared scale
 #[derive(Debug, Clone)]
 struct DrawOpts {
-    title: Option<(TextLayout, theme::Color)>,
+    title: Option<text::RichText>,
     marks: Option<TickMark>,
     minor_marks: Option<TickMark>,
     ticks_labels: bool,
@@ -259,8 +259,8 @@ where
             height +=
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size;
         }
-        if let Some(label) = x_axis.title() {
-            height += missing_params::AXIS_TITLE_MARGIN + label.font().size;
+        if let Some(title) = x_axis.title() {
+            height += missing_params::AXIS_TITLE_MARGIN + title.props().font_size();
         }
         height
     }
@@ -319,9 +319,7 @@ where
 
                 let ticks = ir_axis
                     .ticks()
-                    .map(|major_ticks| {
-                        self.setup_num_ticks(major_ticks, nb, ir_axis.scale(), side)
-                    })
+                    .map(|major_ticks| self.setup_num_ticks(major_ticks, nb, ir_axis.scale(), side))
                     .transpose()?;
 
                 let minor_ticks = if let Some(mt) = ir_axis.minor_ticks() {
@@ -443,14 +441,13 @@ where
         let title = ir_axis
             .title()
             .map(|title| {
-                text::shape_and_layout_str(
-                    title.text(),
-                    title.font().font(),
-                    self.fontdb(),
-                    title.font().size,
-                    &side.title_opts(),
-                )
-                .map(|layout| (layout, title.font().color))
+                let mut builder =
+                    text::RichTextBuilder::new(title.text().to_string(), title.props().0.clone())
+                    .with_layout(side.title_layout());
+                for (start, end, span) in title.spans() {
+                    builder.add_span(*start, *end, span.clone());
+                }
+                builder.done(self.fontdb())
             })
             .transpose()?;
 
@@ -606,18 +603,16 @@ where
             }
         };
 
-        if let Some((layout, color)) = axis.draw_opts.title.as_ref() {
+        if let Some(title) = axis.draw_opts.title.as_ref() {
             shift_across += missing_params::AXIS_TITLE_MARGIN;
             let transform = axis.side.title_transform(shift_across, plot_rect);
-            let fill = color.resolve(ctx.theme()).into();
-            let rtext = render::TextLayout {
-                layout,
-                fill,
-                transform: Some(&transform),
+            let rtext = render::RichText {
+                text: title,
+                transform: transform,
             };
-            self.draw_text_layout(&rtext)?;
+            self.draw_rich_text(&rtext)?;
             // vertical titles are rotated, so it is always the height that is relevant here.
-            shift_across += layout.height();
+            shift_across += title.bbox().height();
         }
         Ok(shift_across)
     }

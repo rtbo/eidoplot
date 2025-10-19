@@ -5,64 +5,16 @@ use eidoplot_text::rich;
 
 use crate::geom;
 use crate::ir::{Legend, Plot, Subplots};
-use crate::style::{defaults, font, theme};
+use crate::style::{defaults, theme};
 
-#[derive(Debug, Clone)]
-pub struct TitleProps(pub rich::TextProps);
+super::define_rich_text_structs!(TitleProps, Title);
 
 impl Default for TitleProps {
     fn default() -> Self {
         TitleProps(
             rich::TextProps::new(defaults::TITLE_FONT_SIZE)
-                .with_font(font::Font::default().with_families(
-                    font::parse_font_families(defaults::TITLE_FONT_FAMILY).unwrap(),
-                )),
+                .with_font(defaults::TITLE_FONT_FAMILY.parse().unwrap()),
         )
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Title {
-    text: String,
-    props: TitleProps,
-    spans: Vec<(usize, usize, rich::TextOptProps)>,
-}
-
-impl From<String> for Title {
-    fn from(text: String) -> Self {
-        Title{
-            text,
-            props: TitleProps::default(),
-            spans: Vec::new(),
-        }
-    }
-}
-
-impl Title {
-    pub fn with_props(self, props: TitleProps) -> Self {
-        Title {
-            props,
-            ..self
-        }
-    }
-
-    pub fn with_spans(self, spans: Vec<(usize, usize, rich::TextOptProps)>) -> Self {
-        Title {
-            spans,
-            ..self
-        }
-    }
-
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-
-    pub fn props(&self) -> &TitleProps {
-        &self.props
-    }
-
-    pub fn spans(&self) -> &[(usize, usize, rich::TextOptProps)] {
-        &self.spans
     }
 }
 

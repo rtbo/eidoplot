@@ -2,6 +2,118 @@
  * Axis design module
  */
 
+use eidoplot_text::rich;
+
+pub use ticks::{Grid, MinorGrid, MinorTicks, Ticks, TicksFont};
+
+use crate::style::defaults;
+
+super::define_rich_text_structs!(TitleProps, Title);
+
+impl Default for TitleProps {
+    fn default() -> Self {
+        TitleProps(rich::TextProps::new(defaults::AXIS_LABEL_FONT_SIZE))
+            .with_font(defaults::AXIS_LABEL_FONT_FAMILY.parse().unwrap())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Axis {
+    title: Option<Title>,
+    scale: Scale,
+    ticks: Option<Ticks>,
+    minor_ticks: Option<MinorTicks>,
+    grid: Option<Grid>,
+    minor_grid: Option<MinorGrid>,
+}
+
+impl Default for Axis {
+    fn default() -> Self {
+        Axis {
+            title: None,
+            scale: Default::default(),
+            ticks: None,
+            minor_ticks: None,
+            grid: None,
+            minor_grid: None,
+        }
+    }
+}
+
+impl Axis {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn with_title(self, title: Title) -> Self {
+        Self {
+            title: Some(title),
+            ..self
+        }
+    }
+
+    pub fn with_scale(self, scale: Scale) -> Self {
+        Self { scale, ..self }
+    }
+
+    pub fn with_ticks(self, ticks: Ticks) -> Self {
+        Self {
+            ticks: Some(ticks),
+            ..self
+        }
+    }
+
+    pub fn with_minor_ticks(self, minor_ticks: MinorTicks) -> Self {
+        Self {
+            minor_ticks: Some(minor_ticks),
+            ..self
+        }
+    }
+
+    /// Returns a new axis with the specified grid
+    /// If this axis has no major ticks, default ticks are
+    /// created and used to locate the grid
+    pub fn with_grid(self, grid: Grid) -> Self {
+        Self {
+            ticks: Some(self.ticks.unwrap_or_default()),
+            grid: Some(grid),
+            ..self
+        }
+    }
+
+    /// Returns a new axis with the specified minor grid
+    /// If this axis has no minor ticks, default ticks are
+    /// created and used to locate the grid
+    pub fn with_minor_grid(self, minor_grid: MinorGrid) -> Self {
+        Self {
+            minor_ticks: Some(self.minor_ticks.unwrap_or_default()),
+            minor_grid: Some(minor_grid),
+            ..self
+        }
+    }
+
+    pub fn title(&self) -> Option<&Title> {
+        self.title.as_ref()
+    }
+    pub fn scale(&self) -> &Scale {
+        &self.scale
+    }
+    pub fn ticks(&self) -> Option<&Ticks> {
+        self.ticks.as_ref()
+    }
+    pub fn minor_ticks(&self) -> Option<&MinorTicks> {
+        self.minor_ticks.as_ref()
+    }
+    /// Gridline style
+    pub fn grid(&self) -> Option<&Grid> {
+        self.grid.as_ref()
+    }
+    /// Minor gridline style
+    pub fn minor_grid(&self) -> Option<&MinorGrid> {
+        self.minor_grid.as_ref()
+    }
+}
+
 /// Describe the bounds of an axis in data space
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Range {
@@ -285,163 +397,5 @@ pub mod ticks {
         pub fn color(&self) -> theme::Color {
             self.color
         }
-    }
-}
-
-pub use ticks::{Grid, MinorGrid, MinorTicks, Ticks, TicksFont};
-
-use crate::style::{self, defaults, theme};
-
-#[derive(Debug, Clone)]
-pub struct TitleFont {
-    pub font: style::Font,
-    pub size: f32,
-    pub color: theme::Color,
-}
-
-impl Default for TitleFont {
-    fn default() -> Self {
-        TitleFont {
-            font: defaults::AXIS_LABEL_FONT_FAMILY.parse().unwrap(),
-            size: defaults::AXIS_LABEL_FONT_SIZE,
-            color: theme::Col::Foreground.into(),
-        }
-    }
-}
-
-impl TitleFont {
-    pub fn font(&self) -> &style::Font {
-        &self.font
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Title {
-    text: String,
-    font: TitleFont,
-}
-
-impl Title {
-    pub fn new(text: String) -> Self {
-        Title {
-            text,
-            font: TitleFont::default(),
-        }
-    }
-
-    pub fn with_font(mut self, font: TitleFont) -> Self {
-        self.font = font;
-        self
-    }
-
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-
-    pub fn font(&self) -> &TitleFont {
-        &self.font
-    }
-}
-
-impl From<String> for Title {
-    fn from(value: String) -> Self {
-        Title::new(value)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Axis {
-    title: Option<Title>,
-    scale: Scale,
-    ticks: Option<Ticks>,
-    minor_ticks: Option<MinorTicks>,
-    grid: Option<Grid>,
-    minor_grid: Option<MinorGrid>,
-}
-
-impl Default for Axis {
-    fn default() -> Self {
-        Axis {
-            title: None,
-            scale: Default::default(),
-            ticks: None,
-            minor_ticks: None,
-            grid: None,
-            minor_grid: None,
-        }
-    }
-}
-
-impl Axis {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    pub fn with_title(self, title: Title) -> Self {
-        Self {
-            title: Some(title),
-            ..self
-        }
-    }
-
-    pub fn with_scale(self, scale: Scale) -> Self {
-        Self { scale, ..self }
-    }
-
-    pub fn with_ticks(self, ticks: Ticks) -> Self {
-        Self {
-            ticks: Some(ticks),
-            ..self
-        }
-    }
-
-    pub fn with_minor_ticks(self, minor_ticks: MinorTicks) -> Self {
-        Self {
-            minor_ticks: Some(minor_ticks),
-            ..self
-        }
-    }
-
-    /// Returns a new axis with the specified grid
-    /// If this axis has no major ticks, default ticks are
-    /// created and used to locate the grid
-    pub fn with_grid(self, grid: Grid) -> Self {
-        Self {
-            ticks: Some(self.ticks.unwrap_or_default()),
-            grid: Some(grid),
-            ..self
-        }
-    }
-
-    /// Returns a new axis with the specified minor grid
-    /// If this axis has no minor ticks, default ticks are
-    /// created and used to locate the grid
-    pub fn with_minor_grid(self, minor_grid: MinorGrid) -> Self {
-        Self {
-            minor_ticks: Some(self.minor_ticks.unwrap_or_default()),
-            minor_grid: Some(minor_grid),
-            ..self
-        }
-    }
-
-    pub fn title(&self) -> Option<&Title> {
-        self.title.as_ref()
-    }
-    pub fn scale(&self) -> &Scale {
-        &self.scale
-    }
-    pub fn ticks(&self) -> Option<&Ticks> {
-        self.ticks.as_ref()
-    }
-    pub fn minor_ticks(&self) -> Option<&MinorTicks> {
-        self.minor_ticks.as_ref()
-    }
-    /// Gridline style
-    pub fn grid(&self) -> Option<&Grid> {
-        self.grid.as_ref()
-    }
-    /// Minor gridline style
-    pub fn minor_grid(&self) -> Option<&MinorGrid> {
-        self.minor_grid.as_ref()
     }
 }

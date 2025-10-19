@@ -27,28 +27,28 @@ impl Side {
     }
 
     /// Layout options for axis title
-    pub fn title_opts(&self) -> text::layout::Options {
+    pub fn title_layout(&self) -> text::rich::Layout {
         match self {
-            Side::Bottom => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-            Side::Top => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Left => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Right => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
+            Side::Bottom => text::rich::Layout::Horizontal(
+                text::rich::Align::Center,
+                text::rich::LineAlign::Top.into(),
+                Default::default(),
+            ),
+            Side::Top => text::rich::Layout::Horizontal(
+                text::rich::Align::Center,
+                text::rich::LineAlign::Bottom.into(),
+                Default::default(),
+            ),
+            Side::Left => text::rich::Layout::Horizontal(
+                text::rich::Align::Center,
+                text::rich::LineAlign::Bottom.into(),
+                Default::default(),
+            ),
+            Side::Right => text::rich::Layout::Horizontal(
+                text::rich::Align::Center,
+                text::rich::LineAlign::Top.into(),
+                Default::default(),
+            ),
         }
     }
 

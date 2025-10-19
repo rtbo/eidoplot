@@ -23,38 +23,6 @@ struct PropsResolver {
     stack: Vec<TextOptProps>,
 }
 
-impl TextOptProps {
-    #[allow(dead_code)]
-    fn desc(&self) -> String {
-        let mut s = String::new();
-        if self.font_family.is_some() {
-            s.push_str("family ");
-        }
-        if self.font_weight.is_some() {
-            s.push_str("font-weight ");
-        }
-        if self.font_width.is_some() {
-            s.push_str("font-width ");
-        }
-        if self.font_style.is_some() {
-            s.push_str("font-style ");
-        }
-        if self.font_size.is_some() {
-            s.push_str("font-size ");
-        }
-        if self.fill.is_some() {
-            s.push_str("fill ");
-        }
-        if self.stroke.is_some() {
-            s.push_str("stroke ");
-        }
-        if self.underline.is_some() {
-            s.push_str("underline ");
-        }
-        s
-    }
-}
-
 impl PropsResolver {
     fn new(init_props: TextProps) -> PropsResolver {
         PropsResolver {

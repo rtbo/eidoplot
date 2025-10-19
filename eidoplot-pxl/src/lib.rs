@@ -148,7 +148,7 @@ impl State {
         text::rich::render_rich_text(&text.text, &self.fontdb, ts_text, None, px)?;
 
         #[cfg(feature = "debug-text-bbox")]
-        self.draw_text_bbox(px, text.text.bbox(), ts_text)?;
+        self.draw_text_bbox(px, text.text.bbox(), text.transform)?;
 
         Ok(())
     }
@@ -182,7 +182,7 @@ impl State {
         text::render::render_text_tiny_skia(&layout, &render_opts, db, px);
 
         #[cfg(feature = "debug-text-bbox")]
-        self.draw_text_bbox(px, layout.bbox(), ts_text)?;
+        self.draw_text_bbox(px, layout.bbox(), *text.transform.unwrap_or(&geom::Transform::identity()))?;
 
         Ok(())
     }
@@ -208,8 +208,9 @@ impl State {
         let db = &self.fontdb;
         text::render_text_tiny_skia(&text.layout, &render_opts, db, px);
 
+
         #[cfg(feature = "debug-text-bbox")]
-        self.draw_text_bbox(px, text.layout.bbox(), ts_text)?;
+        self.draw_text_bbox(px, text.layout.bbox(), *text.transform.unwrap_or(&geom::Transform::identity()))?;
 
         Ok(())
     }
@@ -235,6 +236,17 @@ impl State {
             left,
         } = bbox;
         let rect = geom::Rect::from_trbl(top, right, bottom, left);
+        let mut tl_br = [
+            tiny_skia_path::Point {
+                x: left,
+                y: top,
+            },
+            tiny_skia_path::Point {
+                x: right,
+                y: bottom,
+            },
+        ];
+        transform.map_points(&mut tl_br);
         let rrect = render::Rect {
             rect,
             fill: None,

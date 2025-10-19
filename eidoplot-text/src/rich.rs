@@ -349,8 +349,8 @@ impl TextProps {
         self
     }
 
-    pub fn with_outline(mut self, stroke: Option<(Color, f32)>) -> Self {
-        self.outline = stroke;
+    pub fn with_outline(mut self, stroke: (Color, f32)) -> Self {
+        self.outline = Some(stroke);
         self
     }
 
@@ -378,6 +378,14 @@ impl TextProps {
 
     pub fn outline(&self) -> Option<(Color, f32)> {
         self.outline
+    }
+
+    pub fn underline(&self) -> bool {
+        self.underline
+    }
+
+    pub fn strikeout(&self) -> bool {
+        self.strikeout
     }
 
     fn apply_opts(&mut self, opts: &TextOptProps) {
