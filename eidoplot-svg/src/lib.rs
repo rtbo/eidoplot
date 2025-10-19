@@ -2,8 +2,9 @@ use std::io;
 
 use eidoplot::geom::Transform;
 use eidoplot::render::Surface;
+use eidoplot::style::ColorU8;
 use eidoplot::{geom, render, style};
-use eidoplot_text as text;
+use eidoplot_text::{self as text, rich};
 use svg::Node;
 use svg::node::element;
 use text::font;
@@ -11,6 +12,7 @@ use text::font;
 pub struct SvgSurface {
     doc: svg::Document,
     clip_num: u32,
+    _node_num: u32,
     group_stack: Vec<element::Group>,
 }
 
@@ -22,6 +24,7 @@ impl SvgSurface {
         SvgSurface {
             doc,
             clip_num: 0,
+            _node_num: 0,
             group_stack: vec![],
         }
     }
@@ -84,8 +87,13 @@ impl Surface for SvgSurface {
         Ok(())
     }
 
-    fn draw_rich_text(&mut self, _text: &render::RichText) -> Result<(), render::Error> {
-        todo!("SVG rich text")
+    fn draw_rich_text(&mut self, text: &render::RichText) -> Result<(), render::Error> {
+        match text.text.layout() {
+            rich::Layout::Horizontal(align, _, _) => self.draw_rich_text_hor(text, align),
+            rich::Layout::Vertical(align, hor_align, _, progression, _) => {
+                self.draw_rich_text_ver(text, align, hor_align, progression)
+            }
+        }
     }
 
     fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
@@ -187,6 +195,88 @@ impl SvgSurface {
     fn bump_clip_id(&mut self) -> String {
         self.clip_num += 1;
         format!("eidoplot-clip{}", self.clip_num)
+    }
+
+    fn _bump_node_id(&mut self) -> String {
+        self._node_num += 1;
+        format!("eidoplot-node{}", self._node_num)
+    }
+
+    fn draw_rich_text_hor(
+        &mut self,
+        text: &render::RichText,
+        align: rich::Align,
+    ) -> Result<(), render::Error> {
+        let mut node =
+            element::Text::new(String::new()).set("text-rendering", "optimizeLegibility");
+
+        let whole_txt = text.text.text();
+
+        let mut dy = 0.0;
+
+        for line in text.text.lines().iter() {
+            let mut line_node = element::TSpan::new(String::new())
+                .set("text-anchor", rich_text_anchor(align, line.main_dir()))
+                .set("x", 0.0);
+            if dy != 0.0 {
+                line_node.assign("dy", dy);
+            }
+
+            for shape in line.shapes() {
+                let mut shape_node = element::TSpan::new(String::new());
+
+                for (idx, span) in shape.spans().iter().enumerate() {
+                    if idx == 0 {
+                        assign_font(
+                            &mut shape_node,
+                            span.props().font(),
+                            span.props().font_size(),
+                        );
+                    }
+                    let span_txt = &whole_txt[span.start()..span.end()];
+                    let mut span_node = element::TSpan::new(span_txt);
+                    let paint = span
+                        .props()
+                        .fill()
+                        .map(|c| render::Paint::Solid(ColorU8::from_rgba(c.r, c.g, c.b, c.a)));
+                    assign_fill(&mut span_node, paint.as_ref());
+                    shape_node.append(span_node);
+                }
+
+                line_node.append(shape_node);
+            }
+            node.append(line_node);
+
+            dy += line.total_height();
+        }
+
+        let yshift = rich_text_hor_yshift(&text.text);
+        let transform = text
+            .transform
+            .post_concat(Transform::from_translate(0.0, yshift));
+        assign_transform(&mut node, Some(&transform));
+
+        self.append_node(node);
+        Ok(())
+    }
+
+    fn draw_rich_text_ver(
+        &mut self,
+        _text: &render::RichText,
+        _align: rich::Align,
+        _hor_align: rich::HorAlign,
+        progression: rich::VerProgression,
+    ) -> Result<(), render::Error> {
+        let writing_mode = match progression {
+            rich::VerProgression::LTR => "vertical-lr",
+            rich::VerProgression::RTL => "vertical-rl",
+            _ => unreachable!(),
+        };
+        let _text_style = format!(
+            "writing-mode: {};\ntext-orientation: upright;\n",
+            writing_mode
+        );
+        todo!()
     }
 }
 
@@ -325,6 +415,19 @@ fn text_anchor(align: text::HorAlign, direction: text::Direction) -> &'static st
     }
 }
 
+fn rich_text_anchor(align: rich::Align, direction: rustybuzz::Direction) -> &'static str {
+    match (align, direction) {
+        (rich::Align::Start, _) => "start",
+        (rich::Align::Center, _) => "middle",
+        (rich::Align::End, _) => "end",
+        (rich::Align::Left, rustybuzz::Direction::LeftToRight) => "start",
+        (rich::Align::Left, rustybuzz::Direction::RightToLeft) => "end",
+        (rich::Align::Right, rustybuzz::Direction::LeftToRight) => "end",
+        (rich::Align::Right, rustybuzz::Direction::RightToLeft) => "start",
+        _ => todo!("vertical text"),
+    }
+}
+
 fn dominant_baseline(
     align: text::VerAlign,
     metrics: Option<text::ScaledMetrics>,
@@ -385,5 +488,60 @@ fn dominant_baseline(
                 .map(|m| m.descent)
                 .unwrap_or(BOTTOM_FACTOR * font_size),
         ),
+    }
+}
+
+trait Lines {
+    fn baseline(&self, idx: usize) -> f32;
+}
+
+impl Lines for [rich::LineSpan] {
+    fn baseline(&self, idx: usize) -> f32 {
+        let mut h = 0.0;
+        let mut l = 0;
+        while l < idx {
+            h += self[l].total_height();
+            l += 1;
+        }
+        h
+    }
+}
+
+fn rich_text_hor_yshift(text: &rich::RichText) -> f32 {
+    // multiple lines in SVG is a bit tricky.
+    // so we don't use dominant-baseline at all and we apply
+    // a vertical shift from the font face.
+    // It means that the shift is relative to the baseline of the first line
+
+    if text.lines().is_empty() {
+        return 0.0;
+    }
+    let rich::Layout::Horizontal(_, ver_align, _) = text.layout() else {
+        unreachable!()
+    };
+
+    let lines = text.lines();
+    let lines_len = lines.len();
+
+    // y-cursor must be placed at the baseline of the first line
+    match ver_align {
+        rich::VerAlign::Top => lines[0].ascent(),
+        rich::VerAlign::Bottom => lines[lines_len - 1].descent() - lines.baseline(lines_len - 1),
+        rich::VerAlign::Center => {
+            let top = lines[0].ascent();
+            let bottom = lines[lines_len - 1].descent() - lines.baseline(lines_len - 1);
+            (top + bottom) / 2.0
+        }
+        rich::VerAlign::Line(line, align) => {
+            let baseline = lines.baseline(line);
+            let lst_line = &lines[lines_len - 1];
+            match align {
+                rich::LineAlign::Bottom => lst_line.descent() - baseline,
+                rich::LineAlign::Baseline => -baseline,
+                rich::LineAlign::Middle => lst_line.x_height() / 2.0 - baseline,
+                rich::LineAlign::Hanging => lst_line.cap_height() - baseline,
+                rich::LineAlign::Top => lst_line.ascent() - baseline,
+            }
+        }
     }
 }

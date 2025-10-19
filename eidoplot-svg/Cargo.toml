@@ -7,4 +7,5 @@ edition.workspace = true
 [dependencies]
 eidoplot = { path = "../eidoplot" }
 eidoplot-text = { path = "../eidoplot-text" }
+rustybuzz.workspace = true
 svg = "0.18.0"
