@@ -16,20 +16,17 @@ fn main() {
     let texts = &[
         (
             "Axe des abscisses",
-            line::Align::Start,
-            line::VerAlign::Top,
+            (line::Align::Start, line::VerAlign::Top),
             (20.0, 20.0),
         ),
         (
             "خط البيانات 124",
-            line::Align::Start,
-            line::VerAlign::Baseline,
+            (line::Align::Start, line::VerAlign::Baseline),
             (580.0, 80.0),
         ),
         (
             "Graph title",
-            line::Align::Start,
-            Default::default(),
+            (line::Align::Start, Default::default()),
             (420.0, 236.0),
         ),
     ];
@@ -38,7 +35,7 @@ fn main() {
     let mut pm_mut = pm.as_mut();
     pm_mut.fill(tiny_skia::Color::WHITE);
 
-    for (text, align, baseline, (x, y)) in texts {
+    for (text, align, (x, y)) in texts {
         let (tx, ty) = (*x, *y);
         let render_opts = text::render::Options {
             fill: Some(tiny_skia::Paint::default()),
@@ -46,7 +43,7 @@ fn main() {
             transform: tiny_skia::Transform::from_translate(tx, ty),
             mask: None,
         };
-        let line = LineText::new(text.to_string(), 32.0, *align, *baseline, font.clone(), &db).unwrap();
+        let line = LineText::new(text.to_string(), *align, 32.0, font.clone(), &db).unwrap();
         text::render::render_line(&line, &render_opts, &db, &mut pm_mut);
         draw_line_bbox(&line, (tx, ty), &mut pm_mut);
     }

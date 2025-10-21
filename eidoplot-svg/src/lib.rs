@@ -87,6 +87,28 @@ impl Surface for SvgSurface {
         Ok(())
     }
 
+    fn draw_line_text(&mut self, rtext: &render::LineText) -> Result<(), render::Error> {
+        let text = rtext.text;
+        let (align, ver_align) = text.align();
+
+        let mut node = element::Text::new(text.text())
+            .set("text-rendering", "optimizeLegibility")
+            .set("text-anchor", line_text_anchor(align, text.main_dir()));
+
+        let (db, yshift) = line_dominant_baseline(ver_align, text.metrics());
+        node.assign("dominant-baseline", db);
+
+        let shift = Transform::from_translate(0.0, yshift);
+        let transform = rtext.transform.post_concat(shift);
+
+        assign_font(&mut node, text.font(), text.font_size());
+        assign_fill(&mut node, Some(&rtext.fill));
+        assign_transform(&mut node, Some(&transform));
+
+        self.append_node(node);
+        Ok(())
+    }
+
     fn draw_rich_text(&mut self, text: &render::RichText) -> Result<(), render::Error> {
         match text.text.layout() {
             rich::Layout::Horizontal(align, _, _) => self.draw_rich_text_hor(text, align),
@@ -415,6 +437,19 @@ fn text_anchor(align: text::HorAlign, direction: text::Direction) -> &'static st
     }
 }
 
+fn line_text_anchor(align: text::line::Align, direction: rustybuzz::Direction) -> &'static str {
+    match (align, direction) {
+        (text::line::Align::Start, _) => "start",
+        (text::line::Align::Center, _) => "middle",
+        (text::line::Align::End, _) => "end",
+        (text::line::Align::Left, rustybuzz::Direction::LeftToRight) => "start",
+        (text::line::Align::Left, rustybuzz::Direction::RightToLeft) => "end",
+        (text::line::Align::Right, rustybuzz::Direction::LeftToRight) => "end",
+        (text::line::Align::Right, rustybuzz::Direction::RightToLeft) => "start",
+        _ => unreachable!("anchor not relevant for vertical text"),
+    }
+}
+
 fn rich_text_anchor(align: rich::Align, direction: rustybuzz::Direction) -> &'static str {
     match (align, direction) {
         (rich::Align::Start, _) => "start",
@@ -424,7 +459,7 @@ fn rich_text_anchor(align: rich::Align, direction: rustybuzz::Direction) -> &'st
         (rich::Align::Left, rustybuzz::Direction::RightToLeft) => "end",
         (rich::Align::Right, rustybuzz::Direction::LeftToRight) => "end",
         (rich::Align::Right, rustybuzz::Direction::RightToLeft) => "start",
-        _ => todo!("vertical text"),
+        _ => unreachable!("anchor not relevant for vertical text"),
     }
 }
 
@@ -488,6 +523,23 @@ fn dominant_baseline(
                 .map(|m| m.descent)
                 .unwrap_or(BOTTOM_FACTOR * font_size),
         ),
+    }
+}
+
+fn line_dominant_baseline(
+    align: text::line::VerAlign,
+    metrics: text::ScaledMetrics,
+) -> (&'static str, f32) {
+    // text-top and text-bottom don't work too well,
+    // so instead we apply hanging and alphabetic,
+    // with a vertical shift from the font face
+
+    match align {
+        text::line::VerAlign::Top => ("hanging", metrics.ascent - metrics.cap_height),
+        text::line::VerAlign::Bottom => ("alphabetic", metrics.descent),
+        text::line::VerAlign::Middle => ("middle", 0.0),
+        text::line::VerAlign::Hanging => ("hanging", 0.0),
+        text::line::VerAlign::Baseline => ("alphabetic", 0.0),
     }
 }
 

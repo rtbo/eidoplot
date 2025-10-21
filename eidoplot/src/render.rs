@@ -45,7 +45,10 @@ pub trait Surface {
     /// Draw a path
     fn draw_path(&mut self, path: &Path) -> Result<(), Error>;
 
-    /// Draw some text
+    /// Draw a line of text
+    fn draw_line_text(&mut self, text: &LineText) -> Result<(), Error>;
+
+    /// Draw a rich text
     fn draw_rich_text(&mut self, text: &RichText) -> Result<(), Error>;
 
     /// Draw some text
@@ -131,8 +134,9 @@ pub struct TextLayout<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Line<'a> {
-    pub layout: &'a text::LineText,
+pub struct LineText<'a> {
+    pub text: &'a text::LineText,
+    pub fill: Paint,
     pub transform: geom::Transform,
 }
 

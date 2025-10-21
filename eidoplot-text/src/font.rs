@@ -941,7 +941,7 @@ pub struct ScaledLineMetrics {
 /// Metrics of a font face, scaled to a font size
 #[derive(Debug, Clone, Copy)]
 pub struct ScaledMetrics {
-    /// Scale factor from the original font units metrics
+    // /// Scale factor from the original font units metrics
     pub scale: f32,
     /// Size of the em box after scaling
     pub em_size: f32,

@@ -46,14 +46,26 @@ pub enum VerAlign {
 #[derive(Debug, Clone)]
 pub struct LineText {
     text: String,
+    align: (Align, VerAlign),
+    font_size: f32,
     font: Font,
     bbox: BBox,
+    main_dir: rustybuzz::Direction,
+    metrics: font::ScaledMetrics,
     pub(crate) shapes: Vec<Shape>,
 }
 
 impl LineText {
     pub fn text(&self) -> &str {
         &self.text
+    }
+
+    pub fn align(&self) -> (Align, VerAlign) {
+        self.align
+    }
+
+    pub fn font_size(&self) -> f32 {
+        self.font_size
     }
 
     pub fn font(&self) -> &Font {
@@ -64,11 +76,33 @@ impl LineText {
         &self.bbox
     }
 
+    #[inline]
+    pub fn width(&self) -> f32 {
+        self.bbox.width()
+    }
+
+    #[inline]
+    pub fn height(&self) -> f32 {
+        self.bbox.height()
+    }
+
+    pub fn main_dir(&self) -> rustybuzz::Direction {
+        self.main_dir
+    }
+
+    pub fn metrics(&self) -> font::ScaledMetrics {
+        self.metrics
+    }
+
     fn new_empty(font: Font) -> Self {
         Self {
             text: String::new(),
+            align: (Default::default(), Default::default()),
+            font_size: 1.0,
             font,
             bbox: BBox::EMPTY,
+            main_dir: rustybuzz::Direction::LeftToRight,
+            metrics: font::ScaledMetrics::null(),
             shapes: Vec::new(),
         }
     }
@@ -81,9 +115,8 @@ impl LineText {
     /// The final position on the text is defined by the transform provided to the render function.
     pub fn new(
         text: String,
+        align: (Align, VerAlign),
         font_size: f32,
-        align: Align,
-        ver_align: VerAlign,
         font: Font,
         db: &fontdb::Database,
     ) -> Result<Self, Error> {
@@ -110,12 +143,16 @@ impl LineText {
             shapes.push(shape);
         }
 
+        let (align, ver_align) = align;
+
+        let metrics = shapes.metrics();
+
         let mut y_cursor = match ver_align {
-            VerAlign::Bottom => shapes.descent(),
+            VerAlign::Bottom => metrics.descent,
             VerAlign::Baseline => 0.0,
-            VerAlign::Middle => shapes.x_height() / 2.0,
-            VerAlign::Hanging => shapes.cap_height(),
-            VerAlign::Top => shapes.ascent(),
+            VerAlign::Middle => metrics.x_height / 2.0,
+            VerAlign::Hanging => metrics.cap_height,
+            VerAlign::Top => metrics.ascent,
         };
 
         let width = shapes.width();
@@ -131,8 +168,8 @@ impl LineText {
             _ => unreachable!(),
         };
 
-        let top = y_cursor - shapes.ascent();
-        let bottom = y_cursor - shapes.descent();
+        let top = y_cursor - metrics.ascent;
+        let bottom = y_cursor - metrics.descent;
 
         let mut x_cursor = x_start;
 
@@ -152,6 +189,8 @@ impl LineText {
 
         Ok(LineText {
             text,
+            align: (align, ver_align),
+            font_size,
             font: font.clone(),
             bbox: BBox {
                 top,
@@ -159,6 +198,8 @@ impl LineText {
                 bottom,
                 left: x_start,
             },
+            main_dir,
+            metrics,
             shapes,
         })
     }
@@ -179,36 +220,21 @@ impl Shape {
 }
 
 trait ShapesExt {
-    fn descent(&self) -> f32;
-    fn ascent(&self) -> f32;
-    fn x_height(&self) -> f32;
-    fn cap_height(&self) -> f32;
+    fn metrics(&self) -> font::ScaledMetrics;
     fn width(&self) -> f32;
 }
 
 impl ShapesExt for [Shape] {
-    fn descent(&self) -> f32 {
-        self.iter()
-            .map(|s| s.metrics.descent)
-            .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    fn ascent(&self) -> f32 {
-        self.iter()
-            .map(|s| s.metrics.ascent)
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap_or(0.0)
-    }
-
-    fn x_height(&self) -> f32 {
-        let sum: f32 = self.iter().map(|s| s.metrics.x_height).sum();
-        sum / self.len() as f32
-    }
-
-    fn cap_height(&self) -> f32 {
-        let sum: f32 = self.iter().map(|s| s.metrics.cap_height).sum();
-        sum / self.len() as f32
+    fn metrics(&self) -> font::ScaledMetrics {
+        let mut metrics = self[0].metrics;
+        for s in self.iter().skip(1) {
+            metrics.ascent = metrics.ascent.min(s.metrics.ascent);
+            metrics.descent = metrics.descent.max(s.metrics.descent);
+            metrics.x_height += metrics.x_height;
+            metrics.cap_height = metrics.cap_height.max(s.metrics.cap_height);
+        }
+        metrics.x_height /= self.len() as f32;
+        metrics
     }
 
     fn width(&self) -> f32 {

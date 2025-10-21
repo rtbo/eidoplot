@@ -141,11 +141,30 @@ impl State {
         Ok(())
     }
 
-    fn draw_rich_text(&mut self, px: &mut PixmapMut<'_>, text: &render::RichText) -> Result<(), render::Error> {
-        let ts_text = text
+    fn draw_line_text(&mut self, px: &mut PixmapMut<'_>, rtext: &render::LineText) -> Result<(), render::Error> {
+        let ts_text = rtext
             .transform.post_concat(self.transform);
 
-        text::rich::render_rich_text(&text.text, &self.fontdb, ts_text, None, px)?;
+        let mut paint = tiny_skia::Paint::default();
+        ts_text_fill(rtext.fill, &mut paint);
+
+        let render_opts = text::render::Options {
+            fill: Some(paint),
+            outline: None,
+            transform: ts_text,
+            mask: None,
+        };
+
+        text::render::render_line(&rtext.text, &render_opts, &self.fontdb, px);
+
+        Ok(())
+    }
+
+    fn draw_rich_text(&mut self, px: &mut PixmapMut<'_>, rtext: &render::RichText) -> Result<(), render::Error> {
+        let ts_text = rtext
+            .transform.post_concat(self.transform);
+
+        text::rich::render_rich_text(&rtext.text, &self.fontdb, ts_text, None, px)?;
 
         #[cfg(feature = "debug-text-bbox")]
         self.draw_text_bbox(px, text.text.bbox(), text.transform)?;
@@ -298,6 +317,11 @@ impl render::Surface for PxlSurface {
         self.state.draw_path(&mut px, path)
     }
 
+    fn draw_line_text(&mut self, text: &render::LineText) -> Result<(), render::Error> {
+        let mut px = self.pixmap.as_mut();
+        self.state.draw_line_text(&mut px, text)
+    }
+
     fn draw_rich_text(&mut self, text: &render::RichText) -> Result<(), render::Error> {
         let mut px = self.pixmap.as_mut();
         self.state.draw_rich_text(&mut px, text)
@@ -337,6 +361,10 @@ impl render::Surface for PxlSurfaceRef<'_> {
 
     fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
         self.state.draw_path(&mut self.pixmap, path)
+    }
+
+    fn draw_line_text(&mut self, text: &render::LineText) -> Result<(), render::Error> {
+        self.state.draw_line_text(&mut self.pixmap, text)
     }
 
     fn draw_rich_text(&mut self, text: &render::RichText) -> Result<(), render::Error> {

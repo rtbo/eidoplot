@@ -125,7 +125,7 @@ impl NumTicks {
 #[derive(Debug, Clone)]
 struct NumTick {
     loc: f64,
-    lbl: TextLayout,
+    lbl: text::LineText,
 }
 
 #[derive(Debug, Clone)]
@@ -195,7 +195,7 @@ impl CoordMap for CategoryBins {
 #[derive(Debug, Clone)]
 pub struct CategoryTicks {
     lbl_color: theme::Color,
-    lbls: Vec<TextLayout>,
+    lbls: Vec<text::LineText>,
     sep: Option<TickMark>,
 }
 
@@ -355,7 +355,7 @@ where
         let db: &font::Database = self.fontdb();
         let font = major_ticks.font();
 
-        let ticks_opts = side.ticks_labels_opts();
+        let ticks_align = side.ticks_labels_align();
         let annot_opts = side.annot_opts();
 
         let mut major_locs = ticks::locate_num(major_ticks.locator(), nb, scale);
@@ -365,7 +365,7 @@ where
         let mut ticks = Vec::new();
         for loc in major_locs.into_iter() {
             let text = lbl_formatter.format_label(loc.into());
-            let lbl = text::shape_and_layout_str(&text, &font.font, db, font.size, &ticks_opts)?;
+            let lbl = text::LineText::new(text, ticks_align, font.size, font.font.clone(), db)?;
             ticks.push(NumTick { loc, lbl });
         }
 
@@ -411,12 +411,12 @@ where
         let db: &font::Database = self.fontdb();
         let font = ir.font();
 
-        let ticks_opts = side.ticks_labels_opts();
+        let ticks_align = side.ticks_labels_align();
 
         let mut lbls = Vec::with_capacity(cb.len());
         for cat in cb.iter() {
-            let layout = text::shape_and_layout_str(cat, &font.font, db, font.size, &ticks_opts)?;
-            lbls.push(layout);
+            let lbl = text::LineText::new(cat.to_string(), ticks_align, font.size, font.font.clone(), db)?;
+            lbls.push(lbl);
         }
 
         let sep = Some(TickMark {
@@ -654,12 +654,12 @@ where
             let transform = axis
                 .side
                 .tick_label_transform(pos_along, shift_across, plot_rect);
-            let layout = render::TextLayout {
-                layout: &t.lbl,
+            let rline = render::LineText {
+                text: &t.lbl,
                 fill: paint,
-                transform: Some(&transform),
+                transform,
             };
-            self.draw_text_layout(&layout)?;
+            self.draw_line_text(&rline)?;
         }
 
         shift_across += max_lbl_size;
@@ -731,12 +731,12 @@ where
             let transform = axis
                 .side
                 .tick_label_transform(pos_along, shift_across, plot_rect);
-            let layout = render::TextLayout {
-                layout: lbl,
+            let rline = render::LineText {
+                text: lbl,
                 fill,
-                transform: Some(&transform),
+                transform,
             };
-            self.draw_text_layout(&layout)?;
+            self.draw_line_text(&rline)?;
         }
 
         Ok(shift_across + max_lbl_size)
