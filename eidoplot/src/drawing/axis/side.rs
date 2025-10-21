@@ -109,28 +109,12 @@ impl Side {
         }
     }
 
-    pub fn annot_opts(&self) -> text::layout::Options {
+    pub fn annot_align(&self) -> (text::line::Align, text::line::VerAlign) {
         match self {
-            Side::Bottom => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-            Side::Top => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Left => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-            Side::Right => text::layout::Options {
-                hor_align: text::layout::HorAlign::Left,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
+            Side::Bottom => (text::line::Align::Right, text::line::VerAlign::Hanging),
+            Side::Top => (text::line::Align::Right, text::line::VerAlign::Baseline),
+            Side::Left => (text::line::Align::Right, text::line::VerAlign::Top),
+            Side::Right => (text::line::Align::Left, text::line::VerAlign::Top),
         }
     }
 

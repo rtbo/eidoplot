@@ -226,6 +226,16 @@ impl RichText {
         self.bbox
     }
 
+    #[inline]
+    pub fn width(&self) -> f32 {
+        self.bbox.width()
+    }
+
+    #[inline]
+    pub fn height(&self) -> f32 {
+        self.bbox.height()
+    }
+
     pub fn visual_bbox(&self) -> BBox {
         if self.lines.is_empty() {
             return BBox::NULL;

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use eidoplot_text as text;
-use text::{TextLayout, font};
+use text::font;
 
 mod bounds;
 mod side;
@@ -39,7 +39,7 @@ impl Axis {
             } => ticks.size_across(self.side, mark_size, with_labels),
             _ => 0.0,
         };
-        if let Some(title )= self.draw_opts.title.as_ref() {
+        if let Some(title) = self.draw_opts.title.as_ref() {
             // vertical axis rotate the title, therefore we take the height in all cases.
             size += title.bbox().height() + missing_params::AXIS_TITLE_MARGIN;
         }
@@ -80,7 +80,7 @@ pub struct NumTicks {
     /// The list of ticks
     ticks: Vec<NumTick>,
     /// Annotation of the axis (e.g. a multiplication factor)
-    annot: Option<TextLayout>,
+    annot: Option<text::LineText>,
 }
 
 impl NumTicks {
@@ -356,7 +356,7 @@ where
         let font = major_ticks.font();
 
         let ticks_align = side.ticks_labels_align();
-        let annot_opts = side.annot_opts();
+        let annot_align = side.annot_align();
 
         let mut major_locs = ticks::locate_num(major_ticks.locator(), nb, scale);
         major_locs.retain(|l| nb.contains(*l));
@@ -371,7 +371,9 @@ where
 
         let annot = lbl_formatter
             .axis_annotation()
-            .map(|l| text::shape_and_layout_str(l, &font.font, db, font.size, &annot_opts))
+            .map(|l| {
+                text::LineText::new(l.to_string(), annot_align, font.size, font.font.clone(), db)
+            })
             .transpose()?;
 
         Ok(NumTicks {
@@ -415,7 +417,13 @@ where
 
         let mut lbls = Vec::with_capacity(cb.len());
         for cat in cb.iter() {
-            let lbl = text::LineText::new(cat.to_string(), ticks_align, font.size, font.font.clone(), db)?;
+            let lbl = text::LineText::new(
+                cat.to_string(),
+                ticks_align,
+                font.size,
+                font.font.clone(),
+                db,
+            )?;
             lbls.push(lbl);
         }
 
@@ -443,7 +451,7 @@ where
             .map(|title| {
                 let mut builder =
                     text::RichTextBuilder::new(title.text().to_string(), title.props().0.clone())
-                    .with_layout(side.title_layout());
+                        .with_layout(side.title_layout());
                 for (start, end, span) in title.spans() {
                     builder.add_span(*start, *end, span.clone());
                 }
@@ -666,12 +674,12 @@ where
 
         if let Some(annot) = ticks.annot.as_ref() {
             let transform = axis.side.annot_transform(shift_across, plot_rect);
-            let layout = render::TextLayout {
-                layout: &annot,
+            let rtext = render::LineText {
+                text: &annot,
                 fill: paint,
-                transform: Some(&transform),
+                transform,
             };
-            self.draw_text_layout(&layout)?;
+            self.draw_line_text(&rtext)?;
         }
         Ok(shift_across)
     }

@@ -167,7 +167,7 @@ impl State {
         text::rich::render_rich_text(&rtext.text, &self.fontdb, ts_text, None, px)?;
 
         #[cfg(feature = "debug-text-bbox")]
-        self.draw_text_bbox(px, text.text.bbox(), text.transform)?;
+        self.draw_text_bbox(px, rtext.text.bbox(), rtext.transform)?;
 
         Ok(())
     }
