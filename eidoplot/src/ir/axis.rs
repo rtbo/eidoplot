@@ -2,18 +2,15 @@
  * Axis design module
  */
 
-use eidoplot_text::rich;
-
 pub use ticks::{Grid, MinorGrid, MinorTicks, Ticks, TicksFont};
 
 use crate::style::defaults;
 
-super::define_rich_text_structs!(TitleProps, Title);
+super::define_rich_text_structs!(Title, TitleProps, TitleOptProps);
 
 impl Default for TitleProps {
     fn default() -> Self {
-        TitleProps(rich::TextProps::new(defaults::AXIS_LABEL_FONT_SIZE))
-            .with_font(defaults::AXIS_LABEL_FONT_FAMILY.parse().unwrap())
+        TitleProps::new(defaults::AXIS_LABEL_FONT_SIZE)
     }
 }
 
@@ -233,7 +230,7 @@ pub mod ticks {
     impl Default for TicksFont {
         fn default() -> Self {
             TicksFont {
-                font: defaults::TICKS_LABEL_FONT_FAMILY.parse().unwrap(),
+                font: defaults::FONT_FAMILY.parse().unwrap(),
                 size: defaults::TICKS_LABEL_FONT_SIZE,
             }
         }

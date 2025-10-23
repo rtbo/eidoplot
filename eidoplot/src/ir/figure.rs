@@ -1,20 +1,15 @@
 use std::iter::FusedIterator;
 use std::slice;
 
-use eidoplot_text::rich;
-
 use crate::geom;
 use crate::ir::{Legend, Plot, Subplots};
 use crate::style::{defaults, theme};
 
-super::define_rich_text_structs!(TitleProps, Title);
+super::define_rich_text_structs!(Title, TitleProps, TitleOptProps);
 
 impl Default for TitleProps {
     fn default() -> Self {
-        TitleProps(
-            rich::TextProps::new(defaults::TITLE_FONT_SIZE)
-                .with_font(defaults::TITLE_FONT_FAMILY.parse().unwrap()),
-        )
+        TitleProps::new(defaults::TITLE_FONT_SIZE)
     }
 }
 

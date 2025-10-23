@@ -31,13 +31,7 @@ where
                 text::rich::LineAlign::Hanging.into(),
                 Default::default(),
             );
-            let mut builder =
-                text::rich::RichTextBuilder::new(title.text().to_string(), title.props().0.clone())
-                    .with_layout(layout);
-            for (start, end, props) in title.spans() {
-                builder.add_span(*start, *end, props.clone());
-            }
-            let title = builder.done(&ctx.fontdb)?;
+            let title = title.to_rich_text(layout, &ctx.fontdb, ctx.theme())?;
 
             let anchor_x = rect.center_x();
             let anchor_y = rect.top() + missing_params::FIG_TITLE_MARGIN;

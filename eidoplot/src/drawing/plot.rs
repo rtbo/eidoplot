@@ -96,6 +96,7 @@ impl IrPlotsExt for ir::figure::Plots {
 impl<D, T> Ctx<'_, D, T>
 where
     D: data::Source,
+    T: style::Theme,
 {
     /// Setup a collection of plots, given an IR representation of the plots
     /// and a bounding rectangle.

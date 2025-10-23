@@ -39,7 +39,7 @@ impl ResolveColor<ColorU8> for () {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Dash(Vec<f32>);
 
 impl Default for Dash {
@@ -49,7 +49,7 @@ impl Default for Dash {
 }
 
 /// Line pattern defines how the line is drawn
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LinePattern {
     /// Solid line
     Solid,
@@ -65,7 +65,7 @@ impl Default for LinePattern {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Line<C: Color> {
     pub color: C,
     pub width: f32,
@@ -183,7 +183,7 @@ impl<C: Color> From<(C, f32, Dash)> for Line<C> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Fill<C: Color> {
     Solid { color: C, opacity: Option<f32> },
 }

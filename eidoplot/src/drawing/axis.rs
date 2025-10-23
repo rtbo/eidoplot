@@ -249,6 +249,7 @@ struct DrawOpts {
 impl<D, T> Ctx<'_, D, T>
 where
     D: data::Source,
+    T: style::Theme,
 {
     /// Estimate the height taken by a horizontal axis.
     /// It includes ticks marks, ticks labels and axis title.
@@ -449,13 +450,7 @@ where
         let title = ir_axis
             .title()
             .map(|title| {
-                let mut builder =
-                    text::RichTextBuilder::new(title.text().to_string(), title.props().0.clone())
-                        .with_layout(side.title_layout());
-                for (start, end, span) in title.spans() {
-                    builder.add_span(*start, *end, span.clone());
-                }
-                builder.done(self.fontdb())
+                title.to_rich_text(side.title_layout(), &self.fontdb, self.theme())
             })
             .transpose()?;
 
