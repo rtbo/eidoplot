@@ -1,7 +1,5 @@
-use eidoplot_text::{font, line};
+use eidoplot_text::{font, line, BBox};
 use line::LineText;
-
-use eidoplot_text as text;
 
 fn main() {
     let mut db = font::Database::new();
@@ -37,14 +35,14 @@ fn main() {
 
     for (text, align, (x, y)) in texts {
         let (tx, ty) = (*x, *y);
-        let render_opts = text::render::Options {
+        let render_opts = line::RenderOptions {
             fill: Some(tiny_skia::Paint::default()),
             outline: None,
             transform: tiny_skia::Transform::from_translate(tx, ty),
             mask: None,
         };
         let line = LineText::new(text.to_string(), *align, 32.0, font.clone(), &db).unwrap();
-        text::render::render_line(&line, &render_opts, &db, &mut pm_mut);
+        line::render_line(&line, &render_opts, &db, &mut pm_mut);
         draw_line_bbox(&line, (tx, ty), &mut pm_mut);
     }
 
@@ -62,7 +60,7 @@ fn draw_line_bbox(line: &line::LineText, (tx, ty): (f32, f32), pm_mut: &mut tiny
     );
 }
 
-fn bbox_rect_path(bbox: text::BBox) -> tiny_skia_path::Path {
+fn bbox_rect_path(bbox: BBox) -> tiny_skia_path::Path {
     let mut pb = tiny_skia_path::PathBuilder::new();
     pb.move_to(bbox.left, bbox.top);
     pb.line_to(bbox.right, bbox.top);
@@ -73,7 +71,7 @@ fn bbox_rect_path(bbox: text::BBox) -> tiny_skia_path::Path {
 }
 
 fn draw_bbox(
-    bbox: text::BBox,
+    bbox: BBox,
     color: tiny_skia::Color,
     width: f32,
     dash: bool,

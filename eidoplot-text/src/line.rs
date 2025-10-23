@@ -2,10 +2,7 @@
 
 
 use crate::{
-    BBox, Error, Font,
-    bidi::{self, BidiAlgo},
-    font::{self, DatabaseExt},
-    fontdb,
+    bidi::{self, BidiAlgo}, font::{self, DatabaseExt}, fontdb, BBox, Error, Font, ScriptDir
 };
 use tiny_skia_path::Transform;
 use ttf_parser as ttf;
@@ -50,7 +47,7 @@ pub struct LineText {
     font_size: f32,
     font: Font,
     bbox: BBox,
-    main_dir: rustybuzz::Direction,
+    main_dir: ScriptDir,
     metrics: font::ScaledMetrics,
     pub(crate) shapes: Vec<Shape>,
 }
@@ -86,7 +83,7 @@ impl LineText {
         self.bbox.height()
     }
 
-    pub fn main_dir(&self) -> rustybuzz::Direction {
+    pub fn main_dir(&self) -> ScriptDir {
         self.main_dir
     }
 
@@ -101,7 +98,7 @@ impl LineText {
             font_size: 1.0,
             font,
             bbox: BBox::EMPTY,
-            main_dir: rustybuzz::Direction::LeftToRight,
+            main_dir: ScriptDir::LeftToRight,
             metrics: font::ScaledMetrics::null(),
             shapes: Vec::new(),
         }
@@ -131,9 +128,13 @@ impl LineText {
             return Ok(LineText::new_empty(font.clone()));
         }
         let main_dir = match default_lev {
-            Some(unicode_bidi::LTR_LEVEL) => rustybuzz::Direction::LeftToRight,
-            Some(unicode_bidi::RTL_LEVEL) => rustybuzz::Direction::RightToLeft,
-            _ => bidi_runs[0].dir,
+            Some(lev) if lev.is_ltr() => ScriptDir::LeftToRight,
+            Some(lev) if lev.is_rtl() => ScriptDir::RightToLeft,
+            _ => match bidi_runs[0].dir {
+                rustybuzz::Direction::LeftToRight => ScriptDir::LeftToRight,
+                rustybuzz::Direction::RightToLeft => ScriptDir::RightToLeft,
+                _ => unreachable!(),
+            }
         };
 
         let mut shapes = Vec::with_capacity(bidi_runs.len());
@@ -158,14 +159,13 @@ impl LineText {
         let width = shapes.width();
 
         let x_start = match (align, main_dir) {
-            (Align::Start, rustybuzz::Direction::LeftToRight)
-            | (Align::End, rustybuzz::Direction::RightToLeft)
+            (Align::Start, ScriptDir::LeftToRight)
+            | (Align::End, ScriptDir::RightToLeft)
             | (Align::Left, _) => 0.0,
-            (Align::Start, rustybuzz::Direction::RightToLeft)
-            | (Align::End, rustybuzz::Direction::LeftToRight)
+            (Align::Start, ScriptDir::RightToLeft)
+            | (Align::End, ScriptDir::LeftToRight)
             | (Align::Right, _) => -width,
             (Align::Center, _) => -width / 2.0,
-            _ => unreachable!(),
         };
 
         let top = y_cursor - metrics.ascent;
@@ -324,4 +324,61 @@ impl Shape {
     }
 }
 
-impl LineText {}
+
+#[derive(Debug, Clone)]
+pub struct RenderOptions<'a> {
+    pub fill: Option<tiny_skia::Paint<'a>>,
+    pub outline: Option<(tiny_skia::Paint<'a>, tiny_skia::Stroke)>,
+    pub mask: Option<&'a tiny_skia::Mask>,
+    pub transform: tiny_skia_path::Transform,
+}
+
+pub fn render_line(
+    line: &LineText,
+    opts: &RenderOptions<'_>,
+    db: &font::Database,
+    pixmap: &mut tiny_skia::PixmapMut<'_>,
+) {
+    for shape in line.shapes.iter() {
+        db.with_face_data(shape.face_id, |data, index| {
+            let mut face = ttf::Face::parse(data, index).unwrap();
+            font::apply_ttf_variations(&mut face, line.font());
+
+            // the path builder for the entire string
+            let mut str_pb = tiny_skia_path::PathBuilder::new();
+            // the path builder for each glyph
+            let mut gl_pb = tiny_skia_path::PathBuilder::new();
+
+            for gl in &shape.glyphs {
+                {
+                    let mut builder = crate::Outliner(&mut gl_pb);
+                    face.outline_glyph(gl.id, &mut builder);
+                }
+
+                if let Some(path) = gl_pb.finish() {
+                    let path = path.transform(gl.ts).unwrap();
+                    str_pb.push_path(&path);
+
+                    gl_pb = path.clear();
+                } else {
+                    gl_pb = tiny_skia_path::PathBuilder::new();
+                }
+            }
+
+            if let Some(path) = str_pb.finish() {
+                if let Some(paint) = opts.fill.as_ref() {
+                    pixmap.fill_path(
+                        &path,
+                        &paint,
+                        tiny_skia::FillRule::Winding,
+                        opts.transform,
+                        opts.mask,
+                    );
+                }
+                if let Some((paint, stroke)) = opts.outline.as_ref() {
+                    pixmap.stroke_path(&path, &paint, &stroke, opts.transform, opts.mask);
+                }
+            }
+        });
+    }
+}

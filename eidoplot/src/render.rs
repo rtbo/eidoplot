@@ -46,16 +46,13 @@ pub trait Surface {
     fn draw_path(&mut self, path: &Path) -> Result<(), Error>;
 
     /// Draw a line of text
+    fn draw_text(&mut self, text: &Text) -> Result<(), Error>;
+
+    /// Draw a line of text
     fn draw_line_text(&mut self, text: &LineText) -> Result<(), Error>;
 
     /// Draw a rich text
     fn draw_rich_text(&mut self, text: &RichText) -> Result<(), Error>;
-
-    /// Draw some text
-    fn draw_text(&mut self, text: &Text) -> Result<(), Error>;
-
-    /// Draw some text that has already been layed out
-    fn draw_text_layout(&mut self, text: &TextLayout) -> Result<(), Error>;
 
     /// Push a clipping path
     /// Subsequent draw operations will be clipped to this path,
@@ -122,14 +119,7 @@ pub struct Text<'a> {
     pub font: &'a text::Font,
     pub font_size: f32,
     pub fill: Paint,
-    pub options: text::layout::Options,
-    pub transform: Option<&'a geom::Transform>,
-}
-
-#[derive(Debug, Clone)]
-pub struct TextLayout<'a> {
-    pub layout: &'a text::TextLayout,
-    pub fill: Paint,
+    pub align: (text::line::Align, text::line::VerAlign),
     pub transform: Option<&'a geom::Transform>,
 }
 

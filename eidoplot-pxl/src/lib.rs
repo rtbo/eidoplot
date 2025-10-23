@@ -141,37 +141,6 @@ impl State {
         Ok(())
     }
 
-    fn draw_line_text(&mut self, px: &mut PixmapMut<'_>, rtext: &render::LineText) -> Result<(), render::Error> {
-        let ts_text = rtext
-            .transform.post_concat(self.transform);
-
-        let mut paint = tiny_skia::Paint::default();
-        ts_text_fill(rtext.fill, &mut paint);
-
-        let render_opts = text::render::Options {
-            fill: Some(paint),
-            outline: None,
-            transform: ts_text,
-            mask: None,
-        };
-
-        text::render::render_line(&rtext.text, &render_opts, &self.fontdb, px);
-
-        Ok(())
-    }
-
-    fn draw_rich_text(&mut self, px: &mut PixmapMut<'_>, rtext: &render::RichText) -> Result<(), render::Error> {
-        let ts_text = rtext
-            .transform.post_concat(self.transform);
-
-        text::rich::render_rich_text(&rtext.text, &self.fontdb, ts_text, None, px)?;
-
-        #[cfg(feature = "debug-text-bbox")]
-        self.draw_text_bbox(px, rtext.text.bbox(), rtext.transform)?;
-
-        Ok(())
-    }
-
     fn draw_text(
         &mut self,
         px: &mut PixmapMut<'_>,
@@ -181,55 +150,68 @@ impl State {
             .transform
             .map(|t| t.post_concat(self.transform))
             .unwrap_or(self.transform);
-        let layout = text::shape_and_layout_str(
-            text.text,
-            text.font,
-            &self.fontdb,
+        let line = text::line::LineText::new(
+            text.text.to_string(),
+            text.align,
             text.font_size,
-            &text.options,
+            text.font.clone(),
+            &self.fontdb,
         )?;
 
         let mut paint = tiny_skia::Paint::default();
         ts_text_fill(text.fill, &mut paint);
-        let render_opts = text::render::Options {
+        let render_opts = text::line::RenderOptions {
             fill: Some(paint),
             outline: None,
             transform: ts_text,
             mask: self.clip.as_ref(),
         };
         let db = &self.fontdb;
-        text::render::render_text_tiny_skia(&layout, &render_opts, db, px);
+        text::line::render_line(&line, &render_opts, db, px);
 
         #[cfg(feature = "debug-text-bbox")]
-        self.draw_text_bbox(px, layout.bbox(), *text.transform.unwrap_or(&geom::Transform::identity()))?;
+        self.draw_text_bbox(
+            px,
+            layout.bbox(),
+            *text.transform.unwrap_or(&geom::Transform::identity()),
+        )?;
 
         Ok(())
     }
 
-    fn draw_text_layout(
+    fn draw_line_text(
         &mut self,
         px: &mut PixmapMut<'_>,
-        text: &render::TextLayout,
+        rtext: &render::LineText,
     ) -> Result<(), render::Error> {
-        let ts_text = text
-            .transform
-            .map(|t| t.post_concat(self.transform))
-            .unwrap_or(self.transform);
+        let ts_text = rtext.transform.post_concat(self.transform);
 
         let mut paint = tiny_skia::Paint::default();
-        ts_text_fill(text.fill, &mut paint);
-        let render_opts = text::render::Options {
+        ts_text_fill(rtext.fill, &mut paint);
+
+        let render_opts = text::line::RenderOptions {
             fill: Some(paint),
             outline: None,
             transform: ts_text,
-            mask: self.clip.as_ref(),
+            mask: None,
         };
-        let db = &self.fontdb;
-        text::render_text_tiny_skia(&text.layout, &render_opts, db, px);
 
+        text::line::render_line(&rtext.text, &render_opts, &self.fontdb, px);
+
+        Ok(())
+    }
+
+    fn draw_rich_text(
+        &mut self,
+        px: &mut PixmapMut<'_>,
+        rtext: &render::RichText,
+    ) -> Result<(), render::Error> {
+        let ts_text = rtext.transform.post_concat(self.transform);
+
+        text::rich::render_rich_text(&rtext.text, &self.fontdb, ts_text, None, px)?;
 
         #[cfg(feature = "debug-text-bbox")]
-        self.draw_text_bbox(px, text.layout.bbox(), *text.transform.unwrap_or(&geom::Transform::identity()))?;
+        self.draw_text_bbox(px, rtext.text.bbox(), rtext.transform)?;
 
         Ok(())
     }
@@ -256,10 +238,7 @@ impl State {
         } = bbox;
         let rect = geom::Rect::from_trbl(top, right, bottom, left);
         let mut tl_br = [
-            tiny_skia_path::Point {
-                x: left,
-                y: top,
-            },
+            tiny_skia_path::Point { x: left, y: top },
             tiny_skia_path::Point {
                 x: right,
                 y: bottom,
@@ -332,11 +311,6 @@ impl render::Surface for PxlSurface {
         self.state.draw_text(&mut px, text)
     }
 
-    fn draw_text_layout(&mut self, text: &render::TextLayout) -> Result<(), render::Error> {
-        let mut px = self.pixmap.as_mut();
-        self.state.draw_text_layout(&mut px, text)
-    }
-
     fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
         self.state.push_clip(clip)
     }
@@ -373,10 +347,6 @@ impl render::Surface for PxlSurfaceRef<'_> {
 
     fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
         self.state.draw_text(&mut self.pixmap, text)
-    }
-
-    fn draw_text_layout(&mut self, text: &render::TextLayout) -> Result<(), render::Error> {
-        self.state.draw_text_layout(&mut self.pixmap, text)
     }
 
     fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {

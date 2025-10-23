@@ -4,7 +4,7 @@ use eidoplot::geom::Transform;
 use eidoplot::render::Surface;
 use eidoplot::style::ColorU8;
 use eidoplot::{geom, render, style};
-use eidoplot_text::{self as text, rich};
+use eidoplot_text::{self as text, line, rich};
 use svg::Node;
 use svg::node::element;
 use text::font;
@@ -95,7 +95,7 @@ impl Surface for SvgSurface {
             .set("text-rendering", "optimizeLegibility")
             .set("text-anchor", line_text_anchor(align, text.main_dir()));
 
-        let (db, yshift) = line_dominant_baseline(ver_align, text.metrics());
+        let (db, yshift) = dominant_baseline(ver_align, Some(text.metrics()), text.font_size());
         node.assign("dominant-baseline", db);
 
         let shift = Transform::from_translate(0.0, yshift);
@@ -124,10 +124,10 @@ impl Surface for SvgSurface {
             // have to assume LTR as no shaping is done
             .set(
                 "text-anchor",
-                text_anchor(text.options.hor_align, text::Direction::LTR),
+                line_text_anchor(text.align.0, text::ScriptDir::LeftToRight),
             );
 
-        let (db, yshift) = dominant_baseline(text.options.ver_align, None, text.font_size);
+        let (db, yshift) = dominant_baseline(text.align.1, None, text.font_size);
         node.assign("dominant-baseline", db);
 
         let shift = Transform::from_translate(0.0, yshift);
@@ -137,39 +137,6 @@ impl Surface for SvgSurface {
             .unwrap_or(shift);
 
         assign_font(&mut node, &text.font, text.font_size);
-        assign_fill(&mut node, Some(&text.fill));
-        assign_transform(&mut node, Some(&transform));
-
-        self.append_node(node);
-
-        Ok(())
-    }
-
-    fn draw_text_layout(&mut self, text: &render::TextLayout) -> Result<(), render::Error> {
-        let layout = text.layout;
-        let options = layout.options();
-
-        let mut node = element::Text::new(layout.text())
-            .set("text-rendering", "optimizeLegibility")
-            .set(
-                "text-anchor",
-                text_anchor(options.hor_align, layout.direction()),
-            );
-
-        let (db, yshift) = dominant_baseline(
-            options.ver_align,
-            Some(layout.metrics()),
-            layout.font_size(),
-        );
-        node.assign("dominant-baseline", db);
-
-        let shift = Transform::from_translate(0.0, yshift);
-        let transform = text
-            .transform
-            .map(|t| t.post_concat(shift))
-            .unwrap_or(shift);
-
-        assign_font(&mut node, layout.font(), layout.font_size());
         assign_fill(&mut node, Some(&text.fill));
         assign_transform(&mut node, Some(&transform));
 
@@ -425,28 +392,15 @@ fn font_stretch(width: style::font::Width) -> &'static str {
     }
 }
 
-fn text_anchor(align: text::HorAlign, direction: text::Direction) -> &'static str {
+fn line_text_anchor(align: line::Align, direction: text::ScriptDir) -> &'static str {
     match (align, direction) {
-        (text::HorAlign::Start, _) => "start",
-        (text::HorAlign::Center, _) => "middle",
-        (text::HorAlign::End, _) => "end",
-        (text::HorAlign::Left, text::Direction::LTR) => "start",
-        (text::HorAlign::Left, text::Direction::RTL) => "end",
-        (text::HorAlign::Right, text::Direction::LTR) => "end",
-        (text::HorAlign::Right, text::Direction::RTL) => "start",
-    }
-}
-
-fn line_text_anchor(align: text::line::Align, direction: rustybuzz::Direction) -> &'static str {
-    match (align, direction) {
-        (text::line::Align::Start, _) => "start",
-        (text::line::Align::Center, _) => "middle",
-        (text::line::Align::End, _) => "end",
-        (text::line::Align::Left, rustybuzz::Direction::LeftToRight) => "start",
-        (text::line::Align::Left, rustybuzz::Direction::RightToLeft) => "end",
-        (text::line::Align::Right, rustybuzz::Direction::LeftToRight) => "end",
-        (text::line::Align::Right, rustybuzz::Direction::RightToLeft) => "start",
-        _ => unreachable!("anchor not relevant for vertical text"),
+        (line::Align::Start, _) => "start",
+        (line::Align::Center, _) => "middle",
+        (line::Align::End, _) => "end",
+        (line::Align::Left, text::ScriptDir::LeftToRight) => "start",
+        (line::Align::Left, text::ScriptDir::RightToLeft) => "end",
+        (line::Align::Right, text::ScriptDir::LeftToRight) => "end",
+        (line::Align::Right, text::ScriptDir::RightToLeft) => "start",
     }
 }
 
@@ -464,14 +418,10 @@ fn rich_text_anchor(align: rich::Align, direction: rustybuzz::Direction) -> &'st
 }
 
 fn dominant_baseline(
-    align: text::VerAlign,
-    metrics: Option<text::ScaledMetrics>,
+    align: line::VerAlign,
+    metrics: Option<text::font::ScaledMetrics>,
     font_size: f32,
 ) -> (&'static str, f32) {
-    if let text::VerAlign::Line(lidx, _) = align {
-        assert!(lidx == 0, "Only single line is supported");
-    }
-
     // text-top and text-bottom don't work too well,
     // so instead we apply hanging and alphabetic,
     // with a vertical shift from the font face if available, or hard-coded from the font_size
@@ -491,55 +441,21 @@ fn dominant_baseline(
     }
 
     match align {
-        text::VerAlign::Center => ("center", 0.0),
-        //text::VerAlign::Top => ("text-top", 0.0),
-        text::VerAlign::Top => (
+        line::VerAlign::Middle => ("middle", 0.0),
+        line::VerAlign::Hanging => ("hanging", 0.0),
+        line::VerAlign::Baseline => ("alphabetic", 0.0),
+        line::VerAlign::Top => (
             "hanging",
             metrics
                 .map(|m| m.ascent - m.cap_height)
                 .unwrap_or(TOP_FACTOR * font_size),
         ),
-        //text::VerAlign::Bottom => "text-bottom",
-        text::VerAlign::Bottom => (
+        line::VerAlign::Bottom => (
             "alphabetic",
             metrics
                 .map(|m| m.descent)
                 .unwrap_or(BOTTOM_FACTOR * font_size),
         ),
-        // text::VerAlign::Line(_, text::LineVerAlign::Top) => "text-top",
-        text::VerAlign::Line(_, text::LineVerAlign::Top) => (
-            "hanging",
-            metrics
-                .map(|m| m.ascent - m.cap_height)
-                .unwrap_or(TOP_FACTOR * font_size),
-        ),
-        text::VerAlign::Line(_, text::LineVerAlign::Hanging) => ("hanging", 0.0),
-        text::VerAlign::Line(_, text::LineVerAlign::Middle) => ("middle", 0.0),
-        text::VerAlign::Line(_, text::LineVerAlign::Baseline) => ("alphabetic", 0.0),
-        // text::VerAlign::Line(_, text::LineVerAlign::Bottom) => ("text-bottom", 0.0),
-        text::VerAlign::Line(_, text::LineVerAlign::Bottom) => (
-            "alphabetic",
-            metrics
-                .map(|m| m.descent)
-                .unwrap_or(BOTTOM_FACTOR * font_size),
-        ),
-    }
-}
-
-fn line_dominant_baseline(
-    align: text::line::VerAlign,
-    metrics: text::ScaledMetrics,
-) -> (&'static str, f32) {
-    // text-top and text-bottom don't work too well,
-    // so instead we apply hanging and alphabetic,
-    // with a vertical shift from the font face
-
-    match align {
-        text::line::VerAlign::Top => ("hanging", metrics.ascent - metrics.cap_height),
-        text::line::VerAlign::Bottom => ("alphabetic", metrics.descent),
-        text::line::VerAlign::Middle => ("middle", 0.0),
-        text::line::VerAlign::Hanging => ("hanging", 0.0),
-        text::line::VerAlign::Baseline => ("alphabetic", 0.0),
     }
 }
 
@@ -588,11 +504,11 @@ fn rich_text_hor_yshift(text: &rich::RichText) -> f32 {
             let baseline = lines.baseline(line);
             let lst_line = &lines[lines_len - 1];
             match align {
-                rich::LineAlign::Bottom => lst_line.descent() - baseline,
-                rich::LineAlign::Baseline => -baseline,
-                rich::LineAlign::Middle => lst_line.x_height() / 2.0 - baseline,
-                rich::LineAlign::Hanging => lst_line.cap_height() - baseline,
-                rich::LineAlign::Top => lst_line.ascent() - baseline,
+                line::VerAlign::Bottom => lst_line.descent() - baseline,
+                line::VerAlign::Baseline => -baseline,
+                line::VerAlign::Middle => lst_line.x_height() / 2.0 - baseline,
+                line::VerAlign::Hanging => lst_line.cap_height() - baseline,
+                line::VerAlign::Top => lst_line.ascent() - baseline,
             }
         }
     }

@@ -1,11 +1,11 @@
 use super::{
-    Align, Boundaries, Direction, Error, Glyph, HorAlign, Layout, LineAlign, LineSpan, PropsSpan,
+    Align, Boundaries, Direction, Error, Glyph, HorAlign, Layout, LineSpan, PropsSpan,
     RichText, RichTextBuilder, ShapeSpan, TextOptProps, TextProps, VerAlign, VerDirection,
     VerProgression,
 };
 use crate::bidi::BidiAlgo;
 use crate::font::{self, DatabaseExt};
-use crate::{BBox, fontdb};
+use crate::{fontdb, line, BBox};
 
 use tiny_skia::Transform;
 use ttf_parser as ttf;
@@ -432,11 +432,11 @@ impl RichTextBuilder {
                 let baseline = lines.baseline(line);
                 let lst_metrics = lines[lines_len - 1].metrics();
                 match align {
-                    LineAlign::Bottom => lst_metrics.descent - baseline,
-                    LineAlign::Baseline => -baseline,
-                    LineAlign::Middle => lst_metrics.x_height / 2.0 - baseline,
-                    LineAlign::Hanging => lst_metrics.cap_height - baseline,
-                    LineAlign::Top => lst_metrics.ascent - baseline,
+                    line::VerAlign::Bottom => lst_metrics.descent - baseline,
+                    line::VerAlign::Baseline => -baseline,
+                    line::VerAlign::Middle => lst_metrics.x_height / 2.0 - baseline,
+                    line::VerAlign::Hanging => lst_metrics.cap_height - baseline,
+                    line::VerAlign::Top => lst_metrics.ascent - baseline,
                 }
             }
         };

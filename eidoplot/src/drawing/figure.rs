@@ -28,7 +28,7 @@ where
         if let Some(title) = fig.title() {
             let layout = text::rich::Layout::Horizontal(
                 text::rich::Align::Center,
-                text::rich::LineAlign::Hanging.into(),
+                text::line::VerAlign::Hanging.into(),
                 Default::default(),
             );
             let title = title.to_rich_text(layout, &ctx.fontdb, ctx.theme())?;

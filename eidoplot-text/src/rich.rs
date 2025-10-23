@@ -1,4 +1,4 @@
-use crate::{BBox, Error, font, fontdb};
+use crate::{font, fontdb, line, BBox, Error};
 use ttf_parser as ttf;
 
 mod boundaries;
@@ -29,27 +29,11 @@ pub enum Align {
     Justify(f32),
 }
 
-/// Vertical alignment for a single line of horizontal text
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum LineAlign {
-    /// Align the bottom of the descender
-    Bottom,
-    /// Align the baseline
-    #[default]
-    Baseline,
-    /// Align at middle of the x-height
-    Middle,
-    /// Align at capital height
-    Hanging,
-    /// Align at the top of the ascender
-    Top,
-}
-
 /// Vertical alignment for a whole horizontal text, possibly considering multiple lines
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VerAlign {
     /// Align at the specified line
-    Line(usize, LineAlign),
+    Line(usize, line::VerAlign),
     /// Align at the top (ascender) of the first line
     Top,
     /// Align at the center, that is (top + bottom) / 2
@@ -64,8 +48,8 @@ impl Default for VerAlign {
     }
 }
 
-impl From<LineAlign> for VerAlign {
-    fn from(value: LineAlign) -> Self {
+impl From<line::VerAlign> for VerAlign {
+    fn from(value: line::VerAlign) -> Self {
         Self::Line(0, value)
     }
 }

@@ -853,20 +853,8 @@ pub(crate) struct Metrics {
 }
 
 impl Metrics {
-    pub(crate) fn height(&self) -> i16 {
-        self.ascent - self.descent
-    }
-
     pub(crate) fn scale(&self, size: f32) -> f32 {
         size / self.units_per_em as f32
-    }
-
-    pub(crate) fn scaled_height(&self, size: f32) -> f32 {
-        (self.ascent - self.descent) as f32 * self.scale(size)
-    }
-
-    pub(crate) fn scaled_line_gap(&self, size: f32) -> f32 {
-        self.line_gap as f32 * self.scale(size)
     }
 
     pub(crate) fn scaled(&self, size: f32) -> ScaledMetrics {
