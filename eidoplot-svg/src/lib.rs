@@ -413,6 +413,7 @@ fn rich_text_anchor(align: rich::Align, direction: rustybuzz::Direction) -> &'st
         (rich::Align::Left, rustybuzz::Direction::RightToLeft) => "end",
         (rich::Align::Right, rustybuzz::Direction::LeftToRight) => "end",
         (rich::Align::Right, rustybuzz::Direction::RightToLeft) => "start",
+        (rich::Align::Justify(_), _) => todo!("justified text for SVG"),
         _ => unreachable!("anchor not relevant for vertical text"),
     }
 }
