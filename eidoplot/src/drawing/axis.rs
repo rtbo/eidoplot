@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use eidoplot_text as text;
-use text::{TextLayout, font};
+use text::font;
 
 mod bounds;
 mod side;
@@ -39,9 +39,9 @@ impl Axis {
             } => ticks.size_across(self.side, mark_size, with_labels),
             _ => 0.0,
         };
-        if let Some((title, _)) = self.draw_opts.title.as_ref() {
+        if let Some(title) = self.draw_opts.title.as_ref() {
             // vertical axis rotate the title, therefore we take the height in all cases.
-            size += title.height() + missing_params::AXIS_TITLE_MARGIN;
+            size += title.bbox().height() + missing_params::AXIS_TITLE_MARGIN;
         }
         size
     }
@@ -80,7 +80,7 @@ pub struct NumTicks {
     /// The list of ticks
     ticks: Vec<NumTick>,
     /// Annotation of the axis (e.g. a multiplication factor)
-    annot: Option<TextLayout>,
+    annot: Option<text::LineText>,
 }
 
 impl NumTicks {
@@ -125,7 +125,7 @@ impl NumTicks {
 #[derive(Debug, Clone)]
 struct NumTick {
     loc: f64,
-    lbl: TextLayout,
+    lbl: text::LineText,
 }
 
 #[derive(Debug, Clone)]
@@ -195,7 +195,7 @@ impl CoordMap for CategoryBins {
 #[derive(Debug, Clone)]
 pub struct CategoryTicks {
     lbl_color: theme::Color,
-    lbls: Vec<TextLayout>,
+    lbls: Vec<text::LineText>,
     sep: Option<TickMark>,
 }
 
@@ -238,7 +238,7 @@ impl CategoryTicks {
 /// The location of ticks and their labels is determined by the shared scale
 #[derive(Debug, Clone)]
 struct DrawOpts {
-    title: Option<(TextLayout, theme::Color)>,
+    title: Option<text::RichText>,
     marks: Option<TickMark>,
     minor_marks: Option<TickMark>,
     ticks_labels: bool,
@@ -249,6 +249,7 @@ struct DrawOpts {
 impl<D, T> Ctx<'_, D, T>
 where
     D: data::Source,
+    T: style::Theme,
 {
     /// Estimate the height taken by a horizontal axis.
     /// It includes ticks marks, ticks labels and axis title.
@@ -259,8 +260,8 @@ where
             height +=
                 missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size;
         }
-        if let Some(label) = x_axis.title() {
-            height += missing_params::AXIS_TITLE_MARGIN + label.font().size;
+        if let Some(title) = x_axis.title() {
+            height += missing_params::AXIS_TITLE_MARGIN + title.props().font_size();
         }
         height
     }
@@ -319,9 +320,7 @@ where
 
                 let ticks = ir_axis
                     .ticks()
-                    .map(|major_ticks| {
-                        self.setup_num_ticks(major_ticks, nb, ir_axis.scale(), side)
-                    })
+                    .map(|major_ticks| self.setup_num_ticks(major_ticks, nb, ir_axis.scale(), side))
                     .transpose()?;
 
                 let minor_ticks = if let Some(mt) = ir_axis.minor_ticks() {
@@ -357,8 +356,8 @@ where
         let db: &font::Database = self.fontdb();
         let font = major_ticks.font();
 
-        let ticks_opts = side.ticks_labels_opts();
-        let annot_opts = side.annot_opts();
+        let ticks_align = side.ticks_labels_align();
+        let annot_align = side.annot_align();
 
         let mut major_locs = ticks::locate_num(major_ticks.locator(), nb, scale);
         major_locs.retain(|l| nb.contains(*l));
@@ -367,13 +366,15 @@ where
         let mut ticks = Vec::new();
         for loc in major_locs.into_iter() {
             let text = lbl_formatter.format_label(loc.into());
-            let lbl = text::shape_and_layout_str(&text, &font.font, db, font.size, &ticks_opts)?;
+            let lbl = text::LineText::new(text, ticks_align, font.size, font.font.clone(), db)?;
             ticks.push(NumTick { loc, lbl });
         }
 
         let annot = lbl_formatter
             .axis_annotation()
-            .map(|l| text::shape_and_layout_str(l, &font.font, db, font.size, &annot_opts))
+            .map(|l| {
+                text::LineText::new(l.to_string(), annot_align, font.size, font.font.clone(), db)
+            })
             .transpose()?;
 
         Ok(NumTicks {
@@ -413,12 +414,18 @@ where
         let db: &font::Database = self.fontdb();
         let font = ir.font();
 
-        let ticks_opts = side.ticks_labels_opts();
+        let ticks_align = side.ticks_labels_align();
 
         let mut lbls = Vec::with_capacity(cb.len());
         for cat in cb.iter() {
-            let layout = text::shape_and_layout_str(cat, &font.font, db, font.size, &ticks_opts)?;
-            lbls.push(layout);
+            let lbl = text::LineText::new(
+                cat.to_string(),
+                ticks_align,
+                font.size,
+                font.font.clone(),
+                db,
+            )?;
+            lbls.push(lbl);
         }
 
         let sep = Some(TickMark {
@@ -443,14 +450,7 @@ where
         let title = ir_axis
             .title()
             .map(|title| {
-                text::shape_and_layout_str(
-                    title.text(),
-                    title.font().font(),
-                    self.fontdb(),
-                    title.font().size,
-                    &side.title_opts(),
-                )
-                .map(|layout| (layout, title.font().color))
+                title.to_rich_text(side.title_layout(), &self.fontdb, self.theme())
             })
             .transpose()?;
 
@@ -606,18 +606,16 @@ where
             }
         };
 
-        if let Some((layout, color)) = axis.draw_opts.title.as_ref() {
+        if let Some(title) = axis.draw_opts.title.as_ref() {
             shift_across += missing_params::AXIS_TITLE_MARGIN;
             let transform = axis.side.title_transform(shift_across, plot_rect);
-            let fill = color.resolve(ctx.theme()).into();
-            let rtext = render::TextLayout {
-                layout,
-                fill,
-                transform: Some(&transform),
+            let rtext = render::RichText {
+                text: title,
+                transform: transform,
             };
-            self.draw_text_layout(&rtext)?;
+            self.draw_rich_text(&rtext)?;
             // vertical titles are rotated, so it is always the height that is relevant here.
-            shift_across += layout.height();
+            shift_across += title.bbox().height();
         }
         Ok(shift_across)
     }
@@ -659,24 +657,24 @@ where
             let transform = axis
                 .side
                 .tick_label_transform(pos_along, shift_across, plot_rect);
-            let layout = render::TextLayout {
-                layout: &t.lbl,
+            let rline = render::LineText {
+                text: &t.lbl,
                 fill: paint,
-                transform: Some(&transform),
+                transform,
             };
-            self.draw_text_layout(&layout)?;
+            self.draw_line_text(&rline)?;
         }
 
         shift_across += max_lbl_size;
 
         if let Some(annot) = ticks.annot.as_ref() {
             let transform = axis.side.annot_transform(shift_across, plot_rect);
-            let layout = render::TextLayout {
-                layout: &annot,
+            let rtext = render::LineText {
+                text: &annot,
                 fill: paint,
-                transform: Some(&transform),
+                transform,
             };
-            self.draw_text_layout(&layout)?;
+            self.draw_line_text(&rtext)?;
         }
         Ok(shift_across)
     }
@@ -736,12 +734,12 @@ where
             let transform = axis
                 .side
                 .tick_label_transform(pos_along, shift_across, plot_rect);
-            let layout = render::TextLayout {
-                layout: lbl,
+            let rline = render::LineText {
+                text: lbl,
                 fill,
-                transform: Some(&transform),
+                transform,
             };
-            self.draw_text_layout(&layout)?;
+            self.draw_line_text(&rline)?;
         }
 
         Ok(shift_across + max_lbl_size)

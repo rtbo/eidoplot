@@ -32,7 +32,7 @@ pub trait Theme {
     fn palette(&self) -> &Self::Palette;
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Col {
     Background,
     Foreground,
@@ -54,7 +54,7 @@ where
 }
 
 /// A flexible color for theme elements
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {
     Theme(Col),
     Fixed(ColorU8),

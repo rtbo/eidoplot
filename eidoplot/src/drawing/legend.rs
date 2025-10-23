@@ -1,8 +1,8 @@
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
-use eidoplot_text as text;
-use text::{TextLayout, fontdb};
+use eidoplot_text::{self as text, LineText};
+use text::fontdb;
 
 use crate::drawing::{self, Ctx, SurfWrapper};
 use crate::render::{self, Surface as _};
@@ -46,7 +46,7 @@ pub struct Entry<'a> {
 struct LegendEntry {
     index: usize,
     shape: Shape,
-    text: TextLayout,
+    text: LineText,
     x: f32,
     y: f32,
 }
@@ -113,13 +113,17 @@ impl LegendBuilder {
     pub fn add_entry(&mut self, index: usize, entry: Entry) -> Result<(), drawing::Error> {
         let shape = entry.shape.to_shape();
         let font = entry.font.unwrap_or(&self.font);
-        let opts = text::layout::Options {
-            hor_align: text::layout::HorAlign::Start,
-            ver_align: text::layout::LineVerAlign::Middle.into(),
-            ..Default::default()
-        };
-        let text =
-            text::shape_and_layout_str(entry.label, &font.font, &self.fontdb, font.size, &opts)?;
+        let align = (
+            text::line::Align::Start,
+            text::line::VerAlign::Middle.into(),
+        );
+        let text = LineText::new(
+            entry.label.to_string(),
+            align,
+            font.size,
+            font.font.clone(),
+            &self.fontdb,
+        )?;
         self.entries.push(LegendEntry {
             index,
             shape,
@@ -298,12 +302,12 @@ where
             rect.center_y(),
         );
         let transform = pos.translation();
-        let text = render::TextLayout {
-            layout: &entry.text,
+        let rtext = render::LineText {
+            text: &entry.text,
             fill: label_color.resolve(ctx.theme()).into(),
-            transform: Some(&transform),
+            transform,
         };
-        self.draw_text_layout(&text)?;
+        self.draw_line_text(&rtext)?;
 
         Ok(())
     }

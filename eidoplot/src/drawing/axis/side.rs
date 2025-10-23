@@ -27,28 +27,28 @@ impl Side {
     }
 
     /// Layout options for axis title
-    pub fn title_opts(&self) -> text::layout::Options {
+    pub fn title_layout(&self) -> text::rich::Layout {
         match self {
-            Side::Bottom => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-            Side::Top => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Left => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Right => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
+            Side::Bottom => text::rich::Layout::Horizontal(
+                text::rich::Align::Center,
+                text::line::VerAlign::Top.into(),
+                Default::default(),
+            ),
+            Side::Top => text::rich::Layout::Horizontal(
+                text::rich::Align::Center,
+                text::line::VerAlign::Bottom.into(),
+                Default::default(),
+            ),
+            Side::Left => text::rich::Layout::Horizontal(
+                text::rich::Align::Center,
+                text::line::VerAlign::Bottom.into(),
+                Default::default(),
+            ),
+            Side::Right => text::rich::Layout::Horizontal(
+                text::rich::Align::Center,
+                text::line::VerAlign::Top.into(),
+                Default::default(),
+            ),
         }
     }
 
@@ -71,28 +71,12 @@ impl Side {
         }
     }
 
-    pub fn ticks_labels_opts(&self) -> text::layout::Options {
+    pub fn ticks_labels_align(&self) -> (text::line::Align, text::line::VerAlign) {
         match self {
-            Side::Bottom => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-            Side::Top => text::layout::Options {
-                hor_align: text::layout::HorAlign::Center,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Left => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Middle.into(),
-                ..Default::default()
-            },
-            Side::Right => text::layout::Options {
-                hor_align: text::layout::HorAlign::Left,
-                ver_align: text::layout::LineVerAlign::Middle.into(),
-                ..Default::default()
-            },
+            Side::Bottom => (text::line::Align::Center, text::line::VerAlign::Top),
+            Side::Top => (text::line::Align::Center, text::line::VerAlign::Bottom),
+            Side::Left => (text::line::Align::Right, text::line::VerAlign::Middle),
+            Side::Right => (text::line::Align::Left, text::line::VerAlign::Middle),
         }
     }
 
@@ -125,28 +109,12 @@ impl Side {
         }
     }
 
-    pub fn annot_opts(&self) -> text::layout::Options {
+    pub fn annot_align(&self) -> (text::line::Align, text::line::VerAlign) {
         match self {
-            Side::Bottom => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-            Side::Top => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
-            Side::Left => text::layout::Options {
-                hor_align: text::layout::HorAlign::Right,
-                ver_align: text::layout::LineVerAlign::Top.into(),
-                ..Default::default()
-            },
-            Side::Right => text::layout::Options {
-                hor_align: text::layout::HorAlign::Left,
-                ver_align: text::layout::LineVerAlign::Bottom.into(),
-                ..Default::default()
-            },
+            Side::Bottom => (text::line::Align::Right, text::line::VerAlign::Hanging),
+            Side::Top => (text::line::Align::Right, text::line::VerAlign::Baseline),
+            Side::Left => (text::line::Align::Right, text::line::VerAlign::Top),
+            Side::Right => (text::line::Align::Left, text::line::VerAlign::Top),
         }
     }
 

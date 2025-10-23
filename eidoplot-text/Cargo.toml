@@ -30,4 +30,7 @@ memmap = ["fs", "memmap2"]
 fontconfig = ["fontconfig-parser", "fs"]
 
 [[example]]
-name="bidi_layout"
+name="rich_text"
+
+[[example]]
+name="line_text"

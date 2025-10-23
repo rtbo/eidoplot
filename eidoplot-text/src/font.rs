@@ -820,7 +820,16 @@ pub fn select_face_fallback(db: &Database, c: char, already_tried: &[ID]) -> Opt
     None
 }
 
-pub(crate) fn apply_variations(face: &mut ttf::Face, font: &Font) {
+pub(crate) fn apply_ttf_variations(face: &mut ttf::Face, font: &Font) {
+    if face.is_variable() && face.weight().to_number() != font.weight().to_number() {
+        let _ = face.set_variation(ttf::Tag::from_bytes(b"wght"), font.weight().to_var_value());
+    }
+    if face.is_variable() && face.width().to_number() != font.width().to_number() {
+        let _ = face.set_variation(ttf::Tag::from_bytes(b"wdth"), font.width().to_var_value());
+    }
+}
+
+pub(crate) fn apply_hb_variations(face: &mut rustybuzz::Face, font: &Font) {
     if face.is_variable() && face.weight().to_number() != font.weight().to_number() {
         let _ = face.set_variation(ttf::Tag::from_bytes(b"wght"), font.weight().to_var_value());
     }
@@ -839,33 +848,33 @@ pub(crate) struct Metrics {
     pub(crate) x_height: i16,
     pub(crate) cap_height: i16,
     pub(crate) line_gap: i16,
+    pub(crate) uline: ttf::LineMetrics,
+    pub(crate) strikeout: ttf::LineMetrics,
 }
 
 impl Metrics {
-    pub(crate) fn height(&self) -> i16 {
-        self.ascent - self.descent
-    }
-
     pub(crate) fn scale(&self, size: f32) -> f32 {
         size / self.units_per_em as f32
-    }
-
-    pub(crate) fn scaled_height(&self, size: f32) -> f32 {
-        (self.ascent - self.descent) as f32 * self.scale(size)
-    }
-
-    pub(crate) fn scaled_line_gap(&self, size: f32) -> f32 {
-        self.line_gap as f32 * self.scale(size)
     }
 
     pub(crate) fn scaled(&self, size: f32) -> ScaledMetrics {
         let scale = self.scale(size);
         ScaledMetrics {
+            scale,
+            em_size: self.units_per_em as f32 * scale,
             ascent: self.ascent as f32 * scale,
             descent: self.descent as f32 * scale,
             x_height: self.x_height as f32 * scale,
             cap_height: self.cap_height as f32 * scale,
             line_gap: self.line_gap as f32 * scale,
+            uline: ScaledLineMetrics {
+                position: self.uline.position as f32 * scale,
+                thickness: self.uline.thickness as f32 * scale,
+            },
+            strikeout: ScaledLineMetrics {
+                position: self.strikeout.position as f32 * scale,
+                thickness: self.strikeout.thickness as f32 * scale,
+            },
         }
     }
 }
@@ -882,6 +891,20 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> Metrics {
         .unwrap_or(((ascent - descent) as f32 * 0.8) as i16);
     let line_gap = face.line_gap();
 
+    let uline = face.underline_metrics().unwrap_or_else (|| {
+        ttf::LineMetrics {
+            position: -(ascent as f32 * 0.1) as i16,
+            thickness: (units_per_em as f32 / 14.0) as i16,
+        }
+    });
+
+    let strikeout = face.strikeout_metrics().unwrap_or_else (|| {
+        ttf::LineMetrics {
+            position: (x_height as f32 * 0.5) as i16,
+            thickness: (units_per_em as f32 / 14.0) as i16,
+        }
+    });
+
     Metrics {
         units_per_em,
         ascent,
@@ -889,12 +912,27 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> Metrics {
         x_height,
         cap_height,
         line_gap,
+        uline,
+        strikeout,
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+/// Metrics of a scaled line (underline or strikeout)
+pub struct ScaledLineMetrics {
+    /// Position of the line
+    pub position: f32,
+    /// Thickness of the line
+    pub thickness: f32,
 }
 
 /// Metrics of a font face, scaled to a font size
 #[derive(Debug, Clone, Copy)]
 pub struct ScaledMetrics {
+    // /// Scale factor from the original font units metrics
+    pub scale: f32,
+    /// Size of the em box after scaling
+    pub em_size: f32,
     /// Height between baseline and top of the font face
     pub ascent: f32,
     /// Height between baseline and bottom of the font face (negative value)
@@ -907,6 +945,10 @@ pub struct ScaledMetrics {
     /// Gap to be added (possibly zero) to the distance between two lines,
     /// from the bottom of the first line to the top of the following one)
     pub line_gap: f32,
+    /// Underline metrics
+    pub uline: ScaledLineMetrics,
+    /// Strikeout metrics
+    pub strikeout: ScaledLineMetrics,
 }
 
 impl ScaledMetrics {
@@ -917,11 +959,15 @@ impl ScaledMetrics {
 
     pub(crate) const fn null() -> ScaledMetrics {
         ScaledMetrics {
+            scale: 1.0,
+            em_size: 0.0,
             ascent: 0.0,
             descent: 0.0,
             x_height: 0.0,
             cap_height: 0.0,
             line_gap: 0.0,
+            uline: ScaledLineMetrics { position: 0.0, thickness: 0.0 },
+            strikeout: ScaledLineMetrics { position: 0.0, thickness: 0.0 },
         }
     }
 }

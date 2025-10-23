@@ -29,7 +29,7 @@ fn rlc_load_response(frequencies: &[f64], r: f64, l: f64, c: f64) -> (Vec<f64>, 
 }
 
 fn main() {
-    const L: f64 = 0.1e-3; // 10 mH
+    const L: f64 = 1e-4; // 100 µH
     const C: f64 = 1e-6; // 1 uF
 
     let series = [

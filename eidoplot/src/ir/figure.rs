@@ -3,62 +3,13 @@ use std::slice;
 
 use crate::geom;
 use crate::ir::{Legend, Plot, Subplots};
-use crate::style::{self, defaults, theme};
+use crate::style::{defaults, theme};
 
-#[derive(Debug, Clone)]
-pub struct TitleFont {
-    pub font: style::Font,
-    pub size: f32,
-    pub color: theme::Color,
-}
+super::define_rich_text_structs!(Title, TitleProps, TitleOptProps);
 
-impl Default for TitleFont {
+impl Default for TitleProps {
     fn default() -> Self {
-        TitleFont {
-            font: defaults::TITLE_FONT_FAMILY.parse().unwrap(),
-            size: defaults::TITLE_FONT_SIZE,
-            color: theme::Col::Foreground.into(),
-        }
-    }
-}
-
-impl TitleFont {
-    pub fn font(&self) -> &style::Font {
-        &self.font
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Title {
-    text: String,
-    font: TitleFont,
-}
-
-impl Title {
-    pub fn new(text: String) -> Self {
-        Title {
-            text,
-            font: TitleFont::default(),
-        }
-    }
-
-    pub fn with_font(mut self, font: TitleFont) -> Self {
-        self.font = font;
-        self
-    }
-
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-
-    pub fn font(&self) -> &TitleFont {
-        &self.font
-    }
-}
-
-impl From<String> for Title {
-    fn from(text: String) -> Self {
-        Title::new(text)
+        TitleProps::new(defaults::TITLE_FONT_SIZE)
     }
 }
 

@@ -24,6 +24,12 @@ impl From<text::Error> for Error {
     }
 }
 
+impl From<ttf_parser::FaceParsingError> for Error {
+    fn from(err: ttf_parser::FaceParsingError) -> Self {
+        Error::FontOrText(err.into())
+    }
+}
+
 impl std::error::Error for Error {}
 
 pub trait Surface {
@@ -39,11 +45,14 @@ pub trait Surface {
     /// Draw a path
     fn draw_path(&mut self, path: &Path) -> Result<(), Error>;
 
-    /// Draw some text
+    /// Draw a line of text
     fn draw_text(&mut self, text: &Text) -> Result<(), Error>;
 
-    /// Draw some text that has already been layed out
-    fn draw_text_layout(&mut self, text: &TextLayout) -> Result<(), Error>;
+    /// Draw a line of text
+    fn draw_line_text(&mut self, text: &LineText) -> Result<(), Error>;
+
+    /// Draw a rich text
+    fn draw_rich_text(&mut self, text: &RichText) -> Result<(), Error>;
 
     /// Push a clipping path
     /// Subsequent draw operations will be clipped to this path,
@@ -110,13 +119,19 @@ pub struct Text<'a> {
     pub font: &'a text::Font,
     pub font_size: f32,
     pub fill: Paint,
-    pub options: text::layout::Options,
+    pub align: (text::line::Align, text::line::VerAlign),
     pub transform: Option<&'a geom::Transform>,
 }
 
 #[derive(Debug, Clone)]
-pub struct TextLayout<'a> {
-    pub layout: &'a text::TextLayout,
+pub struct LineText<'a> {
+    pub text: &'a text::LineText,
     pub fill: Paint,
-    pub transform: Option<&'a geom::Transform>,
+    pub transform: geom::Transform,
+}
+
+#[derive(Debug, Clone)]
+pub struct RichText<'a> {
+    pub text: &'a text::RichText,
+    pub transform: geom::Transform,
 }

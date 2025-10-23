@@ -7,12 +7,10 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "sine example",
+            "name": "bars example",
             "cargo": {
                 "args": [
-                    "build",
-                    "--example",
-                    "sine"
+                    "build", "--example", "bars"
                 ]
             },
             "args": ["png", "svg"]
@@ -23,9 +21,19 @@
             "name": "gauss example",
             "cargo": {
                 "args": [
-                    "build",
-                    "--example",
-                    "gauss"
+                    "build", "--example", "gauss"
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "iris_eplt example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "iris_eplt",
+                    "--features", "dsl-diag"
                 ]
             },
             "args": ["png", "svg"]
@@ -36,9 +44,7 @@
             "name": "iris example",
             "cargo": {
                 "args": [
-                    "build",
-                    "--example",
-                    "iris"
+                    "build", "--example", "iris"
                 ]
             },
             "args": ["png", "svg"]
@@ -46,12 +52,22 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "bars example",
+            "name": "rlc_bode example",
             "cargo": {
                 "args": [
-                    "build",
-                    "--example",
-                    "bars"
+                    "build", "--example", "rlc_bode",
+                    "--features", "dsl-diag"
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "sine example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "sine"
                 ]
             },
             "args": ["png", "svg"]
@@ -79,7 +95,30 @@
                     "bidi_layout"
                 ]
             },
-            "args": ["png", "svg"]
-        }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "line_text example",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example",
+                    "line_text"
+                ]
+            },
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "rich_text example",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example",
+                    "rich_text"
+                ]
+            },
+        },
     ]
 }
