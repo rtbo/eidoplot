@@ -30,7 +30,7 @@ memmap = ["fs", "memmap2"]
 fontconfig = ["fontconfig-parser", "fs"]
 
 [[example]]
-name="rich_text"
+name="text_line"
 
 [[example]]
-name="line_text"
+name="text_rich"

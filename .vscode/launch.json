@@ -99,24 +99,24 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "line_text example",
+            "name": "text_line example",
             "cargo": {
                 "args": [
                     "build",
                     "--example",
-                    "line_text"
+                    "text_line"
                 ]
             },
         },
         {
             "type": "lldb",
             "request": "launch",
-            "name": "rich_text example",
+            "name": "text_rich example",
             "cargo": {
                 "args": [
                     "build",
                     "--example",
-                    "rich_text"
+                    "text_rich"
                 ]
             },
         },
