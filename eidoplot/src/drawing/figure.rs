@@ -41,8 +41,9 @@ where
                 transform,
             };
             self.draw_rich_text(&text)?;
-            rect = rect
-                .shifted_top_side(title.visual_bbox().height() + 2.0 * missing_params::FIG_TITLE_MARGIN);
+            rect = rect.shifted_top_side(
+                title.visual_bbox().height() + 2.0 * missing_params::FIG_TITLE_MARGIN,
+            );
         }
 
         if let Some(legend) = fig.legend() {

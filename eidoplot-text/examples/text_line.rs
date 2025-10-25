@@ -1,4 +1,4 @@
-use eidoplot_text::{font, line, BBox};
+use eidoplot_text::{BBox, font, line};
 use line::LineText;
 
 fn main() {

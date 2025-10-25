@@ -1,14 +1,13 @@
+use tiny_skia::Transform;
+use ttf_parser as ttf;
+
 use super::{
-    Align, Boundaries, Direction, Error, Glyph, HorAlign, Layout, LineSpan, PropsSpan,
-    RichText, RichTextBuilder, ShapeSpan, TextOptProps, TextProps, VerAlign, VerDirection,
-    VerProgression,
+    Align, Boundaries, Direction, Error, Glyph, HorAlign, Layout, LineSpan, PropsSpan, RichText,
+    RichTextBuilder, ShapeSpan, TextOptProps, TextProps, VerAlign, VerDirection, VerProgression,
 };
 use crate::bidi::BidiAlgo;
 use crate::font::{self, DatabaseExt};
-use crate::{fontdb, line, BBox};
-
-use tiny_skia::Transform;
-use ttf_parser as ttf;
+use crate::{BBox, fontdb, line};
 
 #[derive(Debug)]
 struct BuilderCtx {

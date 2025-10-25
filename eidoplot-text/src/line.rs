@@ -1,11 +1,11 @@
 //! Module that contains a simple single line text layout and rendering engine
 
-
-use crate::{
-    bidi::{self, BidiAlgo}, font::{self, DatabaseExt}, fontdb, BBox, Error, Font, ScriptDir
-};
 use tiny_skia_path::Transform;
 use ttf_parser as ttf;
+
+use crate::bidi::{self, BidiAlgo};
+use crate::font::{self, DatabaseExt};
+use crate::{BBox, Error, Font, ScriptDir, fontdb};
 
 /// Horizontal alignment
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -134,7 +134,7 @@ impl LineText {
                 rustybuzz::Direction::LeftToRight => ScriptDir::LeftToRight,
                 rustybuzz::Direction::RightToLeft => ScriptDir::RightToLeft,
                 _ => unreachable!(),
-            }
+            },
         };
 
         let mut shapes = Vec::with_capacity(bidi_runs.len());
@@ -323,7 +323,6 @@ impl Shape {
         })
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct RenderOptions<'a> {

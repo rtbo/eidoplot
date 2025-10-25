@@ -813,10 +813,9 @@ fn legend_top_left(
     outer_rect: &geom::Rect,
 ) -> geom::Point {
     match legend.pos() {
-        ir::plot::LegendPos::OutTop => geom::Point::new(
-            outer_rect.center_x() - sz.width() / 2.0,
-            outer_rect.top(),
-        ),
+        ir::plot::LegendPos::OutTop => {
+            geom::Point::new(outer_rect.center_x() - sz.width() / 2.0, outer_rect.top())
+        }
         ir::plot::LegendPos::OutRight => geom::Point::new(
             outer_rect.right() - sz.width(),
             outer_rect.center_y() - sz.height() / 2.0,
@@ -825,10 +824,9 @@ fn legend_top_left(
             outer_rect.center_x() - sz.width() / 2.0,
             outer_rect.bottom() - sz.height(),
         ),
-        ir::plot::LegendPos::OutLeft => geom::Point::new(
-            outer_rect.left(),
-            outer_rect.center_y() - sz.height() / 2.0,
-        ),
+        ir::plot::LegendPos::OutLeft => {
+            geom::Point::new(outer_rect.left(), outer_rect.center_y() - sz.height() / 2.0)
+        }
 
         ir::plot::LegendPos::InTop => geom::Point::new(
             plot_rect.center_x() - sz.width() / 2.0,

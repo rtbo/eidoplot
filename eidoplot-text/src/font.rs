@@ -891,19 +891,19 @@ pub(crate) fn face_metrics(face: &ttf::Face) -> Metrics {
         .unwrap_or(((ascent - descent) as f32 * 0.8) as i16);
     let line_gap = face.line_gap();
 
-    let uline = face.underline_metrics().unwrap_or_else (|| {
-        ttf::LineMetrics {
+    let uline = face
+        .underline_metrics()
+        .unwrap_or_else(|| ttf::LineMetrics {
             position: -(ascent as f32 * 0.1) as i16,
             thickness: (units_per_em as f32 / 14.0) as i16,
-        }
-    });
+        });
 
-    let strikeout = face.strikeout_metrics().unwrap_or_else (|| {
-        ttf::LineMetrics {
+    let strikeout = face
+        .strikeout_metrics()
+        .unwrap_or_else(|| ttf::LineMetrics {
             position: (x_height as f32 * 0.5) as i16,
             thickness: (units_per_em as f32 / 14.0) as i16,
-        }
-    });
+        });
 
     Metrics {
         units_per_em,
@@ -966,8 +966,14 @@ impl ScaledMetrics {
             x_height: 0.0,
             cap_height: 0.0,
             line_gap: 0.0,
-            uline: ScaledLineMetrics { position: 0.0, thickness: 0.0 },
-            strikeout: ScaledLineMetrics { position: 0.0, thickness: 0.0 },
+            uline: ScaledLineMetrics {
+                position: 0.0,
+                thickness: 0.0,
+            },
+            strikeout: ScaledLineMetrics {
+                position: 0.0,
+                thickness: 0.0,
+            },
         }
     }
 }

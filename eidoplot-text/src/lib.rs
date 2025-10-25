@@ -10,7 +10,7 @@ pub mod rich;
 
 pub use font::{Font, ScaledMetrics, parse_font_families};
 pub use line::LineText;
-pub use rich::{RichTextBuilder, RichText};
+pub use rich::{RichText, RichTextBuilder};
 
 #[derive(Debug, Clone)]
 pub enum Error {

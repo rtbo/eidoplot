@@ -1,6 +1,5 @@
 use std::iter::FusedIterator;
 
-
 #[derive(Debug)]
 pub struct Boundaries {
     start: usize,
@@ -77,14 +76,13 @@ impl ExactSizeIterator for BoundariesIter {
 
 impl FusedIterator for BoundariesIter {}
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_boundaries() {
-        let mut b  = Boundaries::new(1, 10);
+        let mut b = Boundaries::new(1, 10);
         b.check_in(0);
         b.check_in(3);
         b.check_in(6);

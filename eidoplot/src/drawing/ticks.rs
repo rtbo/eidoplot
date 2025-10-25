@@ -6,7 +6,9 @@ use crate::ir::axis::{LogScale, Scale};
 pub fn locate_num(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<f64> {
     match (locator, scale) {
         (Locator::Auto, Scale::Auto | Scale::Linear { .. }) => MaxN::new_auto().ticks(nb),
-        (Locator::Auto, Scale::Log(LogScale { base, .. })) => LogLocator::new_major(*base).ticks(nb),
+        (Locator::Auto, Scale::Log(LogScale { base, .. })) => {
+            LogLocator::new_major(*base).ticks(nb)
+        }
         (Locator::MaxN { bins, steps }, Scale::Auto | Scale::Linear { .. }) => {
             let ticker = MaxN::new(*bins, steps.as_slice());
             ticker.ticks(nb)
@@ -31,7 +33,9 @@ pub fn locate_num(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<
 pub fn locate_minor(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<f64> {
     match (locator, scale) {
         (Locator::Auto, Scale::Auto | Scale::Linear { .. }) => MaxN::new_auto_minor().ticks(nb),
-        (Locator::Auto, Scale::Log(LogScale { base, .. })) => LogLocator::new_minor(*base).ticks(nb),
+        (Locator::Auto, Scale::Log(LogScale { base, .. })) => {
+            LogLocator::new_minor(*base).ticks(nb)
+        }
         (Locator::MaxN { bins, steps }, Scale::Auto | Scale::Linear { .. }) => {
             let ticker = MaxN::new(*bins, steps.as_slice());
             ticker.ticks(nb)
@@ -187,11 +191,17 @@ struct LogLocator {
 
 impl LogLocator {
     fn new_major(base: f64) -> Self {
-        Self { base, include_minor: false, }
+        Self {
+            base,
+            include_minor: false,
+        }
     }
 
     fn new_minor(base: f64) -> Self {
-        Self { base, include_minor: true, }
+        Self {
+            base,
+            include_minor: true,
+        }
     }
 
     fn ticks(&self, nb: axis::NumBounds) -> Vec<f64> {
@@ -219,7 +229,7 @@ impl LogLocator {
                     }
                     ticks.push(minor_tick);
                     minor_tick += minor_incr;
-                }    
+                }
             }
             ticks.push(tick);
         }

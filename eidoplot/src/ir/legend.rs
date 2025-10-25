@@ -1,7 +1,8 @@
 use std::num::NonZeroU32;
 
-use crate::style::{defaults, theme};
 use eidoplot_text as text;
+
+use crate::style::{defaults, theme};
 
 #[derive(Debug, Clone)]
 pub struct EntryFont {

@@ -1,5 +1,4 @@
-use eidoplot_text::{Font, RichTextBuilder};
-use eidoplot_text::{font, rich};
+use eidoplot_text::{Font, RichTextBuilder, font, rich};
 use tiny_skia::Transform;
 
 fn main() {

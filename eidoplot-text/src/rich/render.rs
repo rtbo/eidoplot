@@ -1,7 +1,7 @@
+use ttf_parser as ttf;
+
 use super::RichText;
 use crate::{BBox, font, fontdb};
-
-use ttf_parser as ttf;
 
 pub fn render_rich_text(
     text: &RichText,

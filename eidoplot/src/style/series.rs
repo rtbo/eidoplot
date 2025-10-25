@@ -1,8 +1,7 @@
 /*!
  * This module deals with colors and style of data series.
  */
-use crate::style::{self, defaults};
-use crate::style::ColorU8;
+use crate::style::{self, ColorU8, defaults};
 
 /// A series color palette
 pub trait Palette {

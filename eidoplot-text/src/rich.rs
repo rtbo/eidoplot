@@ -1,5 +1,6 @@
-use crate::{font, fontdb, line, BBox, Error};
 use ttf_parser as ttf;
+
+use crate::{BBox, Error, font, fontdb, line};
 
 mod boundaries;
 mod builder;

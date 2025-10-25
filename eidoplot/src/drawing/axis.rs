@@ -449,9 +449,7 @@ where
     ) -> Result<DrawOpts, Error> {
         let title = ir_axis
             .title()
-            .map(|title| {
-                title.to_rich_text(side.title_layout(), &self.fontdb, self.theme())
-            })
+            .map(|title| title.to_rich_text(side.title_layout(), &self.fontdb, self.theme()))
             .transpose()?;
 
         let ticks_labels = !uses_shared;

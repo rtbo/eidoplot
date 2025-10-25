@@ -1,7 +1,5 @@
-use crate::{
-    data,
-    style::{self, defaults},
-};
+use crate::data;
+use crate::style::{self, defaults};
 
 #[derive(Debug, Clone)]
 pub enum DataCol {
