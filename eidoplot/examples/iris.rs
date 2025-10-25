@@ -95,10 +95,12 @@ fn main() {
 
     let x_axis = ir::Axis::new()
         .with_title("Sepal Length [cm]".to_string().into())
-        .with_ticks(Default::default());
+        .with_ticks(Default::default())
+        .with_grid(Default::default());
     let y_axis = ir::Axis::new()
         .with_title("Petal Length [cm]".to_string().into())
-        .with_ticks(Default::default());
+        .with_ticks(Default::default())
+        .with_grid(Default::default());
 
     let setosa = ir::Series::Scatter(
         ir::series::Scatter::new(

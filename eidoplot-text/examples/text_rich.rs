@@ -66,7 +66,7 @@ fn main() {
         },
     );
 
-    let text = builder.done(&db).unwrap();
+    let text = builder.done(&db, &()).unwrap();
     #[cfg(debug_assertions)]
     text.assert_flat_coverage();
 
@@ -97,7 +97,7 @@ fn main() {
             Default::default(),
         ));
 
-    let text = builder.done(&db).unwrap();
+    let text = builder.done(&db, &()).unwrap();
 
     rich::render_rich_text(
         &text,
@@ -121,7 +121,7 @@ fn main() {
             Default::default(),
         ));
 
-    let text = builder.done(&db).unwrap();
+    let text = builder.done(&db, &()).unwrap();
 
     rich::render_rich_text(
         &text,

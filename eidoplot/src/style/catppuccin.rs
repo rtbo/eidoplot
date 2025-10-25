@@ -1,17 +1,37 @@
 use crate::style;
 use crate::style::ColorU8;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Latte;
+/// Build the Catppuccin Latte theme
+pub fn latte() -> style::Theme {
+    Latte.into()
+}
+
+/// Build the Catppuccin Frappe theme
+pub fn frappe() -> style::Theme {
+    Frappe.into()
+}
+
+/// Build the Catppuccin Macchiato theme
+pub fn macchiato() -> style::Theme {
+    Macchiato.into()
+}
+
+/// Build the Catppuccin Mocha theme
+pub fn mocha() -> style::Theme {
+    Mocha.into()
+}
 
 #[derive(Debug, Clone, Copy)]
-pub struct Frappe;
+struct Latte;
 
 #[derive(Debug, Clone, Copy)]
-pub struct Macchiato;
+struct Frappe;
 
 #[derive(Debug, Clone, Copy)]
-pub struct Mocha;
+struct Macchiato;
+
+#[derive(Debug, Clone, Copy)]
+struct Mocha;
 
 trait Flavors {
     fn rosewater() -> ColorU8;
@@ -46,16 +66,10 @@ trait IsDark {
     fn is_dark() -> bool;
 }
 
-impl<F> style::theme::Theme for F
+impl<F> style::theme::ThemeMap for F
 where
-    F: Flavors + IsDark + style::series::Palette,
+    F: Flavors + IsDark,
 {
-    type Palette = Self;
-
-    fn palette(&self) -> &Self::Palette {
-        self
-    }
-
     fn is_dark(&self) -> bool {
         F::is_dark()
     }
@@ -79,34 +93,24 @@ where
     fn legend_border(&self) -> ColorU8 {
         F::overlay2()
     }
-}
 
-impl<F> style::series::Palette for F
-where
-    F: Flavors,
-{
-    fn len(&self) -> usize {
-        14
-    }
-
-    fn get(&self, color: style::series::IndexColor) -> ColorU8 {
-        match color.0 % 14 {
-            0 => F::blue(),
-            1 => F::peach(),
-            2 => F::green(),
-            3 => F::red(),
-            4 => F::mauve(),
-            5 => F::maroon(),
-            6 => F::flamingo(),
-            7 => F::pink(),
-            8 => F::lavender(),
-            9 => F::teal(),
-            10 => F::sky(),
-            11 => F::yellow(),
-            12 => F::sapphire(),
-            13 => F::rosewater(),
-            _ => unreachable!(),
-        }
+    fn into_palette(self) -> style::Palette {
+        style::Palette::new(vec![
+            F::blue(),
+            F::peach(),
+            F::green(),
+            F::red(),
+            F::mauve(),
+            F::maroon(),
+            F::flamingo(),
+            F::pink(),
+            F::lavender(),
+            F::teal(),
+            F::sky(),
+            F::yellow(),
+            F::sapphire(),
+            F::rosewater(),
+        ])
     }
 }
 
@@ -115,20 +119,6 @@ impl IsDark for Latte {
         false
     }
 }
-
-/// The standard eidoplot color palette (10 colors)
-pub const STANDARD: &[ColorU8] = &[
-    ColorU8::from_html(b"#1f77b4"), // blue
-    ColorU8::from_html(b"#ff7f0e"), // orange
-    ColorU8::from_html(b"#2ca02c"), // green
-    ColorU8::from_html(b"#d62728"), // red
-    ColorU8::from_html(b"#9467bd"), // purple
-    ColorU8::from_html(b"#8c564b"), // brown
-    ColorU8::from_html(b"#e377c2"), // pink
-    ColorU8::from_html(b"#7f7f7f"), // gray
-    ColorU8::from_html(b"#bcbd22"), // olive
-    ColorU8::from_html(b"#17becf"), // cyan
-];
 
 impl Flavors for Latte {
     fn rosewater() -> ColorU8 {

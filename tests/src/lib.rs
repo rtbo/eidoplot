@@ -8,8 +8,8 @@ mod tests;
 
 use harness::{PxlHarness, SvgHarness, TestHarness};
 
-fn bw_theme() -> impl style::Theme {
-    style::theme::Light::new(style::series::BLACK)
+fn bw_theme() -> style::Theme {
+    style::theme::light(style::series::palettes::black())
 }
 
 macro_rules! assert_fig_eq_ref {
@@ -46,7 +46,7 @@ macro_rules! assert_fig_eq_ref {
         }
     };
     ($fig:expr, $ref_name:expr) => {
-        assert_fig_eq_ref!($fig, $ref_name, $crate::bw_theme());
+        assert_fig_eq_ref!($fig, $ref_name, &$crate::bw_theme());
     };
 }
 

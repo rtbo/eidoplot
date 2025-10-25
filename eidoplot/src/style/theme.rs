@@ -2,12 +2,56 @@ use crate::style;
 use crate::style::color::{self, ColorU8};
 use crate::style::series::Palette;
 
-pub trait Theme {
-    type Palette: Palette;
-
+pub trait ThemeMap {
     fn is_dark(&self) -> bool;
+    fn background(&self) -> ColorU8;
+    fn foreground(&self) -> ColorU8;
+    fn grid(&self) -> ColorU8;
+    fn legend_fill(&self) -> ColorU8 {
+        self.background().with_opacity(0.5)
+    }
+    fn legend_border(&self) -> ColorU8 {
+        self.foreground()
+    }
 
-    fn get(&self, col: Col) -> ColorU8 {
+    fn into_palette(self) -> Palette;
+}
+
+#[derive(Debug, Clone)]
+pub struct Theme {
+    background: ColorU8,
+    foreground: ColorU8,
+    grid: ColorU8,
+    legend_fill: ColorU8,
+    legend_border: ColorU8,
+
+    is_dark: bool,
+    palette: Palette,
+}
+
+impl<M> From<M> for Theme
+where
+    M: ThemeMap,
+{
+    fn from(map: M) -> Self {
+        Self {
+            background: map.background(),
+            foreground: map.foreground(),
+            grid: map.grid(),
+            legend_fill: map.legend_fill(),
+            legend_border: map.legend_border(),
+            is_dark: map.is_dark(),
+            palette: map.into_palette(),
+        }
+    }
+}
+
+impl Theme {
+    pub fn is_dark(&self) -> bool {
+        self.is_dark
+    }
+
+    pub fn get(&self, col: Col) -> ColorU8 {
         match col {
             Col::Background => self.background(),
             Col::Foreground => self.foreground(),
@@ -17,19 +61,27 @@ pub trait Theme {
         }
     }
 
-    fn background(&self) -> ColorU8;
-    fn foreground(&self) -> ColorU8;
-    fn grid(&self) -> ColorU8;
-
-    fn legend_fill(&self) -> ColorU8 {
-        self.background().with_opacity(0.5)
+    pub fn background(&self) -> ColorU8 {
+        self.background
+    }
+    pub fn foreground(&self) -> ColorU8 {
+        self.foreground
+    }
+    pub fn grid(&self) -> ColorU8 {
+        self.grid
     }
 
-    fn legend_border(&self) -> ColorU8 {
-        self.foreground()
+    pub fn legend_fill(&self) -> ColorU8 {
+        self.legend_fill
     }
 
-    fn palette(&self) -> &Self::Palette;
+    pub fn legend_border(&self) -> ColorU8 {
+        self.legend_border
+    }
+
+    pub fn palette(&self) -> &Palette {
+        &self.palette
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -43,11 +95,7 @@ pub enum Col {
 
 impl super::Color for Col {}
 
-impl<T, P> super::ResolveColor<Col> for T
-where
-    T: Theme<Palette = P>,
-    P: Palette,
-{
+impl super::ResolveColor<Col> for Theme {
     fn resolve_color(&self, color: &Col) -> ColorU8 {
         self.get(*color)
     }
@@ -74,11 +122,13 @@ impl From<ColorU8> for Color {
 
 impl super::Color for Color {}
 
-impl<T, P> super::ResolveColor<Color> for T
-where
-    T: Theme<Palette = P>,
-    P: Palette,
-{
+impl eidoplot_text::rich::Foreground for Color {
+    fn foreground() -> Self {
+        Color::Theme(Col::Foreground)
+    }
+}
+
+impl super::ResolveColor<Color> for Theme {
     fn resolve_color(&self, color: &Color) -> ColorU8 {
         match color {
             Color::Theme(col) => self.get(*col),
@@ -115,20 +165,25 @@ impl From<Col> for Fill {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct Light<P: Palette> {
-    pub palette: P,
+/// Build the black on white thelme
+pub fn black_white() -> Theme {
+    Light(style::series::palettes::black()).into()
 }
 
-impl<P: Palette> Light<P> {
-    pub fn new(palette: P) -> Self {
-        Light { palette }
-    }
+/// Build a light theme with the given palette
+pub fn light(palette: Palette) -> Theme {
+    Light(palette).into()
 }
 
-impl<P: Palette> Theme for Light<P> {
-    type Palette = P;
+/// Build a dark theme with the given palette
+pub fn dark(palette: Palette) -> Theme {
+    Dark(palette).into()
+}
 
+#[derive(Debug, Clone)]
+struct Light(Palette);
+
+impl ThemeMap for Light {
     fn is_dark(&self) -> bool {
         false
     }
@@ -153,25 +208,15 @@ impl<P: Palette> Theme for Light<P> {
         ColorU8::from_rgb(0, 0, 0)
     }
 
-    fn palette(&self) -> &Self::Palette {
-        &self.palette
+    fn into_palette(self) -> Palette {
+        self.0
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct Dark<P: Palette> {
-    pub palette: P,
-}
+#[derive(Debug, Clone)]
+struct Dark(Palette);
 
-impl<P: Palette> Dark<P> {
-    pub fn new(palette: P) -> Self {
-        Dark { palette }
-    }
-}
-
-impl<P: Palette> Theme for Dark<P> {
-    type Palette = P;
-
+impl ThemeMap for Dark {
     fn is_dark(&self) -> bool {
         true
     }
@@ -196,7 +241,7 @@ impl<P: Palette> Theme for Dark<P> {
         ColorU8::from_rgb(255, 255, 255)
     }
 
-    fn palette(&self) -> &Self::Palette {
-        &self.palette
+    fn into_palette(self) -> Palette {
+        self.0
     }
 }

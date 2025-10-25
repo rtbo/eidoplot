@@ -2,6 +2,29 @@ mod named;
 
 pub use named::*;
 
+pub trait ResolveColor<Color> {
+    fn resolve_color(&self, color: &Color) -> ColorU8;
+}
+
+pub trait Color: Clone + Copy {
+    #[inline]
+    fn resolve<R>(&self, rc: &R) -> ColorU8
+    where
+        R: ResolveColor<Self>,
+        Self: Sized,
+    {
+        rc.resolve_color(self)
+    }
+}
+
+impl Color for ColorU8 {}
+
+impl ResolveColor<ColorU8> for () {
+    fn resolve_color(&self, color: &ColorU8) -> ColorU8 {
+        *color
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ColorU8 {
     r: u8,

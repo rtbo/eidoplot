@@ -203,15 +203,12 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_legend<D, T>(
+    pub fn draw_legend<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         legend: &Legend,
         top_left: &geom::Point,
-    ) -> Result<(), render::Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), render::Error> {
         let rect = geom::Rect::from_ps(*top_left, legend.size);
         if legend.fill.is_some() || legend.border.is_some() {
             self.draw_rect(&render::Rect {
@@ -229,16 +226,13 @@ where
         Ok(())
     }
 
-    fn draw_legend_entry<D, T>(
+    fn draw_legend_entry<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         entry: &LegendEntry,
         rect: &geom::Rect,
         label_color: theme::Color,
-    ) -> Result<(), render::Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), render::Error> {
         let rect = geom::Rect::from_xywh(
             rect.left() + entry.x,
             rect.top() + entry.y,

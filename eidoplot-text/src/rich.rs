@@ -1,3 +1,4 @@
+use eidoplot_color::{Color, ColorU8, ResolveColor};
 use ttf_parser as ttf;
 
 use crate::{BBox, Error, font, fontdb, line};
@@ -147,16 +148,19 @@ impl Default for Layout {
 
 /// A builder struct for rich text
 #[derive(Debug, Clone)]
-pub struct RichTextBuilder {
+pub struct RichTextBuilder<C> {
     text: String,
-    root_props: TextProps,
+    root_props: TextProps<C>,
     layout: Layout,
-    spans: Vec<TextSpan>,
+    spans: Vec<TextSpan<C>>,
 }
 
-impl RichTextBuilder {
+impl<C> RichTextBuilder<C>
+where
+    C: Color + PartialEq,
+{
     /// Create a new RichTextBuilder
-    pub fn new(text: String, root_props: TextProps) -> RichTextBuilder {
+    pub fn new(text: String, root_props: TextProps<C>) -> RichTextBuilder<C> {
         RichTextBuilder {
             text,
             root_props,
@@ -171,7 +175,7 @@ impl RichTextBuilder {
     }
 
     /// Add a new text span
-    pub fn add_span(&mut self, start: usize, end: usize, props: TextOptProps) {
+    pub fn add_span(&mut self, start: usize, end: usize, props: TextOptProps<C>) {
         assert!(start <= end);
         assert!(
             self.text.is_char_boundary(start) && self.text.is_char_boundary(end),
@@ -181,8 +185,11 @@ impl RichTextBuilder {
     }
 
     /// Create a RichText from this builder
-    pub fn done(self, fontdb: &fontdb::Database) -> Result<RichText, Error> {
-        self.done_impl(fontdb)
+    pub fn done<R>(self, fontdb: &fontdb::Database, rc: &R) -> Result<RichText, Error>
+    where
+        R: ResolveColor<C>,
+    {
+        self.done_impl(fontdb, rc)
     }
 }
 
@@ -268,35 +275,38 @@ impl RichText {
     }
 }
 
-/// A RGBA color
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Color {
-    /// Red component
-    pub r: u8,
-    /// Green component
-    pub g: u8,
-    /// Blue component
-    pub b: u8,
-    /// Alpha component
-    pub a: u8,
-}
-
 /// A set of properties to be applied to a text span.
 /// If a property is `None`, value is inherited from the parent span.
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct TextOptProps {
+#[derive(Debug, Clone, PartialEq)]
+pub struct TextOptProps<C> {
     pub font_family: Option<Vec<font::Family>>,
     pub font_weight: Option<font::Weight>,
     pub font_width: Option<font::Width>,
     pub font_style: Option<font::Style>,
     pub font_size: Option<f32>,
-    pub fill: Option<Color>,
-    pub stroke: Option<(Color, f32)>,
+    pub fill: Option<C>,
+    pub stroke: Option<(C, f32)>,
     pub underline: Option<bool>,
     pub strikeout: Option<bool>,
 }
 
-impl TextOptProps {
+impl<C> Default for TextOptProps<C> {
+    fn default() -> Self {
+        TextOptProps {
+            font_family: None,
+            font_weight: None,
+            font_width: None,
+            font_style: None,
+            font_size: None,
+            fill: None,
+            stroke: None,
+            underline: None,
+            strikeout: None,
+        }
+    }
+}
+
+impl<C> TextOptProps<C> {
     fn affect_shape(&self) -> bool {
         self.font_family.is_some()
             || self.font_weight.is_some()
@@ -308,43 +318,60 @@ impl TextOptProps {
 
 /// A set of resolved properties for a text span
 #[derive(Debug, Clone)]
-pub struct TextProps {
+pub struct TextProps<C> {
     font_size: f32,
     font: font::Font,
-    fill: Option<Color>,
-    outline: Option<(Color, f32)>,
+    fill: Option<C>,
+    outline: Option<(C, f32)>,
     underline: bool,
     strikeout: bool,
 }
 
-impl TextProps {
-    pub fn new(font_size: f32) -> TextProps {
+/// A color that has meaning for the foreground
+/// (e.g. a font color)
+pub trait Foreground {
+    fn foreground() -> Self;
+}
+
+impl Foreground for ColorU8 {
+    fn foreground() -> Self {
+        eidoplot_color::BLACK
+    }
+}
+
+pub type ResolvedProps = TextProps<ColorU8>;
+
+impl<C> TextProps<C>
+where
+    C: Color + Foreground,
+{
+    pub fn new(font_size: f32) -> TextProps<C> {
         TextProps {
             font_size,
             font: font::Font::default(),
-            fill: Some(Color {
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 255,
-            }),
+            fill: Some(C::foreground()),
             outline: None,
             underline: false,
             strikeout: false,
         }
     }
+}
 
+impl<C> TextProps<C>
+where
+    C: Color,
+{
     pub fn with_font(mut self, font: font::Font) -> Self {
         self.font = font;
         self
     }
 
-    pub fn with_fill(mut self, fill: Option<Color>) -> Self {
+    pub fn with_fill(mut self, fill: Option<C>) -> Self {
         self.fill = fill;
         self
     }
 
-    pub fn with_outline(mut self, stroke: (Color, f32)) -> Self {
+    pub fn with_outline(mut self, stroke: (C, f32)) -> Self {
         self.outline = Some(stroke);
         self
     }
@@ -367,11 +394,11 @@ impl TextProps {
         &self.font
     }
 
-    pub fn fill(&self) -> Option<Color> {
+    pub fn fill(&self) -> Option<C> {
         self.fill
     }
 
-    pub fn outline(&self) -> Option<(Color, f32)> {
+    pub fn outline(&self) -> Option<(C, f32)> {
         self.outline
     }
 
@@ -383,7 +410,7 @@ impl TextProps {
         self.strikeout
     }
 
-    fn apply_opts(&mut self, opts: &TextOptProps) {
+    fn apply_opts(&mut self, opts: &TextOptProps<C>) {
         if let Some(font_family) = &opts.font_family {
             self.font = self.font.clone().with_families(font_family.clone());
         }
@@ -416,10 +443,10 @@ impl TextProps {
 
 /// A text span
 #[derive(Debug, Clone)]
-struct TextSpan {
+struct TextSpan<C> {
     start: usize,
     end: usize,
-    props: TextOptProps,
+    props: TextOptProps<C>,
 }
 
 /// A line of rich text
@@ -622,7 +649,7 @@ impl ShapeSpan {
 pub struct PropsSpan {
     start: usize,
     end: usize,
-    props: TextProps,
+    props: ResolvedProps,
     bbox: BBox,
 }
 
@@ -638,7 +665,7 @@ impl PropsSpan {
     }
 
     /// The properties of this span
-    pub fn props(&self) -> &TextProps {
+    pub fn props(&self) -> &ResolvedProps {
         &self.props
     }
 

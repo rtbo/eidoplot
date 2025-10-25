@@ -2,7 +2,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use eidoplot::drawing::{self, SurfaceExt};
-use eidoplot::{ir, style};
+use eidoplot::ir;
+use eidoplot::style::Theme;
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 
@@ -40,9 +41,7 @@ pub trait TestHarness {
         Path::new(tests_dir).join("actual").join(file_name)
     }
 
-    fn draw_fig<T>(fig: &ir::Figure, theme: T) -> Self::DrawnFig
-    where
-        T: style::Theme;
+    fn draw_fig(fig: &ir::Figure, theme: &Theme) -> Self::DrawnFig;
 
     fn diff_fig(actual: &Self::DrawnFig, ref_: &Self::DrawnFig) -> Option<Self::DiffFig>;
 
@@ -52,10 +51,7 @@ pub trait TestHarness {
 
     fn regenerate_refs() -> bool;
 
-    fn check_fig_eq_ref<T>(fig: &ir::Figure, ref_name: &str, theme: T) -> Result<(), String>
-    where
-        T: style::Theme,
-    {
+    fn check_fig_eq_ref(fig: &ir::Figure, ref_name: &str, theme: &Theme) -> Result<(), String> {
         let ref_file = Self::ref_file_path(&ref_name);
         let actual_file = Self::actual_file_path(&ref_name);
         let diff_file = Self::diff_file_path(&ref_name);
@@ -132,10 +128,7 @@ impl TestHarness for PxlHarness {
         "-diff.png"
     }
 
-    fn draw_fig<T>(fig: &ir::Figure, theme: T) -> Self::DrawnFig
-    where
-        T: style::Theme,
-    {
+    fn draw_fig(fig: &ir::Figure, theme: &Theme) -> Self::DrawnFig {
         let size = fig.size();
         let fontdb = Arc::new(eidoplot::bundled_font_db());
         let mut pxl = PxlSurface::new(
@@ -209,10 +202,7 @@ impl TestHarness for SvgHarness {
         ".svg.diff"
     }
 
-    fn draw_fig<T>(fig: &ir::Figure, theme: T) -> Self::DrawnFig
-    where
-        T: style::Theme,
-    {
+    fn draw_fig(fig: &ir::Figure, theme: &Theme) -> Self::DrawnFig {
         let size = fig.size();
         let mut svg = SvgSurface::new(size.width() as u32, size.height() as u32);
         svg.draw_figure(&fig, &(), theme, drawing::Options::default())

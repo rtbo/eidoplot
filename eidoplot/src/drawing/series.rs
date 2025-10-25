@@ -5,7 +5,7 @@ use crate::drawing::{
     Categories, ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
 };
 use crate::render::{self, Surface as _};
-use crate::{data, geom, ir, style};
+use crate::{data, geom, ir};
 
 /// trait implemented by series, or any other item that
 /// has to populate the legend
@@ -189,9 +189,9 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_series_plot<D, T>(
+    pub fn draw_series_plot<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir_series: &ir::Series,
         series: &Series,
         rect: &geom::Rect,
@@ -199,7 +199,6 @@ where
     ) -> Result<(), Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         match (&ir_series, &series.0) {
             (ir::Series::Line(ir), SeriesPlot::Line(xy)) => {
@@ -282,9 +281,9 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    fn draw_series_line<D, T>(
+    fn draw_series_line<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir: &ir::series::Line,
         line: &Line,
         rect: &geom::Rect,
@@ -292,7 +291,6 @@ where
     ) -> Result<(), Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         let path = line.build_path(ir, ctx.data_source(), rect, cm);
         let rc = (ctx.theme().palette(), line.index);
@@ -331,9 +329,9 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    fn draw_series_scatter<D, T>(
+    fn draw_series_scatter<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir: &ir::series::Scatter,
         scatter: &Scatter,
         rect: &geom::Rect,
@@ -341,7 +339,6 @@ where
     ) -> Result<(), Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         let path = marker::marker_path(ir.marker());
         let rc = (ctx.theme().palette(), scatter.index);
@@ -444,17 +441,14 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    fn draw_series_histogram<D, T>(
+    fn draw_series_histogram<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir: &ir::series::Histogram,
         hist: &Histogram,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), render::Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), render::Error> {
         let rc = (ctx.theme().palette(), hist.index);
 
         let mut pb = geom::PathBuilder::new();
@@ -534,9 +528,9 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    fn draw_series_bars<D, T>(
+    fn draw_series_bars<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir: &ir::series::Bars,
         bars: &Bars,
         rect: &geom::Rect,
@@ -544,7 +538,6 @@ where
     ) -> Result<(), render::Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         let rc = (ctx.theme().palette(), bars.index);
 
@@ -684,9 +677,9 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    fn draw_series_bars_group<D, T>(
+    fn draw_series_bars_group<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir: &ir::series::BarsGroup,
         bg: &BarsGroup,
         rect: &geom::Rect,
@@ -694,7 +687,6 @@ where
     ) -> Result<(), render::Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         let categories = match ir.orientation() {
             ir::series::BarsOrientation::Vertical => bg.bounds.0.as_cat().unwrap(),
@@ -711,9 +703,9 @@ where
         }
     }
 
-    fn draw_series_bars_aside<D, T>(
+    fn draw_series_bars_aside<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir: &ir::series::BarsGroup,
         arrangement: &ir::series::BarsAsideArrangement,
         bg: &BarsGroup,
@@ -723,7 +715,6 @@ where
     ) -> Result<(), render::Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         let num_series = ir.series().len();
         if num_series == 0 {
@@ -776,9 +767,9 @@ where
         Ok(())
     }
 
-    fn draw_series_bars_stack<D, T>(
+    fn draw_series_bars_stack<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir: &ir::series::BarsGroup,
         arrangement: &ir::series::BarsStackArrangement,
         bg: &BarsGroup,
@@ -788,7 +779,6 @@ where
     ) -> Result<(), render::Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         let mut cat_values = vec![0.0; categories.len()];
 

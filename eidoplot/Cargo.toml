@@ -5,6 +5,7 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
+eidoplot-color = { path = "../eidoplot-color" }
 eidoplot-dsl = { path = "../eidoplot-dsl" }
 eidoplot-text = { path = "../eidoplot-text" }
 rustybuzz.workspace = true

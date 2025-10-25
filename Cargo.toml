@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "eidoplot",
+    "eidoplot-color",
     "eidoplot-dsl",
     "eidoplot-pxl",
     "eidoplot-svg",

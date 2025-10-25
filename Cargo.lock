@@ -516,6 +516,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 name = "eidoplot"
 version = "0.1.0"
 dependencies = [
+ "eidoplot-color",
  "eidoplot-dsl",
  "eidoplot-pxl",
  "eidoplot-svg",
@@ -531,6 +532,10 @@ dependencies = [
  "tiny-skia-path",
  "ttf-parser",
 ]
+
+[[package]]
+name = "eidoplot-color"
+version = "0.1.0"
 
 [[package]]
 name = "eidoplot-dsl"
@@ -565,6 +570,7 @@ dependencies = [
 name = "eidoplot-text"
 version = "0.1.0"
 dependencies = [
+ "eidoplot-color",
  "fontconfig-parser",
  "log",
  "memmap2",

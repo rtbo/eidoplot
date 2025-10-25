@@ -1,48 +1,63 @@
+use eidoplot_color::{Color, ResolveColor};
 use tiny_skia::Transform;
 use ttf_parser as ttf;
 
 use super::{
-    Align, Boundaries, Direction, Error, Glyph, HorAlign, Layout, LineSpan, PropsSpan, RichText,
-    RichTextBuilder, ShapeSpan, TextOptProps, TextProps, VerAlign, VerDirection, VerProgression,
+    Align, Boundaries, Direction, Error, Glyph, HorAlign, Layout, LineSpan, PropsSpan,
+    ResolvedProps, RichText, RichTextBuilder, ShapeSpan, TextOptProps, TextProps, VerAlign,
+    VerDirection, VerProgression,
 };
 use crate::bidi::BidiAlgo;
 use crate::font::{self, DatabaseExt};
 use crate::{BBox, fontdb, line};
 
 #[derive(Debug)]
-struct BuilderCtx {
-    resolver: PropsResolver,
+struct BuilderCtx<'a, C, R> {
+    resolver: PropsResolver<'a, C, R>,
     bidi_algo: BidiAlgo,
     buffer: Option<rustybuzz::UnicodeBuffer>,
 }
 
 #[derive(Debug)]
-struct PropsResolver {
-    init_props: TextProps,
-    stack: Vec<TextOptProps>,
+struct PropsResolver<'a, C, R> {
+    init_props: TextProps<C>,
+    stack: Vec<TextOptProps<C>>,
+    rc: &'a R,
 }
 
-impl PropsResolver {
-    fn new(init_props: TextProps) -> PropsResolver {
+impl<'a, C, R> PropsResolver<'a, C, R>
+where
+    C: Color + PartialEq,
+    R: ResolveColor<C>,
+{
+    fn new(init_props: TextProps<C>, rc: &'a R) -> PropsResolver<'a, C, R> {
         PropsResolver {
             init_props,
             stack: Vec::new(),
+            rc,
         }
     }
 
-    fn resolved(&self) -> TextProps {
+    fn resolved(&self) -> ResolvedProps {
         let mut props = self.init_props.clone();
         for opts in self.stack.iter() {
             props.apply_opts(opts);
         }
-        props
+        ResolvedProps {
+            font: props.font,
+            font_size: props.font_size,
+            fill: props.fill.map(|c| self.rc.resolve_color(&c)),
+            outline: props.outline.map(|l| (self.rc.resolve_color(&l.0), l.1)),
+            underline: props.underline,
+            strikeout: props.strikeout,
+        }
     }
 
-    fn push_opts(&mut self, opts: TextOptProps) {
+    fn push_opts(&mut self, opts: TextOptProps<C>) {
         self.stack.push(opts);
     }
 
-    fn pop_opts(&mut self, opts: &TextOptProps) {
+    fn pop_opts(&mut self, opts: &TextOptProps<C>) {
         for i in (0..self.stack.len()).rev() {
             if &self.stack[i] == opts {
                 self.stack.remove(i);
@@ -140,9 +155,15 @@ impl VerProgression {
     }
 }
 
-impl RichTextBuilder {
+impl<C> RichTextBuilder<C>
+where
+    C: Color + PartialEq,
+{
     /// Create a RichText from this builder
-    pub(super) fn done_impl(self, fontdb: &fontdb::Database) -> Result<RichText, Error> {
+    pub(super) fn done_impl<R>(self, fontdb: &fontdb::Database, rc: &R) -> Result<RichText, Error>
+    where
+        R: ResolveColor<C>,
+    {
         if self.text.is_empty() {
             return Ok(RichText::empty());
         }
@@ -169,7 +190,7 @@ impl RichTextBuilder {
             }
         };
 
-        let resolver = PropsResolver::new(self.root_props.clone());
+        let resolver = PropsResolver::new(self.root_props.clone(), rc);
 
         let mut ctx = BuilderCtx {
             resolver,
@@ -219,14 +240,17 @@ impl RichTextBuilder {
         self.build_layout(lines)
     }
 
-    fn shape_line(
+    fn shape_line<'a, R>(
         &self,
         start: usize,
         end: usize,
         _eol: usize,
         fontdb: &fontdb::Database,
-        ctx: &mut BuilderCtx,
-    ) -> Result<LineSpan, Error> {
+        ctx: &mut BuilderCtx<'a, C, R>,
+    ) -> Result<LineSpan, Error>
+    where
+        R: ResolveColor<C>,
+    {
         debug_assert!(self.text.is_char_boundary(start) && self.text.is_char_boundary(end));
         let line_txt = &self.text[start..end];
 
@@ -270,14 +294,17 @@ impl RichTextBuilder {
         })
     }
 
-    fn shape_span(
+    fn shape_span<'a, R>(
         &self,
         start: usize,
         end: usize,
         dir: rustybuzz::Direction,
         fontdb: &fontdb::Database,
-        ctx: &mut BuilderCtx,
-    ) -> Result<ShapeSpan, Error> {
+        ctx: &mut BuilderCtx<'a, C, R>,
+    ) -> Result<ShapeSpan, Error>
+    where
+        R: ResolveColor<C>,
+    {
         debug_assert!(self.text.is_char_boundary(start) && self.text.is_char_boundary(end));
 
         let txt = &self.text[start..end];
@@ -680,13 +707,15 @@ impl RichTextBuilder {
 
 #[cfg(test)]
 mod tests {
+    use eidoplot_color::ColorU8;
+
     use super::*;
 
     #[test]
     fn underline_span() {
         let mut db = fontdb::Database::new();
         db.load_system_fonts();
-        let mut builder =
+        let mut builder: RichTextBuilder<ColorU8> =
             RichTextBuilder::new("Some RICH\ntext string".to_string(), TextProps::new(12.0));
         builder.add_span(
             5,
@@ -696,7 +725,7 @@ mod tests {
                 ..Default::default()
             },
         );
-        let text = builder.done(&db).unwrap();
+        let text = builder.done(&db, &()).unwrap();
         assert_eq!(text.lines.len(), 2);
         assert_eq!(text.lines[0].shapes.len(), 1);
         assert_eq!(text.lines[1].shapes.len(), 1);

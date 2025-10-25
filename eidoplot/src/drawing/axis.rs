@@ -12,7 +12,7 @@ pub use side::Side;
 use crate::drawing::scale::{self, CoordMap};
 use crate::drawing::{Categories, Ctx, Error, SurfWrapper, ticks};
 use crate::render::{self, Surface};
-use crate::style::{self, Color, theme};
+use crate::style::{Color, theme};
 use crate::{data, geom, ir, missing_params};
 
 #[derive(Debug, Clone)]
@@ -246,10 +246,9 @@ struct DrawOpts {
     minor_grid: Option<theme::Line>,
 }
 
-impl<D, T> Ctx<'_, D, T>
+impl<D> Ctx<'_, D>
 where
     D: data::Source,
-    T: style::Theme,
 {
     /// Estimate the height taken by a horizontal axis.
     /// It includes ticks marks, ticks labels and axis title.
@@ -487,15 +486,12 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_axis_minor_grids<D, T>(
+    pub fn draw_axis_minor_grids<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         axis: &Axis,
         plot_rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), Error> {
         let AxisScale::Num {
             cm, minor_ticks, ..
         } = axis.scale.as_ref()
@@ -529,15 +525,12 @@ where
         Ok(())
     }
 
-    pub fn draw_axis_major_grids<D, T>(
+    pub fn draw_axis_major_grids<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         axis: &Axis,
         plot_rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), Error> {
         let AxisScale::Num { cm, ticks, .. } = axis.scale.as_ref() else {
             return Ok(());
         };
@@ -565,15 +558,12 @@ where
         Ok(())
     }
 
-    pub fn draw_axis<D, T>(
+    pub fn draw_axis<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         axis: &Axis,
         plot_rect: &geom::Rect,
-    ) -> Result<f32, Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<f32, Error> {
         let mut shift_across = match axis.scale.as_ref() {
             AxisScale::Num {
                 cm,
@@ -618,17 +608,14 @@ where
         Ok(shift_across)
     }
 
-    fn draw_major_ticks<D, T>(
+    fn draw_major_ticks<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         axis: &Axis,
         cm: &dyn CoordMap,
         ticks: &NumTicks,
         plot_rect: &geom::Rect,
-    ) -> Result<f32, Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<f32, Error> {
         let mut shift_across = 0.0;
 
         if let Some(mark) = axis.draw_opts.marks.as_ref() {
@@ -677,17 +664,14 @@ where
         Ok(shift_across)
     }
 
-    fn draw_minor_ticks<D, T>(
+    fn draw_minor_ticks<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         axis: &Axis,
         cm: &dyn CoordMap,
         minor_ticks: &MinorTicks,
         plot_rect: &geom::Rect,
-    ) -> Result<f32, Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<f32, Error> {
         let Some(mark) = axis.draw_opts.minor_marks.as_ref() else {
             return Ok(0.0);
         };
@@ -700,17 +684,14 @@ where
         self.draw_ticks_marks(ctx, ticks, mark, &transform)
     }
 
-    fn draw_category_ticks<D, T>(
+    fn draw_category_ticks<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         axis: &Axis,
         bins: &CategoryBins,
         ticks: &CategoryTicks,
         plot_rect: &geom::Rect,
-    ) -> Result<f32, Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<f32, Error> {
         if let Some(sep) = ticks.sep.as_ref() {
             let locs = (0..bins.len() + 1).map(|i| bins.sep_location(i));
             let transform = axis.side.ticks_marks_transform(plot_rect);
@@ -744,15 +725,14 @@ where
     }
 
     // return shift across axis (distance to get away from axis to avoid collision)
-    fn draw_ticks_marks<D, T, I>(
+    fn draw_ticks_marks<D, I>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ticks: I,
         mark: &TickMark,
         transform: &geom::Transform,
     ) -> Result<f32, Error>
     where
-        T: style::Theme,
         I: Iterator<Item = f32>,
     {
         let mut pb = geom::PathBuilder::new();

@@ -6,7 +6,7 @@ use crate::drawing::legend::{Legend, LegendBuilder};
 use crate::drawing::series::{Series, SeriesExt};
 use crate::drawing::{Ctx, Error, SurfWrapper, scale};
 use crate::render::{self, Surface};
-use crate::style::{self, defaults};
+use crate::style::defaults;
 use crate::{data, geom, ir, missing_params};
 
 mod grid_idx;
@@ -93,10 +93,9 @@ impl IrPlotsExt for ir::figure::Plots {
     }
 }
 
-impl<D, T> Ctx<'_, D, T>
+impl<D> Ctx<'_, D>
 where
     D: data::Source,
-    T: style::Theme,
 {
     /// Setup a collection of plots, given an IR representation of the plots
     /// and a bounding rectangle.
@@ -625,15 +624,14 @@ impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_plots<D, T>(
+    pub fn draw_plots<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir_plots: &impl IrPlotsExt,
         plots: &Plots,
     ) -> Result<(), Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         for (ir_plot, plot) in ir_plots.plots().iter().zip(plots.plots.iter()) {
             self.draw_plot(ctx, ir_plot, plot)?;
@@ -641,15 +639,9 @@ where
         Ok(())
     }
 
-    fn draw_plot<D, T>(
-        &mut self,
-        ctx: &Ctx<D, T>,
-        ir_plot: &ir::Plot,
-        plot: &Plot,
-    ) -> Result<(), Error>
+    fn draw_plot<D>(&mut self, ctx: &Ctx<D>, ir_plot: &ir::Plot, plot: &Plot) -> Result<(), Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         self.draw_plot_background(ctx, ir_plot, &plot.plot_rect)?;
         let Some(axes) = &plot.axes else {
@@ -669,15 +661,12 @@ where
         Ok(())
     }
 
-    fn draw_plot_background<D, T>(
+    fn draw_plot_background<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir_plot: &ir::Plot,
         rect: &geom::Rect,
-    ) -> Result<(), render::Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), render::Error> {
         if let Some(fill) = ir_plot.fill() {
             self.draw_rect(&render::Rect {
                 rect: *rect,
@@ -689,15 +678,12 @@ where
         Ok(())
     }
 
-    fn draw_plot_border<D, T>(
+    fn draw_plot_border<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         border: Option<&ir::plot::Border>,
         rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), Error> {
         match border {
             None => Ok(()),
             Some(ir::plot::Border::Box(stroke)) => {
@@ -730,9 +716,9 @@ where
         }
     }
 
-    fn draw_plot_series<D, T>(
+    fn draw_plot_series<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir_series: &[ir::Series],
         series: &[Series],
         rect: &geom::Rect,
@@ -740,7 +726,6 @@ where
     ) -> Result<(), Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         self.push_clip(&render::Clip {
             path: &rect.to_path(),
@@ -759,15 +744,12 @@ where
         Ok(())
     }
 
-    fn draw_plot_axes_grids<D, T>(
+    fn draw_plot_axes_grids<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         axes: &Axes,
         rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), Error> {
         self.draw_axis_minor_grids(ctx, &axes.bottom, rect)?;
         self.draw_axis_minor_grids(ctx, &axes.left, rect)?;
         self.draw_axis_major_grids(ctx, &axes.bottom, rect)?;
@@ -775,31 +757,25 @@ where
         Ok(())
     }
 
-    fn draw_plot_axes<D, T>(
+    fn draw_plot_axes<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         axes: &Axes,
         plot_rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), Error> {
         self.draw_axis(ctx, &axes.bottom, plot_rect)?;
         self.draw_axis(ctx, &axes.left, plot_rect)?;
         Ok(())
     }
 
-    fn draw_plot_legend<D, T>(
+    fn draw_plot_legend<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         leg: &Legend,
         ir_leg: &ir::PlotLegend,
         plot_rect: &geom::Rect,
         outer_rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), Error> {
         let top_left = legend_top_left(ir_leg, leg.size(), plot_rect, outer_rect);
         self.draw_legend(ctx, &leg, &top_left)?;
         Ok(())

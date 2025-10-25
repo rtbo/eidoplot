@@ -36,18 +36,15 @@ macro_rules! define_rich_text_structs {
         }
 
         impl $opt_props_struct {
-            fn to_rich<R>(&self, rc: &R) -> eidoplot_text::rich::TextOptProps
-            where
-                R: $crate::style::ResolveColor<$crate::style::theme::Color>,
-            {
+            fn to_rich(&self) -> eidoplot_text::rich::TextOptProps<$crate::style::theme::Color> {
                 let fill = self
                     .fill
                     .as_ref()
-                    .map(|f| crate::ir::paint_to_rich_fill(&f.as_paint(rc)));
-                let stroke = self
+                    .map(|f| crate::ir::paint_to_rich_fill(&f));
+                let outline = self
                     .outline
                     .as_ref()
-                    .map(|l| crate::ir::stroke_to_rich_outline(&l.as_stroke(rc)));
+                    .map(|l| crate::ir::stroke_to_rich_outline(&l));
                 eidoplot_text::rich::TextOptProps {
                     font_family: self.font_family.clone(),
                     font_weight: self.font_weight,
@@ -55,7 +52,7 @@ macro_rules! define_rich_text_structs {
                     font_style: self.font_style,
                     font_size: self.font_size,
                     fill,
-                    stroke,
+                    stroke: outline,
                     underline: self.underline,
                     strikeout: self.strikeout,
                 }
@@ -123,18 +120,15 @@ macro_rules! define_rich_text_structs {
                 self.underline
             }
 
-            fn to_rich<R>(&self, rc: &R) -> eidoplot_text::rich::TextProps
-            where
-                R: $crate::style::ResolveColor<$crate::style::theme::Color>,
-            {
+            fn to_rich(&self) -> eidoplot_text::rich::TextProps<$crate::style::theme::Color> {
                 let fill = self
                     .fill
                     .as_ref()
-                    .map(|f| crate::ir::paint_to_rich_fill(&f.as_paint(rc)));
+                    .map(|f| crate::ir::paint_to_rich_fill(&f));
                 let outline = self
                     .outline
                     .as_ref()
-                    .map(|l| crate::ir::stroke_to_rich_outline(&l.as_stroke(rc)));
+                    .map(|l| crate::ir::stroke_to_rich_outline(&l));
                 let mut props = eidoplot_text::rich::TextProps::new(self.font_size)
                     .with_font(self.font.clone())
                     .with_fill(fill);
@@ -200,45 +194,32 @@ macro_rules! define_rich_text_structs {
             {
                 let mut builder = eidoplot_text::rich::RichTextBuilder::new(
                     self.text.clone(),
-                    self.props.to_rich(rc),
+                    self.props.to_rich(),
                 )
                 .with_layout(layout);
                 for (start, end, props) in &self.spans {
-                    builder.add_span(*start, *end, props.to_rich(rc));
+                    builder.add_span(*start, *end, props.to_rich());
                 }
-                builder.done(db)
+                builder.done(db, rc)
             }
         }
     };
 }
 
-fn paint_to_rich_fill(paint: &render::Paint) -> eidoplot_text::rich::Color {
-    match paint {
-        render::Paint::Solid(color) => eidoplot_text::rich::Color {
-            r: color.red(),
-            g: color.green(),
-            b: color.blue(),
-            a: color.alpha(),
-        },
+pub(self) use define_rich_text_structs;
+
+use crate::style;
+
+fn paint_to_rich_fill(fill: &style::theme::Fill) -> style::theme::Color {
+    match fill {
+        style::Fill::Solid { color, .. } => color.clone(),
     }
 }
 
-fn stroke_to_rich_outline(stroke: &render::Stroke) -> (eidoplot_text::rich::Color, f32) {
+fn stroke_to_rich_outline(stroke: &style::theme::Line) -> (style::theme::Color, f32) {
     assert!(
-        matches!(stroke.pattern, render::LinePattern::Solid),
+        matches!(stroke.pattern, style::LinePattern::Solid),
         "Only solid outline is supported"
     );
-    (
-        eidoplot_text::rich::Color {
-            r: stroke.color.red(),
-            g: stroke.color.green(),
-            b: stroke.color.blue(),
-            a: stroke.color.alpha(),
-        },
-        stroke.width,
-    )
+    (stroke.color, stroke.width)
 }
-
-pub(self) use define_rich_text_structs;
-
-use crate::render;

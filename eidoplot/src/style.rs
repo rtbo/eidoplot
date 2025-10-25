@@ -1,37 +1,18 @@
 pub mod catppuccin;
-pub mod color;
 pub(crate) mod defaults;
 pub mod series;
 pub mod theme;
 
-pub use color::ColorU8;
 pub use series::Palette;
 pub use theme::Theme;
 
 use crate::render;
 
-pub trait ResolveColor<Color> {
-    fn resolve_color(&self, color: &Color) -> ColorU8;
+pub mod color {
+    pub use eidoplot_color::*;
 }
 
-pub trait Color {
-    #[inline]
-    fn resolve<R>(&self, rc: &R) -> ColorU8
-    where
-        R: ResolveColor<Self>,
-        Self: Sized,
-    {
-        rc.resolve_color(self)
-    }
-}
-
-impl Color for ColorU8 {}
-
-impl ResolveColor<ColorU8> for () {
-    fn resolve_color(&self, color: &ColorU8) -> ColorU8 {
-        *color
-    }
-}
+pub use color::{Color, ColorU8, ResolveColor};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Dash(Vec<f32>);
@@ -124,20 +105,6 @@ impl<C: Color> From<C> for Line<C> {
         Line {
             width: 1.0,
             color,
-            pattern: LinePattern::default(),
-            opacity: None,
-        }
-    }
-}
-
-impl<C: Color> From<f32> for Line<C>
-where
-    C: Color + Default,
-{
-    fn from(value: f32) -> Self {
-        Line {
-            width: value,
-            color: C::default(),
             pattern: LinePattern::default(),
             opacity: None,
         }
@@ -281,14 +248,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use theme::Theme;
-
     use super::*;
     use crate::style::theme;
 
     #[test]
     fn test_color_resolve() {
-        let theme = theme::Light::new(series::STANDARD);
+        let theme = theme::light(series::palettes::standard());
 
         let theme_line: theme::Line = (theme::Color::Theme(theme::Col::LegendBorder), 2.0).into();
         let stroke = theme_line.as_stroke(&theme);

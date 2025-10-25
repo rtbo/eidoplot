@@ -3,20 +3,15 @@ use eidoplot_text as text;
 use crate::drawing::legend::LegendBuilder;
 use crate::drawing::{Ctx, Error, SurfWrapper, plot};
 use crate::render::{self, Surface as _};
-use crate::{data, geom, ir, missing_params, style};
+use crate::{data, geom, ir, missing_params};
 
 impl<S: ?Sized> SurfWrapper<'_, S>
 where
     S: render::Surface,
 {
-    pub fn draw_toplevel_figure<D, T>(
-        &mut self,
-        ctx: &Ctx<D, T>,
-        fig: &ir::Figure,
-    ) -> Result<(), Error>
+    pub fn draw_toplevel_figure<D>(&mut self, ctx: &Ctx<D>, fig: &ir::Figure) -> Result<(), Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         self.prepare(fig.size())?;
         if let Some(fill) = fig.fill() {
@@ -55,16 +50,13 @@ where
         Ok(())
     }
 
-    fn draw_figure_legend<D, T>(
+    fn draw_figure_legend<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         fig: &ir::Figure,
         legend: &ir::FigLegend,
         rect: &mut geom::Rect,
-    ) -> Result<(), Error>
-    where
-        T: style::Theme,
-    {
+    ) -> Result<(), Error> {
         let mut builder = LegendBuilder::from_ir(
             legend.legend(),
             legend.pos().prefers_vertical(),
@@ -117,15 +109,14 @@ where
         self.draw_legend(ctx, &leg, &top_left)?;
         Ok(())
     }
-    fn draw_figure_plots<D, T>(
+    fn draw_figure_plots<D>(
         &mut self,
-        ctx: &Ctx<D, T>,
+        ctx: &Ctx<D>,
         ir_plots: &ir::figure::Plots,
         rect: &geom::Rect,
     ) -> Result<(), Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         let plots = ctx.setup_plots(ir_plots, rect)?;
         self.draw_plots(ctx, ir_plots, &plots)?;

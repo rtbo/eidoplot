@@ -4,7 +4,8 @@ use std::sync::Arc;
 use eidoplot_text as text;
 use text::fontdb;
 
-use crate::{data, geom, ir, render, style};
+use crate::style::Theme;
+use crate::{data, geom, ir, render};
 
 mod axis;
 mod figure;
@@ -60,16 +61,15 @@ pub struct Options {
 }
 
 pub trait SurfaceExt: render::Surface {
-    fn draw_figure<D, T>(
+    fn draw_figure<D>(
         &mut self,
         figure: &ir::Figure,
         data_source: &D,
-        theme: T,
+        theme: &Theme,
         opts: Options,
     ) -> Result<(), Error>
     where
         D: data::Source,
-        T: style::Theme,
     {
         let fontdb = opts
             .fontdb
@@ -84,14 +84,14 @@ pub trait SurfaceExt: render::Surface {
 impl<T> SurfaceExt for T where T: render::Surface {}
 
 #[derive(Debug)]
-struct Ctx<'a, D, T> {
+struct Ctx<'a, D> {
     data_source: &'a D,
-    theme: T,
+    theme: &'a Theme,
     fontdb: Arc<fontdb::Database>,
 }
 
-impl<'a, D, T> Ctx<'a, D, T> {
-    pub fn new(data_source: &'a D, theme: T, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D, T> {
+impl<'a, D> Ctx<'a, D> {
+    pub fn new(data_source: &'a D, theme: &'a Theme, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D> {
         Ctx {
             data_source,
             theme,
@@ -99,11 +99,11 @@ impl<'a, D, T> Ctx<'a, D, T> {
         }
     }
 
-    pub fn data_source(&self) -> &'a D {
+    pub fn data_source(&self) -> &D {
         self.data_source
     }
 
-    pub fn theme(&self) -> &T {
+    pub fn theme(&self) -> &Theme {
         &self.theme
     }
 

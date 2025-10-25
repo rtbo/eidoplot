@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use eidoplot::drawing::{self, SurfaceExt};
-use eidoplot::style::{self, series, theme};
+use eidoplot::style::{self, series::palettes};
 use eidoplot::{data, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
@@ -63,6 +63,23 @@ enum Theme {
     CatppuccinMocha,
 }
 
+impl From<Theme> for style::Theme {
+    fn from(value: Theme) -> Self {
+        match value {
+            Theme::LightStandard => style::theme::light(palettes::standard()),
+            Theme::LightPastel => style::theme::light(palettes::pastel()),
+            Theme::LightTolBright => style::theme::light(palettes::tol_bright()),
+            Theme::LightOkabeIto => style::theme::light(palettes::okabe_ito()),
+            Theme::DarkPastel => style::theme::dark(palettes::pastel()),
+            Theme::DarkStandard => style::theme::dark(palettes::standard()),
+            Theme::CatppuccinLatte => style::catppuccin::latte(),
+            Theme::CatppuccinFrappe => style::catppuccin::frappe(),
+            Theme::CatppuccinMacchiato => style::catppuccin::macchiato(),
+            Theme::CatppuccinMocha => style::catppuccin::mocha(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 struct Args {
     png: Png,
@@ -119,141 +136,32 @@ where
     D: data::Source,
 {
     let args = parse_args();
-    save_fig_match_theme(fig, data_source, &args, default_name);
-}
-
-fn save_fig_match_theme<D>(fig: &ir::Figure, data_source: &D, args: &Args, default_name: &str)
-where
-    D: data::Source,
-{
+    let theme = args.theme.into();
     let fontdb = Arc::new(eidoplot::bundled_font_db());
-
-    match &args.theme {
-        Theme::LightStandard => {
-            save_fig_with_theme(
-                fig,
-                data_source,
-                theme::Light::new(series::STANDARD),
-                args,
-                default_name,
-                fontdb,
-            );
-        }
-        Theme::LightPastel => {
-            save_fig_with_theme(
-                fig,
-                data_source,
-                theme::Light::new(series::PASTEL),
-                args,
-                default_name,
-                fontdb,
-            );
-        }
-        Theme::LightTolBright => {
-            save_fig_with_theme(
-                fig,
-                data_source,
-                theme::Light::new(series::TOL_BRIGHT),
-                args,
-                default_name,
-                fontdb,
-            );
-        }
-        Theme::LightOkabeIto => {
-            save_fig_with_theme(
-                fig,
-                data_source,
-                theme::Light::new(series::OKABE_ITO),
-                args,
-                default_name,
-                fontdb,
-            );
-        }
-        Theme::DarkPastel => {
-            save_fig_with_theme(
-                fig,
-                data_source,
-                theme::Dark::new(series::PASTEL),
-                args,
-                default_name,
-                fontdb,
-            );
-        }
-        Theme::DarkStandard => {
-            save_fig_with_theme(
-                fig,
-                data_source,
-                theme::Dark::new(series::STANDARD),
-                args,
-                default_name,
-                fontdb,
-            );
-        }
-        Theme::CatppuccinLatte => {
-            save_fig_with_theme(
-                fig,
-                data_source,
-                style::catppuccin::Latte,
-                args,
-                default_name,
-                fontdb,
-            );
-        }
-        Theme::CatppuccinFrappe => {
-            save_fig_with_theme(
-                fig,
-                data_source,
-                style::catppuccin::Frappe,
-                args,
-                default_name,
-                fontdb,
-            );
-        }
-        Theme::CatppuccinMacchiato => {
-            save_fig_with_theme(
-                fig,
-                data_source,
-                style::catppuccin::Macchiato,
-                args,
-                default_name,
-                fontdb,
-            );
-        }
-        Theme::CatppuccinMocha => {
-            save_fig_with_theme(
-                fig,
-                data_source,
-                style::catppuccin::Mocha,
-                args,
-                default_name,
-                fontdb,
-            );
-        }
-    }
+    save_fig(fig, data_source, &theme, &args, default_name, fontdb);
 }
 
-fn save_fig_with_theme<T, D>(
+fn save_fig<D>(
     fig: &ir::Figure,
     data_source: &D,
-    theme: T,
+    theme: &style::Theme,
     args: &Args,
     default_name: &str,
     fontdb: Arc<fontdb::Database>,
 ) where
     D: data::Source,
-    T: style::Theme + Clone,
 {
     match &args.png {
         Png::No => (),
         Png::Yes => save_fig_as_png(
             fig,
             data_source,
-            theme.clone(),
+            theme,
             fontdb.clone(),
             &format!("{}.png", default_name),
         ),
         Png::YesToFile(file_name) => {
-            save_fig_as_png(fig, data_source, theme.clone(), fontdb.clone(), &file_name)
+            save_fig_as_png(fig, data_source, theme, fontdb.clone(), &file_name)
         }
     }
 
@@ -262,25 +170,22 @@ fn save_fig_with_theme<T, D>(
         Svg::Yes => save_fig_as_svg(
             fig,
             data_source,
-            theme.clone(),
+            theme,
             fontdb,
             &format!("{}.svg", default_name),
         ),
-        Svg::YesToFile(file_name) => {
-            save_fig_as_svg(fig, data_source, theme.clone(), fontdb, &file_name)
-        }
+        Svg::YesToFile(file_name) => save_fig_as_svg(fig, data_source, theme, fontdb, &file_name),
     }
 }
 
-fn save_fig_as_png<D, T>(
+fn save_fig_as_png<D>(
     fig: &ir::Figure,
     data_source: &D,
-    theme: T,
+    theme: &style::Theme,
     fontdb: Arc<fontdb::Database>,
     file_name: &str,
 ) where
     D: data::Source,
-    T: style::Theme,
 {
     let mut pxl = PxlSurface::new(1600, 1200, Some(fontdb.clone())).unwrap();
     pxl.draw_figure(
@@ -295,15 +200,14 @@ fn save_fig_as_png<D, T>(
     pxl.save_png(file_name).unwrap();
 }
 
-fn save_fig_as_svg<D, T>(
+fn save_fig_as_svg<D>(
     fig: &ir::Figure,
     data_source: &D,
-    theme: T,
+    theme: &style::Theme,
     fontdb: Arc<fontdb::Database>,
     file_name: &str,
 ) where
     D: data::Source,
-    T: style::Theme,
 {
     let mut svg = SvgSurface::new(800, 600);
     svg.draw_figure(

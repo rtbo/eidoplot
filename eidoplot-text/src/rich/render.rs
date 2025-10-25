@@ -59,7 +59,7 @@ pub fn render_rich_text(
                         if let Some(path) = span_builder.finish() {
                             if let Some(c) = span.props.fill.as_ref() {
                                 let mut paint = tiny_skia::Paint::default();
-                                paint.set_color_rgba8(c.r, c.g, c.b, c.a);
+                                paint.set_color_rgba8(c.red(), c.green(), c.blue(), c.alpha());
                                 pixmap.fill_path(
                                     &path,
                                     &paint,
@@ -70,7 +70,7 @@ pub fn render_rich_text(
                             }
                             if let Some((c, thickness)) = span.props.outline.as_ref() {
                                 let mut paint = tiny_skia::Paint::default();
-                                paint.set_color_rgba8(c.r, c.g, c.b, c.a);
+                                paint.set_color_rgba8(c.red(), c.green(), c.blue(), c.alpha());
                                 let mut stroke = tiny_skia::Stroke::default();
                                 stroke.width = *thickness;
                                 pixmap.stroke_path(&path, &paint, &stroke, transform, mask);

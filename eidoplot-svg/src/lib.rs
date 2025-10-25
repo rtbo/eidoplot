@@ -224,10 +224,14 @@ impl SvgSurface {
                     }
                     let span_txt = &whole_txt[span.start()..span.end()];
                     let mut span_node = element::TSpan::new(span_txt);
-                    let paint = span
-                        .props()
-                        .fill()
-                        .map(|c| render::Paint::Solid(ColorU8::from_rgba(c.r, c.g, c.b, c.a)));
+                    let paint = span.props().fill().map(|c| {
+                        render::Paint::Solid(ColorU8::from_rgba(
+                            c.red(),
+                            c.green(),
+                            c.blue(),
+                            c.alpha(),
+                        ))
+                    });
                     assign_fill(&mut span_node, paint.as_ref());
                     shape_node.append(span_node);
                 }
