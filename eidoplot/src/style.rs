@@ -5,12 +5,6 @@ pub mod series;
 pub mod theme;
 
 pub use color::ColorU8;
-
-pub mod font {
-    pub use eidoplot_text::font::{Family, Font, Style, Weight, Width, parse_font_families};
-}
-
-pub use font::Font;
 pub use series::Palette;
 pub use theme::Theme;
 

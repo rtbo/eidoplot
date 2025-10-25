@@ -3,7 +3,7 @@ use std::io;
 use eidoplot::geom::Transform;
 use eidoplot::render::Surface;
 use eidoplot::style::ColorU8;
-use eidoplot::{geom, render, style};
+use eidoplot::{geom, render};
 use eidoplot_text::{self as text, line, rich};
 use svg::Node;
 use svg::node::element;
@@ -370,25 +370,25 @@ fn rectangle_node(rect: &geom::Rect) -> element::Rectangle {
         .set("height", rect.height())
 }
 
-fn font_style(style: style::font::Style) -> &'static str {
+fn font_style(style: text::font::Style) -> &'static str {
     match style {
-        style::font::Style::Normal => "normal",
-        style::font::Style::Italic => "italic",
-        style::font::Style::Oblique => "oblique",
+        text::font::Style::Normal => "normal",
+        text::font::Style::Italic => "italic",
+        text::font::Style::Oblique => "oblique",
     }
 }
 
-fn font_stretch(width: style::font::Width) -> &'static str {
+fn font_stretch(width: text::font::Width) -> &'static str {
     match width {
-        style::font::Width::UltraCondensed => "ultra-condensed",
-        style::font::Width::ExtraCondensed => "extra-condensed",
-        style::font::Width::Condensed => "condensed",
-        style::font::Width::SemiCondensed => "semi-condensed",
-        style::font::Width::Normal => "normal",
-        style::font::Width::SemiExpanded => "semi-expanded",
-        style::font::Width::Expanded => "expanded",
-        style::font::Width::ExtraExpanded => "extra-expanded",
-        style::font::Width::UltraExpanded => "ultra-expanded",
+        text::font::Width::UltraCondensed => "ultra-condensed",
+        text::font::Width::ExtraCondensed => "extra-condensed",
+        text::font::Width::Condensed => "condensed",
+        text::font::Width::SemiCondensed => "semi-condensed",
+        text::font::Width::Normal => "normal",
+        text::font::Width::SemiExpanded => "semi-expanded",
+        text::font::Width::Expanded => "expanded",
+        text::font::Width::ExtraExpanded => "extra-expanded",
+        text::font::Width::UltraExpanded => "ultra-expanded",
     }
 }
 

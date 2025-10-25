@@ -1,11 +1,12 @@
 use std::num::NonZeroU32;
 
-use crate::style::{self, defaults, theme};
+use crate::style::{defaults, theme};
+use eidoplot_text as text;
 
 #[derive(Debug, Clone)]
 pub struct EntryFont {
     pub size: f32,
-    pub font: style::Font,
+    pub font: text::Font,
     pub color: theme::Color,
 }
 
@@ -13,7 +14,7 @@ impl Default for EntryFont {
     fn default() -> Self {
         Self {
             size: defaults::LEGEND_LABEL_FONT_SIZE,
-            font: style::Font::default(),
+            font: text::Font::default(),
             color: theme::Col::Foreground.into(),
         }
     }
