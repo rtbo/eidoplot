@@ -1,7 +1,12 @@
 <svg height="300" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg">
 <rect fill="#ffffff" height="100%" width="100%"/>
-<text dominant-baseline="center" fill="#000000" font-family="sans-serif" font-size="24" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 200 38)">
-Title
+<text text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 200 43.136)">
+
+<tspan text-anchor="middle" x="0">
+<tspan font-family="sans-serif" font-size="24" font-stretch="normal" font-style="normal" font-weight="400">
+<tspan fill="#000000">Title</tspan>
+</tspan>
+</tspan>
 </text>
-<rect fill="none" height="224" stroke="#000000" stroke-width="1" width="360" x="20" y="56"/>
+<rect fill="none" height="229.52" stroke="#000000" stroke-width="1" width="360" x="20" y="50.48"/>
 </svg>

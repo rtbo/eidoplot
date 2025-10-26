@@ -34,8 +34,13 @@
 <text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 360 238.124)">
 3.00
 </text>
-<text dominant-baseline="hanging" fill="#000000" font-family="sans-serif" font-size="16" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 200 263.888)">
-x axis
+<text text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 200 275.312)">
+
+<tspan text-anchor="middle" x="0">
+<tspan font-family="sans-serif" font-size="16" font-stretch="normal" font-style="normal" font-weight="400">
+<tspan fill="#000000">x axis</tspan>
+</tspan>
+</tspan>
 </text>
 <rect fill="none" height="205.864" stroke="#000000" stroke-width="1" width="360" x="20" y="20"/>
 </svg>

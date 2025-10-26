@@ -31,22 +31,22 @@ impl Side {
         match self {
             Side::Bottom => text::rich::Layout::Horizontal(
                 text::rich::Align::Center,
-                text::line::VerAlign::Top.into(),
+                text::rich::VerAlign::Top,
                 Default::default(),
             ),
             Side::Top => text::rich::Layout::Horizontal(
                 text::rich::Align::Center,
-                text::line::VerAlign::Bottom.into(),
+                text::rich::VerAlign::Bottom,
                 Default::default(),
             ),
             Side::Left => text::rich::Layout::Horizontal(
                 text::rich::Align::Center,
-                text::line::VerAlign::Bottom.into(),
+                text::rich::VerAlign::Bottom,
                 Default::default(),
             ),
             Side::Right => text::rich::Layout::Horizontal(
                 text::rich::Align::Center,
-                text::line::VerAlign::Top.into(),
+                text::rich::VerAlign::Top,
                 Default::default(),
             ),
         }
