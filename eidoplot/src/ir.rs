@@ -15,133 +15,60 @@ pub use legend::Legend;
 pub use plot::{Plot, PlotLegend, Subplots};
 pub use series::{DataCol, Series};
 
-// Structs defined with this macro allow to use theme::Color in place of rich::Color
-// in text properties.
-// In addition, caller can impl a specific Default for the $props_struct.
+// Structs defined with this macro use theme::Color for the generic color of rich properties
+// Caller must impl a specific Default for the $props_struct.
 macro_rules! define_rich_text_structs {
     ($text_struct:ident, $props_struct:ident, $opt_props_struct:ident) => {
-        /// A set of properties to be applied to a text span.
-        /// If a property is `None`, value is inherited from the parent span.
-        #[derive(Debug, Clone, PartialEq, Default)]
-        pub struct $opt_props_struct {
-            pub font_family: Option<Vec<eidoplot_text::font::Family>>,
-            pub font_weight: Option<eidoplot_text::font::Weight>,
-            pub font_width: Option<eidoplot_text::font::Width>,
-            pub font_style: Option<eidoplot_text::font::Style>,
-            pub font_size: Option<f32>,
-            pub fill: Option<$crate::style::theme::Fill>,
-            pub outline: Option<$crate::style::theme::Line>,
-            pub underline: Option<bool>,
-            pub strikeout: Option<bool>,
-        }
-
-        impl $opt_props_struct {
-            fn to_rich(&self) -> eidoplot_text::rich::TextOptProps<$crate::style::theme::Color> {
-                let fill = self
-                    .fill
-                    .as_ref()
-                    .map(|f| crate::ir::paint_to_rich_fill(&f));
-                let outline = self
-                    .outline
-                    .as_ref()
-                    .map(|l| crate::ir::stroke_to_rich_outline(&l));
-                eidoplot_text::rich::TextOptProps {
-                    font_family: self.font_family.clone(),
-                    font_weight: self.font_weight,
-                    font_width: self.font_width,
-                    font_style: self.font_style,
-                    font_size: self.font_size,
-                    fill,
-                    stroke: outline,
-                    underline: self.underline,
-                    strikeout: self.strikeout,
-                }
-            }
-        }
+        pub type $opt_props_struct = eidoplot_text::rich::TextOptProps<$crate::style::theme::Color>;
 
         #[derive(Debug, Clone)]
-        pub struct $props_struct {
-            font_size: f32,
-            font: eidoplot_text::font::Font,
-            fill: Option<$crate::style::theme::Fill>,
-            outline: Option<$crate::style::theme::Line>,
-            underline: bool,
-            strikeout: bool,
-        }
+        pub struct $props_struct(eidoplot_text::rich::TextProps<$crate::style::theme::Color>);
 
         impl $props_struct {
             fn new(font_size: f32) -> Self {
-                Self {
-                    font_size,
-                    font: $crate::style::defaults::FONT_FAMILY.parse().unwrap(),
-                    fill: Some($crate::style::theme::Col::Foreground.into()),
-                    outline: None,
-                    underline: false,
-                    strikeout: false,
-                }
+                Self(
+                    eidoplot_text::rich::TextProps::new(font_size)
+                        .with_font($crate::style::defaults::FONT_FAMILY.parse().unwrap()),
+                )
             }
-            pub fn with_font(mut self, font: eidoplot_text::font::Font) -> Self {
-                self.font = font;
-                self
+            pub fn with_font(self, font: eidoplot_text::font::Font) -> Self {
+                Self(self.0.with_font(font))
             }
 
-            pub fn with_fill(mut self, fill: Option<$crate::style::theme::Fill>) -> Self {
-                self.fill = fill;
-                self
+            pub fn with_fill(self, fill: Option<$crate::style::theme::Color>) -> Self {
+                Self(self.0.with_fill(fill))
             }
 
-            pub fn with_outline(mut self, outline: $crate::style::theme::Line) -> Self {
-                self.outline = Some(outline);
-                self
+            pub fn with_outline(self, outline: ($crate::style::theme::Color, f32)) -> Self {
+                Self(self.0.with_outline(outline))
             }
 
-            pub fn with_underline(mut self) -> Self {
-                self.underline = true;
-                self
+            pub fn with_underline(self) -> Self {
+                Self(self.0.with_underline())
+            }
+
+            pub fn with_strikeout(self) -> Self {
+                Self(self.0.with_strikeout())
             }
 
             pub fn font_size(&self) -> f32 {
-                self.font_size
+                self.0.font_size()
             }
 
             pub fn font(&self) -> &eidoplot_text::font::Font {
-                &self.font
+                self.0.font()
             }
 
-            pub fn fill(&self) -> Option<&$crate::style::theme::Fill> {
-                self.fill.as_ref()
+            pub fn fill(&self) -> Option<$crate::style::theme::Color> {
+                self.0.fill()
             }
 
-            pub fn outline(&self) -> Option<&$crate::style::theme::Line> {
-                self.outline.as_ref()
+            pub fn outline(&self) -> Option<($crate::style::theme::Color, f32)> {
+                self.0.outline()
             }
 
             pub fn underline(&self) -> bool {
-                self.underline
-            }
-
-            fn to_rich(&self) -> eidoplot_text::rich::TextProps<$crate::style::theme::Color> {
-                let fill = self
-                    .fill
-                    .as_ref()
-                    .map(|f| crate::ir::paint_to_rich_fill(&f));
-                let outline = self
-                    .outline
-                    .as_ref()
-                    .map(|l| crate::ir::stroke_to_rich_outline(&l));
-                let mut props = eidoplot_text::rich::TextProps::new(self.font_size)
-                    .with_font(self.font.clone())
-                    .with_fill(fill);
-                if let Some(outline) = outline {
-                    props = props.with_outline(outline);
-                }
-                if self.underline {
-                    props = props.with_underline();
-                }
-                if self.strikeout {
-                    props = props.with_strikeout();
-                }
-                props
+                self.0.underline()
             }
         }
 
@@ -156,7 +83,7 @@ macro_rules! define_rich_text_structs {
             fn from(text: String) -> Self {
                 $text_struct {
                     text,
-                    props: TitleProps::default(),
+                    props: $props_struct::default(),
                     spans: Vec::new(),
                 }
             }
@@ -194,11 +121,11 @@ macro_rules! define_rich_text_structs {
             {
                 let mut builder = eidoplot_text::rich::RichTextBuilder::new(
                     self.text.clone(),
-                    self.props.to_rich(),
+                    self.props.0.clone(),
                 )
                 .with_layout(layout);
                 for (start, end, props) in &self.spans {
-                    builder.add_span(*start, *end, props.to_rich());
+                    builder.add_span(*start, *end, props.clone());
                 }
                 builder.done(db, rc)
             }
@@ -207,19 +134,3 @@ macro_rules! define_rich_text_structs {
 }
 
 pub(self) use define_rich_text_structs;
-
-use crate::style;
-
-fn paint_to_rich_fill(fill: &style::theme::Fill) -> style::theme::Color {
-    match fill {
-        style::Fill::Solid { color, .. } => color.clone(),
-    }
-}
-
-fn stroke_to_rich_outline(stroke: &style::theme::Line) -> (style::theme::Color, f32) {
-    assert!(
-        matches!(stroke.pattern, style::LinePattern::Solid),
-        "Only solid outline is supported"
-    );
-    (stroke.color, stroke.width)
-}
