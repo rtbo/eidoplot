@@ -1,3 +1,7 @@
+use std::error;
+use std::fmt;
+use std::str::FromStr;
+
 mod named;
 
 pub use named::*;
@@ -170,5 +174,194 @@ const fn hex_to_u8(hex: u8) -> u8 {
         b'a'..=b'f' => hex - b'a' + 10,
         b'A'..=b'F' => hex - b'A' + 10,
         _ => panic!("Invalid hex character"),
+    }
+}
+
+/// Erreur de parsing pour ColorU8
+#[derive(Debug)]
+pub enum ParseError {
+    InvalidFormat,
+    InvalidComponent,
+    InvalidAlphaComponent,
+    InvalidHex,
+    UnknownName,
+    IntError,
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseError::InvalidFormat => write!(f, "invalid color format"),
+            ParseError::InvalidComponent => write!(f, "invalid color component"),
+            ParseError::InvalidAlphaComponent => write!(f, "invalid alpha component"),
+            ParseError::InvalidHex => write!(f, "invalid hex color"),
+            ParseError::UnknownName => write!(f, "unknown color name"),
+            ParseError::IntError => write!(f, "integer parse error"),
+        }
+    }
+}
+
+impl error::Error for ParseError {}
+
+fn parse_component_0_255(s: &str) -> Result<u8, ParseError> {
+    let s = s.trim();
+    if s.ends_with('%') {
+        let val = s[..s.len() - 1].trim().parse::<f32>().map_err(|_| ParseError::InvalidComponent)?;
+        if !(0.0..=100.0).contains(&val) {
+            return Err(ParseError::InvalidComponent);
+        }
+        Ok(((val / 100.0) * 255.0).round().clamp(0.0, 255.0) as u8)
+    } else {
+        // integer 0-255
+        let v: i32 = s.parse().map_err(|_| ParseError::InvalidComponent)?;
+        if !(0..=255).contains(&v) {
+            return Err(ParseError::InvalidComponent);
+        }
+        Ok(v as u8)
+    }
+}
+
+fn parse_alpha(s: &str) -> Result<u8, ParseError> {
+    let s = s.trim();
+    if s.ends_with('%') {
+        // percentage alpha 0-100%
+        let val = s[..s.len() - 1].trim().parse::<f32>().map_err(|_| ParseError::InvalidAlphaComponent)?;
+        if !(0.0..=100.0).contains(&val) {
+            return Err(ParseError::InvalidAlphaComponent);
+        }
+        Ok(((val / 100.0) * 255.0).round().clamp(0.0, 255.0) as u8)
+    } else {
+        // try float 0.0-1.0
+        if let Ok(f) = s.parse::<f32>() {
+            if !(0.0..=1.0).contains(&f) {
+                return Err(ParseError::InvalidAlphaComponent);
+            }
+            return Ok((f * 255.0).round().clamp(0.0, 255.0) as u8);
+        }
+        // try integer 0-255
+        let v: i32 = s.parse().map_err(|_| ParseError::InvalidAlphaComponent)?;
+        if !(0..=255).contains(&v) {
+            return Err(ParseError::InvalidAlphaComponent);
+        }
+        Ok(v as u8)
+    }
+}
+
+impl FromStr for ColorU8 {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let raw = s.trim();
+        if raw.is_empty() {
+            return Err(ParseError::InvalidFormat);
+        }
+
+        // HTML hex: starts with '#'
+        if raw.starts_with('#') {
+            // safe to call from_html, but we should validate length first
+            let bytes = raw.as_bytes();
+            match bytes.len() {
+                4 | 5 | 7 | 9 => {
+                    // from_html panics if first char != '#', but we checked it
+                    Ok(ColorU8::from_html(bytes))
+                }
+                _ => Err(ParseError::InvalidHex),
+            }
+        }
+        // rgb(...) or rgba(...)
+        else if raw.to_ascii_lowercase().starts_with("rgb(") && raw.ends_with(')') {
+            let inner = &raw[4..raw.len() - 1];
+            let parts: Vec<&str> = inner.split(',').collect();
+            if parts.len() != 3 {
+                return Err(ParseError::InvalidFormat);
+            }
+            let r = parse_component_0_255(parts[0])?;
+            let g = parse_component_0_255(parts[1])?;
+            let b = parse_component_0_255(parts[2])?;
+            Ok(ColorU8::from_rgb(r, g, b))
+        } else if raw.to_ascii_lowercase().starts_with("rgba(") && raw.ends_with(')') {
+            let inner = &raw[5..raw.len() - 1];
+            let parts: Vec<&str> = inner.split(',').collect();
+            if parts.len() != 4 {
+                return Err(ParseError::InvalidFormat);
+            }
+            let r = parse_component_0_255(parts[0])?;
+            let g = parse_component_0_255(parts[1])?;
+            let b = parse_component_0_255(parts[2])?;
+            let a = parse_alpha(parts[3])?;
+            Ok(ColorU8::from_rgba(r, g, b, a))
+        }
+        // named color
+        else {
+            if let Some(col) = named::lookup_name(raw) {
+                Ok(col)
+            } else {
+                Err(ParseError::UnknownName)
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_html_hex() {
+        // full and short hex
+        assert_eq!("#ff0000".parse::<ColorU8>().unwrap(), RED);
+        assert_eq!("#f00".parse::<ColorU8>().unwrap(), RED);
+
+        // hex with alpha
+        let c = "#ff000080".parse::<ColorU8>().unwrap();
+        assert_eq!(c.rgba(), [255, 0, 0, 128]);
+    }
+
+    #[test]
+    fn parse_css_rgb_rgba() {
+        // integer rgb
+        assert_eq!("rgb(255,0,0)".parse::<ColorU8>().unwrap(), RED);
+
+        // percentage rgb
+        assert_eq!("rgb(100%,0%,0%)".parse::<ColorU8>().unwrap(), RED);
+
+        // rgba with float alpha
+        let c = "rgba(255,0,0,0.5)".parse::<ColorU8>().unwrap();
+        assert_eq!(c.rgba(), [255, 0, 0, 128]);
+
+        // rgba with percentage alpha
+        let c2 = "rgba(255,0,0,50%)".parse::<ColorU8>().unwrap();
+        assert_eq!(c2.rgba(), [255, 0, 0, 128]);
+
+        // rgba with float alpha 0.0-1.0
+        let c3 = "rgba(255, 0, 0, 0.5)".parse::<ColorU8>().unwrap();
+        assert_eq!(c3.rgba(), [255, 0, 0, 128]);
+    }
+
+    #[test]
+    fn parse_named_colors() {
+        // simple name
+        assert_eq!("red".parse::<ColorU8>().unwrap(), RED);
+
+        // case-insensitive
+        assert_eq!("AliceBlue".parse::<ColorU8>().unwrap(), ALICEBLUE);
+    }
+
+    #[test]
+    fn parse_errors() {
+        // empty
+        assert!(matches!("".parse::<ColorU8>(), Err(ParseError::InvalidFormat)));
+
+        // invalid hex length
+        assert!(matches!("#12345".parse::<ColorU8>(), Err(ParseError::InvalidHex)));
+
+        // invalid rgb component (out of 0-255)
+        assert!(matches!("rgb(300,0,0)".parse::<ColorU8>(), Err(ParseError::InvalidComponent)));
+
+        // invalid rgba alpha (float > 1.0)
+        assert!(matches!("rgba(255,0,0,2.0)".parse::<ColorU8>(), Err(ParseError::InvalidAlphaComponent)));
+
+        // unknown name
+        assert!(matches!("notacolor".parse::<ColorU8>(), Err(ParseError::UnknownName)));
     }
 }
