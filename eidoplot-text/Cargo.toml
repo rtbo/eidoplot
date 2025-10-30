@@ -35,3 +35,6 @@ name="text_line"
 
 [[example]]
 name="text_rich"
+
+[[example]]
+name="text_rich_parse"

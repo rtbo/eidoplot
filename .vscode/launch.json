@@ -120,5 +120,17 @@
                 ]
             },
         },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "text_rich_parse example",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example",
+                    "text_rich_parse"
+                ]
+            },
+        },
     ]
 }
