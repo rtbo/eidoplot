@@ -181,6 +181,43 @@ impl Weight {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct ParseWeightError(String);
+
+impl fmt::Display for ParseWeightError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid font style: {}", self.0)
+    }
+}
+
+impl std::error::Error for ParseWeightError {}
+
+impl str::FromStr for Weight {
+    type Err = ParseWeightError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim() {
+            "thin" => Ok(Weight::THIN),
+            "extra-light" | "extralight" => Ok(Weight::EXTRA_LIGHT),
+            "light" => Ok(Weight::LIGHT),
+            "normal" => Ok(Weight::NORMAL),
+            "medium" => Ok(Weight::MEDIUM),
+            "semi-bold" | "semibold" => Ok(Weight::SEMIBOLD),
+            "bold" => Ok(Weight::BOLD),
+            "extra-bold" | "extrabold" => Ok(Weight::EXTRA_BOLD),
+            "black" => Ok(Weight::BLACK),
+            other => {
+                if let Ok(value) = other.parse::<u16>() {
+                    if (1..=1000).contains(&value) {
+                        return Ok(Weight(value));
+                    }
+                }
+                Err(ParseWeightError(other.to_string()))
+            }
+        }
+    }
+}
+
 /// Allows italic or oblique faces to be selected.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum Style {
@@ -208,6 +245,31 @@ impl Style {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct ParseStyleError(String);
+
+impl fmt::Display for ParseStyleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid font style: {}", self.0)
+    }
+}
+
+impl std::error::Error for ParseStyleError {}
+
+impl str::FromStr for Style {
+    type Err = ParseStyleError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim() {
+            "normal" => Ok(Style::Normal),
+            "italic" => Ok(Style::Italic),
+            "oblique" => Ok(Style::Oblique),
+            _ => Err(ParseStyleError(s.to_string())),
+        }
+    }
+}
+
+// FIXME: Width percentage, and use same type between font and fontdb
 /// A face [width](https://docs.microsoft.com/en-us/typography/opentype/spec/os2#uswidthclass).
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Debug, Hash)]
@@ -276,6 +338,36 @@ impl Width {
 impl Default for Width {
     fn default() -> Self {
         Width::Normal
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ParseWidthError(String);
+
+impl fmt::Display for ParseWidthError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid font width: {}", self.0)
+    }
+}
+
+impl std::error::Error for ParseWidthError {}
+
+impl str::FromStr for Width {
+    type Err = ParseWidthError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // FIXME: parse percentage
+        match s.trim() {
+            "ultra-condensed" => Ok(Width::UltraCondensed),
+            "extra-condensed" => Ok(Width::ExtraCondensed),
+            "condensed" => Ok(Width::Condensed),
+            "semi-condensed" => Ok(Width::SemiCondensed),
+            "normal" => Ok(Width::Normal),
+            "semi-expanded" => Ok(Width::SemiExpanded),
+            "expanded" => Ok(Width::Expanded),
+            "extra-expanded" => Ok(Width::ExtraExpanded),
+            "ultra-expanded" => Ok(Width::UltraExpanded),
+            _ => Err(ParseWidthError(s.to_string())),
+        }
     }
 }
 
