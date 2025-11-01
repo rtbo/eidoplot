@@ -7,7 +7,7 @@ figure: {
         // the type is optional though as it can be inferred from
         // the property name
         x-axis: Axis {
-            title: "Sepal Length [cm]"
+            title: "Sepal Length \\[cm]"
             // properties without value get default values
             ticks
             grid
@@ -16,7 +16,7 @@ figure: {
         // axis can also be specified as a sequence
         // Ticks and Grid are enums, not property name
         // (hence the capital)
-        y-axis: "Petal Length [cm]", Ticks, Grid
+        y-axis: "Petal Length \\[cm]", Ticks, Grid
 
         // the legend is constructed from its position
         // and get default values for other properties

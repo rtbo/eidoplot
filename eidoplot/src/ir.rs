@@ -89,6 +89,16 @@ macro_rules! define_rich_text_structs {
             }
         }
 
+        impl From<eidoplot_text::rich::ParsedRichText<$crate::style::theme::Color>> for $text_struct {
+            fn from(text: eidoplot_text::rich::ParsedRichText<$crate::style::theme::Color>) -> Self {
+                $text_struct {
+                    text: text.text,
+                    props: $props_struct::default(),
+                    spans: text.prop_spans,
+                }
+            }
+        }
+
         impl $text_struct {
             pub fn with_props(self, props: $props_struct) -> Self {
                 Self { props, ..self }

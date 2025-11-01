@@ -24,6 +24,19 @@ pub enum ParseRichTextError {
     BadPropValue(Span, String, String),
 }
 
+impl ParseRichTextError {
+    pub fn span(&self) -> Span {
+        match self {
+            ParseRichTextError::UnmatchedTag(span) => *span,
+            ParseRichTextError::UnterminatedTag(span) => *span,
+            ParseRichTextError::InvalidEscSequence(span, _) => *span,
+            ParseRichTextError::UnexpectedEndOfStr(pos) => (*pos, *pos),
+            ParseRichTextError::UnknownClass(span, _) => *span,
+            ParseRichTextError::BadPropValue(span, _, _) => *span,
+        }
+    }
+}
+
 impl fmt::Display for ParseRichTextError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -54,7 +67,7 @@ impl std::error::Error for ParseRichTextError {}
 #[derive(Debug, Clone)]
 pub struct ParsedRichText<C> {
     pub text: String,
-    pub prop_spans: Vec<(Span, TextOptProps<C>)>,
+    pub prop_spans: Vec<(Pos, Pos, TextOptProps<C>)>,
 }
 
 impl<C> ParsedRichText<C>
@@ -63,8 +76,8 @@ where
 {
     pub fn into_builder(self, root_props: TextProps<C>) -> RichTextBuilder<C> {
         let mut builder = RichTextBuilder::new(self.text, root_props);
-        for (span, props) in self.prop_spans {
-            builder.add_span(span.0, span.1, props);
+        for (start, end, props) in self.prop_spans {
+            builder.add_span(start, end, props);
         }
         builder
     }
@@ -141,7 +154,7 @@ where
                             let start_pos = prop_stack[idx].0;
                             let end_pos = text.len();
                             let props = prop_stack.remove(idx).3;
-                            prop_spans.push(((start_pos, end_pos), props));
+                            prop_spans.push((start_pos, end_pos, props));
                             break;
                         }
                     }
@@ -464,16 +477,17 @@ mod lex {
             &mut self,
             start_pos: Pos,
         ) -> Result<Option<TokenKind>, ParseRichTextError> {
-            let Some(c) = self.cursor.next() else {
+            let Some(c) = self.cursor.first() else {
                 return Ok(None);
             };
             match c {
                 '[' => {
+                    self.cursor.next();
                     let tag = self.parse_tag(start_pos)?;
                     Ok(Some(tag))
                 }
-                c => {
-                    let lit = self.parse_str_lit(start_pos, c)?;
+                _ => {
+                    let lit = self.parse_str_lit(start_pos)?;
                     Ok(Some(TokenKind::StrLit(lit)))
                 }
             }
@@ -496,9 +510,8 @@ mod lex {
         fn parse_str_lit(
             &mut self,
             _start_pos: Pos,
-            first_c: char,
         ) -> Result<String, ParseRichTextError> {
-            let mut buf = String::from(first_c);
+            let mut buf = String::new();
             loop {
                 let pos = self.cursor.pos();
                 match self.cursor.first() {
@@ -717,6 +730,26 @@ mod tests {
                 lex::TokenKind::StrLit("small".to_string()),
                 lex::TokenKind::CloseTag(lex::ClosingTag(vec!["fs".to_string(), "ff".to_string()])),
                 lex::TokenKind::StrLit(" text".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_escape_tag() {
+        let input = "Freq. [italic]\\[Hz][/italic]";
+        let tokens: Vec<_> = lex::tokenize(input.chars())
+            .map(|res| res.unwrap().1)
+            .collect();
+        assert_eq!(
+            &tokens,
+            &[
+                lex::TokenKind::StrLit("Freq. ".to_string()),
+                lex::TokenKind::OpenTag(lex::OpeningTag(vec![lex::OpeningProp {
+                    prop: "italic".to_string(),
+                    value: None,
+                }])),
+                lex::TokenKind::StrLit("[Hz]".to_string()),
+                lex::TokenKind::CloseTag(lex::ClosingTag(vec!["italic".to_string()])),
             ]
         );
     }

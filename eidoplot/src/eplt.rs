@@ -2,15 +2,18 @@ use std::fmt;
 #[cfg(feature = "dsl-diag")]
 use std::path;
 
+use eidoplot_dsl::{self as dsl, ast};
+use eidoplot_text::rich;
+
+use crate::{ir, style};
+
 #[cfg(feature = "dsl-diag")]
 pub use dsl::{Diagnostic, Source};
-use eidoplot_dsl::{self as dsl, ast};
-
-use crate::ir;
 
 #[derive(Debug, Clone)]
 pub enum Error {
     Dsl(dsl::Error),
+    ParseRichText(usize, eidoplot_text::rich::ParseRichTextError),
     Parse {
         span: dsl::Span,
         reason: String,
@@ -22,6 +25,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::Dsl(err) => err.fmt(f),
+            Error::ParseRichText(_, err) => err.fmt(f),
             Error::Parse { reason, help, .. } => {
                 write!(f, "Parse error: {reason}")?;
                 if let Some(help) = help {
@@ -44,6 +48,10 @@ impl dsl::DiagTrait for Error {
     fn span(&self) -> dsl::Span {
         match self {
             Error::Dsl(err) => err.span(),
+            Error::ParseRichText(offset, err) => {
+                let span = err.span();
+                (span.0 + *offset, span.1 + *offset)
+            }
             Error::Parse { span, .. } => *span,
         }
     }
@@ -51,6 +59,7 @@ impl dsl::DiagTrait for Error {
     fn message(&self) -> String {
         match self {
             Error::Dsl(err) => err.message(),
+            Error::ParseRichText(_, err) => format!("{err}"),
             Error::Parse { reason, .. } => format!("{reason}"),
         }
     }
@@ -58,6 +67,7 @@ impl dsl::DiagTrait for Error {
     fn help(&self) -> Option<String> {
         match self {
             Error::Dsl(err) => err.help(),
+            Error::ParseRichText(..) => None,
             Error::Parse { help, .. } => help.clone(),
         }
     }
@@ -134,10 +144,10 @@ fn expect_float_val(prop: ast::Prop) -> Result<f64, Error> {
     }
 }
 
-fn expect_string_val(prop: ast::Prop) -> Result<String, Error> {
+fn expect_string_val(prop: ast::Prop) -> Result<(dsl::Span, String), Error> {
     let Some(ast::Value::Scalar(ast::Scalar {
+        span,
         kind: ast::ScalarKind::Str(val),
-        ..
     })) = prop.value
     else {
         return Err(Error::Parse {
@@ -146,7 +156,7 @@ fn expect_string_val(prop: ast::Prop) -> Result<String, Error> {
             help: None,
         });
     };
-    Ok(val)
+    Ok((span, val))
 }
 
 fn expect_struct_val(prop: ast::Prop) -> Result<ast::Struct, Error> {
@@ -195,6 +205,15 @@ fn check_opt_type(val: &ast::Struct, type_name: &str) -> Result<(), Error> {
     Ok(())
 }
 
+fn parse_rich_text(
+    span: dsl::Span,
+    fmt: String,
+) -> Result<rich::ParsedRichText<style::theme::Color>, Error> {
+    let text = rich::parse_rich_text::<style::theme::Color>(&fmt)
+        .map_err(|err| Error::ParseRichText(span.0, err))?;
+    Ok(text)
+}
+
 fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
     check_opt_type(&val, "Figure")?;
 
@@ -229,7 +248,10 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
 
     for prop in val.props {
         match prop.name.name.as_str() {
-            "title" => fig = fig.with_title(expect_string_val(prop)?.into()),
+            "title" => {
+                let (span, fmt) = expect_string_val(prop)?;
+                fig = fig.with_title(parse_rich_text(span, fmt)?.into());
+            }
             // Subplots props that were not parsed for single plot
             // or stated multiple times for subplots.
             // We just ignore them.
@@ -263,7 +285,7 @@ fn parse_plot(mut val: ast::Struct) -> Result<ir::plot::Plot, Error> {
         match prop.name.name.as_str() {
             "x-axis" => plot = plot.with_x_axis(parse_axis(prop)?),
             "y-axis" => plot = plot.with_y_axis(parse_axis(prop)?),
-            "title" => plot = plot.with_title(expect_string_val(prop)?.into()),
+            "title" => plot = plot.with_title(expect_string_val(prop)?.1.into()),
             "legend" => plot = plot.with_legend(parse_plot_legend(prop.value)?),
             _ => {
                 return Err(Error::Parse {
@@ -384,7 +406,7 @@ fn parse_line(mut val: ast::Struct) -> Result<ir::series::Line, Error> {
     let mut line = ir::series::Line::new(x_data, y_data);
 
     if let Some(prop) = val.take_prop("name") {
-        line = line.with_name(expect_string_val(prop)?.into());
+        line = line.with_name(expect_string_val(prop)?.1.into());
     }
 
     Ok(line)
@@ -397,7 +419,7 @@ fn parse_scatter(mut val: ast::Struct) -> Result<ir::series::Scatter, Error> {
     let mut scatter = ir::series::Scatter::new(x_data, y_data);
 
     if let Some(prop) = val.take_prop("name") {
-        scatter = scatter.with_name(expect_string_val(prop)?.into());
+        scatter = scatter.with_name(expect_string_val(prop)?.1.into());
     }
 
     Ok(scatter)
@@ -409,7 +431,7 @@ fn parse_histogram(mut val: ast::Struct) -> Result<ir::series::Histogram, Error>
     let mut histogram = ir::series::Histogram::new(data);
 
     if let Some(prop) = val.take_prop("name") {
-        histogram = histogram.with_name(expect_string_val(prop)?.into());
+        histogram = histogram.with_name(expect_string_val(prop)?.1.into());
     }
 
     Ok(histogram)
@@ -422,7 +444,7 @@ fn parse_bars(mut val: ast::Struct) -> Result<ir::series::Bars, Error> {
     let mut bars = ir::series::Bars::new(x_data, y_data);
 
     if let Some(prop) = val.take_prop("name") {
-        bars = bars.with_name(expect_string_val(prop)?.into());
+        bars = bars.with_name(expect_string_val(prop)?.1.into());
     }
 
     Ok(bars)
@@ -438,9 +460,9 @@ fn parse_axis(prop: ast::Prop) -> Result<ir::Axis, Error> {
     };
     match val {
         ast::Value::Scalar(ast::Scalar {
+            span,
             kind: ast::ScalarKind::Str(title),
-            ..
-        }) => Ok(ir::Axis::default().with_title(title.into())),
+        }) => Ok(ir::Axis::default().with_title(parse_rich_text(span, title)?.into())),
 
         ast::Value::Scalar(ast::Scalar {
             kind: ast::ScalarKind::Enum(ident),
@@ -483,9 +505,9 @@ fn parse_axis_seq(seq: ast::Seq) -> Result<ir::Axis, Error> {
     for scalar in seq.scalars {
         match scalar {
             ast::Scalar {
+                span,
                 kind: ast::ScalarKind::Str(title),
-                ..
-            } => axis = axis.with_title(title.into()),
+            } => axis = axis.with_title(parse_rich_text(span, title)?.into()),
             ast::Scalar {
                 kind: ast::ScalarKind::Enum(ident),
                 span,
@@ -508,7 +530,8 @@ fn parse_axis_struct(val: ast::Struct) -> Result<ir::Axis, Error> {
     for prop in val.props {
         match prop.name.name.as_str() {
             "title" => {
-                axis = axis.with_title(expect_string_val(prop)?.into());
+                let (span, title) = expect_string_val(prop)?;
+                axis = axis.with_title(parse_rich_text(span, title)?.into());
             }
             "ticks" => {
                 axis = axis.with_ticks(parse_ticks(prop)?);

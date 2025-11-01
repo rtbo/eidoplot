@@ -1,17 +1,17 @@
 figure: {
-    title: "RLC circuit bode diagram\nL = 0.1 mH / C = 1 µF"
+    title: "Bode diagram of RLC circuit\n[size=18;italic;font=serif]L = 0.1 mH / C = 1 µF[/size;italic;font]"
     share-x
     space: 10
     plot: {
-        y-axis: "Magnitude [dB]", Ticks, Grid
+        y-axis: "Magnitude [italic]\\[dB][/italic]", Ticks, Grid
         legend: Right
     }
     plot: {
-        x-axis: "Freq. [Hz]", LogScale, Ticks, MinorTicks
+        x-axis: "Freq. [italic]\\[Hz][/italic]", LogScale, Ticks, MinorTicks
         y-axis: {
-            title: "Phase [rad]"
+            title: "Phase [italic]\\[rad][/italic]"
             ticks: PiMultiple
             grid
         }
-    } 
+    }
 }
