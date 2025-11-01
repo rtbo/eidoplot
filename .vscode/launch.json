@@ -18,6 +18,18 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "bode_rlc example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "bode_rlc",
+                    "--features", "dsl-diag"
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "gauss example",
             "cargo": {
                 "args": [
@@ -45,18 +57,6 @@
             "cargo": {
                 "args": [
                     "build", "--example", "iris"
-                ]
-            },
-            "args": ["png", "svg"]
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "rlc_bode example",
-            "cargo": {
-                "args": [
-                    "build", "--example", "rlc_bode",
-                    "--features", "dsl-diag"
                 ]
             },
             "args": ["png", "svg"]

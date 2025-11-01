@@ -29,7 +29,11 @@ polars = ["dep:polars"]
 dsl-diag = ["dep:miette", "eidoplot-dsl/diag"]
 
 [[example]]
-name = "sine"
+name = "bars"
+
+[[example]]
+name = "bode_rlc"
+required-features = ["dsl-diag"]
 
 [[example]]
 name = "gauss"
@@ -38,24 +42,20 @@ name = "gauss"
 name = "iris"
 
 [[example]]
-name = "subplots"
-required-features = ["dsl-diag"]
-
-[[example]]
 name = "iris_eplt"
 required-features = ["dsl-diag"]
-
-[[example]]
-name = "bars"
-
-[[example]]
-name = "polars_sine"
-required-features = ["polars"]
 
 [[example]]
 name = "polars_iris"
 required-features = ["polars"]
 
 [[example]]
-name = "rlc_bode"
+name = "polars_sine"
+required-features = ["polars"]
+
+[[example]]
+name = "sine"
+
+[[example]]
+name = "subplots"
 required-features = ["dsl-diag"]

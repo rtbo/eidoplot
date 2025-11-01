@@ -40,7 +40,7 @@ fn main() {
 
     let mut source = data::NamedOwnedColumns::new();
 
-    let filename = common::example_res("rlc-bode.eplt");
+    let filename = common::example_res("bode-rlc.eplt");
     let content = std::fs::read_to_string(&filename).unwrap();
 
     let figs = eplt::parse_diag(&content, Some(&filename)).unwrap();
