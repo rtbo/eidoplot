@@ -101,6 +101,20 @@ impl super::ResolveColor<Col> for Theme {
     }
 }
 
+impl std::str::FromStr for Col {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "background" => Ok(Col::Background),
+            "foreground" => Ok(Col::Foreground),
+            "grid" => Ok(Col::Grid),
+            "legend_fill" => Ok(Col::LegendFill),
+            "legend_border" => Ok(Col::LegendBorder),
+            _ => Err(()),
+        }
+    }
+}
+
 /// A flexible color for theme elements
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {
@@ -121,6 +135,19 @@ impl From<ColorU8> for Color {
 }
 
 impl super::Color for Color {}
+
+impl std::str::FromStr for Color {
+    type Err = <ColorU8 as std::str::FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Ok(col) = s.parse::<Col>() {
+            Ok(Color::Theme(col))
+        } else {
+            let c = s.parse::<ColorU8>()?;
+            Ok(Color::Fixed(c))
+        }
+    }
+}
 
 impl eidoplot_text::rich::Foreground for Color {
     fn foreground() -> Self {
