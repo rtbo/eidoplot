@@ -28,8 +28,8 @@ cargo run --example gauss -- ${POS_ARGS[@]}
 cargo run --example iris -- ${POS_ARGS[@]}
 cargo run --example sine -- ${POS_ARGS[@]}
 
+cargo run --example bode_rlc --features dsl-diag -- ${POS_ARGS[@]}
 cargo run --example iris_eplt --features dsl-diag -- ${POS_ARGS[@]}
-cargo run --example rlc_bode --features dsl-diag -- ${POS_ARGS[@]}
 cargo run --example subplots --features dsl-diag -- ${POS_ARGS[@]}
 
 if [ "$RUN_POLARS" = "y" ]; then
