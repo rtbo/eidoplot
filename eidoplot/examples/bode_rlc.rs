@@ -67,7 +67,6 @@ fn main() {
                 ir::DataCol::SrcRef("freq".to_string()),
                 ir::DataCol::SrcRef(phase_col.to_string()),
             )
-            .with_name(name.to_string())
             .into(),
         );
     }

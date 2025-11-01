@@ -40,9 +40,9 @@ pub struct FigLegend {
 
 impl FigLegend {
     /// Build a new legend
-    pub fn new(pos: LegendPos, legend: Legend) -> Self {
+    pub fn new(legend: Legend) -> Self {
         FigLegend {
-            pos,
+            pos: Default::default(),
             legend,
             margin: defaults::LEGEND_MARGIN,
         }
@@ -63,6 +63,11 @@ impl FigLegend {
         self.margin
     }
 
+    /// Set the position of the legend
+    pub fn with_pos(self, pos: LegendPos) -> Self {
+        Self { pos, ..self }
+    }
+
     /// Set the margin around the legend
     pub fn with_margin(self, margin: f32) -> Self {
         Self { margin, ..self }
@@ -71,13 +76,13 @@ impl FigLegend {
 
 impl Default for FigLegend {
     fn default() -> Self {
-        FigLegend::new(LegendPos::default(), Legend::default())
+        FigLegend::new(Legend::default())
     }
 }
 
 impl From<LegendPos> for FigLegend {
     fn from(pos: LegendPos) -> Self {
-        FigLegend::new(pos, Legend::default())
+        FigLegend::new(Legend::default()).with_pos(pos)
     }
 }
 

@@ -252,6 +252,9 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
                 let (span, fmt) = expect_string_val(prop)?;
                 fig = fig.with_title(parse_rich_text(span, fmt)?.into());
             }
+            "legend" => {
+                fig = fig.with_legend(parse_fig_legend(prop.value)?);
+            }
             // Subplots props that were not parsed for single plot
             // or stated multiple times for subplots.
             // We just ignore them.
@@ -267,6 +270,39 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
     }
 
     Ok(fig)
+}
+
+fn parse_fig_legend(value: Option<ast::Value>) -> Result<ir::FigLegend, Error> {
+    let mut legend = ir::FigLegend::default();
+
+    match value {
+        Some(ast::Value::Scalar(ast::Scalar {
+            kind: ast::ScalarKind::Enum(ident),
+            span,
+        })) => match ident.as_str() {
+            "Top" => legend = legend.with_pos(ir::figure::LegendPos::Top),
+            "Right" => legend = legend.with_pos(ir::figure::LegendPos::Right),
+            "Bottom" => legend = legend.with_pos(ir::figure::LegendPos::Bottom),
+            "Left" => legend = legend.with_pos(ir::figure::LegendPos::Left),
+            _ => {
+                return Err(Error::Parse {
+                    span,
+                    reason: format!("unknown legend position: {}", ident),
+                    help: None,
+                });
+            }
+        },
+        Some(_) => {
+            return Err(Error::Parse {
+                span: value.as_ref().unwrap().span(),
+                reason: "Could not parse legend".into(),
+                help: None,
+            });
+        }
+        None => (),
+    }
+
+    Ok(legend)
 }
 
 fn parse_plot(mut val: ast::Struct) -> Result<ir::plot::Plot, Error> {
