@@ -1,6 +1,5 @@
-use std::error;
-use std::fmt;
 use std::str::FromStr;
+use std::{error, fmt};
 
 mod named;
 
@@ -206,7 +205,10 @@ impl error::Error for ParseError {}
 fn parse_component_0_255(s: &str) -> Result<u8, ParseError> {
     let s = s.trim();
     if s.ends_with('%') {
-        let val = s[..s.len() - 1].trim().parse::<f32>().map_err(|_| ParseError::InvalidComponent)?;
+        let val = s[..s.len() - 1]
+            .trim()
+            .parse::<f32>()
+            .map_err(|_| ParseError::InvalidComponent)?;
         if !(0.0..=100.0).contains(&val) {
             return Err(ParseError::InvalidComponent);
         }
@@ -225,7 +227,10 @@ fn parse_alpha(s: &str) -> Result<u8, ParseError> {
     let s = s.trim();
     if s.ends_with('%') {
         // percentage alpha 0-100%
-        let val = s[..s.len() - 1].trim().parse::<f32>().map_err(|_| ParseError::InvalidAlphaComponent)?;
+        let val = s[..s.len() - 1]
+            .trim()
+            .parse::<f32>()
+            .map_err(|_| ParseError::InvalidAlphaComponent)?;
         if !(0.0..=100.0).contains(&val) {
             return Err(ParseError::InvalidAlphaComponent);
         }
@@ -350,18 +355,33 @@ mod tests {
     #[test]
     fn parse_errors() {
         // empty
-        assert!(matches!("".parse::<ColorU8>(), Err(ParseError::InvalidFormat)));
+        assert!(matches!(
+            "".parse::<ColorU8>(),
+            Err(ParseError::InvalidFormat)
+        ));
 
         // invalid hex length
-        assert!(matches!("#12345".parse::<ColorU8>(), Err(ParseError::InvalidHex)));
+        assert!(matches!(
+            "#12345".parse::<ColorU8>(),
+            Err(ParseError::InvalidHex)
+        ));
 
         // invalid rgb component (out of 0-255)
-        assert!(matches!("rgb(300,0,0)".parse::<ColorU8>(), Err(ParseError::InvalidComponent)));
+        assert!(matches!(
+            "rgb(300,0,0)".parse::<ColorU8>(),
+            Err(ParseError::InvalidComponent)
+        ));
 
         // invalid rgba alpha (float > 1.0)
-        assert!(matches!("rgba(255,0,0,2.0)".parse::<ColorU8>(), Err(ParseError::InvalidAlphaComponent)));
+        assert!(matches!(
+            "rgba(255,0,0,2.0)".parse::<ColorU8>(),
+            Err(ParseError::InvalidAlphaComponent)
+        ));
 
         // unknown name
-        assert!(matches!("notacolor".parse::<ColorU8>(), Err(ParseError::UnknownName)));
+        assert!(matches!(
+            "notacolor".parse::<ColorU8>(),
+            Err(ParseError::UnknownName)
+        ));
     }
 }

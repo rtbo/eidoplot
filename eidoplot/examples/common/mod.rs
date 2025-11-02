@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use eidoplot::drawing::{self, SurfaceExt};
-use eidoplot::style::{self, series::palettes};
+use eidoplot::style::series::palettes;
+use eidoplot::style::{self};
 use eidoplot::{data, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;

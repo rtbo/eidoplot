@@ -12,8 +12,7 @@ pub use font::{Font, ScaledMetrics, parse_font_families};
 pub use line::{LineText, render_line_text};
 pub use rich::{
     ParseRichTextError, ParsedRichText, RichText, RichTextBuilder, parse_rich_text,
-    parse_rich_text_with_classes,
-    render_rich_text,
+    parse_rich_text_with_classes, render_rich_text,
 };
 
 #[derive(Debug, Clone)]

@@ -129,11 +129,9 @@ macro_rules! define_rich_text_structs {
             where
                 R: $crate::style::ResolveColor<$crate::style::theme::Color>,
             {
-                let mut builder = eidoplot_text::RichTextBuilder::new(
-                    self.text.clone(),
-                    self.props.0.clone(),
-                )
-                .with_layout(layout);
+                let mut builder =
+                    eidoplot_text::RichTextBuilder::new(self.text.clone(), self.props.0.clone())
+                        .with_layout(layout);
                 for (start, end, props) in &self.spans {
                     builder.add_span(*start, *end, props.clone());
                 }

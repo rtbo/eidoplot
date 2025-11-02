@@ -2,13 +2,12 @@ use std::fmt;
 #[cfg(feature = "dsl-diag")]
 use std::path;
 
-use eidoplot_dsl::{self as dsl, ast};
-use eidoplot_text::{ParsedRichText, ParseRichTextError};
-
-use crate::{ir, style};
-
 #[cfg(feature = "dsl-diag")]
 pub use dsl::{Diagnostic, Source};
+use eidoplot_dsl::{self as dsl, ast};
+use eidoplot_text::{ParseRichTextError, ParsedRichText};
+
+use crate::{ir, style};
 
 #[derive(Debug, Clone)]
 pub enum Error {

@@ -1,11 +1,10 @@
-use std::{fmt, str::FromStr};
+use std::fmt;
+use std::str::FromStr;
 
 use eidoplot_color::Color;
 
-use crate::{
-    RichTextBuilder, font,
-    rich::{TextOptProps, TextProps},
-};
+use crate::rich::{TextOptProps, TextProps};
+use crate::{RichTextBuilder, font};
 
 /// Position into an input stream
 pub type Pos = usize;
@@ -507,10 +506,7 @@ mod lex {
             }
         }
 
-        fn parse_str_lit(
-            &mut self,
-            _start_pos: Pos,
-        ) -> Result<String, ParseRichTextError> {
+        fn parse_str_lit(&mut self, _start_pos: Pos) -> Result<String, ParseRichTextError> {
             let mut buf = String::new();
             loop {
                 let pos = self.cursor.pos();

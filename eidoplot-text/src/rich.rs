@@ -9,7 +9,9 @@ mod parse;
 mod render;
 
 use boundaries::Boundaries;
-pub use parse::{ParseRichTextError, ParsedRichText, parse_rich_text, parse_rich_text_with_classes};
+pub use parse::{
+    ParseRichTextError, ParsedRichText, parse_rich_text, parse_rich_text_with_classes,
+};
 pub use render::render_rich_text;
 
 /// Typographic alignment, possibly depending on the script direction.
