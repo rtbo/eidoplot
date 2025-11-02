@@ -334,7 +334,7 @@ impl Bars {
     }
 }
 
-/// The series structure for [`SeriesPlot::Bars`] and [`SeriesPlot::BarsGroup`]
+/// The series structure for [`Series::BarsGroup`]
 #[derive(Debug, Clone)]
 pub struct BarSeries {
     data: DataCol,
