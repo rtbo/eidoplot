@@ -1,5 +1,5 @@
 use eidoplot_color as color;
-use eidoplot_text::{Font, font, rich};
+use eidoplot_text::{self as text, Font, font, rich};
 use tiny_skia::Transform;
 fn main() {
     let mut db = font::Database::new();
@@ -21,7 +21,7 @@ fn main() {
         "[size=32]with [color=teal]cutoff frequency[/color] at [italic]1.5 kHz[/italic].[/size]\n",
         "[font='Noto Serif','DejaVu Serif','Times';italic;size=24]R = 1 Ω  -  L = 100 μH  -  C = 1 μF[/font;italic]"
     );
-    let rich_text = rich::parse_rich_text(fmt)
+    let rich_text = text::parse_rich_text(fmt)
         .unwrap()
         .into_builder(
             rich::TextProps::new(36.0)
@@ -36,7 +36,7 @@ fn main() {
         .done(&db, &())
         .unwrap();
 
-    rich::render_rich_text(
+    text::render_rich_text(
         &rich_text,
         &db,
         Transform::from_translate(PM_SIZE.0 as f32 / 2.0, PM_SIZE.1 as f32 / 2.0),

@@ -42,7 +42,7 @@ fn main() {
             mask: None,
         };
         let line = LineText::new(text.to_string(), *align, 32.0, font.clone(), &db).unwrap();
-        line::render_line(&line, &render_opts, &db, &mut pm_mut);
+        line::render_line_text(&line, &render_opts, &db, &mut pm_mut);
         draw_line_bbox(&line, (tx, ty), &mut pm_mut);
     }
 

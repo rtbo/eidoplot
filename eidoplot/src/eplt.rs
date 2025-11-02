@@ -3,7 +3,7 @@ use std::fmt;
 use std::path;
 
 use eidoplot_dsl::{self as dsl, ast};
-use eidoplot_text::rich;
+use eidoplot_text::{ParsedRichText, ParseRichTextError};
 
 use crate::{ir, style};
 
@@ -13,7 +13,7 @@ pub use dsl::{Diagnostic, Source};
 #[derive(Debug, Clone)]
 pub enum Error {
     Dsl(dsl::Error),
-    ParseRichText(usize, eidoplot_text::rich::ParseRichTextError),
+    ParseRichText(usize, ParseRichTextError),
     Parse {
         span: dsl::Span,
         reason: String,
@@ -208,8 +208,8 @@ fn check_opt_type(val: &ast::Struct, type_name: &str) -> Result<(), Error> {
 fn parse_rich_text(
     span: dsl::Span,
     fmt: String,
-) -> Result<rich::ParsedRichText<style::theme::Color>, Error> {
-    let text = rich::parse_rich_text::<style::theme::Color>(&fmt)
+) -> Result<ParsedRichText<style::theme::Color>, Error> {
+    let text = eidoplot_text::parse_rich_text::<style::theme::Color>(&fmt)
         .map_err(|err| Error::ParseRichText(span.0, err))?;
     Ok(text)
 }

@@ -480,7 +480,7 @@ impl Lines for [rich::LineSpan] {
     }
 }
 
-fn rich_text_hor_yshift(text: &rich::RichText) -> f32 {
+fn rich_text_hor_yshift(text: &text::RichText) -> f32 {
     // multiple lines in SVG is a bit tricky.
     // so we don't use dominant-baseline at all and we apply
     // a vertical shift from the font face.

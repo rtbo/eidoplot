@@ -332,7 +332,7 @@ pub struct RenderOptions<'a> {
     pub transform: tiny_skia_path::Transform,
 }
 
-pub fn render_line(
+pub fn render_line_text(
     line: &LineText,
     opts: &RenderOptions<'_>,
     db: &font::Database,

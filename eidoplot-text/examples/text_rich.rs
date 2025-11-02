@@ -1,4 +1,4 @@
-use eidoplot_text::{Font, RichTextBuilder, font, rich};
+use eidoplot_text::{self as text, Font, RichTextBuilder, font, rich};
 use tiny_skia::Transform;
 
 fn main() {
@@ -70,7 +70,7 @@ fn main() {
     #[cfg(debug_assertions)]
     text.assert_flat_coverage();
 
-    rich::render_rich_text(
+    text::render_rich_text(
         &text,
         &db,
         Transform::from_translate((PM_SIZE.0 / 2) as f32, (PM_SIZE.1 / 2) as f32),
@@ -99,7 +99,7 @@ fn main() {
 
     let text = builder.done(&db, &()).unwrap();
 
-    rich::render_rich_text(
+    text::render_rich_text(
         &text,
         &db,
         Transform::from_translate(PM_SIZE.0 as f32, 0.0),
@@ -123,7 +123,7 @@ fn main() {
 
     let text = builder.done(&db, &()).unwrap();
 
-    rich::render_rich_text(
+    text::render_rich_text(
         &text,
         &db,
         Transform::from_translate(0.0, PM_SIZE.1 as f32),

@@ -167,7 +167,7 @@ impl State {
             mask: self.clip.as_ref(),
         };
         let db = &self.fontdb;
-        text::line::render_line(&line, &render_opts, db, px);
+        text::line::render_line_text(&line, &render_opts, db, px);
 
         #[cfg(feature = "debug-text-bbox")]
         self.draw_text_bbox(
@@ -196,7 +196,7 @@ impl State {
             mask: None,
         };
 
-        text::line::render_line(&rtext.text, &render_opts, &self.fontdb, px);
+        text::line::render_line_text(&rtext.text, &render_opts, &self.fontdb, px);
 
         Ok(())
     }
@@ -208,7 +208,7 @@ impl State {
     ) -> Result<(), render::Error> {
         let ts_text = rtext.transform.post_concat(self.transform);
 
-        text::rich::render_rich_text(&rtext.text, &self.fontdb, ts_text, None, px)?;
+        text::render_rich_text(&rtext.text, &self.fontdb, ts_text, None, px)?;
 
         #[cfg(feature = "debug-text-bbox")]
         self.draw_text_bbox(px, rtext.text.bbox(), rtext.transform)?;
