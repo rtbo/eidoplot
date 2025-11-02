@@ -110,15 +110,15 @@ pub fn parse_diag<'a>(
     }
 }
 
-fn expect_int_val(prop: ast::Prop) -> Result<i64, Error> {
-    let Some(ast::Value::Scalar(ast::Scalar {
+fn expect_int_scalar(scalar: ast::Scalar) -> Result<i64, Error> {
+    let ast::Scalar {
         kind: ast::ScalarKind::Int(val),
         ..
-    })) = prop.value
+    } = scalar
     else {
         return Err(Error::Parse {
-            span: prop.span(),
-            reason: format!("expected integer value (i.e. {}: 2 )", prop.name.name),
+            span: scalar.span,
+            reason: "expected integer value".to_string(),
             help: None,
         });
     };
@@ -169,23 +169,6 @@ fn expect_struct_val(prop: ast::Prop) -> Result<ast::Struct, Error> {
     Ok(val)
 }
 
-fn check_empty_bool_val(prop: &ast::Prop) -> Result<(), Error> {
-    if prop.value.is_some() {
-        return Err(Error::Parse {
-            span: prop.span(),
-            reason: format!(
-                "boolean property '{}' doesn't expect a value",
-                prop.name.name
-            ),
-            help: Some(format!(
-                "To set true, only state the name '{}'. To set false, omit the property.",
-                prop.name.name
-            )),
-        });
-    }
-    Ok(())
-}
-
 fn check_opt_type(val: &ast::Struct, type_name: &str) -> Result<(), Error> {
     if let Some(typ) = &val.typ {
         if typ.name != type_name {
@@ -216,29 +199,70 @@ fn parse_rich_text(
 fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
     check_opt_type(&val, "Figure")?;
 
+    let mut row_cols: Option<(u32, u32)> = None;
     let mut plots = vec![];
+
     while let Some(prop) = val.take_prop("plot") {
-        plots.push(parse_plot(expect_struct_val(prop)?)?);
+        let (rc, plot) = parse_plot(expect_struct_val(prop)?)?;
+        match (rc, &mut row_cols) {
+            (None, None) => (),
+            (Some(rc), Some(row_cols)) => {
+                row_cols.0 = rc.0.max(row_cols.0);
+                row_cols.1 = rc.1.max(row_cols.1);
+            }
+            (Some(rc), None) => row_cols = Some(rc),
+            (None, Some(..)) => (),
+        }
+        plots.push((rc, plot));
     }
 
-    let plots = if plots.len() == 1 {
-        let plot = plots.into_iter().next().unwrap();
+    let nplots = plots.len() as u32;
+    while let Some(prop) = val.take_prop("subplots") {
+        let span = prop.span();
+        let rc = parse_subplots_val(prop.value)?;
+        if let Some(row_cols) = row_cols {
+            if rc.0 < row_cols.0 || rc.1 < row_cols.1 {
+                return Err(Error::Parse {
+                    span,
+                    reason: "figure subplots value is incompatible with the plots subplot values"
+                        .to_string(),
+                    help: Some(
+                        "You may want to only use figure subplots or only plot subplot".to_string(),
+                    ),
+                });
+            }
+        }
+    }
+
+    if row_cols.is_none() {
+        row_cols = Some((nplots, 1));
+    }
+    let row_cols = row_cols.unwrap();
+
+    let plots = if nplots == 1 && row_cols == (1, 1) {
+        let (_, plot) = plots.into_iter().next().unwrap();
         plot.into()
     } else {
-        let mut subplots = ir::Subplots::new(plots);
-        if let Some(prop) = val.take_prop("cols") {
-            subplots = subplots.with_cols(expect_int_val(prop)? as _);
+        let (rows, cols) = row_cols;
+        let mut subplots = ir::Subplots::new(rows, cols);
+        // eplt has rows and cols starting at 1,
+        // but ir has rows and cols starting at 0
+        let mut row = 0;
+        let mut col = 0;
+        for (rc, plot) in plots {
+            let (r, c) = match rc {
+                Some((r, c)) => (r - 1, c - 1),
+                None => (row, col),
+            };
+            subplots = subplots.with_plot(r, c, plot);
+            row += 1;
+            if row >= rows {
+                row = 0;
+                col += 1;
+            }
         }
         if let Some(prop) = val.take_prop("space") {
             subplots = subplots.with_space(expect_float_val(prop)? as _);
-        }
-        if let Some(prop) = val.take_prop("share-x") {
-            check_empty_bool_val(&prop)?;
-            subplots = subplots.with_share_x();
-        }
-        if let Some(prop) = val.take_prop("share-y") {
-            check_empty_bool_val(&prop)?;
-            subplots = subplots.with_share_y();
         }
         subplots.into()
     };
@@ -269,6 +293,31 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
     }
 
     Ok(fig)
+}
+
+fn parse_subplots_val(value: Option<ast::Value>) -> Result<(u32, u32), Error> {
+    match value {
+        Some(ast::Value::Seq(ast::Seq { scalars, span })) => {
+            if scalars.len() == 2 {
+                let mut scalars = scalars.into_iter();
+                let rows = expect_int_scalar(scalars.next().unwrap())? as u32;
+                let cols = expect_int_scalar(scalars.next().unwrap())? as u32;
+                Ok((rows, cols))
+            } else {
+                Err(Error::Parse {
+                    span,
+                    reason: "Expected 2 values for subplot size or position".into(),
+                    help: None,
+                })
+            }
+        }
+        Some(_) => Err(Error::Parse {
+            span: value.as_ref().unwrap().span(),
+            reason: "Could not parse subplot size or position".into(),
+            help: None,
+        }),
+        None => Ok((1, 1)),
+    }
 }
 
 fn parse_fig_legend(value: Option<ast::Value>) -> Result<ir::FigLegend, Error> {
@@ -304,7 +353,7 @@ fn parse_fig_legend(value: Option<ast::Value>) -> Result<ir::FigLegend, Error> {
     Ok(legend)
 }
 
-fn parse_plot(mut val: ast::Struct) -> Result<ir::plot::Plot, Error> {
+fn parse_plot(mut val: ast::Struct) -> Result<(Option<(u32, u32)>, ir::plot::Plot), Error> {
     check_opt_type(&val, "Plot")?;
 
     let mut series = vec![];
@@ -314,12 +363,16 @@ fn parse_plot(mut val: ast::Struct) -> Result<ir::plot::Plot, Error> {
         };
         series.push(parse_series(expect_struct_val(prop)?)?);
     }
+    let mut row_cols = None;
     let mut plot = ir::Plot::new(series);
 
     for prop in val.props {
         match prop.name.name.as_str() {
-            "x-axis" => plot = plot.with_x_axis(parse_axis(prop)?),
-            "y-axis" => plot = plot.with_y_axis(parse_axis(prop)?),
+            "subplot" => {
+                row_cols = Some(parse_subplots_val(prop.value)?);
+            }
+            "x-axis" => plot = plot.with_x_axis(parse_axis(prop, false)?),
+            "y-axis" => plot = plot.with_y_axis(parse_axis(prop, true)?),
             "title" => plot = plot.with_title(expect_string_val(prop)?.1.into()),
             "legend" => plot = plot.with_legend(parse_plot_legend(prop.value)?),
             _ => {
@@ -332,7 +385,7 @@ fn parse_plot(mut val: ast::Struct) -> Result<ir::plot::Plot, Error> {
         }
     }
 
-    Ok(plot)
+    Ok((row_cols, plot))
 }
 
 fn parse_plot_legend(value: Option<ast::Value>) -> Result<ir::plot::PlotLegend, Error> {
@@ -489,7 +542,7 @@ fn parse_bars_group(_val: ast::Struct) -> Result<ir::series::BarsGroup, Error> {
     todo!()
 }
 
-fn parse_axis(prop: ast::Prop) -> Result<ir::Axis, Error> {
+fn parse_axis(prop: ast::Prop, is_y: bool) -> Result<ir::Axis, Error> {
     let Some(val) = prop.value else {
         return Ok(Default::default());
     };
@@ -502,11 +555,11 @@ fn parse_axis(prop: ast::Prop) -> Result<ir::Axis, Error> {
         ast::Value::Scalar(ast::Scalar {
             kind: ast::ScalarKind::Enum(ident),
             span,
-        }) => axis_set_enum_field(Default::default(), span, ident.as_str()),
+        }) => axis_set_enum_field(Default::default(), is_y, span, ident.as_str()),
 
-        ast::Value::Seq(seq) => parse_axis_seq(seq),
+        ast::Value::Seq(seq) => parse_axis_seq(seq, is_y),
 
-        ast::Value::Struct(val) => parse_axis_struct(val),
+        ast::Value::Struct(val) => parse_axis_struct(val, is_y),
 
         _ => Err(Error::Parse {
             span: val.span(),
@@ -516,7 +569,12 @@ fn parse_axis(prop: ast::Prop) -> Result<ir::Axis, Error> {
     }
 }
 
-fn axis_set_enum_field(axis: ir::Axis, span: dsl::Span, ident: &str) -> Result<ir::Axis, Error> {
+fn axis_set_enum_field(
+    axis: ir::Axis,
+    is_y: bool,
+    span: dsl::Span,
+    ident: &str,
+) -> Result<ir::Axis, Error> {
     match ident {
         "LogScale" => Ok(axis.with_scale(ir::axis::LogScale::default().into())),
         "Ticks" => Ok(axis.with_ticks(Default::default())),
@@ -527,6 +585,9 @@ fn axis_set_enum_field(axis: ir::Axis, span: dsl::Span, ident: &str) -> Result<i
         "MinorTicks" => Ok(axis.with_minor_ticks(Default::default())),
         "Grid" => Ok(axis.with_grid(Default::default())),
         "MinorGrid" => Ok(axis.with_minor_grid(Default::default())),
+        "MainSide" | "OppositeSide" | "LeftSide" | "RightSide" | "TopSide" | "BottomSide" => {
+            axis_set_side_enum(axis, is_y, span, ident)
+        }
         _ => Err(Error::Parse {
             span,
             reason: format!("unknown axis property enum: {}", ident),
@@ -535,7 +596,61 @@ fn axis_set_enum_field(axis: ir::Axis, span: dsl::Span, ident: &str) -> Result<i
     }
 }
 
-fn parse_axis_seq(seq: ast::Seq) -> Result<ir::Axis, Error> {
+fn axis_set_side_enum(
+    axis: ir::Axis,
+    is_y: bool,
+    span: dsl::Span,
+    ident: &str,
+) -> Result<ir::Axis, Error> {
+    match ident {
+        "MainSide" => Ok(axis),
+        "OppositeSide" => Ok(axis.with_opposite_side()),
+        "LeftSide" if is_y => Ok(axis),
+        "RightSide" if is_y => Ok(axis.with_opposite_side()),
+        "TopSide" if !is_y => Ok(axis.with_opposite_side()),
+        "BottomSide" if !is_y => Ok(axis),
+        "LeftSide" | "RightSide" if !is_y => Err(Error::Parse {
+            span,
+            reason: format!("axis side '{}' is invalid for x-axis", ident),
+            help: Some("Valid enums are BottomSide and MainSide (default) as well as TopSide and OppositeSide".into()),
+        }),
+        "TopSide" | "BottomSide" if is_y => Err(Error::Parse {
+            span,
+            reason: format!("axis side '{}' is invalid for y-axis", ident),
+            help: Some("Valid enums are LeftSide and MainSide (default) as well as RightSide and OppositeSide".into()),
+        }),
+        _ => unreachable!(),
+    }
+}
+
+fn axis_set_side_prop(
+    axis: ir::Axis,
+    is_y: bool,
+    span: dsl::Span,
+    ident: &str,
+) -> Result<ir::Axis, Error> {
+    match ident {
+        "main-side" => Ok(axis),
+        "opposote-side" => Ok(axis.with_opposite_side()),
+        "left-side" if is_y => Ok(axis),
+        "right-side" if is_y => Ok(axis.with_opposite_side()),
+        "top-side" if !is_y => Ok(axis.with_opposite_side()),
+        "bottom-side" if !is_y => Ok(axis),
+        "left-side" | "right-side" if !is_y => Err(Error::Parse {
+            span,
+            reason: format!("axis property '{}' is invalid for x-axis", ident),
+            help: Some("Valid side properties are bottom-side or main-side (default) as well as top-side or opposite-side".into()),
+        }),
+        "top-side" | "bottom-side" if is_y => Err(Error::Parse {
+            span,
+            reason: format!("axis property '{}' is invalid for y-axis", ident),
+            help: Some("Valid side properties are left-side or main-side (default) as well as right-side or opposite-side".into()),
+        }),
+        _ => unreachable!(),
+    }
+}
+
+fn parse_axis_seq(seq: ast::Seq, is_y: bool) -> Result<ir::Axis, Error> {
     let mut axis = ir::Axis::default();
     for scalar in seq.scalars {
         match scalar {
@@ -546,7 +661,7 @@ fn parse_axis_seq(seq: ast::Seq) -> Result<ir::Axis, Error> {
             ast::Scalar {
                 kind: ast::ScalarKind::Enum(ident),
                 span,
-            } => axis = axis_set_enum_field(axis, span, ident.as_str())?,
+            } => axis = axis_set_enum_field(axis, is_y, span, ident.as_str())?,
             _ => {
                 return Err(Error::Parse {
                     span: seq.span,
@@ -559,7 +674,7 @@ fn parse_axis_seq(seq: ast::Seq) -> Result<ir::Axis, Error> {
     Ok(axis)
 }
 
-fn parse_axis_struct(val: ast::Struct) -> Result<ir::Axis, Error> {
+fn parse_axis_struct(val: ast::Struct, is_y: bool) -> Result<ir::Axis, Error> {
     check_opt_type(&val, "Axis")?;
     let mut axis = ir::Axis::default();
     for prop in val.props {
@@ -579,6 +694,10 @@ fn parse_axis_struct(val: ast::Struct) -> Result<ir::Axis, Error> {
             }
             "minor-grid" => {
                 axis = axis.with_minor_grid(Default::default());
+            }
+            "main-side" | "opposite-side" | "left-side" | "right-side" | "top-side"
+            | "bottom-side" => {
+                axis = axis_set_side_prop(axis, is_y, prop.span(), prop.name.name.as_str())?;
             }
             _ => {
                 return Err(Error::Parse {

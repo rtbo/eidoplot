@@ -17,12 +17,25 @@ use crate::{data, geom, ir, missing_params};
 
 #[derive(Debug, Clone)]
 pub struct Axis {
+    id: Option<String>,
     side: Side,
     scale: Arc<AxisScale>,
     draw_opts: DrawOpts,
 }
 
 impl Axis {
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_deref()
+    }
+
+    pub fn title_text(&self) -> Option<&str> {
+        self.draw_opts.title.as_ref().map(|t| t.text())
+    }
+
+    pub fn side(&self) -> Side {
+        self.side
+    }
+
     pub fn scale(&self) -> &Arc<AxisScale> {
         &self.scale
     }
@@ -253,27 +266,26 @@ where
     /// Estimate the height taken by a horizontal axis.
     /// It includes ticks marks, ticks labels and axis title.
     /// This is the height without any additional margin
-    pub fn estimate_bottom_axis_height(&self, x_axis: &ir::Axis) -> f32 {
+    pub fn estimate_x_axes_height(&self, x_axes: &[ir::Axis], side: ir::axis::Side) -> f32 {
         let mut height = 0.0;
-        if let Some(ticks) = x_axis.ticks() {
-            height +=
-                missing_params::TICK_SIZE + missing_params::TICK_LABEL_MARGIN + ticks.font().size;
-        }
-        if let Some(title) = x_axis.title() {
-            height += missing_params::AXIS_TITLE_MARGIN + title.props().font_size();
+        for (idx, axis) in x_axes.iter().filter(|a| a.side() == side).enumerate() {
+            if idx != 0 {
+                height += missing_params::AXIS_MARGIN + missing_params::AXIS_LINE_WIDTH;
+            }
+            if let Some(ticks) = axis.ticks() {
+                if idx != 0 {
+                    height += missing_params::TICK_SIZE;
+                }
+                height += missing_params::TICK_SIZE;
+                if axis.has_tick_labels() {
+                    height += missing_params::TICK_LABEL_MARGIN + ticks.font().size;
+                }
+            }
+            if let Some(title) = axis.title() {
+                height += missing_params::AXIS_TITLE_MARGIN + title.props().font_size();
+            }
         }
         height
-    }
-
-    /// Estimate the height taken by a shared horizontal axis.
-    /// It includes ticks marks only.
-    /// This is the height without any additional margin
-    pub fn estimate_bottom_shared_axis_height(&self, x_axis: &ir::Axis) -> f32 {
-        if x_axis.ticks().is_some() {
-            missing_params::TICK_SIZE
-        } else {
-            0.0
-        }
     }
 
     pub fn setup_axis(
@@ -298,6 +310,7 @@ where
         let draw_opts = self.setup_axis_draw_opts(ir_axis, side, uses_shared)?;
 
         Ok(Axis {
+            id: ir_axis.id().map(|s| s.to_string()),
             side,
             scale,
             draw_opts,

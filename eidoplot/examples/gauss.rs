@@ -35,7 +35,9 @@ fn main() {
         .with_ticks(Default::default());
     let y_axis = ir::Axis::new()
         .with_title("y".to_string().into())
-        .with_ticks(ir::axis::Ticks::new().with_formatter(ir::axis::ticks::Formatter::Percent));
+        .with_ticks(
+            ir::axis::Ticks::new().with_formatter(Some(ir::axis::ticks::Formatter::Percent)),
+        );
 
     let pop_series = ir::Series::Histogram(
         ir::series::Histogram::new(ir::DataCol::SrcRef("pop".to_string()))

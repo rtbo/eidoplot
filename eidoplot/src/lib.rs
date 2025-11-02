@@ -50,8 +50,10 @@ mod missing_params {
 
     pub const PLOT_PADDING: geom::Padding = geom::Padding::Even(0.0);
 
+    pub const AXIS_MARGIN: f32 = 4.0;
     pub const AXIS_TITLE_MARGIN: f32 = 8.0;
     pub const AXIS_ANNOT_MARGIN: f32 = 4.0;
+    pub const AXIS_LINE_WIDTH: f32 = 1.0;
 
     pub const TICK_SIZE: f32 = 4.0;
     pub const TICK_LABEL_MARGIN: f32 = 4.0;

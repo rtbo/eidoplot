@@ -22,6 +22,17 @@
             "cargo": {
                 "args": [
                     "build", "--example", "bode_rlc",
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "bode_rlc_eplt example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "bode_rlc",
                     "--features", "dsl-diag"
                 ]
             },

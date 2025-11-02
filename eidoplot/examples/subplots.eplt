@@ -1,9 +1,10 @@
 figure: {
     title: "Subplots"
-    share-x
     space: 10
+    subplots: 2, 1
     plot: {
-        x-axis: Grid
+        subplot: 1, 1
+        x-axis: uses("x"), Grid
         y-axis: Ticks
         series: Line {
             x-data: "x1"
@@ -11,7 +12,8 @@ figure: {
         }
     }
     plot: {
-        x-axis: PiMultipleTicks, Grid
+        subplot: 2, 1
+        x-axis: PiMultipleTicks, Grid, id("x")
         y-axis: Ticks
         series: Line {
             x-data: "x2"

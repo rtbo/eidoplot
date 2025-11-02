@@ -65,7 +65,7 @@ where
         );
 
         let mut idx = 0;
-        for plot in fig.plots().iter() {
+        for plot in fig.plots().iter().filter_map(|p| p) {
             plot::for_each_series(plot, |s| {
                 if let Some(entry) = s.legend_entry() {
                     builder.add_entry(idx, entry)?;

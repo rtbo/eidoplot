@@ -33,6 +33,9 @@ name = "bars"
 
 [[example]]
 name = "bode_rlc"
+
+[[example]]
+name = "bode_rlc_eplt"
 required-features = ["dsl-diag"]
 
 [[example]]
@@ -58,4 +61,7 @@ name = "sine"
 
 [[example]]
 name = "subplots"
+
+[[example]]
+name = "subplots_eplt"
 required-features = ["dsl-diag"]

@@ -1,4 +1,4 @@
-use eidoplot::{data, eplt};
+use eidoplot::{data, ir};
 
 mod common;
 
@@ -16,9 +16,42 @@ fn main() {
     data_source.add_column("x2", &x2 as &dyn data::Column);
     data_source.add_column("y2", &y2 as &dyn data::Column);
 
-    let filename = common::example_res("subplots.eplt");
-    let content = std::fs::read_to_string(&filename).unwrap();
-    let figs = eplt::parse_diag(&content, Some(&filename)).unwrap();
+    let title = "Subplots".to_string();
 
-    common::save_figure(&figs[0], &data_source, "subplots");
+    let ax_x1 = ir::Axis::new()
+        .with_grid(Default::default())
+        .with_scale(ir::axis::Scale::Shared(ir::axis::Ref::Id("x2".to_string())));
+    let ax_y1 = ir::Axis::new().with_ticks(Default::default());
+    let ax_x2 = ir::Axis::new()
+        .with_id("x2".to_string())
+        .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into())
+        .with_grid(Default::default());
+    let ax_y2 = ir::Axis::new().with_ticks(Default::default());
+
+    let series1 = ir::series::Line::new(
+        ir::DataCol::SrcRef("x1".to_string()),
+        ir::DataCol::SrcRef("y1".to_string()),
+    )
+    .into();
+    let series2 = ir::series::Line::new(
+        ir::DataCol::SrcRef("x2".to_string()),
+        ir::DataCol::SrcRef("y2".to_string()),
+    )
+    .into();
+
+    let plot1 = ir::Plot::new(vec![series1])
+        .with_x_axis(ax_x1)
+        .with_y_axis(ax_y1);
+    let plot2 = ir::Plot::new(vec![series2])
+        .with_x_axis(ax_x2)
+        .with_y_axis(ax_y2);
+
+    let subplots = ir::Subplots::new(2, 1)
+        .with_plot(0, 0, plot1)
+        .with_plot(1, 0, plot2)
+        .with_space(10.0);
+
+    let fig = ir::Figure::new(subplots.into()).with_title(title.into());
+
+    common::save_figure(&fig, &data_source, "subplots");
 }

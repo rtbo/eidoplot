@@ -20,6 +20,8 @@ mod ticks;
 pub enum Error {
     Render(render::Error),
     MissingDataSrc(String),
+    UnknownAxisRef(ir::axis::Ref),
+    IllegalAxisRef(ir::axis::Ref),
     UnboundedAxis,
     InconsistentAxisBounds(String),
     InconsistentData(String),
@@ -43,6 +45,8 @@ impl fmt::Display for Error {
         match self {
             Error::Render(err) => err.fmt(f),
             Error::MissingDataSrc(name) => write!(f, "Missing data source: {}", name),
+            Error::UnknownAxisRef(axis_ref) => write!(f, "Unknown axis reference: {:?}", axis_ref),
+            Error::IllegalAxisRef(axis_ref) => write!(f, "Illegal axis reference: {:?}", axis_ref),
             Error::UnboundedAxis => write!(f, "Unbounded axis, check data"),
             Error::InconsistentAxisBounds(reason) => {
                 write!(f, "Inconsistent axis bounds: {}", reason)

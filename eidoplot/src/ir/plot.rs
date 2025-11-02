@@ -132,8 +132,10 @@ impl From<LegendPos> for PlotLegend {
 pub struct Plot {
     series: Vec<Series>,
 
-    x_axis: Axis,
-    y_axis: Axis,
+    x_axes: Vec<Axis>,
+    y_axes: Vec<Axis>,
+    x_axis_set: bool,
+    y_axis_set: bool,
     title: Option<String>,
     fill: Option<theme::Fill>,
     border: Option<Border>,
@@ -145,8 +147,10 @@ impl Plot {
     pub fn new(series: Vec<Series>) -> Self {
         Plot {
             series,
-            x_axis: Axis::default(),
-            y_axis: Axis::default(),
+            x_axes: vec![Axis::default()],
+            y_axes: vec![Axis::default()],
+            x_axis_set: false,
+            y_axis_set: false,
             title: None,
             fill: None,
             border: Some(Border::default()),
@@ -155,12 +159,22 @@ impl Plot {
         }
     }
 
-    pub fn with_x_axis(self, x_axis: Axis) -> Self {
-        Self { x_axis, ..self }
+    pub fn with_x_axis(mut self, x_axis: Axis) -> Self {
+        if !self.x_axis_set {
+            self.x_axes.clear();
+            self.x_axis_set = true;
+        }
+        self.x_axes.push(x_axis);
+        self
     }
 
-    pub fn with_y_axis(self, y_axis: Axis) -> Self {
-        Self { y_axis, ..self }
+    pub fn with_y_axis(mut self, y_axis: Axis) -> Self {
+        if !self.y_axis_set {
+            self.y_axes.clear();
+            self.y_axis_set = true;
+        }
+        self.y_axes.push(y_axis);
+        self
     }
 
     pub fn with_title(self, title: String) -> Self {
@@ -196,12 +210,12 @@ impl Plot {
         &self.series
     }
 
-    pub fn x_axis(&self) -> &Axis {
-        &self.x_axis
+    pub fn x_axes(&self) -> &[Axis] {
+        &self.x_axes
     }
 
-    pub fn y_axis(&self) -> &Axis {
-        &self.y_axis
+    pub fn y_axes(&self) -> &[Axis] {
+        &self.y_axes
     }
 
     pub fn title(&self) -> Option<&str> {
@@ -232,93 +246,58 @@ impl Plot {
 /// A collection of plots, arranged in a grid
 #[derive(Debug, Clone)]
 pub struct Subplots {
-    plots: Vec<Plot>,
+    rows: u32,
     cols: u32,
+    plots: Vec<Option<Plot>>,
     space: f32,
-    share_x: bool,
-    share_y: bool,
 }
 
 impl Subplots {
-    pub fn new(plots: Vec<Plot>) -> Self {
+    pub fn new(rows: u32, cols: u32) -> Self {
         Subplots {
-            plots,
-            cols: 1,
+            rows,
+            cols,
+            plots: vec![None; (rows * cols) as usize],
             space: 0.0,
-            share_x: false,
-            share_y: false,
         }
     }
 
-    pub fn with_cols(self, cols: u32) -> Self {
-        Self { cols, ..self }
+    pub fn with_plot(mut self, row: u32, col: u32, plot: Plot) -> Self {
+        let index = self.index(row, col);
+        self.plots[index] = Some(plot);
+        self
     }
 
     pub fn with_space(self, space: f32) -> Self {
         Self { space, ..self }
     }
 
-    pub fn with_share_x(self) -> Self {
-        Self {
-            share_x: true,
-            ..self
-        }
+    pub fn plot(&self, row: u32, col: u32) -> Option<&Plot> {
+        self.plots[self.index(row, col)].as_ref()
     }
 
-    pub fn with_share_y(self) -> Self {
-        Self {
-            share_y: true,
-            ..self
-        }
+    pub fn plot_mut(&mut self, row: u32, col: u32) -> Option<&mut Plot> {
+        let index = self.index(row, col);
+        self.plots[index].as_mut()
     }
 
-    pub fn plots(&self) -> &[Plot] {
-        &self.plots
+    pub fn len(&self) -> usize {
+        self.plots.len()
     }
 
-    pub fn plots_mut(&mut self) -> &mut [Plot] {
-        &mut self.plots
+    pub fn rows(&self) -> u32 {
+        self.rows
     }
 
     pub fn cols(&self) -> u32 {
         self.cols
     }
 
-    pub fn rows(&self) -> u32 {
-        calc_rows(self.plots.len() as u32, self.cols)
-    }
-
     pub fn space(&self) -> f32 {
         self.space
     }
 
-    pub fn share_x(&self) -> bool {
-        self.share_x
-    }
-
-    pub fn share_y(&self) -> bool {
-        self.share_y
-    }
-}
-
-#[inline]
-fn calc_rows(num_plots: u32, num_cols: u32) -> u32 {
-    (num_plots + num_cols - 1) / num_cols
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_calc_rows() {
-        assert_eq!(calc_rows(0, 1), 0);
-        assert_eq!(calc_rows(1, 1), 1);
-        assert_eq!(calc_rows(1, 2), 1);
-        assert_eq!(calc_rows(2, 1), 2);
-        assert_eq!(calc_rows(2, 2), 1);
-        assert_eq!(calc_rows(3, 2), 2);
-        assert_eq!(calc_rows(4, 2), 2);
-        assert_eq!(calc_rows(5, 2), 3);
+    fn index(&self, row: u32, col: u32) -> usize {
+        (row * self.cols + col) as usize
     }
 }

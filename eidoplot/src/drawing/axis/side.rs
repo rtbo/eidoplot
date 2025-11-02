@@ -1,10 +1,10 @@
 use eidoplot_text as text;
 
+use crate::drawing::plot::Orientation;
 use crate::drawing::scale::CoordMap;
-use crate::{geom, missing_params};
+use crate::{geom, ir, missing_params};
 
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
     Bottom,
     Top,
@@ -19,6 +19,24 @@ enum Direction {
 }
 
 impl Side {
+    pub fn from_or_ir_side(or: Orientation, ir_side: ir::axis::Side) -> Self {
+        match (or, ir_side) {
+            (Orientation::X, ir::axis::Side::Main) => Side::Bottom,
+            (Orientation::X, ir::axis::Side::Opposite) => Side::Top,
+            (Orientation::Y, ir::axis::Side::Main) => Side::Left,
+            (Orientation::Y, ir::axis::Side::Opposite) => Side::Right,
+        }
+    }
+
+    pub fn to_ir_side(&self) -> ir::axis::Side {
+        match self {
+            Side::Bottom => ir::axis::Side::Main,
+            Side::Top => ir::axis::Side::Opposite,
+            Side::Left => ir::axis::Side::Main,
+            Side::Right => ir::axis::Side::Opposite,
+        }
+    }
+
     fn direction(&self) -> Direction {
         match self {
             Side::Bottom | Side::Top => Direction::Horizontal,
