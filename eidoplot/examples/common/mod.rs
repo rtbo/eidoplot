@@ -187,7 +187,9 @@ fn save_fig_as_png<D>(
 ) where
     D: data::Source,
 {
-    let mut pxl = PxlSurface::new(1600, 1200, Some(fontdb.clone())).unwrap();
+    let width = (fig.size().width() * 2.0) as _;
+    let height = (fig.size().height() * 2.0) as _;
+    let mut pxl = PxlSurface::new(width, height, Some(fontdb.clone())).unwrap();
     pxl.draw_figure(
         fig,
         data_source,
@@ -209,7 +211,9 @@ fn save_fig_as_svg<D>(
 ) where
     D: data::Source,
 {
-    let mut svg = SvgSurface::new(800, 600);
+    let width = fig.size().width() as _;
+    let height = fig.size().height() as _;
+    let mut svg = SvgSurface::new(width, height);
     svg.draw_figure(
         fig,
         data_source,
