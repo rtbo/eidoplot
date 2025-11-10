@@ -1,13 +1,14 @@
 use eidoplot::{data, ir};
+use eidoplot_utils as utils;
 
 mod common;
 
 use std::f64::consts::PI;
 
 fn main() {
-    let x1 = common::linspace(0.0, 2.0 * PI, 400);
+    let x1 = utils::linspace(0.0, 2.0 * PI, 400);
     let y1: Vec<f64> = x1.iter().map(|x| (x * x).sin()).collect();
-    let x2 = common::linspace(0.5 * PI, 2.5 * PI, 400);
+    let x2 = utils::linspace(0.5 * PI, 2.5 * PI, 400);
     let y2: Vec<f64> = x1.iter().map(|x| -(x * x).sin()).collect();
 
     let mut data_source = data::NamedColumns::new();

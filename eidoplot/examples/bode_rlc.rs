@@ -2,6 +2,7 @@ use std::f64::consts::PI;
 
 use eidoplot::{data, ir, style};
 use eidoplot_text as text;
+use eidoplot_utils as utils;
 
 mod common;
 
@@ -75,7 +76,7 @@ fn main() {
 
     let mut source = data::NamedOwnedColumns::new();
 
-    let freq = common::logspace(100.0, 1000000.0, 500);
+    let freq = utils::logspace(100.0, 1000000.0, 500);
 
     for (r, mag_col, phase_col, name) in series {
         let (mag, phase) = rlc_load_response(&freq, r, L, C);

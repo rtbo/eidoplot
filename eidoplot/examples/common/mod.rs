@@ -17,22 +17,6 @@ pub fn example_res(path: &str) -> PathBuf {
     PathBuf::from(root).join("examples").join(path)
 }
 
-#[allow(dead_code)]
-pub fn linspace(start: f64, end: f64, num: usize) -> Vec<f64> {
-    let step = (end - start) / (num as f64 - 1.0);
-    (0..num).map(|i| start + i as f64 * step).collect()
-}
-
-#[allow(dead_code)]
-pub fn logspace(start: f64, end: f64, num: usize) -> Vec<f64> {
-    let log_start = start.log10();
-    let log_end = end.log10();
-    let step = (log_end - log_start) / (num as f64 - 1.0);
-    (0..num)
-        .map(|i| 10f64.powf(log_start + i as f64 * step))
-        .collect()
-}
-
 #[derive(Debug, Clone, Default)]
 enum Png {
     #[default]
