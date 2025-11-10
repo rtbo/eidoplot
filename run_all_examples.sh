@@ -26,6 +26,7 @@ cargo run --example text_rich
 cargo run --example bars -- ${POS_ARGS[@]}
 cargo run --example gauss -- ${POS_ARGS[@]}
 cargo run --example iris -- ${POS_ARGS[@]}
+cargo run --example multiple_axes -- ${POS_ARGS[@]}
 cargo run --example sine -- ${POS_ARGS[@]}
 
 cargo run --example bode_rlc --features dsl-diag -- ${POS_ARGS[@]}

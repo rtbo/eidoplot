@@ -75,6 +75,17 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "multiple_axes example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "multiple_axes"
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "sine example",
             "cargo": {
                 "args": [

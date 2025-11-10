@@ -49,6 +49,9 @@ name = "iris_eplt"
 required-features = ["dsl-diag"]
 
 [[example]]
+name = "multiple_axes"
+
+[[example]]
 name = "polars_iris"
 required-features = ["polars"]
 
