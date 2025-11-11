@@ -158,6 +158,26 @@ fn expect_string_val(prop: ast::Prop) -> Result<(dsl::Span, String), Error> {
     Ok((span, val))
 }
 
+fn expect_axis_ref_val(prop: ast::Prop) -> Result<ir::axis::Ref, Error> {
+    match prop.value {
+        Some(ast::Value::Scalar(ast::Scalar {
+            kind: ast::ScalarKind::Str(val),
+            ..
+        })) => Ok(ir::axis::Ref::Id(val)),
+
+        Some(ast::Value::Scalar(ast::Scalar {
+            kind: ast::ScalarKind::Int(val),
+            ..
+        })) => Ok(ir::axis::Ref::Idx(val as usize)),
+
+        _ => Err(Error::Parse {
+            span: prop.span(),
+            reason: format!("expected string value (i.e. {}: \"...\" )", prop.name.name),
+            help: None,
+        }),
+    }
+}
+
 fn expect_struct_val(prop: ast::Prop) -> Result<ast::Struct, Error> {
     let Some(ast::Value::Struct(val)) = prop.value else {
         return Err(Error::Parse {
@@ -496,6 +516,12 @@ fn parse_line(mut val: ast::Struct) -> Result<ir::series::Line, Error> {
     if let Some(prop) = val.take_prop("name") {
         line = line.with_name(expect_string_val(prop)?.1.into());
     }
+    if let Some(prop) = val.take_prop("x-axis") {
+        line = line.with_x_axis(expect_axis_ref_val(prop)?);
+    }
+    if let Some(prop) = val.take_prop("y-axis") {
+        line = line.with_y_axis(expect_axis_ref_val(prop)?);
+    }
 
     Ok(line)
 }
@@ -504,25 +530,37 @@ fn parse_scatter(mut val: ast::Struct) -> Result<ir::series::Scatter, Error> {
     let x_data = expect_data_prop(&mut val, "x-data")?;
     let y_data = expect_data_prop(&mut val, "y-data")?;
 
-    let mut scatter = ir::series::Scatter::new(x_data, y_data);
+    let mut series = ir::series::Scatter::new(x_data, y_data);
 
     if let Some(prop) = val.take_prop("name") {
-        scatter = scatter.with_name(expect_string_val(prop)?.1.into());
+        series = series.with_name(expect_string_val(prop)?.1.into());
+    }
+    if let Some(prop) = val.take_prop("x-axis") {
+        series = series.with_x_axis(expect_axis_ref_val(prop)?);
+    }
+    if let Some(prop) = val.take_prop("y-axis") {
+        series = series.with_y_axis(expect_axis_ref_val(prop)?);
     }
 
-    Ok(scatter)
+    Ok(series)
 }
 
 fn parse_histogram(mut val: ast::Struct) -> Result<ir::series::Histogram, Error> {
     let data = expect_data_prop(&mut val, "data")?;
 
-    let mut histogram = ir::series::Histogram::new(data);
+    let mut series = ir::series::Histogram::new(data);
 
     if let Some(prop) = val.take_prop("name") {
-        histogram = histogram.with_name(expect_string_val(prop)?.1.into());
+        series = series.with_name(expect_string_val(prop)?.1.into());
+    }
+    if let Some(prop) = val.take_prop("x-axis") {
+        series = series.with_x_axis(expect_axis_ref_val(prop)?);
+    }
+    if let Some(prop) = val.take_prop("y-axis") {
+        series = series.with_y_axis(expect_axis_ref_val(prop)?);
     }
 
-    Ok(histogram)
+    Ok(series)
 }
 
 fn parse_bars(mut val: ast::Struct) -> Result<ir::series::Bars, Error> {
@@ -663,10 +701,7 @@ fn parse_axis_seq(seq: ast::Seq, is_y: bool) -> Result<ir::Axis, Error> {
                 span,
             } => axis = axis_set_enum_field(axis, is_y, span, ident.as_str())?,
             ast::Scalar {
-                kind: ast::ScalarKind::Func(ast::Func {
-                    name,
-                    args,
-                }),
+                kind: ast::ScalarKind::Func(ast::Func { name, args }),
                 span,
             } => {
                 let mut args_iter = args.scalars.into_iter();
@@ -700,7 +735,9 @@ fn parse_axis_seq(seq: ast::Seq, is_y: bool) -> Result<ir::Axis, Error> {
                             return Err(Error::Parse {
                                 span,
                                 reason: "Could not parse axis shared reference".into(),
-                                help: Some("Expected a single string or integer argument".to_string()),
+                                help: Some(
+                                    "Expected a single string or integer argument".to_string(),
+                                ),
                             });
                         }
                     };
