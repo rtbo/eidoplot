@@ -389,8 +389,7 @@ where
 
                     let mut height = x_plot_padding(side);
                     height += self.estimate_x_axes_height(ir_plot.x_axes(), side);
-                    if let Some(ir_leg) = ir_plot.legend() {
-                        let leg = data.legend.as_ref().unwrap();
+                    if let (Some(ir_leg), Some(leg)) = (ir_plot.legend(), data.legend.as_ref()) {
                         if x_side_matches_out_legend_pos(side, ir_leg.pos()) {
                             height += leg.size().height() + ir_leg.margin();
                         }
@@ -425,8 +424,7 @@ where
                 let mut height = x_plot_padding(side);
                 height += x_axes.size_across(side);
 
-                if let Some(ir_leg) = ir_plot.legend() {
-                    let leg = data.legend.as_ref().unwrap();
+                if let (Some(ir_leg), Some(leg)) = (ir_plot.legend(), data.legend.as_ref()) {
                     if x_side_matches_out_legend_pos(side, ir_leg.pos()) {
                         height += leg.size().height() + ir_leg.margin();
                     }
@@ -459,8 +457,7 @@ where
                     let mut width = y_plot_padding(side);
                     width += y_axis.size_across(side);
 
-                    if let Some(ir_leg) = ir_plot.legend() {
-                        let leg = data.legend.as_ref().unwrap();
+                    if let (Some(ir_leg), Some(leg)) = (ir_plot.legend(), data.legend.as_ref()) {
                         if y_side_matches_out_legend_pos(side, ir_leg.pos()) {
                             width += leg.size().width() + ir_leg.margin();
                         }
