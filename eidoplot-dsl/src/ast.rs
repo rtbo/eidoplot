@@ -54,6 +54,13 @@ pub enum ScalarKind {
     Str(String),
     Int(i64),
     Float(f64),
+    Func(Func),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Func {
+    pub name: Ident,
+    pub args: Seq,
 }
 
 #[derive(Debug, Clone, PartialEq)]
