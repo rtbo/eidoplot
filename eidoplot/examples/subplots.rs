@@ -21,7 +21,7 @@ fn main() {
 
     let ax_x1 = ir::Axis::new()
         .with_grid(Default::default())
-        .with_scale(ir::axis::Scale::Shared(ir::axis::Ref::Id("x2".to_string())));
+        .with_scale(ir::axis::Ref::Id("x2".to_string()).into());
     let ax_y1 = ir::Axis::new().with_ticks(Default::default());
     let ax_x2 = ir::Axis::new()
         .with_id("x2".to_string())

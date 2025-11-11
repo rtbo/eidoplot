@@ -261,6 +261,12 @@ impl From<LogScale> for Scale {
     }
 }
 
+impl From<Ref> for Scale {
+    fn from(ref_: Ref) -> Self {
+        Scale::Shared(ref_)
+    }
+}
+
 impl Scale {
     /// Returns true if the scale is shared
     pub fn is_shared(&self) -> bool {
