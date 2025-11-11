@@ -274,7 +274,7 @@ where
                     let outer_rect = geom::Rect::from_xywh(x, y, width, height);
                     let plot_rect = geom::Rect::from_xywh(
                         x + left_widths[col as usize],
-                        y + top_heights[col as usize],
+                        y + top_heights[row as usize],
                         subplot_rect_width,
                         subplot_rect_height,
                     );
