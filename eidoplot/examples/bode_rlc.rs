@@ -49,7 +49,7 @@ fn main() {
     // magnitude X axis scale is taken from the phase X axis
     // the reference uses the title given to the phase X axis
     let mag_freq_axis = ir::Axis::new()
-        .with_scale(ir::axis::Scale::Shared(ir::axis::Ref::Title(
+        .with_scale(ir::axis::Scale::Shared(ir::axis::Ref::Id(
             "Frequency [Hz]".to_string(),
         )))
         .with_ticks(Default::default())

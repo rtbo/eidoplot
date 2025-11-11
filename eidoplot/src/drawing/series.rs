@@ -119,8 +119,7 @@ impl<'a> AxisMatcher<'a> {
         match ax_ref {
             None => Ok(self.ax_idx == 0 && self.plt_idx == plt_idx),
             Some(ir::axis::Ref::Idx(ax_idx)) => Ok(self.ax_idx == *ax_idx),
-            Some(ir::axis::Ref::Id(id)) => Ok(self.id == Some(id)),
-            Some(ir::axis::Ref::Title(id)) => Ok(self.title == Some(id)),
+            Some(ir::axis::Ref::Id(id)) => Ok(self.id == Some(id) || self.title == Some(id)),
             Some(ax_ref) => Err(Error::IllegalAxisRef(ax_ref.clone())),
         }
     }

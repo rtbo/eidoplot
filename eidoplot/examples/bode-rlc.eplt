@@ -1,14 +1,13 @@
 figure: {
     title: "Bode diagram of RLC circuit\n[size=18;italic;font=serif]L = 0.1 mH / C = 1 µF[/size;italic;font]"
-    share-x
     space: 10
     legend: Right
     plot: {
-        x-axis: Ticks, MinorTicks
+        x-axis: shared("freq"), Ticks, MinorTicks
         y-axis: "Magnitude [italic]\\[dB][/italic]", Ticks, Grid
     }
     plot: {
-        x-axis: "Freq. [italic]\\[Hz][/italic]", LogScale, Ticks, MinorTicks
+        x-axis: "Freq. [italic]\\[Hz][/italic]", id("freq"), LogScale, Ticks, MinorTicks
         y-axis: {
             title: "Phase [italic]\\[rad][/italic]"
             ticks: PiMultiple

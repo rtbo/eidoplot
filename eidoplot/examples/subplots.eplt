@@ -4,8 +4,8 @@ figure: {
     subplots: 2, 1
     plot: {
         subplot: 1, 1
-        x-axis: uses("x"), Grid
-        y-axis: Ticks
+        x-axis: shared("x"), Grid
+        y-axis: "y1", Ticks
         series: Line {
             x-data: "x1"
             y-data: "y1"
@@ -13,8 +13,8 @@ figure: {
     }
     plot: {
         subplot: 2, 1
-        x-axis: PiMultipleTicks, Grid, id("x")
-        y-axis: Ticks
+        x-axis: "x", PiMultipleTicks, Grid, id("x-axis")
+        y-axis: "y2", Ticks
         series: Line {
             x-data: "x2"
             y-data: "y2"

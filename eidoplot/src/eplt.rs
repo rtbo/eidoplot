@@ -662,6 +662,64 @@ fn parse_axis_seq(seq: ast::Seq, is_y: bool) -> Result<ir::Axis, Error> {
                 kind: ast::ScalarKind::Enum(ident),
                 span,
             } => axis = axis_set_enum_field(axis, is_y, span, ident.as_str())?,
+            ast::Scalar {
+                kind: ast::ScalarKind::Func(ast::Func {
+                    name,
+                    args,
+                }),
+                span,
+            } => {
+                let mut args_iter = args.scalars.into_iter();
+                let arg1 = args_iter.next();
+                if name.name == "id" {
+                    let id = match arg1 {
+                        Some(ast::Scalar {
+                            kind: ast::ScalarKind::Str(id),
+                            ..
+                        }) => id,
+                        _ => {
+                            return Err(Error::Parse {
+                                span,
+                                reason: "Could not parse axis id".into(),
+                                help: Some("Expected a single string argument".to_string()),
+                            });
+                        }
+                    };
+                    axis = axis.with_id(id);
+                } else if name.name == "shared" {
+                    let ax_ref = match arg1 {
+                        Some(ast::Scalar {
+                            kind: ast::ScalarKind::Str(id),
+                            ..
+                        }) => ir::axis::Ref::Id(id),
+                        Some(ast::Scalar {
+                            kind: ast::ScalarKind::Int(idx),
+                            ..
+                        }) => ir::axis::Ref::Idx(idx as usize),
+                        _ => {
+                            return Err(Error::Parse {
+                                span,
+                                reason: "Could not parse axis shared reference".into(),
+                                help: Some("Expected a single string or integer argument".to_string()),
+                            });
+                        }
+                    };
+                    axis = axis.with_scale(ir::axis::Scale::Shared(ax_ref));
+                } else {
+                    return Err(Error::Parse {
+                        span,
+                        reason: "Unknown axis attribute".into(),
+                        help: None,
+                    });
+                }
+                if args_iter.next().is_some() {
+                    return Err(Error::Parse {
+                        span,
+                        reason: format!("Too many arguments for {}", name.name),
+                        help: None,
+                    });
+                }
+            }
             _ => {
                 return Err(Error::Parse {
                     span: seq.span,

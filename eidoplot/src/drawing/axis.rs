@@ -475,8 +475,6 @@ where
             None
         };
 
-        println!("side: {side:?}: spine: {spine:?}");
-
         let ticks_labels = !uses_shared;
         let marks = ir_axis.ticks().map(|ticks| TickMark {
             line: ticks.color().into(),

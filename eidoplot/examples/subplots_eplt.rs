@@ -1,13 +1,14 @@
 use eidoplot::{data, eplt};
+use eidoplot_utils as utils;
 
 mod common;
 
 use std::f64::consts::PI;
 
 fn main() {
-    let x1 = common::linspace(0.0, 2.0 * PI, 400);
+    let x1 = utils::linspace(0.0, 2.0 * PI, 400);
     let y1: Vec<f64> = x1.iter().map(|x| (x * x).sin()).collect();
-    let x2 = common::linspace(0.5 * PI, 2.5 * PI, 400);
+    let x2 = utils::linspace(0.5 * PI, 2.5 * PI, 400);
     let y2: Vec<f64> = x1.iter().map(|x| -(x * x).sin()).collect();
 
     let mut data_source = data::NamedColumns::new();
@@ -20,5 +21,5 @@ fn main() {
     let content = std::fs::read_to_string(&filename).unwrap();
     let figs = eplt::parse_diag(&content, Some(&filename)).unwrap();
 
-    common::save_figure(&figs[0], &data_source, "subplots");
+    common::save_figure(&figs[0], &data_source, "subplots_eplt");
 }

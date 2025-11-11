@@ -1,6 +1,7 @@
 use std::f64::consts::PI;
 
 use eidoplot::{data, eplt, ir};
+use eidoplot_utils as utils;
 
 mod common;
 
@@ -46,7 +47,7 @@ fn main() {
     let figs = eplt::parse_diag(&content, Some(&filename)).unwrap();
     let mut fig = figs.into_iter().next().unwrap();
 
-    let freq = common::logspace(100.0, 1000000.0, 500);
+    let freq = utils::logspace(100.0, 1000000.0, 500);
     for (r, mag_col, phase_col, name) in series {
         let (mag, phase) = rlc_load_response(&freq, r, L, C);
 
@@ -71,5 +72,5 @@ fn main() {
         );
     }
     source.add_column("freq", Box::new(freq));
-    common::save_figure(&fig, &source, "bode_rlc");
+    common::save_figure(&fig, &source, "bode_rlc_eplt");
 }

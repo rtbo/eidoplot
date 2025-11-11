@@ -39,7 +39,8 @@ pub enum Ref {
     /// Reference by index in the order declared in the plot,
     /// for the given orientation (X or Y), and starting at 0.
     /// Can only refer to axes in the same plot.
-    /// To refer to indices in a different plot (for subplot shared axes)
+    /// To refer to indices in a different plot (for subplot shared axes),
+    /// you may use [Ref::Id]
     Idx(usize),
     /// Reference by index in the order declared in the figure,
     /// for the given orientation (X or Y), and starting at 0.
@@ -47,14 +48,9 @@ pub enum Ref {
     /// Ref::FigIdx(1) will refer to the X axis of the second plot in X context,
     /// and to the second Y axis of the first plot in Y context.
     FigIdx(usize),
-    /// Reference by id (see [Axis::id]).
-    /// It is not enforced whether the id is unique.
-    /// If two axes share the same id, the first one found will be used.
+    /// Reference by id (see [Axis::id]) or by title (see [Axis::title]).
+    /// If two axes share the same id or title, the first one found will be used.
     Id(String),
-    /// Reference by title (see [Axis::title]).
-    /// If two axes share the same title, the first one found will be used.
-    /// Use [Ref::Id] or [Ref::Idx] to avoid ambiguity.
-    Title(String),
 }
 
 #[derive(Debug, Clone)]
@@ -94,6 +90,9 @@ impl Axis {
         Default::default()
     }
 
+    /// Set the id of this axis.
+    /// The id is used to refer to this axis in the context of shared axes.
+    /// Note that title can also be used to refer to an axis.
     pub fn with_id(self, id: String) -> Self {
         Self {
             id: Some(id),

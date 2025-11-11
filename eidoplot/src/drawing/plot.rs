@@ -60,12 +60,7 @@ impl Axes {
                     }
                 }
                 Some(ir::axis::Ref::Id(id)) => {
-                    if a.id() == Some(id.as_str()) {
-                        return Ok(Some(a));
-                    }
-                }
-                Some(ir::axis::Ref::Title(title)) => {
-                    if a.title_text() == Some(title.as_str()) {
+                    if a.id() == Some(id.as_str()) || a.title_text() == Some(id.as_str()) {
                         return Ok(Some(a));
                     }
                 }
@@ -145,12 +140,7 @@ trait IrPlotsExt {
                         }
                     }
                     ir::axis::Ref::Id(id) => {
-                        if axis.id() == Some(id) {
-                            return Some((fig_ax_idx, axis));
-                        }
-                    }
-                    ir::axis::Ref::Title(id) => {
-                        if axis.title().map(|t| t.text()) == Some(id) {
+                        if axis.id() == Some(id) || axis.title().map(|t| t.text()) == Some(id) {
                             return Some((fig_ax_idx, axis));
                         }
                     }

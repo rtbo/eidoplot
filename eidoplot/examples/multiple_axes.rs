@@ -39,7 +39,7 @@ fn main() {
         ir::DataCol::SrcRef("exp(x)".to_string()),
     )
     .with_name("exp(x)".to_string())
-    .with_y_axis(ir::axis::Ref::Title("exp(x)".to_string()))
+    .with_y_axis(ir::axis::Ref::Id("exp(x)".to_string()))
     .into();
 
     let plot = ir::Plot::new(vec![series1, series2])

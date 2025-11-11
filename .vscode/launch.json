@@ -101,6 +101,17 @@
             "cargo": {
                 "args": [
                     "build", "--example", "subplots",
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "subplots_eplt example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "subplots_eplt",
                     "--features", "dsl-diag"
                 ]
             },
