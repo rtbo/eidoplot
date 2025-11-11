@@ -1,6 +1,5 @@
 figure: {
     title: "Bode diagram of RLC circuit\n[size=18;italic;font=serif]L = 0.1 mH / C = 1 µF[/size;italic;font]"
-    space: 10
     legend: Right
     plot: {
         x-axis: shared("freq"), Ticks, MinorTicks

@@ -98,13 +98,13 @@ pub struct NumTicks {
 
 impl NumTicks {
     fn size_across(&self, side: Side, mark_size: f32, with_labels: bool) -> f32 {
-        let mut size = 0.0;
-
-        size += mark_size;
-
+        // mark_size is only accounted for when there are labels
+        // this allows to merge ticks of subplots with shared scales and zero inter-space
         if !with_labels {
-            return size;
+            return 0.0;
         }
+
+        let mut size = mark_size;
 
         if !self.ticks.is_empty() {
             size += missing_params::TICK_LABEL_MARGIN;
@@ -274,11 +274,13 @@ where
                 height += missing_params::AXIS_MARGIN + missing_params::AXIS_SPINE_WIDTH;
             }
             if let Some(ticks) = axis.ticks() {
-                if idx != 0 {
-                    height += missing_params::TICK_SIZE;
-                }
-                height += missing_params::TICK_SIZE;
                 if axis.has_tick_labels() {
+                    // ticks is only accounted for when there are labels
+                    // this allows to merge ticks of subplots with shared scales and zero inter-space
+                    if idx != 0 {
+                        height += missing_params::TICK_SIZE;
+                    }
+                    height += missing_params::TICK_SIZE;
                     height += missing_params::TICK_LABEL_MARGIN + ticks.font().size;
                 }
             }
