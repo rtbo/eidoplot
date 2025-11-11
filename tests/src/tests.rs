@@ -2,8 +2,25 @@ use eidoplot::{geom, ir};
 
 use crate::*;
 
-fn fig_small(plot: ir::Plot) -> ir::Figure {
-    ir::Figure::new(plot.into()).with_size(geom::Size::new(400.0, 300.0))
+fn fig_small<P>(plots: P) -> ir::Figure
+where
+    P: Into<ir::figure::Plots>,
+{
+    ir::Figure::new(plots.into()).with_size(geom::Size::new(400.0, 300.0))
+}
+
+fn fig_high<P>(plots: P) -> ir::Figure
+where
+    P: Into<ir::figure::Plots>,
+{
+    ir::Figure::new(plots.into()).with_size(geom::Size::new(400.0, 500.0))
+}
+
+fn fig_wide<P>(plots: P) -> ir::Figure
+where
+    P: Into<ir::figure::Plots>,
+{
+    ir::Figure::new(plots.into()).with_size(geom::Size::new(600.0, 300.0))
 }
 
 fn line() -> ir::series::Line {
@@ -14,6 +31,7 @@ fn line() -> ir::series::Line {
 
 mod axes;
 mod legend;
+mod subplots;
 
 #[test]
 fn empty() {

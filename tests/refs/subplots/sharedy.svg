@@ -1,0 +1,46 @@
+<svg height="300" viewBox="0 0 600 300" width="600" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#ffffff" height="100%" width="100%"/>
+<clipPath id="eidoplot-clip1">
+<path d="M51.808,20 L315.904,20 L315.904,280 L51.808,280 z"/>
+</clipPath>
+<g clip-path="url(#eidoplot-clip1)">
+<path d="M71.808,260 L183.856,150 L295.904,40" fill="none" stroke="#000000" stroke-width="1.5"/>
+</g>
+<path d="M20,-4 L20,4 M47.5,-4 L47.5,4 M75,-4 L75,4 M102.5,-4 L102.5,4 M130,-4 L130,4 M157.5,-4 L157.5,4 M185,-4 L185,4 M212.5,-4 L212.5,4 M240,-4 L240,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(-0.00000004371139 -1 1 -0.00000004371139 51.808 280)"/>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 43.808 260)">
+1.00
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 43.808 232.5)">
+1.25
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 43.808 205)">
+1.50
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 43.808 177.5)">
+1.75
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 43.808 150)">
+2.00
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 43.808 122.5)">
+2.25
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 43.808 95)">
+2.50
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 43.808 67.5)">
+2.75
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="end" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 43.808 40)">
+3.00
+</text>
+<rect fill="none" height="260" stroke="#000000" stroke-width="1" width="264.096" x="51.808" y="20"/>
+<clipPath id="eidoplot-clip2">
+<path d="M315.904,20 L580,20 L580,280 L315.904,280 z"/>
+</clipPath>
+<g clip-path="url(#eidoplot-clip2)">
+<path d="M335.904,260 L447.952,150 L560,40" fill="none" stroke="#000000" stroke-width="1.5"/>
+</g>
+<path d="M20,-4 L20,4 M47.5,-4 L47.5,4 M75,-4 L75,4 M102.5,-4 L102.5,4 M130,-4 L130,4 M157.5,-4 L157.5,4 M185,-4 L185,4 M212.5,-4 L212.5,4 M240,-4 L240,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(-0.00000004371139 -1 1 -0.00000004371139 315.904 280)"/>
+<rect fill="none" height="260" stroke="#000000" stroke-width="1" width="264.096" x="315.904" y="20"/>
+</svg>
