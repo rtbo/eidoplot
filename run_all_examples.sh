@@ -33,6 +33,7 @@ cargo run --example subplots -- ${POS_ARGS[@]}
 
 cargo run --example bode_rlc_eplt --features dsl-diag -- ${POS_ARGS[@]}
 cargo run --example iris_eplt --features dsl-diag -- ${POS_ARGS[@]}
+cargo run --example multiple_axes_eplt --features dsl-diag -- ${POS_ARGS[@]}
 cargo run --example subplots_eplt --features dsl-diag -- ${POS_ARGS[@]}
 
 if [ "$RUN_POLARS" = "y" ]; then
