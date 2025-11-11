@@ -26,7 +26,6 @@ fn main() {
     let y2_axis = ir::Axis::new()
         .with_title("exp(x)".to_string().into())
         .with_scale(ir::axis::LogScale::default().into())
-        .with_opposite_side()
         .with_ticks(Default::default());
 
     let series1 = ir::series::Line::new(

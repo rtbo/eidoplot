@@ -195,7 +195,7 @@ impl PlotAxes {
         }
         if cnt > 1 {
             sz += (cnt as f32 - 1.0)
-                * (missing_params::AXIS_MARGIN + missing_params::AXIS_LINE_WIDTH);
+                * (missing_params::AXIS_MARGIN + missing_params::AXIS_SPINE_WIDTH);
         }
         sz
     }
@@ -509,24 +509,28 @@ where
             let ir_axes = ir_plot.or_axes(or);
             let mut axes = vec![None; ir_axes.len()];
 
-            for (ax_idx, axis) in ir_axes.iter().enumerate() {
-                if axis.scale().is_shared() {
+            // track whether the main and opposite axes are directly attached to the plot area
+            let mut main_off_plot = false;
+            let mut opposite_off_plot = false;
+
+            for (ax_idx, ir_ax) in ir_axes.iter().enumerate() {
+                if ir_ax.scale().is_shared() {
                     continue;
                 }
 
-                // `axis` owns its scale.
+                // `ir_ax` owns its scale.
                 // We have to collect data bounds of all the series that refer to it.
-                // `matcher` will match the series that refer to `axis` with Series::x/y_axis.
+                // `matcher` will match the series that refer to `ir_ax` with Series::x/y_axis.
                 // If Series::x/y_axis returns None, it refers implicitly to ax_idx == 0.
 
                 // We also have to collect data bounds of series that refer to a shared axis
-                // referring explicitly to `axis`. This is done in the inner loop with `axis2`.
+                // referring explicitly to `ir_ax`. This is done in the inner loop with `ir_ax2`.
 
                 let matcher = series::AxisMatcher {
                     plt_idx,
                     ax_idx,
-                    id: axis.id(),
-                    title: axis.title().map(|t| t.text()),
+                    id: ir_ax.id(),
+                    title: ir_ax.title().map(|t| t.text()),
                 };
                 let mut bounds = None;
 
@@ -536,14 +540,14 @@ where
                     let series = &data.series;
                     bounds = Series::unite_bounds(or, series, bounds, &matcher, plt_idx2)?;
 
-                    for (ax_idx2, axis2) in ir_plot2.or_axes(or).iter().enumerate() {
-                        if let ir::axis::Scale::Shared(ax_ref2) = axis2.scale() {
+                    for (ax_idx2, ir_ax2) in ir_plot2.or_axes(or).iter().enumerate() {
+                        if let ir::axis::Scale::Shared(ax_ref2) = ir_ax2.scale() {
                             if matcher.matches_ref(Some(ax_ref2), plt_idx2)? {
                                 let matcher = series::AxisMatcher {
                                     plt_idx: plt_idx2,
                                     ax_idx: ax_idx2,
-                                    id: axis2.id(),
-                                    title: axis2.title().map(|t| t.text()),
+                                    id: ir_ax2.id(),
+                                    title: ir_ax2.title().map(|t| t.text()),
                                 };
                                 bounds =
                                     Series::unite_bounds(or, series, bounds, &matcher, plt_idx2)?;
@@ -554,13 +558,21 @@ where
 
                 let Some(bounds) = bounds else { continue };
 
+                let off_plot = match ir_ax.side() {
+                    ir::axis::Side::Main => &mut main_off_plot,
+                    ir::axis::Side::Opposite => &mut opposite_off_plot,
+                };
+                let off_plot_area = *off_plot;
+                *off_plot = true;
+
                 let ax = self.setup_axis(
-                    axis,
+                    ir_ax,
                     &bounds,
-                    Side::from_or_ir_side(or, axis.side()),
+                    Side::from_or_ir_side(or, ir_ax.side()),
                     size_along,
                     &datas[plt_idx].as_ref().unwrap().insets,
                     None,
+                    off_plot_area,
                 )?;
                 ax_infos[fig_ax_idx0 + ax_idx] = Some((bounds, ax.scale().clone()));
                 axes[ax_idx] = Some(ax);
@@ -580,8 +592,12 @@ where
             let ir_axes = ir_plot.or_axes(or);
             let axes = plot_axes[plt_idx].as_mut().unwrap();
 
-            for (ax_idx, ir_axis) in ir_axes.iter().enumerate() {
-                let ir::axis::Scale::Shared(ax_ref) = ir_axis.scale() else {
+            // track whether the main and opposite axes are directly attached to the plot area
+            let mut main_off_plot = false;
+            let mut opposite_off_plot = false;
+
+            for (ax_idx, ir_ax) in ir_axes.iter().enumerate() {
+                let ir::axis::Scale::Shared(ax_ref) = ir_ax.scale() else {
                     continue;
                 };
                 let (fig_ax_idx, _) = ir_plots
@@ -592,13 +608,21 @@ where
                     .as_ref()
                     .ok_or_else(|| Error::IllegalAxisRef(ax_ref.clone()))?;
 
+                let off_plot = match ir_ax.side() {
+                    ir::axis::Side::Main => &mut main_off_plot,
+                    ir::axis::Side::Opposite => &mut opposite_off_plot,
+                };
+                let off_plot_area = *off_plot;
+                *off_plot = true;
+
                 let axis = self.setup_axis(
-                    ir_axis,
+                    ir_ax,
                     &info.0,
-                    Side::from_or_ir_side(or, ir_axis.side()),
+                    Side::from_or_ir_side(or, ir_ax.side()),
                     size_along,
                     &datas[plt_idx].as_ref().unwrap().insets,
                     Some(info.1.clone()),
+                    off_plot_area,
                 )?;
                 axes.0[ax_idx] = Some(axis);
             }
@@ -862,7 +886,7 @@ where
                     Side::Top => rect.shifted_top_side(-shift),
                     Side::Right => rect.shifted_right_side(shift),
                     Side::Bottom => rect.shifted_bottom_side(shift),
-                    Side::Left => rect.shifted_bottom_side(-shift),
+                    Side::Left => rect.shifted_left_side(-shift),
                 };
             }
         }

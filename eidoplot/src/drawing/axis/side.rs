@@ -89,6 +89,29 @@ impl Side {
         }
     }
 
+    pub fn spine_path(&self, rect: &geom::Rect) -> geom::Path {
+        let mut builder= geom::PathBuilder::with_capacity(2, 2);
+        match self {
+            Side::Bottom => {
+                builder.move_to(rect.left(), rect.bottom());
+                builder.line_to(rect.right(), rect.bottom());
+            }
+            Side::Left => {
+                builder.move_to(rect.left(), rect.top());
+                builder.line_to(rect.left(), rect.bottom());
+            }
+            Side::Top => {
+                builder.move_to(rect.left(), rect.top());
+                builder.line_to(rect.right(), rect.top());
+            }
+            Side::Right => {
+                builder.move_to(rect.right(), rect.top());
+                builder.line_to(rect.right(), rect.bottom());
+            }
+        }
+        builder.finish().unwrap()
+    }
+
     pub fn ticks_labels_align(&self) -> (text::line::Align, text::line::VerAlign) {
         match self {
             Side::Bottom => (text::line::Align::Center, text::line::VerAlign::Top),

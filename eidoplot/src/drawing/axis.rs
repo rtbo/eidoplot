@@ -252,6 +252,7 @@ impl CategoryTicks {
 #[derive(Debug, Clone)]
 struct DrawOpts {
     title: Option<text::RichText>,
+    spine: Option<theme::Line>,
     marks: Option<TickMark>,
     minor_marks: Option<TickMark>,
     ticks_labels: bool,
@@ -270,7 +271,7 @@ where
         let mut height = 0.0;
         for (idx, axis) in x_axes.iter().filter(|a| a.side() == side).enumerate() {
             if idx != 0 {
-                height += missing_params::AXIS_MARGIN + missing_params::AXIS_LINE_WIDTH;
+                height += missing_params::AXIS_MARGIN + missing_params::AXIS_SPINE_WIDTH;
             }
             if let Some(ticks) = axis.ticks() {
                 if idx != 0 {
@@ -296,6 +297,7 @@ where
         size_along: f32,
         insets: &geom::Padding,
         shared_scale: Option<Arc<AxisScale>>,
+        off_plot_area: bool,
     ) -> Result<Axis, Error> {
         let insets = side.insets(insets);
 
@@ -307,7 +309,7 @@ where
             Arc::new(self.setup_axis_scale(ir_axis, bounds, side, size_along, insets)?)
         };
 
-        let draw_opts = self.setup_axis_draw_opts(ir_axis, side, uses_shared)?;
+        let draw_opts = self.setup_axis_draw_opts(ir_axis, side, uses_shared, off_plot_area)?;
 
         Ok(Axis {
             id: ir_axis.id().map(|s| s.to_string()),
@@ -458,11 +460,22 @@ where
         ir_axis: &ir::Axis,
         side: Side,
         uses_shared: bool,
+        off_plot_area: bool,
     ) -> Result<DrawOpts, Error> {
         let title = ir_axis
             .title()
             .map(|title| title.to_rich_text(side.title_layout(), &self.fontdb, self.theme()))
             .transpose()?;
+
+        let spine = if off_plot_area {
+            let spine = theme::Line::from(missing_params::AXIS_SPINE_COLOR)
+                .with_width(missing_params::AXIS_SPINE_WIDTH);
+            Some(spine)
+        } else {
+            None
+        };
+
+        println!("side: {side:?}: spine: {spine:?}");
 
         let ticks_labels = !uses_shared;
         let marks = ir_axis.ticks().map(|ticks| TickMark {
@@ -481,6 +494,7 @@ where
 
         Ok(DrawOpts {
             title,
+            spine,
             ticks_labels,
             marks,
             minor_marks,
@@ -577,6 +591,9 @@ where
         axis: &Axis,
         plot_rect: &geom::Rect,
     ) -> Result<f32, Error> {
+        if let Some(spine) = axis.draw_opts.spine.as_ref() {
+            self.draw_spine(ctx, plot_rect, axis.side, spine)?;
+        }
         let mut shift_across = match axis.scale.as_ref() {
             AxisScale::Num {
                 cm,
@@ -675,6 +692,25 @@ where
             self.draw_line_text(&rtext)?;
         }
         Ok(shift_across)
+    }
+
+    fn draw_spine<D>(
+        &mut self,
+        ctx: &Ctx<D>,
+        plot_rect: &geom::Rect,
+        side: Side,
+        spine: &theme::Line,
+    ) -> Result<(), Error> {
+        let stroke = spine.as_stroke(ctx.theme());
+        let path = side.spine_path(plot_rect);
+        let rpath = render::Path {
+            path: &path,
+            fill: None,
+            stroke: Some(stroke),
+            transform: None,
+        };
+        self.draw_path(&rpath)?;
+        Ok(())
     }
 
     fn draw_minor_ticks<D>(
