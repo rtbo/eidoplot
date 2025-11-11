@@ -66,10 +66,12 @@ pub struct Token {
 pub enum TokenKind {
     KebabCaseIdent(String),
     PascalCaseIdent(String),
-    OpenBrace,
-    CloseBrace,
+    OpenPar,
+    ClosePar,
     OpenBracket,
     CloseBracket,
+    OpenBrace,
+    CloseBrace,
     Colon,
     Comma,
     StrLit(String),
@@ -161,10 +163,12 @@ where
                 self.expect_next('\n')?;
                 Ok(Some(TokenKind::Eol))
             }
-            '{' => Ok(Some(TokenKind::OpenBrace)),
-            '}' => Ok(Some(TokenKind::CloseBrace)),
+            '(' => Ok(Some(TokenKind::OpenPar)),
+            ')' => Ok(Some(TokenKind::ClosePar)),
             '[' => Ok(Some(TokenKind::OpenBracket)),
             ']' => Ok(Some(TokenKind::CloseBracket)),
+            '{' => Ok(Some(TokenKind::OpenBrace)),
+            '}' => Ok(Some(TokenKind::CloseBrace)),
             ':' => Ok(Some(TokenKind::Colon)),
             ',' => Ok(Some(TokenKind::Comma)),
             '"' => {

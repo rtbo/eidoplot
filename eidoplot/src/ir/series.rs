@@ -1,4 +1,5 @@
 use crate::data;
+use crate::ir::axis;
 use crate::style::{self, defaults};
 
 #[derive(Debug, Clone)]
@@ -25,6 +26,7 @@ impl From<Vec<String>> for DataCol {
     }
 }
 
+/// A data series to be plotted in a plot
 #[derive(Debug, Clone)]
 pub enum Series {
     /// Plots data as a continuous line.
@@ -37,6 +39,17 @@ pub enum Series {
     Bars(Bars),
     /// Plots data as a group of bars, that can be either stacked or aside
     BarsGroup(BarsGroup),
+}
+
+impl Series {
+    pub fn axes(&self) -> (Option<&axis::Ref>, Option<&axis::Ref>) {
+        match self {
+            Series::Line(s) => (s.x_axis(), s.y_axis()),
+            Series::Scatter(s) => (s.x_axis(), s.y_axis()),
+            Series::Histogram(s) => (s.x_axis(), s.y_axis()),
+            _ => (None, None),
+        }
+    }
 }
 
 impl From<Line> for Series {
@@ -75,6 +88,8 @@ pub struct Line {
     y_data: DataCol,
 
     name: Option<String>,
+    x_axis: Option<axis::Ref>,
+    y_axis: Option<axis::Ref>,
     line: style::series::Line,
 }
 
@@ -85,6 +100,8 @@ impl Line {
             y_data,
 
             name: None,
+            x_axis: None,
+            y_axis: None,
             line: style::series::Line::default().with_width(defaults::SERIES_LINE_WIDTH),
         }
     }
@@ -94,6 +111,16 @@ impl Line {
             name: Some(name),
             ..self
         }
+    }
+
+    pub fn with_x_axis(mut self, axis: axis::Ref) -> Self {
+        self.x_axis = Some(axis);
+        self
+    }
+
+    pub fn with_y_axis(mut self, axis: axis::Ref) -> Self {
+        self.y_axis = Some(axis);
+        self
     }
 
     pub fn with_line(mut self, line: style::series::Line) -> Self {
@@ -113,6 +140,14 @@ impl Line {
         self.name.as_deref()
     }
 
+    pub fn x_axis(&self) -> Option<&axis::Ref> {
+        self.x_axis.as_ref()
+    }
+
+    pub fn y_axis(&self) -> Option<&axis::Ref> {
+        self.y_axis.as_ref()
+    }
+
     pub fn line(&self) -> &style::series::Line {
         &self.line
     }
@@ -124,6 +159,8 @@ pub struct Scatter {
     y_data: DataCol,
 
     name: Option<String>,
+    x_axis: Option<axis::Ref>,
+    y_axis: Option<axis::Ref>,
     marker: style::series::Marker,
 }
 
@@ -134,6 +171,8 @@ impl Scatter {
             y_data,
 
             name: None,
+            x_axis: None,
+            y_axis: None,
             marker: style::series::Marker::default(),
         }
     }
@@ -143,6 +182,16 @@ impl Scatter {
             name: Some(name),
             ..self
         }
+    }
+
+    pub fn with_x_axis(mut self, axis: axis::Ref) -> Self {
+        self.x_axis = Some(axis);
+        self
+    }
+
+    pub fn with_y_axis(mut self, axis: axis::Ref) -> Self {
+        self.y_axis = Some(axis);
+        self
     }
 
     pub fn with_marker(mut self, marker: style::series::Marker) -> Self {
@@ -162,6 +211,14 @@ impl Scatter {
         self.name.as_deref()
     }
 
+    pub fn x_axis(&self) -> Option<&axis::Ref> {
+        self.x_axis.as_ref()
+    }
+
+    pub fn y_axis(&self) -> Option<&axis::Ref> {
+        self.y_axis.as_ref()
+    }
+
     pub fn marker(&self) -> &style::series::Marker {
         &self.marker
     }
@@ -172,6 +229,8 @@ pub struct Histogram {
     data: DataCol,
 
     name: Option<String>,
+    x_axis: Option<axis::Ref>,
+    y_axis: Option<axis::Ref>,
     fill: style::series::Fill,
     line: Option<style::series::Line>,
     bins: u32,
@@ -184,6 +243,8 @@ impl Histogram {
             data,
 
             name: None,
+            x_axis: None,
+            y_axis: None,
             fill: style::series::Fill::default(),
             line: None,
             bins: 10,
@@ -196,6 +257,16 @@ impl Histogram {
             name: Some(name),
             ..self
         }
+    }
+
+    pub fn with_x_axis(mut self, axis: axis::Ref) -> Self {
+        self.x_axis = Some(axis);
+        self
+    }
+
+    pub fn with_y_axis(mut self, axis: axis::Ref) -> Self {
+        self.y_axis = Some(axis);
+        self
     }
 
     pub fn with_fill(self, fill: style::series::Fill) -> Self {
@@ -223,6 +294,14 @@ impl Histogram {
 
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    pub fn x_axis(&self) -> Option<&axis::Ref> {
+        self.x_axis.as_ref()
+    }
+
+    pub fn y_axis(&self) -> Option<&axis::Ref> {
+        self.y_axis.as_ref()
     }
 
     pub fn fill(&self) -> &style::series::Fill {

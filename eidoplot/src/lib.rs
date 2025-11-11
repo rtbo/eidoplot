@@ -44,14 +44,17 @@ pub mod style;
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters
 mod missing_params {
-    use crate::geom;
+    use crate::{geom, style::theme};
 
     pub const FIG_TITLE_MARGIN: f32 = 6.0;
 
     pub const PLOT_PADDING: geom::Padding = geom::Padding::Even(0.0);
 
+    pub const AXIS_MARGIN: f32 = 4.0;
     pub const AXIS_TITLE_MARGIN: f32 = 8.0;
     pub const AXIS_ANNOT_MARGIN: f32 = 4.0;
+    pub const AXIS_SPINE_WIDTH: f32 = 1.0;
+    pub const AXIS_SPINE_COLOR: theme::Color = theme::Color::Theme(theme::Col::Foreground);
 
     pub const TICK_SIZE: f32 = 4.0;
     pub const TICK_LABEL_MARGIN: f32 = 4.0;

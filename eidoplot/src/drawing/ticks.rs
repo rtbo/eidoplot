@@ -243,9 +243,13 @@ pub fn num_label_formatter(
     scale: &Scale,
 ) -> Box<dyn LabelFormatter> {
     match ticks.formatter() {
-        Formatter::Auto => auto_label_formatter(ticks.locator(), ab, scale),
-        Formatter::Prec(prec) => Box::new(PrecLabelFormat(*prec)),
-        Formatter::Percent => Box::new(PercentLabelFormat),
+        Some(Formatter::Auto) if scale.is_shared() => Box::new(NullFormat),
+        Some(Formatter::Auto | Formatter::SharedAuto) => {
+            auto_label_formatter(ticks.locator(), ab, scale)
+        }
+        Some(Formatter::Prec(prec)) => Box::new(PrecLabelFormat(prec)),
+        Some(Formatter::Percent) => Box::new(PercentLabelFormat),
+        None => Box::new(NullFormat),
     }
 }
 
@@ -320,6 +324,14 @@ impl LabelFormatter for PercentLabelFormat {
     fn format_label(&self, data: data::Sample) -> String {
         let data = data.as_num().unwrap();
         format!("{:.0}%", data * 100.0)
+    }
+}
+
+struct NullFormat;
+
+impl LabelFormatter for NullFormat {
+    fn format_label(&self, _: data::Sample) -> String {
+        String::new()
     }
 }
 

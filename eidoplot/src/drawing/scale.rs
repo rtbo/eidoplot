@@ -62,6 +62,7 @@ pub fn map_scale_coord_num(
             let (adj_nb, adj_insets) = adjusted_nb_insets(*range, axis_bounds, insets);
             Box::new(LogCoordMap::new(*base, plot_size, adj_insets, adj_nb))
         }
+        ir::axis::Scale::Shared(..) => unreachable!("shared scale to be handled upfront"),
     }
 }
 

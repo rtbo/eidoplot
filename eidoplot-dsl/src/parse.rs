@@ -141,6 +141,17 @@ where
                 };
                 self.parse_scalar_or_seq(scalar)
             }
+            TokenKind::KebabCaseIdent(name) => {
+                let (end_span, func) = self.parse_func(ast::Ident {
+                    span: tok.span,
+                    name,
+                })?;
+                let scalar = ast::Scalar {
+                    span: (tok.span.0, end_span),
+                    kind: ast::ScalarKind::Func(func),
+                };
+                self.parse_scalar_or_seq(scalar)
+            }
             TokenKind::PascalCaseIdent(name) => {
                 // both struct and enums can start with a pascal case identifier
                 Ok(self.parse_struct_or_enum_or_seq(ast::Ident {
@@ -166,8 +177,19 @@ where
             _ => return Ok(ast::Value::Scalar(starter)),
         }
 
-        let mut res_span = starter.span;
-        let mut res_scalars = vec![starter];
+        let seq = self.parse_seq(starter.span.0, Some(starter))?;
+
+        Ok(ast::Value::Seq(seq))
+    }
+
+    fn parse_seq(&mut self, start_span: usize, starter: Option<ast::Scalar>) -> Result<ast::Seq> {
+        debug_assert!(starter.as_ref().iter().all(|s| s.span.0 == start_span));
+
+        let mut res_span = starter
+            .as_ref()
+            .map(|s| s.span)
+            .unwrap_or((start_span, start_span));
+        let mut res_scalars: Vec<_> = starter.into_iter().collect();
 
         loop {
             self.ignore_opt_sp();
@@ -213,6 +235,22 @@ where
                     res_span.1 = span.1;
                 }
                 Token {
+                    kind: TokenKind::KebabCaseIdent(name),
+                    span,
+                } => {
+                    self.bump_token();
+                    let (end_span, func) = self.parse_func(ast::Ident {
+                        span: span,
+                        name,
+                    })?;
+                    let scalar = ast::Scalar {
+                        span: (span.0, end_span),
+                        kind: ast::ScalarKind::Func(func),
+                    };
+                    res_span.1 = scalar.span.1;
+                    res_scalars.push(scalar);
+                }
+                Token {
                     kind: TokenKind::PascalCaseIdent(name),
                     span,
                 } => {
@@ -240,10 +278,10 @@ where
             }
         }
 
-        Ok(ast::Value::Seq(ast::Seq {
+        Ok(ast::Seq {
             span: res_span,
             scalars: res_scalars,
-        }))
+        })
     }
 
     fn parse_str_concatenation(
@@ -270,6 +308,45 @@ where
         }
 
         Ok((res_span, res_str))
+    }
+
+    fn parse_func(&mut self, ident: ast::Ident) -> Result<(usize, ast::Func)> {
+        self.ignore_opt_sp();
+
+        let open_par_span = match self.next_token()? {
+            Some(Token {
+                span,
+                kind: TokenKind::OpenPar,
+            }) => span,
+            Some(tok) => {
+                return Err(Error::UnexpectedToken(
+                    tok,
+                    Some("function-like value".to_string()),
+                ));
+            }
+            None => return Err(Error::UnexpectedEndOfInput(ident.span)),
+        };
+
+        let args = self.parse_seq(open_par_span.1, None)?;
+
+        let close_par_span = match self.next_token()? {
+            Some(Token {
+                span,
+                kind: TokenKind::ClosePar,
+            }) => span,
+            Some(tok) => {
+                return Err(Error::UnexpectedToken(
+                    tok,
+                    Some("close parenthesis".to_string()),
+                ));
+            }
+            None => return Err(Error::UnexpectedEndOfInput(args.span)),
+        };
+
+        Ok((close_par_span.1, ast::Func {
+            name: ident,
+            args,
+        }))
     }
 
     fn parse_struct_or_enum_or_seq(&mut self, ident: ast::Ident) -> Result<ast::Value> {
@@ -647,6 +724,50 @@ mod tests {
                     ast::Scalar {
                         span: (11, 12),
                         kind: ast::ScalarKind::Int(3),
+                    },
+                ]
+            }))
+        );
+    }
+
+    #[test]
+    fn test_seq_with_func() {
+        let dsl = "foo: 1, fun(2, \"3\"), 4";
+        let props = parse(dsl.chars()).unwrap();
+        assert_eq!(
+            props[0].value,
+            Some(ast::Value::Seq(ast::Seq {
+                span: (5, 22),
+                scalars: vec![
+                    ast::Scalar {
+                        span: (5, 6),
+                        kind: ast::ScalarKind::Int(1),
+                    },
+                    ast::Scalar {
+                        span: (8, 19),
+                        kind: ast::ScalarKind::Func(ast::Func {
+                            name: ast::Ident {
+                                name: "fun".into(),
+                                span: (8, 11),
+                            },
+                            args: ast::Seq {
+                                span: (12, 18),
+                                scalars: vec![
+                                    ast::Scalar {
+                                        span: (12, 13),
+                                        kind: ast::ScalarKind::Int(2),
+                                    },
+                                    ast::Scalar {
+                                        span: (15, 18),
+                                        kind: ast::ScalarKind::Str("3".into()),
+                                    }
+                                ]
+                            }
+                        }),
+                    },
+                    ast::Scalar {
+                        span: (21, 22),
+                        kind: ast::ScalarKind::Int(4),
                     },
                 ]
             }))

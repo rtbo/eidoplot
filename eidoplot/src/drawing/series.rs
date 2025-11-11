@@ -1,6 +1,7 @@
 use axis::AsBoundRef;
 use scale::{CoordMap, CoordMapXy};
 
+use crate::drawing::plot::Orientation;
 use crate::drawing::{
     Categories, ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
 };
@@ -102,6 +103,29 @@ where
 }
 
 #[derive(Debug, Clone)]
+pub(super) struct AxisMatcher<'a> {
+    pub(super) plt_idx: usize,
+    pub(super) ax_idx: usize,
+    pub(super) id: Option<&'a str>,
+    pub(super) title: Option<&'a str>,
+}
+
+impl<'a> AxisMatcher<'a> {
+    pub(super) fn matches_ref(
+        &self,
+        ax_ref: Option<&ir::axis::Ref>,
+        plt_idx: usize,
+    ) -> Result<bool, Error> {
+        match ax_ref {
+            None => Ok(self.ax_idx == 0 && self.plt_idx == plt_idx),
+            Some(ir::axis::Ref::Idx(ax_idx)) => Ok(self.ax_idx == *ax_idx),
+            Some(ir::axis::Ref::Id(id)) => Ok(self.id == Some(id) || self.title == Some(id)),
+            Some(ax_ref) => Err(Error::IllegalAxisRef(ax_ref.clone())),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Series(SeriesPlot);
 
 #[derive(Debug, Clone)]
@@ -134,39 +158,36 @@ impl Series {
         Ok(Series(series))
     }
 
-    pub fn unite_x_bounds<'a, S>(
+    /// Unites bounds for series whose axis matches with `matcher`
+    pub fn unite_bounds<'a, S>(
+        or: Orientation,
         series: S,
         starter: Option<axis::Bounds>,
+        matcher: &AxisMatcher,
+        plt_idx: usize,
     ) -> Result<Option<axis::Bounds>, Error>
     where
         S: IntoIterator<Item = &'a Series>,
     {
         let mut a: Option<axis::Bounds> = starter;
         for s in series {
-            let b = s.bounds();
-            if let Some(a) = &mut a {
-                a.unite_with(&b.0)?;
-            } else {
-                a = Some(b.0.to_bounds());
+            let axis = match or {
+                Orientation::X => s.x_axis(),
+                Orientation::Y => s.y_axis(),
+            };
+            if !matcher.matches_ref(axis, plt_idx)? {
+                continue;
             }
-        }
-        Ok(a)
-    }
 
-    pub fn unite_y_bounds<'a, S>(
-        series: S,
-        starter: Option<axis::Bounds>,
-    ) -> Result<Option<axis::Bounds>, Error>
-    where
-        S: IntoIterator<Item = &'a Series>,
-    {
-        let mut a = starter;
-        for s in series {
-            let b = s.bounds();
+            let b = match or {
+                Orientation::X => &s.bounds().0,
+                Orientation::Y => &s.bounds().1,
+            };
+
             if let Some(a) = &mut a {
-                a.unite_with(&b.1)?;
+                a.unite_with(b)?;
             } else {
-                a = Some(b.1.to_bounds());
+                a = Some(b.to_bounds());
             }
         }
         Ok(a)
@@ -181,6 +202,26 @@ impl Series {
             SeriesPlot::Histogram(hist) => (hist.ab.0.into(), hist.ab.1.into()),
             SeriesPlot::Bars(bars) => bars.bounds(),
             SeriesPlot::BarsGroup(bg) => (bg.bounds.0.as_bound_ref(), bg.bounds.1.as_bound_ref()),
+        }
+    }
+
+    fn x_axis(&self) -> Option<&ir::axis::Ref> {
+        match &self.0 {
+            SeriesPlot::Line(line) => line.axes.0.as_ref(),
+            SeriesPlot::Scatter(scatter) => scatter.axes.0.as_ref(),
+            SeriesPlot::Histogram(hist) => hist.axes.0.as_ref(),
+            SeriesPlot::Bars(..) => None,
+            SeriesPlot::BarsGroup(..) => None,
+        }
+    }
+
+    fn y_axis(&self) -> Option<&ir::axis::Ref> {
+        match &self.0 {
+            SeriesPlot::Line(line) => line.axes.1.as_ref(),
+            SeriesPlot::Scatter(scatter) => scatter.axes.1.as_ref(),
+            SeriesPlot::Histogram(hist) => hist.axes.1.as_ref(),
+            SeriesPlot::Bars(..) => None,
+            SeriesPlot::BarsGroup(..) => None,
         }
     }
 }
@@ -225,6 +266,7 @@ where
 struct Line {
     index: usize,
     ab: (axis::Bounds, axis::Bounds),
+    axes: (Option<ir::axis::Ref>, Option<ir::axis::Ref>),
 }
 
 impl Line {
@@ -236,6 +278,7 @@ impl Line {
         Ok(Line {
             index,
             ab: (x_bounds, y_bounds),
+            axes: (ir.x_axis().cloned(), ir.y_axis().cloned()),
         })
     }
 
@@ -310,6 +353,7 @@ where
 struct Scatter {
     index: usize,
     ab: (axis::Bounds, axis::Bounds),
+    axes: (Option<ir::axis::Ref>, Option<ir::axis::Ref>),
 }
 
 impl Scatter {
@@ -321,6 +365,7 @@ impl Scatter {
         Ok(Scatter {
             index,
             ab: (x_bounds, y_bounds),
+            axes: (ir.x_axis().cloned(), ir.y_axis().cloned()),
         })
     }
 }
@@ -381,6 +426,7 @@ struct HistBin {
 struct Histogram {
     index: usize,
     ab: (axis::NumBounds, axis::NumBounds),
+    axes: (Option<ir::axis::Ref>, Option<ir::axis::Ref>),
     bins: Vec<HistBin>,
 }
 
@@ -432,6 +478,7 @@ impl Histogram {
         Ok(Histogram {
             index,
             ab: (x_bounds, y_bounds),
+            axes: (hist.x_axis().cloned(), hist.y_axis().cloned()),
             bins,
         })
     }

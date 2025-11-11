@@ -1,5 +1,4 @@
 use std::iter::FusedIterator;
-use std::slice;
 
 use crate::geom;
 use crate::ir::{Legend, Plot, Subplots};
@@ -187,24 +186,55 @@ impl From<Subplots> for Plots {
 }
 
 impl Plots {
-    pub fn plots(&self) -> &[Plot] {
+    pub fn len(&self) -> usize {
         match self {
-            Plots::Plot(plot) => slice::from_ref(plot),
-            Plots::Subplots(subplots) => subplots.plots(),
+            Plots::Plot(..) => 1,
+            Plots::Subplots(subplots) => subplots.len(),
         }
     }
 
-    pub fn plots_mut(&mut self) -> &mut [Plot] {
+    pub fn rows(&self) -> u32 {
         match self {
-            Plots::Plot(plot) => slice::from_mut(plot),
-            Plots::Subplots(subplots) => subplots.plots_mut(),
+            Plots::Plot(..) => 1,
+            Plots::Subplots(subplots) => subplots.rows(),
+        }
+    }
+
+    pub fn cols(&self) -> u32 {
+        match self {
+            Plots::Plot(..) => 1,
+            Plots::Subplots(subplots) => subplots.cols(),
+        }
+    }
+
+    pub fn plot(&self, row: u32, col: u32) -> Option<&Plot> {
+        match self {
+            Plots::Plot(plot) if row == 0 && col == 0 => Some(plot),
+            Plots::Plot(..) => None,
+            Plots::Subplots(subplots) => subplots.plot(row, col),
+        }
+    }
+
+    pub fn plot_mut(&mut self, row: u32, col: u32) -> Option<&mut Plot> {
+        match self {
+            Plots::Plot(plot) if row == 0 && col == 0 => Some(plot),
+            Plots::Plot(..) => None,
+            Plots::Subplots(subplots) => subplots.plot_mut(row, col),
         }
     }
 
     pub fn iter(&self) -> PlotIter<'_> {
         PlotIter {
             plots: self,
-            index: 0,
+            row: 0,
+            col: 0,
+        }
+    }
+
+    pub fn space(&self) -> f32 {
+        match self {
+            Plots::Plot(..) => 0.0,
+            Plots::Subplots(subplots) => subplots.space(),
         }
     }
 }
@@ -213,26 +243,31 @@ impl Plots {
 #[derive(Debug, Clone)]
 pub struct PlotIter<'a> {
     plots: &'a Plots,
-    index: usize,
+    row: u32,
+    col: u32,
 }
 
 impl<'a> Iterator for PlotIter<'a> {
-    type Item = &'a Plot;
+    type Item = Option<&'a Plot>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.plots {
             Plots::Plot(plot) => {
-                if self.index == 0 {
-                    self.index += 1;
-                    Some(plot)
+                if self.row == 0 && self.col == 0 {
+                    self.col += 1;
+                    Some(Some(plot))
                 } else {
                     None
                 }
             }
             Plots::Subplots(subplots) => {
-                if self.index < subplots.plots().len() {
-                    let plot = &subplots.plots()[self.index];
-                    self.index += 1;
+                if self.row < subplots.rows() {
+                    let plot = subplots.plot(self.row, self.col);
+                    self.col += 1;
+                    if self.col == subplots.cols() {
+                        self.col = 0;
+                        self.row += 1;
+                    }
                     Some(plot)
                 } else {
                     None

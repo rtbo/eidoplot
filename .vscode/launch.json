@@ -22,6 +22,17 @@
             "cargo": {
                 "args": [
                     "build", "--example", "bode_rlc",
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "bode_rlc_eplt example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "bode_rlc",
                     "--features", "dsl-diag"
                 ]
             },
@@ -64,6 +75,29 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "multiple_axes example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "multiple_axes"
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "multiple_axes_eplt example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "multiple_axes_eplt",
+                    "--features", "dsl-diag"
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "sine example",
             "cargo": {
                 "args": [
@@ -79,6 +113,17 @@
             "cargo": {
                 "args": [
                     "build", "--example", "subplots",
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "subplots_eplt example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "subplots_eplt",
                     "--features", "dsl-diag"
                 ]
             },
