@@ -1,0 +1,66 @@
+<svg height="300" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#ffffff" height="100%" width="100%"/>
+<clipPath id="eidoplot-clip1">
+<path d="M20,44.344 L348.192,44.344 L348.192,280 L20,280 z"/>
+</clipPath>
+<g clip-path="url(#eidoplot-clip1)">
+<path d="M40,260 L184.096,162.172 L328.192,64.343994" fill="none" stroke="#000000" stroke-width="1.5"/>
+</g>
+<path d="M20,-4 L20,4 M56.024,-4 L56.024,4 M92.048004,-4 L92.048004,4 M128.07199,-4 L128.07199,4 M164.096,-4 L164.096,4 M200.11998,-4 L200.11998,4 M236.144,-4 L236.144,4 M272.168,-4 L272.168,4 M308.192,-4 L308.192,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(1 0 0 1 20 44.344)"/>
+<text dominant-baseline="alphabetic" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 40 32.828003)">
+1.00
+</text>
+<text dominant-baseline="alphabetic" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 76.024 32.828003)">
+1.25
+</text>
+<text dominant-baseline="alphabetic" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 112.048004 32.828003)">
+1.50
+</text>
+<text dominant-baseline="alphabetic" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 148.07199 32.828003)">
+1.75
+</text>
+<text dominant-baseline="alphabetic" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 184.096 32.828003)">
+2.00
+</text>
+<text dominant-baseline="alphabetic" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 220.11998 32.828003)">
+2.25
+</text>
+<text dominant-baseline="alphabetic" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 256.14398 32.828003)">
+2.50
+</text>
+<text dominant-baseline="alphabetic" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 292.168 32.828003)">
+2.75
+</text>
+<text dominant-baseline="alphabetic" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="middle" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 328.192 32.828003)">
+3.00
+</text>
+<path d="M20,-4 L20,4 M44.457,-4 L44.457,4 M68.914,-4 L68.914,4 M93.371,-4 L93.371,4 M117.828,-4 L117.828,4 M142.285,-4 L142.285,4 M166.742,-4 L166.742,4 M191.199,-4 L191.199,4 M215.656,-4 L215.656,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(-0.00000004371139 -1 1 -0.00000004371139 348.192 280)"/>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 356.192 260)">
+1.00
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 356.192 235.543)">
+1.25
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 356.192 211.086)">
+1.50
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 356.192 186.629)">
+1.75
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 356.192 162.172)">
+2.00
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 356.192 137.715)">
+2.25
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 356.192 113.257996)">
+2.50
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 356.192 88.800995)">
+2.75
+</text>
+<text dominant-baseline="middle" fill="#000000" font-family="sans-serif" font-size="12" font-stretch="normal" font-style="normal" font-weight="400" text-anchor="start" text-rendering="optimizeLegibility" transform="matrix(1 0 0 1 356.192 64.343994)">
+3.00
+</text>
+<rect fill="none" height="235.656" stroke="#000000" stroke-width="1" width="328.192" x="20" y="44.344"/>
+</svg>

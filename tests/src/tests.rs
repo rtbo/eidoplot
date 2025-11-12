@@ -25,7 +25,13 @@ where
 
 fn line() -> ir::series::Line {
     let x = vec![1.0, 2.0, 3.0];
-    let y = x.clone();
+    let y = vec![1.0, 2.0, 3.0];
+    ir::series::Line::new(x.into(), y.into())
+}
+
+fn line2(x: &[f64], y: &[f64]) -> ir::series::Line {
+    let x = x.to_vec();
+    let y = y.to_vec();
     ir::series::Line::new(x.into(), y.into())
 }
 

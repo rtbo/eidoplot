@@ -868,7 +868,9 @@ where
         let mut rect = *plot_rect;
         for axis in axes.iter() {
             if axis.side() == side {
-                let shift = self.draw_axis(ctx, axis, &rect)?;
+                let shift = self.draw_axis(ctx, axis, &rect)?
+                    + missing_params::AXIS_MARGIN
+                    + missing_params::AXIS_SPINE_WIDTH;
                 rect = match side {
                     Side::Top => rect.shifted_top_side(-shift),
                     Side::Right => rect.shifted_right_side(shift),

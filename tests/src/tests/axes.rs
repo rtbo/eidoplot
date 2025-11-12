@@ -1,6 +1,6 @@
 use eidoplot::{ir, style};
 
-use super::{fig_small, line};
+use super::{fig_small, line, line2};
 use crate::{TestHarness, assert_fig_eq_ref};
 
 #[test]
@@ -246,4 +246,85 @@ fn axes_pi_locator_minor() {
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/pi-locator-minor");
+}
+
+#[test]
+fn axes_top_right() {
+    let s1 = line();
+    let plot = ir::Plot::new(vec![s1.into()])
+        .with_x_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+                .with_opposite_side()
+        )
+        .with_y_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+                .with_opposite_side()
+        );
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/top-right");
+}
+
+#[test]
+fn axes_multiple_bl() {
+    let s1 = line();
+    let s2 = line2(&[4.0, 5.0, 6.0], &[6.0, 5.0, 4.0])
+        .with_x_axis(ir::axis::Ref::Id("x2".to_string()))
+        .with_y_axis(ir::axis::Ref::Id("y2".to_string()));
+    let plot = ir::Plot::new(vec![s1.into(), s2.into()])
+        .with_x_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+        )
+        .with_y_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+        )
+        .with_x_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+                .with_id("x2".to_string().into())
+        )
+        .with_y_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+                .with_id("y2".to_string().into())
+        );
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/multiple-bl");
+}
+
+#[test]
+fn axes_multiple_trbl() {
+    let s1 = line();
+    let s2 = line2(&[4.0, 5.0, 6.0], &[6.0, 5.0, 4.0])
+        .with_x_axis(ir::axis::Ref::Id("x2".to_string()))
+        .with_y_axis(ir::axis::Ref::Id("y2".to_string()));
+    let plot = ir::Plot::new(vec![s1.into(), s2.into()])
+        .with_x_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+        )
+        .with_y_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+        )
+        .with_x_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+                .with_id("x2".to_string().into())
+                .with_opposite_side(),
+        )
+        .with_y_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+                .with_id("y2".to_string().into())
+                .with_opposite_side(),
+        );
+    let fig = fig_small(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/multiple-trbl");
 }
