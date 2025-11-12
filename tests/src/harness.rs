@@ -29,16 +29,16 @@ pub trait TestHarness {
         Path::new(tests_dir).join("refs").join(file_name)
     }
 
-    fn actual_file_path(ref_name: &str) -> PathBuf {
+    fn failed_file_path(ref_name: &str) -> PathBuf {
         let file_name = format!("{}{}", ref_name, Self::fig_file_ext());
         let tests_dir = env!("CARGO_MANIFEST_DIR");
-        Path::new(tests_dir).join("actual").join(file_name)
+        Path::new(tests_dir).join("failed").join(file_name)
     }
 
-    fn diff_file_path(ref_name: &str) -> PathBuf {
+    fn failed_diff_file_path(ref_name: &str) -> PathBuf {
         let file_name = format!("{}{}", ref_name, Self::diff_file_suffix());
         let tests_dir = env!("CARGO_MANIFEST_DIR");
-        Path::new(tests_dir).join("actual").join(file_name)
+        Path::new(tests_dir).join("failed").join(file_name)
     }
 
     fn draw_fig(fig: &ir::Figure, theme: &Theme) -> Self::DrawnFig;
@@ -53,8 +53,8 @@ pub trait TestHarness {
 
     fn check_fig_eq_ref(fig: &ir::Figure, ref_name: &str, theme: &Theme) -> Result<(), String> {
         let ref_file = Self::ref_file_path(&ref_name);
-        let actual_file = Self::actual_file_path(&ref_name);
-        let diff_file = Self::diff_file_path(&ref_name);
+        let failed_file = Self::failed_file_path(&ref_name);
+        let failed_diff_file = Self::failed_diff_file_path(&ref_name);
 
         let actual_fig = Self::draw_fig(fig, theme);
 
@@ -62,48 +62,48 @@ pub trait TestHarness {
             std::fs::create_dir_all(ref_file.parent().unwrap()).unwrap();
             Self::serialize_fig(&ref_file, &actual_fig);
 
-            if std::fs::exists(&actual_file).unwrap() {
-                std::fs::remove_file(&actual_file).unwrap();
+            if std::fs::exists(&failed_file).unwrap() {
+                std::fs::remove_file(&failed_file).unwrap();
             }
-            if std::fs::exists(&diff_file).unwrap() {
-                std::fs::remove_file(&diff_file).unwrap();
+            if std::fs::exists(&failed_diff_file).unwrap() {
+                std::fs::remove_file(&failed_diff_file).unwrap();
             }
 
             return Ok(());
         }
 
         if !std::fs::exists(&ref_file).unwrap() {
-            std::fs::create_dir_all(actual_file.parent().unwrap()).unwrap();
-            Self::serialize_fig(actual_file.as_path(), &actual_fig);
+            std::fs::create_dir_all(failed_file.parent().unwrap()).unwrap();
+            Self::serialize_fig(failed_file.as_path(), &actual_fig);
             return Err(format!(
                 "No such {} ref: \"{}\"\n  Actual figure written to {}",
                 Self::id(),
                 ref_name,
-                actual_file.display()
+                failed_file.display()
             ));
         }
 
         let ref_fig = Self::deserialize_fig(&ref_file);
 
         if let Some(diff_fig) = Self::diff_fig(&actual_fig, &ref_fig) {
-            std::fs::create_dir_all(actual_file.parent().unwrap()).unwrap();
-            std::fs::create_dir_all(diff_file.parent().unwrap()).unwrap();
-            Self::serialize_fig(actual_file.as_path(), &actual_fig);
-            Self::serialize_diff(diff_file.as_path(), &diff_fig);
+            std::fs::create_dir_all(failed_file.parent().unwrap()).unwrap();
+            std::fs::create_dir_all(failed_diff_file.parent().unwrap()).unwrap();
+            Self::serialize_fig(failed_file.as_path(), &actual_fig);
+            Self::serialize_diff(failed_diff_file.as_path(), &diff_fig);
 
             Err(format!(
                 "{} assertion failed\n  Actual figure: {:?}\n     Ref figure: {:?}\n           Diff: {:?}",
                 Self::id(),
-                actual_file,
+                failed_file,
                 ref_file,
-                diff_file
+                failed_diff_file
             ))
         } else {
-            if std::fs::exists(&actual_file).unwrap() {
-                std::fs::remove_file(&actual_file).unwrap();
+            if std::fs::exists(&failed_file).unwrap() {
+                std::fs::remove_file(&failed_file).unwrap();
             }
-            if std::fs::exists(&diff_file).unwrap() {
-                std::fs::remove_file(&diff_file).unwrap();
+            if std::fs::exists(&failed_diff_file).unwrap() {
+                std::fs::remove_file(&failed_diff_file).unwrap();
             }
             Ok(())
         }
