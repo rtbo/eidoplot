@@ -15,7 +15,7 @@ pub mod color {
 pub use color::{Color, ColorU8, ResolveColor};
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Dash(Vec<f32>);
+pub struct Dash(pub Vec<f32>);
 
 impl Default for Dash {
     fn default() -> Self {
@@ -37,6 +37,12 @@ pub enum LinePattern {
 impl Default for LinePattern {
     fn default() -> Self {
         LinePattern::Solid
+    }
+}
+
+impl From<Dash> for LinePattern {
+    fn from(dash: Dash) -> Self {
+        LinePattern::Dash(dash)
     }
 }
 
@@ -74,6 +80,10 @@ impl<C: Color> Line<C> {
             opacity: Some(opacity),
             ..self
         }
+    }
+
+    pub fn with_pattern(self, pattern: LinePattern) -> Self {
+        Line { pattern, ..self }
     }
 
     pub fn as_stroke<'a, R>(&'a self, rc: &R) -> render::Stroke<'a>
