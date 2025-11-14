@@ -202,12 +202,16 @@ impl SvgSurface {
         let whole_txt = text.text.text();
 
         let mut dy = 0.0;
+        let mut last_height = 0.0;
 
         for line in text.text.lines().iter() {
             let mut line_node = element::TSpan::new(String::new())
                 .set("text-anchor", rich_text_anchor(align, line.main_dir()))
                 .set("x", 0.0);
+
+            let this_height = line.total_height();
             if dy != 0.0 {
+                dy += this_height - last_height;
                 line_node.assign("dy", dy);
             }
 
@@ -240,7 +244,8 @@ impl SvgSurface {
             }
             node.append(line_node);
 
-            dy += line.total_height();
+            last_height = this_height;
+            dy += last_height;
         }
 
         let yshift = rich_text_hor_yshift(&text.text);
