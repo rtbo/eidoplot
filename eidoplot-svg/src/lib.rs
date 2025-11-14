@@ -246,7 +246,7 @@ impl SvgSurface {
         let yshift = rich_text_hor_yshift(&text.text);
         let transform = text
             .transform
-            .post_concat(Transform::from_translate(0.0, yshift));
+            .pre_concat(Transform::from_translate(0.0, yshift));
         assign_transform(&mut node, Some(&transform));
 
         self.append_node(node);
