@@ -9,6 +9,13 @@ where
     ir::Figure::new(plots.into()).with_size(geom::Size::new(400.0, 300.0))
 }
 
+fn fig_mid<P>(plots: P) -> ir::Figure
+where
+    P: Into<ir::figure::Plots>,
+{
+    ir::Figure::new(plots.into()).with_size(geom::Size::new(600.0, 450.0))
+}
+
 fn fig_high<P>(plots: P) -> ir::Figure
 where
     P: Into<ir::figure::Plots>,

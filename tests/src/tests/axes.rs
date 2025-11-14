@@ -1,7 +1,7 @@
 use eidoplot::{ir, style};
 
 use super::{fig_small, line, line2};
-use crate::{TestHarness, assert_fig_eq_ref};
+use crate::{TestHarness, assert_fig_eq_ref, tests::fig_mid};
 
 #[test]
 fn axes_default() {
@@ -327,4 +327,38 @@ fn axes_multiple_trbl() {
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/multiple-trbl");
+}
+
+#[test]
+fn axes_multiple_trbl_titles() {
+    let s1 = line();
+    let s2 = line2(&[4.0, 5.0, 6.0], &[6.0, 5.0, 4.0])
+        .with_x_axis(ir::axis::Ref::Id("x2".to_string()))
+        .with_y_axis(ir::axis::Ref::Id("y2".to_string()));
+    let plot = ir::Plot::new(vec![s1.into(), s2.into()])
+        .with_x_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+                .with_title("x1".to_string().into())
+        )
+        .with_y_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+                .with_title("y1".to_string().into())
+        )
+        .with_x_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+                .with_title("x2".to_string().into())
+                .with_opposite_side(),
+        )
+        .with_y_axis(
+            ir::Axis::new()
+                .with_ticks(Default::default())
+                .with_title("y2".to_string().into())
+                .with_opposite_side(),
+        );
+    let fig = fig_mid(plot);
+
+    assert_fig_eq_ref!(&fig, "axes/multiple-trbl-titles");
 }
