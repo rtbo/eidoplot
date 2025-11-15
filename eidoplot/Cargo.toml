@@ -72,3 +72,6 @@ name = "subplots"
 [[example]]
 name = "subplots_eplt"
 required-features = ["dsl-diag"]
+
+[[example]]
+name = "time_series"
