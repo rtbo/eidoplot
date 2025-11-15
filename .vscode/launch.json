@@ -132,6 +132,17 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "time_series example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "time_series",
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "bidi_layout example",
             "cargo": {
                 "args": [

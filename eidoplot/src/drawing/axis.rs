@@ -6,7 +6,7 @@ use text::font;
 mod bounds;
 mod side;
 
-pub use bounds::{AsBoundRef, Bounds, BoundsRef, NumBounds};
+pub use bounds::{AsBoundRef, Bounds, BoundsRef, NumBounds, TimeBounds};
 pub use side::Side;
 
 use crate::drawing::scale::{self, CoordMap};
@@ -351,6 +351,27 @@ where
                     minor_ticks,
                 })
             }
+            Bounds::Time(tb) => {
+                let nb: NumBounds = (*tb).into();
+                let cm = scale::map_scale_coord_num(ir_axis.scale(), size_along, &nb, insets);
+                let nb = cm.axis_bounds().as_num().unwrap();
+                let tb: TimeBounds = nb.into();
+
+                let ticks = ir_axis
+                    .ticks()
+                    .map(|major_ticks| self.setup_time_ticks(major_ticks, tb, ir_axis.scale(), side))
+                    .transpose()?;
+
+                if ir_axis.minor_ticks().is_some() {
+                    return Err(Error::InconsistentIr("Minor ticks not supported for time axis".into()));
+                }
+
+                Ok(AxisScale::Num {
+                    cm,
+                    ticks,
+                    minor_ticks: None,
+                })
+            }
             Bounds::Cat(cats) => {
                 let bins = CategoryBins::new(size_along, insets, cats.clone());
                 let ticks = ir_axis
@@ -375,7 +396,7 @@ where
         let ticks_align = side.ticks_labels_align();
         let annot_align = side.annot_align();
 
-        let mut major_locs = ticks::locate_num(major_ticks.locator(), nb, scale);
+        let mut major_locs = ticks::locate_num(major_ticks.locator(), nb, scale)?;
         major_locs.retain(|l| nb.contains(*l));
 
         let lbl_formatter = ticks::num_label_formatter(major_ticks, nb, scale);
@@ -407,7 +428,7 @@ where
         scale: &ir::axis::Scale,
         nb: NumBounds,
     ) -> Result<MinorTicks, Error> {
-        let mut locs = ticks::locate_minor(minor_ticks.locator(), nb, scale);
+        let mut locs = ticks::locate_minor(minor_ticks.locator(), nb, scale)?;
         let major_locs = major_ticks.map(|t| t.ticks.as_slice()).unwrap_or(&[]);
 
         locs.retain(|l| {
@@ -419,6 +440,50 @@ where
         });
 
         Ok(MinorTicks { locs })
+    }
+
+    fn setup_time_ticks(
+        &self,
+        major_ticks: &ir::axis::Ticks,
+        tb: TimeBounds,
+        scale: &ir::axis::Scale,
+        side: Side,
+    ) -> Result<NumTicks, Error> {
+        let db: &font::Database = self.fontdb();
+        let font = major_ticks.font();
+
+        let ticks_align = side.ticks_labels_align();
+        let annot_align = side.annot_align();
+
+        if matches!(scale, ir::axis::Scale::Log(_)) {
+            return Err(Error::InconsistentIr(
+                "Log scale not supported for time axis".into(),
+            ));
+        }
+
+        let mut major_locs = ticks::locate_time(major_ticks.locator(), tb)?;
+        major_locs.retain(|l| tb.contains(*l));
+
+        let lbl_formatter = ticks::time_label_formatter(major_ticks, tb, scale)?;
+        let mut ticks = Vec::new();
+        for loc in major_locs.into_iter() {
+            let text = lbl_formatter.format_label(loc.into());
+            let lbl = text::LineText::new(text, ticks_align, font.size, font.font.clone(), db)?;
+            ticks.push(NumTick { loc: loc.timestamp(), lbl });
+        }
+
+        let annot = lbl_formatter
+            .axis_annotation()
+            .map(|l| {
+                text::LineText::new(l.to_string(), annot_align, font.size, font.font.clone(), db)
+            })
+            .transpose()?;
+
+        Ok(NumTicks {
+            ticks,
+            lbl_color: major_ticks.color(),
+            annot,
+        })
     }
 
     fn setup_cat_ticks(

@@ -1,4 +1,7 @@
-use crate::drawing::{Categories, Error};
+use crate::{
+    drawing::{Categories, Error},
+    time::{DateTime, TimeDelta},
+};
 
 /// Bounds of an axis
 #[derive(Debug, Clone, PartialEq)]
@@ -7,6 +10,8 @@ pub enum Bounds {
     Num(NumBounds),
     /// Category bounds
     Cat(Categories),
+    /// Time bounds
+    Time(TimeBounds),
 }
 
 impl From<NumBounds> for Bounds {
@@ -18,6 +23,12 @@ impl From<NumBounds> for Bounds {
 impl From<Categories> for Bounds {
     fn from(value: Categories) -> Self {
         Self::Cat(value)
+    }
+}
+
+impl From<TimeBounds> for Bounds {
+    fn from(value: TimeBounds) -> Self {
+        Self::Time(value)
     }
 }
 
@@ -39,8 +50,12 @@ impl Bounds {
                 }
                 Ok(())
             }
+            (Bounds::Time(a), BoundsRef::Time(b)) => {
+                a.unite_with(&b);
+                Ok(())
+            }
             _ => Err(Error::InconsistentAxisBounds(
-                "Cannot unite numerical and categorical axis bounds".into(),
+                "Cannot unite different axis bounds types".into(),
             )),
         }
     }
@@ -53,6 +68,8 @@ pub enum BoundsRef<'a> {
     Num(NumBounds),
     /// Category bounds
     Cat(&'a Categories),
+    /// Time bounds
+    Time(TimeBounds),
 }
 
 impl BoundsRef<'_> {
@@ -60,6 +77,7 @@ impl BoundsRef<'_> {
         match self {
             &BoundsRef::Num(n) => n.into(),
             &BoundsRef::Cat(c) => c.clone().into(),
+            &BoundsRef::Time(n) => n.into(),
         }
     }
 }
@@ -73,6 +91,12 @@ impl From<NumBounds> for BoundsRef<'_> {
 impl<'a> From<&'a Categories> for BoundsRef<'a> {
     fn from(value: &'a Categories) -> Self {
         Self::Cat(value)
+    }
+}
+
+impl From<TimeBounds> for BoundsRef<'_> {
+    fn from(value: TimeBounds) -> Self {
+        Self::Time(value)
     }
 }
 
@@ -115,6 +139,7 @@ impl AsBoundRef for Bounds {
         match self {
             &Bounds::Num(n) => n.into(),
             &Bounds::Cat(ref c) => c.into(),
+            &Bounds::Time(n) => n.into(),
         }
     }
 
@@ -122,6 +147,7 @@ impl AsBoundRef for Bounds {
         match self {
             Bounds::Num(..) => None,
             Bounds::Cat(c) => Some(c),
+            Bounds::Time(..) => None,
         }
     }
 }
@@ -135,6 +161,7 @@ impl AsBoundRef for BoundsRef<'_> {
         match self {
             BoundsRef::Num(..) => None,
             &BoundsRef::Cat(c) => Some(c),
+            BoundsRef::Time(..) => None,
         }
     }
 }
@@ -195,6 +222,67 @@ impl NumBounds {
     pub fn unite_with(&mut self, bounds: &NumBounds) {
         self.0 = self.0.min(bounds.0);
         self.1 = self.1.max(bounds.1);
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TimeBounds(DateTime, DateTime);
+
+impl From<DateTime> for TimeBounds {
+    fn from(value: DateTime) -> Self {
+        Self(value, value)
+    }
+}
+
+impl From<(DateTime, DateTime)> for TimeBounds {
+    fn from(value: (DateTime, DateTime)) -> Self {
+        Self(value.0.min(value.1), value.0.max(value.1))
+    }
+}
+
+impl TimeBounds {
+    pub fn start(&self) -> DateTime {
+        self.0
+    }
+
+    pub fn end(&self) -> DateTime {
+        self.1
+    }
+
+    pub fn span(&self) -> TimeDelta {
+        self.1 - self.0
+    }
+
+    pub fn contains(&self, point: DateTime) -> bool {
+        // TODO: handle very large and very low values
+        const EPS: f64 = 1e-10;
+        let ts = point.timestamp();
+        ts >= (self.0.timestamp() - EPS) && ts <= (self.1.timestamp() + EPS)
+    }
+
+    // pub fn add_sample(&mut self, point: DateTime) {
+    //     self.0 = self.0.min(point.timestamp());
+    //     self.1 = self.1.max(point.timestamp());
+    // }
+
+    pub fn unite_with(&mut self, bounds: &TimeBounds) {
+        self.0 = self.0.min(bounds.0);
+        self.1 = self.1.max(bounds.1);
+    }
+}
+
+impl From<TimeBounds> for NumBounds {
+    fn from(value: TimeBounds) -> Self {
+        Self(value.0.timestamp(), value.1.timestamp())
+    }
+}
+
+impl From<NumBounds> for TimeBounds {
+    fn from(value: NumBounds) -> Self {
+        Self(
+            DateTime::from_timestamp(value.0).expect("Should be valid timestamp"),
+            DateTime::from_timestamp(value.1).expect("Should be valid timestamp"),
+        )
     }
 }
 

@@ -1,60 +1,223 @@
 use crate::data;
-use crate::drawing::{Categories, axis};
-use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
+use crate::drawing::{Categories, Error, axis};
+use crate::ir::axis::ticks::{Formatter, Locator, Ticks, TimeFormatter, TimeLocator};
 use crate::ir::axis::{LogScale, Scale};
+use crate::time::{DateTime, DateTimeComps, TimeDelta};
 
-pub fn locate_num(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<f64> {
+pub fn locate_num(
+    locator: &Locator,
+    nb: axis::NumBounds,
+    scale: &Scale,
+) -> Result<Vec<f64>, Error> {
     match (locator, scale) {
-        (Locator::Auto, Scale::Auto | Scale::Linear { .. }) => MaxN::new_auto().ticks(nb),
+        (Locator::Auto, Scale::Auto | Scale::Linear { .. }) => Ok(MaxN::new_auto().ticks(nb)),
         (Locator::Auto, Scale::Log(LogScale { base, .. })) => {
-            LogLocator::new_major(*base).ticks(nb)
+            Ok(LogLocator::new_major(*base).ticks(nb))
         }
         (Locator::MaxN { bins, steps }, Scale::Auto | Scale::Linear { .. }) => {
             let ticker = MaxN::new(*bins, steps.as_slice());
-            ticker.ticks(nb)
+            Ok(ticker.ticks(nb))
         }
         (Locator::PiMultiple { bins }, Scale::Auto | Scale::Linear { .. }) => {
             let ticker = MaxN::new_pi(*bins);
-            ticker.ticks(nb)
+            Ok(ticker.ticks(nb))
         }
-        (Locator::Log { base, .. }, Scale::Auto) => LogLocator::new_major(*base).ticks(nb),
+        (Locator::Log { base, .. }, Scale::Auto) => Ok(LogLocator::new_major(*base).ticks(nb)),
         (Locator::Log { base: loc_base, .. }, Scale::Log(LogScale { base, .. }))
             if loc_base == base =>
         {
-            LogLocator::new_major(*base).ticks(nb)
+            Ok(LogLocator::new_major(*base).ticks(nb))
         }
-        _ => panic!(
-            "Unsupported locator/scale combination: {:?}/{:?}\n(FIXME: error check during IR construction)",
+        _ => Err(Error::InconsistentIr(format!(
+            "Unsupported locator/scale combination: {:?}/{:?}",
             locator, scale
-        ),
+        ))),
     }
 }
 
-pub fn locate_minor(locator: &Locator, nb: axis::NumBounds, scale: &Scale) -> Vec<f64> {
+pub fn locate_minor(
+    locator: &Locator,
+    nb: axis::NumBounds,
+    scale: &Scale,
+) -> Result<Vec<f64>, Error> {
     match (locator, scale) {
-        (Locator::Auto, Scale::Auto | Scale::Linear { .. }) => MaxN::new_auto_minor().ticks(nb),
+        (Locator::Auto, Scale::Auto | Scale::Linear { .. }) => Ok(MaxN::new_auto_minor().ticks(nb)),
         (Locator::Auto, Scale::Log(LogScale { base, .. })) => {
-            LogLocator::new_minor(*base).ticks(nb)
+            Ok(LogLocator::new_minor(*base).ticks(nb))
         }
         (Locator::MaxN { bins, steps }, Scale::Auto | Scale::Linear { .. }) => {
             let ticker = MaxN::new(*bins, steps.as_slice());
-            ticker.ticks(nb)
+            Ok(ticker.ticks(nb))
         }
         (Locator::PiMultiple { bins }, Scale::Auto | Scale::Linear { .. }) => {
             let ticker = MaxN::new_pi(*bins);
-            ticker.ticks(nb)
+            Ok(ticker.ticks(nb))
         }
-        (Locator::Log { base, .. }, Scale::Auto) => LogLocator::new_minor(*base).ticks(nb),
+        (Locator::Log { base, .. }, Scale::Auto) => Ok(LogLocator::new_minor(*base).ticks(nb)),
         (Locator::Log { base: loc_base, .. }, Scale::Log(LogScale { base, .. }))
             if loc_base == base =>
         {
-            LogLocator::new_minor(*base).ticks(nb)
+            Ok(LogLocator::new_minor(*base).ticks(nb))
         }
-        _ => panic!(
-            "Unsupported locator/scale combination: {:?}/{:?}\n(FIXME: error check during IR construction)",
+        _ => Err(Error::InconsistentIr(format!(
+            "Unsupported locator/scale combination: {:?}/{:?}",
             locator, scale
-        ),
+        ))),
     }
+}
+
+pub fn locate_time(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTime>, Error> {
+    match locator {
+        Locator::Auto | Locator::Time(TimeLocator::Auto) => {
+            let span = tb.span();
+
+            // heuristics to pick a locator that will yield ~ 5 to 10 ticks
+            let locator = if span > TimeDelta::from_days(5.0 * 365.0) {
+                let years = span.seconds() / (10.0 * 365.0 * 86400.0);
+                Locator::Time(TimeLocator::Years((years as u32).max(1)))
+            } else if span > TimeDelta::from_days(5.0 * 30.0) {
+                let months = span.seconds() / (10.0 * 30.0 * 86400.0);
+                Locator::Time(TimeLocator::Months((months as u32).max(1)))
+            } else if span > TimeDelta::from_days(5.0 * 7.0) {
+                let weeks = span.seconds() / (10.0 * 7.0 * 86400.0);
+                Locator::Time(TimeLocator::Weeks((weeks as u32).max(1)))
+            } else if span > TimeDelta::from_days(5.0) {
+                let days = span.seconds() / (10.0 * 86400.0);
+                Locator::Time(TimeLocator::Days((days as u32).max(1)))
+            } else if span > TimeDelta::from_hours(5.0) {
+                let hours = span.seconds() / (10.0 * 3600.0);
+                Locator::Time(TimeLocator::Hours((hours as u32).max(1)))
+            } else if span > TimeDelta::from_minutes(5.0) {
+                let minutes = span.seconds() / (10.0 * 60.0);
+                Locator::Time(TimeLocator::Minutes((minutes as u32).max(1)))
+            } else if span > TimeDelta::from_seconds(5.0) {
+                let seconds = span.seconds() / 10.0;
+                Locator::Time(TimeLocator::Seconds((seconds as u32).max(1)))
+            } else {
+                let micro = span.seconds() * 1_000_000.0 / 10.0;
+                Locator::Time(TimeLocator::Micros((micro as u32).max(1)))
+            };
+            locate_time(&locator, tb)
+        }
+        &Locator::Time(TimeLocator::Years(n)) => {
+            let start = tb.start().to_comps();
+            let end = tb.end().to_comps();
+            let mut dt = DateTimeComps {
+                year: start.year,
+                ..DateTimeComps::epoch()
+            };
+            let mut res = Vec::new();
+            while dt < end {
+                res.push(dt.try_into().unwrap());
+                dt.year += n as i32;
+            }
+            Ok(res)
+        }
+        &Locator::Time(TimeLocator::Months(n)) => {
+            let start = tb.start().to_comps();
+            let end = tb.end().to_comps();
+            let mut dt = DateTimeComps {
+                year: start.year,
+                month: start.month,
+                ..DateTimeComps::epoch()
+            };
+            let mut res = Vec::new();
+            while dt < end {
+                res.push(dt.try_into().unwrap());
+                dt.month += n;
+                if dt.month > 12 {
+                    dt.year += 1;
+                    dt.month -= 12;
+                }
+            }
+            Ok(res)
+        }
+        &Locator::Time(TimeLocator::Weeks(n)) => {
+            // TODO: scroll back to Monday
+            let start = tb.start();
+            let end = tb.end();
+            let td = TimeDelta::from_seconds(7.0 * 24.0 * 3600.0) * n as f64;
+            Ok(locate_time_even(start, end, td))
+        }
+        &Locator::Time(TimeLocator::Days(n)) => {
+            // TODO: scroll back to Monday
+            let start = tb.start().to_comps();
+            let start = DateTimeComps {
+                year: start.year,
+                month: start.month,
+                day: start.day,
+                ..DateTimeComps::epoch()
+            };
+            let td = TimeDelta::from_seconds(24.0 * 3600.0) * n as f64;
+            let end = tb.end();
+            Ok(locate_time_even(start.try_into().unwrap(), end, td))
+        }
+        &Locator::Time(TimeLocator::Hours(n)) => {
+            // TODO: scroll back to Monday
+            let start = tb.start().to_comps();
+            let start = DateTimeComps {
+                year: start.year,
+                month: start.month,
+                day: start.day,
+                ..DateTimeComps::epoch()
+            };
+            let end = tb.end();
+            let td = TimeDelta::from_seconds(3600.0) * n as f64;
+            Ok(locate_time_even(start.try_into().unwrap(), end, td))
+        }
+        &Locator::Time(TimeLocator::Minutes(n)) => {
+            // TODO: scroll back to Monday
+            let start = tb.start().to_comps();
+            let start = DateTimeComps {
+                year: start.year,
+                month: start.month,
+                day: start.day,
+                ..DateTimeComps::epoch()
+            };
+            let end = tb.end();
+            let td = TimeDelta::from_seconds(60.0) * n as f64;
+            Ok(locate_time_even(start.try_into().unwrap(), end, td))
+        }
+        &Locator::Time(TimeLocator::Seconds(n)) => {
+            // TODO: scroll back to Monday
+            let start = tb.start().to_comps();
+            let start = DateTimeComps {
+                year: start.year,
+                month: start.month,
+                day: start.day,
+                ..DateTimeComps::epoch()
+            };
+            let end = tb.end();
+            let td = TimeDelta::from_seconds(1.0) * n as f64;
+            Ok(locate_time_even(start.try_into().unwrap(), end, td))
+        }
+        &Locator::Time(TimeLocator::Micros(n)) => {
+            // TODO: scroll back to Monday
+            let start = tb.start().to_comps();
+            let start = DateTimeComps {
+                year: start.year,
+                month: start.month,
+                day: start.day,
+                ..DateTimeComps::epoch()
+            };
+            let end = tb.end();
+            let td = TimeDelta::from_seconds(1E-6) * n as f64;
+            Ok(locate_time_even(start.try_into().unwrap(), end, td))
+        }
+        _ => Err(Error::InconsistentIr(format!(
+            "Inconsistent ticks locator for time axis: {locator:?}"
+        ))),
+    }
+}
+
+fn locate_time_even(start: DateTime, end: DateTime, td: TimeDelta) -> Vec<DateTime> {
+    let mut res = Vec::new();
+    let mut cur = start;
+    while cur < end {
+        res.push(cur);
+        cur += td;
+    }
+    res
 }
 
 const AUTO_BINS: u32 = 10;
@@ -247,9 +410,10 @@ pub fn num_label_formatter(
         Some(Formatter::Auto | Formatter::SharedAuto) => {
             auto_label_formatter(ticks.locator(), ab, scale)
         }
-        Some(Formatter::Prec(prec)) => Box::new(PrecLabelFormat(prec)),
+        Some(Formatter::Prec(prec)) => Box::new(PrecLabelFormat(*prec)),
         Some(Formatter::Percent) => Box::new(PercentLabelFormat),
         None => Box::new(NullFormat),
+        _ => todo!(),
     }
 }
 
@@ -266,6 +430,62 @@ fn auto_label_formatter(
         (Locator::Auto, _) => Box::new(PrecLabelFormat(2)),
         _ => todo!(),
     }
+}
+
+pub fn time_label_formatter(
+    ticks: &Ticks,
+    tb: axis::TimeBounds,
+    scale: &Scale,
+) -> Result<Box<dyn LabelFormatter>, Error> {
+    match ticks.formatter() {
+        Some(Formatter::Auto) if scale.is_shared() => Ok(Box::new(NullFormat)),
+        Some(Formatter::Auto | Formatter::SharedAuto) => {
+            auto_time_label_formatter(tb)
+        }
+        Some(Formatter::Time(TimeFormatter::Auto)) => {
+            auto_time_label_formatter(tb)
+        },
+        Some(Formatter::Time(TimeFormatter::DateTime)) => {
+            Ok(Box::new(TimeLabelFormat { fmt: "%Y-%m-%d %H:%M:%S".to_string() }))
+        },
+        Some(Formatter::Time(TimeFormatter::Date)) => {
+            Ok(Box::new(TimeLabelFormat { fmt: "%Y-%m-%d".to_string() }))
+        }
+        Some(Formatter::Time(TimeFormatter::Time)) => {
+            Ok(Box::new(TimeLabelFormat { fmt: "%H:%M:%S".to_string() }))
+        }
+        Some(Formatter::Time(TimeFormatter::Custom(fmt))) => {
+            Ok(Box::new(TimeLabelFormat { fmt: fmt.clone() }))
+        }
+        None => Ok(Box::new(NullFormat)),
+        _ => todo!(),
+    }
+}
+
+fn auto_time_label_formatter(
+    tb: axis::TimeBounds,
+) -> Result<Box<dyn LabelFormatter>, Error> {
+    let start_date = tb.start().to_date();
+    let end_date = tb.end().to_date();
+    let span = tb.span();
+
+    let fmt = if start_date == end_date {
+        if span > TimeDelta::from_minutes(10.0) {
+            "%H:%M"
+        } else if span > TimeDelta::from_seconds(10.0) {
+            "%H:%M:%S"
+        } else {
+            "%H:%M:%S%.f"
+        }
+    } else if span < TimeDelta::from_days(10.0) {
+        "%Y-%m-%d %H:%M"
+    } else if span < TimeDelta::from_days(10.0 * 30.0) {
+        "%Y-%m-%d"
+    } else {
+        "%Y-%m"
+    };
+
+    Ok(Box::new(TimeLabelFormat { fmt: fmt.to_string() }))
 }
 
 pub trait LabelFormatter {
@@ -324,6 +544,17 @@ impl LabelFormatter for PercentLabelFormat {
     fn format_label(&self, data: data::Sample) -> String {
         let data = data.as_num().unwrap();
         format!("{:.0}%", data * 100.0)
+    }
+}
+
+struct TimeLabelFormat {
+    fmt: String,
+}
+
+impl LabelFormatter for TimeLabelFormat {
+    fn format_label(&self, data: data::Sample) -> String {
+        let dt = data.as_time().unwrap();
+        format!("{}", dt.fmt_to_string(&self.fmt))
     }
 }
 

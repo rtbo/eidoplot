@@ -24,6 +24,7 @@ cargo run --example text_line
 cargo run --example text_rich
 
 cargo run --example bars -- ${POS_ARGS[@]}
+cargo run --example bitcoin -- ${POS_ARGS[@]}
 cargo run --example bode_rlc -- ${POS_ARGS[@]}
 cargo run --example gauss -- ${POS_ARGS[@]}
 cargo run --example iris -- ${POS_ARGS[@]}

@@ -32,6 +32,9 @@ dsl-diag = ["dep:miette", "eidoplot-dsl/diag"]
 name = "bars"
 
 [[example]]
+name = "bitcoin"
+
+[[example]]
 name = "bode_rlc"
 
 [[example]]

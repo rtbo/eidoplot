@@ -1,3 +1,6 @@
+
+use crate::time::DateTime;
+
 #[cfg(feature = "polars")]
 pub mod polars;
 
@@ -7,6 +10,7 @@ pub enum Sample<'a> {
     Null,
     Num(f64),
     Cat(&'a str),
+    Time(DateTime),
 }
 
 impl Sample<'_> {
@@ -28,11 +32,19 @@ impl Sample<'_> {
         }
     }
 
+    pub fn as_time(&self) -> Option<DateTime> {
+        match self {
+            Sample::Time(v) => Some(*v),
+            _ => None,
+        }
+    }
+
     pub fn to_owned(&self) -> OwnedSample {
         match self {
             Sample::Null => OwnedSample::Null,
             Sample::Num(v) => OwnedSample::Num(*v),
             Sample::Cat(v) => OwnedSample::Cat(v.to_string()),
+            Sample::Time(v) => OwnedSample::Time(*v),
         }
     }
 }
@@ -88,12 +100,28 @@ impl<'a> From<Option<&'a str>> for Sample<'a> {
     }
 }
 
+impl From<DateTime> for Sample<'_> {
+    fn from(val: DateTime) -> Self {
+        Sample::Time(val)
+    }
+}
+
+impl From<Option<DateTime>> for Sample<'_> {
+    fn from(val: Option<DateTime>) -> Self {
+        match val {
+            Some(v) => Sample::Time(v),
+            None => Sample::Null,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq)]
 pub enum OwnedSample {
     #[default]
     Null,
     Num(f64),
     Cat(String),
+    Time(DateTime),
 }
 
 impl OwnedSample {
@@ -120,6 +148,7 @@ impl OwnedSample {
             OwnedSample::Null => Sample::Null,
             OwnedSample::Num(v) => Sample::Num(*v),
             OwnedSample::Cat(v) => Sample::Cat(v.as_str()),
+            OwnedSample::Time(v) => Sample::Time(*v),
         }
     }
 }
@@ -181,6 +210,21 @@ impl From<Option<String>> for OwnedSample {
     }
 }
 
+impl From<DateTime> for OwnedSample {
+    fn from(val: DateTime) -> Self {
+        OwnedSample::Time(val)
+    }
+}
+
+impl From<Option<DateTime>> for OwnedSample {
+    fn from(val: Option<DateTime>) -> Self {
+        match val {
+            Some(v) => OwnedSample::Time(v),
+            None => OwnedSample::Null,
+        }
+    }
+}
+
 /// Trait for a column of unspecified type
 pub trait Column: std::fmt::Debug {
     fn len(&self) -> usize;
@@ -188,7 +232,9 @@ pub trait Column: std::fmt::Debug {
     fn len_some(&self) -> usize;
 
     fn iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
-        if let Some(iter) = self.as_i64_iter() {
+        if let Some(iter) = self.as_time_iter() {
+            Box::new(iter.map(Sample::from))
+        } else if let Some(iter) = self.as_i64_iter() {
             Box::new(iter.map(Sample::from))
         } else if let Some(iter) = self.as_f64_iter() {
             Box::new(iter.map(Sample::from))
@@ -209,6 +255,10 @@ pub trait Column: std::fmt::Debug {
         None
     }
 
+    fn time(&self) -> Option<&dyn TimeColumn> {
+        None
+    }
+
     fn as_f64_iter(&self) -> Option<Box<dyn Iterator<Item = Option<f64>> + '_>> {
         self.f64().map(|c| c.iter())
     }
@@ -218,6 +268,10 @@ pub trait Column: std::fmt::Debug {
     }
     fn as_str_iter(&self) -> Option<Box<dyn Iterator<Item = Option<&str>> + '_>> {
         self.str().map(|c| c.iter())
+    }
+
+    fn as_time_iter(&self) -> Option<Box<dyn Iterator<Item = Option<DateTime>> + '_>> {
+        self.time().map(|c| c.iter())
     }
 }
 
@@ -281,6 +335,32 @@ pub trait StrColumn: std::fmt::Debug {
     }
 
     fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_>;
+}
+
+pub trait TimeColumn: std::fmt::Debug {
+    fn len(&self) -> usize;
+
+    fn len_some(&self) -> usize {
+        self.iter().filter(|v| v.is_some()).count()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_>;
+
+    fn minmax(&self) -> Option<(DateTime, DateTime)> {
+        let mut res: Option<(DateTime, DateTime)> = None;
+        for v in self.iter() {
+            match (v, res) {
+                (None, _) => continue,
+                (Some(v), Some((min, max))) => {
+                    res = Some((min.min(v), max.max(v)));
+                }
+                (Some(v), None) => {
+                    res = Some((v, v));
+                }
+            }
+        }
+        res
+    }
 }
 
 /// Trait for a table-like data source
@@ -403,6 +483,48 @@ where
     }
 }
 
+#[derive(Debug)]
+pub struct TCol<'a>(pub &'a [DateTime]);
+
+impl TimeColumn for TCol<'_> {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+    fn len_some(&self) -> usize {
+        self.0.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_> {
+        Box::new(self.0.iter().copied().map(Some))
+    }
+}
+
+impl F64Column for TCol<'_> {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+    fn len_some(&self) -> usize {
+        self.0.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(self.0.iter().map(|dt| dt.timestamp()).map(Some))
+    }
+}
+
+impl Column for TCol<'_> {
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+    fn len_some(&self) -> usize {
+        self.0.len()
+    }
+    fn f64(&self) -> Option<&dyn F64Column> {
+        Some(self)
+    }
+    fn time(&self) -> Option<&dyn TimeColumn> {
+        Some(self)
+    }
+}
+
 impl F64Column for Vec<f64> {
     fn len(&self) -> usize {
         self.len()
@@ -440,7 +562,7 @@ impl F64Column for Vec<Option<i64>> {
     }
 
     fn len_some(&self) -> usize {
-        self.len()
+        self.as_slice().iter().filter(|v| v.is_some()).count()
     }
 
     fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
@@ -468,7 +590,7 @@ impl I64Column for Vec<Option<i64>> {
     }
 
     fn len_some(&self) -> usize {
-        self.len()
+        self.as_slice().iter().filter(|v| v.is_some()).count()
     }
 
     fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
@@ -523,6 +645,76 @@ impl StrColumn for Vec<&str> {
     }
     fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
         Box::new(self.as_slice().iter().map(|s| Some(*s)))
+    }
+}
+
+impl TimeColumn for Vec<DateTime> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_> {
+        Box::new(self.as_slice().iter().map(|v| Some(*v)))
+    }
+}
+
+impl TimeColumn for Vec<Option<DateTime>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_> {
+        Box::new(self.as_slice().iter().copied())
+    }
+}
+
+impl F64Column for Vec<DateTime> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(self.as_slice().iter().map(|v| Some(v.timestamp())))
+    }
+}
+
+impl F64Column for Vec<Option<DateTime>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_some()).count()
+    }
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(self.as_slice().iter().copied().map(|v| v.map(|v| v.timestamp())))
+    }
+}
+
+impl Column for Vec<DateTime> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+    fn time(&self) -> Option<&dyn TimeColumn> {
+        Some(self)
+    }
+}
+
+impl Column for Vec<Option<DateTime>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_some()).count()
+    }
+
+    fn time(&self) -> Option<&dyn TimeColumn> {
+        Some(self)
     }
 }
 
@@ -602,6 +794,8 @@ pub enum VecColumn {
     F64(Vec<f64>),
     I64(Vec<Option<i64>>),
     Str(Vec<Option<String>>),
+
+    Time(Vec<Option<DateTime>>),
 }
 
 impl From<Vec<f64>> for VecColumn {
@@ -642,6 +836,8 @@ impl Column for VecColumn {
             VecColumn::F64(v) => v.len(),
             VecColumn::I64(v) => v.len(),
             VecColumn::Str(v) => v.len(),
+
+            VecColumn::Time(v) => v.len(),
         }
     }
 
@@ -650,6 +846,8 @@ impl Column for VecColumn {
             VecColumn::F64(v) => <dyn F64Column>::len_some(v),
             VecColumn::I64(v) => <dyn I64Column>::len_some(v),
             VecColumn::Str(v) => v.len_some(),
+
+            VecColumn::Time(v) => <dyn TimeColumn>::len_some(v),
         }
     }
 
@@ -658,6 +856,8 @@ impl Column for VecColumn {
             VecColumn::F64(v) => Box::new(v.as_slice().iter().map(|v| (*v).into())),
             VecColumn::I64(v) => Box::new(v.as_slice().iter().map(|v| (*v).into())),
             VecColumn::Str(v) => Box::new(v.iter().map(|v| v.into())),
+
+            VecColumn::Time(v) => Box::new(v.as_slice().iter().map(|v| (*v).into())),
         }
     }
 
@@ -679,6 +879,13 @@ impl Column for VecColumn {
     fn str(&self) -> Option<&dyn StrColumn> {
         match self {
             VecColumn::Str(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    fn time(&self) -> Option<&dyn TimeColumn> {
+        match self {
+            VecColumn::Time(v) => Some(v),
             _ => None,
         }
     }
@@ -710,6 +917,8 @@ impl TableSource {
                     VecColumn::F64(vec) => vec.push(f64::NAN),
                     VecColumn::I64(vec) => vec.push(None),
                     VecColumn::Str(vec) => vec.push(None),
+
+                    VecColumn::Time(vec) => vec.push(None),
                 }
             }
         }
@@ -732,6 +941,11 @@ impl TableSource {
 
     pub fn with_str_column(mut self, name: &str, col: Vec<Option<String>>) -> Self {
         self.add_column(name, VecColumn::Str(col));
+        self
+    }
+
+    pub fn with_time_column(mut self, name: &str, col: Vec<Option<DateTime>>) -> Self {
+        self.add_column(name, VecColumn::Time(col));
         self
     }
 
@@ -780,6 +994,11 @@ impl std::fmt::Debug for TableSource {
                 },
                 VecColumn::Str(v) => match v.get(row) {
                     Some(Some(s)) => s.clone(),
+                    _ => "(null)".to_string(),
+                },
+
+                VecColumn::Time(v) => match v.get(row) {
+                    Some(Some(t)) => format!("{}", t),
                     _ => "(null)".to_string(),
                 },
             }

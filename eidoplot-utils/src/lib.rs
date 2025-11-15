@@ -1,3 +1,4 @@
+use eidoplot::time::DateTime;
 use eidoplot::data::{TableSource, VecColumn};
 
 /// Create a linearly spaced vector of `num` elements between `start` and `end`
@@ -14,6 +15,18 @@ pub fn logspace(start: f64, end: f64, num: usize) -> Vec<f64> {
     (0..num)
         .map(|i| 10f64.powf(log_start + i as f64 * step))
         .collect()
+}
+
+/// Create a linearly spaced time vector of `num` elements between `start` and `end`
+pub fn timespace(start: DateTime, end: DateTime, num: usize) -> Vec<DateTime> {
+    let step = (end - start) / (num as f64 - 1.0);
+    let mut result = Vec::with_capacity(num);
+    let mut cur = start;
+    for _ in 0..num {
+        result.push(cur);
+        cur += step;
+    }
+    result
 }
 
 #[derive(Debug, Clone, Copy)]

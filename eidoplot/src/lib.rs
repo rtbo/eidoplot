@@ -40,6 +40,7 @@ pub mod geom;
 pub mod ir;
 pub mod render;
 pub mod style;
+pub mod time;
 
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters

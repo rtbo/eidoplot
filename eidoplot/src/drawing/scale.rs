@@ -9,6 +9,7 @@ pub trait CoordMap: std::fmt::Debug {
     fn map_coord(&self, sample: data::Sample) -> Option<f32> {
         match sample {
             data::Sample::Num(n) => Some(self.map_coord_num(n)),
+            data::Sample::Time(n) => Some(self.map_coord_num(n.timestamp())),
             data::Sample::Cat(c) => Some(self.map_coord_cat(c)),
             _ => None,
         }

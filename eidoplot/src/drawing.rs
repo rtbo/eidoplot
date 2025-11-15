@@ -23,6 +23,7 @@ pub enum Error {
     UnknownAxisRef(ir::axis::Ref),
     IllegalAxisRef(ir::axis::Ref),
     UnboundedAxis,
+    InconsistentIr(String),
     InconsistentAxisBounds(String),
     InconsistentData(String),
     FontOrText(text::Error),
@@ -48,6 +49,7 @@ impl fmt::Display for Error {
             Error::UnknownAxisRef(axis_ref) => write!(f, "Unknown axis reference: {:?}", axis_ref),
             Error::IllegalAxisRef(axis_ref) => write!(f, "Illegal axis reference: {:?}", axis_ref),
             Error::UnboundedAxis => write!(f, "Unbounded axis, check data"),
+            Error::InconsistentIr(reason) => write!(f, "Inconsistent IR: {}", reason),
             Error::InconsistentAxisBounds(reason) => {
                 write!(f, "Inconsistent axis bounds: {}", reason)
             }
@@ -171,7 +173,9 @@ impl<T> F64ColumnExt for T where T: data::F64Column + ?Sized {}
 
 trait ColumnExt: data::Column {
     fn bounds(&self) -> Option<axis::Bounds> {
-        if let Some(num) = self.f64() {
+        if let Some(time) = self.time() {
+            time.minmax().map(|(min, max)| axis::Bounds::Time((min, max).into()))
+        } else if let Some(num) = self.f64() {
             num.minmax()
                 .map(|(min, max)| axis::Bounds::Num((min, max).into()))
         } else if let Some(cats) = self.str() {

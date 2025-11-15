@@ -1,7 +1,6 @@
 use std::f64::consts::PI;
 
 use eidoplot::{data, ir, style};
-use rand::SeedableRng;
 use rand_distr::{Distribution, Normal};
 
 mod common;
@@ -23,7 +22,7 @@ fn main() {
         .map(|&x| 1.0 / (SIGMA * (2.0 * PI).sqrt()) * (-0.5 * ((x - MU) / SIGMA).powf(2.0)).exp())
         .collect::<Vec<f64>>();
 
-    let mut rng = predictable_rng(None);
+    let mut rng = common::predictable_rng(None);
     let normal = Normal::new(MU, SIGMA).unwrap();
     let pop = (0..N_POP).map(|_| normal.sample(&mut rng)).collect();
 
@@ -71,9 +70,4 @@ fn main() {
     let data_source = data::TableSource::new().with_f64_column("pop".into(), pop);
 
     common::save_figure(&fig, &data_source, "gauss");
-}
-
-fn predictable_rng(seed: Option<u64>) -> impl rand::Rng {
-    let seed = seed.unwrap_or(586350478348);
-    rand_chacha::ChaCha8Rng::seed_from_u64(seed)
 }

@@ -2,6 +2,8 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use rand::SeedableRng;
+
 use eidoplot::drawing::{self, SurfaceExt};
 use eidoplot::style::series::palettes;
 use eidoplot::style::{self};
@@ -15,6 +17,13 @@ use eidoplot_text::fontdb;
 pub fn example_res(path: &str) -> PathBuf {
     let root = env!("CARGO_MANIFEST_DIR");
     PathBuf::from(root).join("examples").join(path)
+}
+
+/// Get a predictable random number generator
+#[allow(dead_code)]
+pub fn predictable_rng(seed: Option<u64>) -> impl rand::Rng {
+    let seed = seed.unwrap_or(586350478348);
+    rand_chacha::ChaCha8Rng::seed_from_u64(seed)
 }
 
 #[derive(Debug, Clone, Default)]

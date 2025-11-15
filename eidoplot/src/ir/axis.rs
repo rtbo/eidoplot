@@ -315,10 +315,33 @@ pub mod ticks {
             /// Number of bins (that is number of ticks - 1)
             bins: u32,
         },
+        /// Places ticks on a time scale
+        Time(TimeLocator),
+    }
+
+    /// Describes how to locate the ticks of an axis
+    #[derive(Debug, Default, Clone, Copy)]
+    pub enum TimeLocator {
+        #[default]
+        Auto,
+        Years(u32),
+        Months(u32),
+        Weeks(u32),
+        Days(u32),
+        Hours(u32),
+        Minutes(u32),
+        Seconds(u32),
+        Micros(u32),
+    }
+
+    impl From<TimeLocator> for Locator {
+        fn from(locator: TimeLocator) -> Self {
+            Locator::Time(locator)
+        }
     }
 
     /// Describes how to format the ticks labels
-    #[derive(Debug, Default, Clone, Copy)]
+    #[derive(Debug, Default, Clone)]
     pub enum Formatter {
         /// Automatic tick formatting.
         /// Depending on the scale and locator, the formatter will pick a suitable format.
@@ -333,6 +356,23 @@ pub mod ticks {
         Prec(usize),
         /// The labels are percentages (E.g. `0.5` will be formatted as `50%`)
         Percent,
+        /// Formats the time ticks
+        Time(TimeFormatter),
+    }
+
+    #[derive(Debug, Clone, Default)]
+    pub enum TimeFormatter {
+        /// Choose the format automatically according to time bounds
+        #[default]
+        Auto,
+        /// Format dates as `YYYY-MM-DD HH:MM:SS`
+        DateTime,
+        /// Format dates as `YYYY-MM-DD`
+        Date,
+        /// Format time as `HH:MM:SS`
+        Time,
+        /// Format the ticks with a custom format
+        Custom(String),
     }
 
     /// Describes the font of the ticks labels
@@ -426,8 +466,8 @@ pub mod ticks {
         }
         /// Formats the ticks labels.
         /// If None, no labels are shown, and the layout is packed accordingly.
-        pub fn formatter(&self) -> Option<Formatter> {
-            self.formatter
+        pub fn formatter(&self) -> Option<&Formatter> {
+            self.formatter.as_ref()
         }
         /// Font for the ticks labels
         pub fn font(&self) -> &TicksFont {
