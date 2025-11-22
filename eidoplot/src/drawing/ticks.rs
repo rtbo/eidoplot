@@ -419,7 +419,7 @@ pub fn num_label_formatter(
 
 fn auto_label_formatter(
     locator: &Locator,
-    _ab: axis::NumBounds,
+    ab: axis::NumBounds,
     scale: &Scale,
 ) -> Box<dyn LabelFormatter> {
     match (locator, scale) {
@@ -427,7 +427,17 @@ fn auto_label_formatter(
         (Locator::Auto, Scale::Log(LogScale { base, .. })) if *base == 10.0 => {
             Box::new(SciLabelFormat)
         }
-        (Locator::Auto, _) => Box::new(PrecLabelFormat(2)),
+        (Locator::Auto, _) => {
+            let min = ab.start().abs().min(ab.end().abs());
+            let max = ab.start().abs().max(ab.end().abs());
+            if max >= 10000.0 || min < 0.01 {
+                Box::new(SciLabelFormat)
+            } else if max >= 100.0 && min >= 1.0 {
+                Box::new(PrecLabelFormat(1))
+            } else {
+                Box::new(PrecLabelFormat(2))
+            }
+        }
         _ => todo!(),
     }
 }
@@ -519,7 +529,7 @@ struct SciLabelFormat;
 impl LabelFormatter for SciLabelFormat {
     fn format_label(&self, data: data::Sample) -> String {
         let data = data.as_num().unwrap();
-        format!("{data:e}")
+        format!("{data:.2e}")
     }
 }
 
