@@ -55,7 +55,7 @@ fn main() {
         .with_y_axis(price_axis)
         .with_y_axis(volume_axis)
         .with_legend(ir::plot::LegendPos::InTopLeft.into());
-    let fig = ir::Figure::new(plot.into());
+    let fig = ir::Figure::new(plot.into()).with_title("Bitcoin historical data".to_string().into());
 
     common::save_figure(&fig, &data_source, "bitcoin");
 }
