@@ -90,7 +90,7 @@ impl Side {
     }
 
     pub fn spine_path(&self, rect: &geom::Rect) -> geom::Path {
-        let mut builder= geom::PathBuilder::with_capacity(2, 2);
+        let mut builder = geom::PathBuilder::with_capacity(2, 2);
         match self {
             Side::Bottom => {
                 builder.move_to(rect.left(), rect.bottom());

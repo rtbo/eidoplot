@@ -2,8 +2,6 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use rand::SeedableRng;
-
 use eidoplot::drawing::{self, SurfaceExt};
 use eidoplot::style::series::palettes;
 use eidoplot::style::{self};
@@ -11,6 +9,7 @@ use eidoplot::{data, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 use eidoplot_text::fontdb;
+use rand::SeedableRng;
 
 /// Get the path to a file in the examples folder
 #[allow(dead_code)]

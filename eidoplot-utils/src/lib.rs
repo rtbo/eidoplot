@@ -318,8 +318,9 @@ fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), CsvParseErro
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use eidoplot::data::Source;
+
+    use super::*;
 
     pub const CSV_DATA: &str = "Int,Float,Str\n1,1.0,one\n2,2.0,two\n3,3.0,three\n";
 

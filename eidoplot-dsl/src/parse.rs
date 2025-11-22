@@ -239,10 +239,7 @@ where
                     span,
                 } => {
                     self.bump_token();
-                    let (end_span, func) = self.parse_func(ast::Ident {
-                        span: span,
-                        name,
-                    })?;
+                    let (end_span, func) = self.parse_func(ast::Ident { span: span, name })?;
                     let scalar = ast::Scalar {
                         span: (span.0, end_span),
                         kind: ast::ScalarKind::Func(func),
@@ -343,10 +340,7 @@ where
             None => return Err(Error::UnexpectedEndOfInput(args.span)),
         };
 
-        Ok((close_par_span.1, ast::Func {
-            name: ident,
-            args,
-        }))
+        Ok((close_par_span.1, ast::Func { name: ident, args }))
     }
 
     fn parse_struct_or_enum_or_seq(&mut self, ident: ast::Ident) -> Result<ast::Value> {

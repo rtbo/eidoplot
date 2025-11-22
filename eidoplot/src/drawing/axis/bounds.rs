@@ -1,7 +1,5 @@
-use crate::{
-    drawing::{Categories, Error},
-    time::{DateTime, TimeDelta},
-};
+use crate::drawing::{Categories, Error};
+use crate::time::{DateTime, TimeDelta};
 
 /// Bounds of an axis
 #[derive(Debug, Clone, PartialEq)]

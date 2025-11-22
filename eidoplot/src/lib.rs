@@ -45,7 +45,8 @@ pub mod time;
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters
 mod missing_params {
-    use crate::{geom, style::theme};
+    use crate::geom;
+    use crate::style::theme;
 
     pub const FIG_TITLE_MARGIN: f32 = 6.0;
 

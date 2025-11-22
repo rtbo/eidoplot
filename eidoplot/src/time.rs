@@ -1,8 +1,6 @@
 use core::{cmp, fmt, ops};
-use std::{
-    iter::Peekable,
-    str::{Chars, FromStr},
-};
+use std::iter::Peekable;
+use std::str::{Chars, FromStr};
 
 const EPOCH_YEAR: i32 = 2030;
 

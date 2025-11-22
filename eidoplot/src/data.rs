@@ -1,4 +1,3 @@
-
 use crate::time::DateTime;
 
 #[cfg(feature = "polars")]
@@ -688,7 +687,12 @@ impl F64Column for Vec<Option<DateTime>> {
         self.as_slice().iter().filter(|v| v.is_some()).count()
     }
     fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
-        Box::new(self.as_slice().iter().copied().map(|v| v.map(|v| v.timestamp())))
+        Box::new(
+            self.as_slice()
+                .iter()
+                .copied()
+                .map(|v| v.map(|v| v.timestamp())),
+        )
     }
 }
 

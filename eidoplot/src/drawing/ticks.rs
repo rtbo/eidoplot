@@ -449,21 +449,17 @@ pub fn time_label_formatter(
 ) -> Result<Box<dyn LabelFormatter>, Error> {
     match ticks.formatter() {
         Some(Formatter::Auto) if scale.is_shared() => Ok(Box::new(NullFormat)),
-        Some(Formatter::Auto | Formatter::SharedAuto) => {
-            auto_time_label_formatter(tb)
-        }
-        Some(Formatter::Time(TimeFormatter::Auto)) => {
-            auto_time_label_formatter(tb)
-        },
-        Some(Formatter::Time(TimeFormatter::DateTime)) => {
-            Ok(Box::new(TimeLabelFormat { fmt: "%Y-%m-%d %H:%M:%S".to_string() }))
-        },
-        Some(Formatter::Time(TimeFormatter::Date)) => {
-            Ok(Box::new(TimeLabelFormat { fmt: "%Y-%m-%d".to_string() }))
-        }
-        Some(Formatter::Time(TimeFormatter::Time)) => {
-            Ok(Box::new(TimeLabelFormat { fmt: "%H:%M:%S".to_string() }))
-        }
+        Some(Formatter::Auto | Formatter::SharedAuto) => auto_time_label_formatter(tb),
+        Some(Formatter::Time(TimeFormatter::Auto)) => auto_time_label_formatter(tb),
+        Some(Formatter::Time(TimeFormatter::DateTime)) => Ok(Box::new(TimeLabelFormat {
+            fmt: "%Y-%m-%d %H:%M:%S".to_string(),
+        })),
+        Some(Formatter::Time(TimeFormatter::Date)) => Ok(Box::new(TimeLabelFormat {
+            fmt: "%Y-%m-%d".to_string(),
+        })),
+        Some(Formatter::Time(TimeFormatter::Time)) => Ok(Box::new(TimeLabelFormat {
+            fmt: "%H:%M:%S".to_string(),
+        })),
         Some(Formatter::Time(TimeFormatter::Custom(fmt))) => {
             Ok(Box::new(TimeLabelFormat { fmt: fmt.clone() }))
         }
@@ -472,9 +468,7 @@ pub fn time_label_formatter(
     }
 }
 
-fn auto_time_label_formatter(
-    tb: axis::TimeBounds,
-) -> Result<Box<dyn LabelFormatter>, Error> {
+fn auto_time_label_formatter(tb: axis::TimeBounds) -> Result<Box<dyn LabelFormatter>, Error> {
     let start_date = tb.start().to_date();
     let end_date = tb.end().to_date();
     let span = tb.span();
@@ -495,7 +489,9 @@ fn auto_time_label_formatter(
         "%Y-%m"
     };
 
-    Ok(Box::new(TimeLabelFormat { fmt: fmt.to_string() }))
+    Ok(Box::new(TimeLabelFormat {
+        fmt: fmt.to_string(),
+    }))
 }
 
 pub trait LabelFormatter {

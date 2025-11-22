@@ -359,11 +359,15 @@ where
 
                 let ticks = ir_axis
                     .ticks()
-                    .map(|major_ticks| self.setup_time_ticks(major_ticks, tb, ir_axis.scale(), side))
+                    .map(|major_ticks| {
+                        self.setup_time_ticks(major_ticks, tb, ir_axis.scale(), side)
+                    })
                     .transpose()?;
 
                 if ir_axis.minor_ticks().is_some() {
-                    return Err(Error::InconsistentIr("Minor ticks not supported for time axis".into()));
+                    return Err(Error::InconsistentIr(
+                        "Minor ticks not supported for time axis".into(),
+                    ));
                 }
 
                 Ok(AxisScale::Num {
@@ -469,7 +473,10 @@ where
         for loc in major_locs.into_iter() {
             let text = lbl_formatter.format_label(loc.into());
             let lbl = text::LineText::new(text, ticks_align, font.size, font.font.clone(), db)?;
-            ticks.push(NumTick { loc: loc.timestamp(), lbl });
+            ticks.push(NumTick {
+                loc: loc.timestamp(),
+                lbl,
+            });
         }
 
         let annot = lbl_formatter
