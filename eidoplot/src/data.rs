@@ -794,7 +794,6 @@ pub enum VecColumn {
     F64(Vec<f64>),
     I64(Vec<Option<i64>>),
     Str(Vec<Option<String>>),
-
     Time(Vec<Option<DateTime>>),
 }
 

@@ -1,5 +1,4 @@
-use data::Source;
-use eidoplot::{data, ir, time::DateTime};
+use eidoplot::ir;
 
 mod common;
 
@@ -7,35 +6,18 @@ fn main() {
     // FIXME: support parsing datetime in CSV
     let btc_csv = common::example_res("BTC-USD.csv");
     let csv_data = std::fs::read_to_string(&btc_csv).unwrap();
-    let table = eidoplot_utils::parse_csv_data(&csv_data, ',').unwrap();
-
-    let mut date = Vec::with_capacity(table.len());
-    let date_col = table.column("Date").unwrap();
-    for d in date_col.iter() {
-        let d = d.as_cat().unwrap();
-        let d = DateTime::fmt_parse(d, "%Y-%m-%d").unwrap();
-        date.push(d);
-    }
-
-    let date = data::TCol(&date);
-    let close = table.column("Close").unwrap();
-    let volume = table.column("Volume").unwrap();
-
-    let mut data_source = data::NamedColumns::new();
-    data_source.add_column("date", &date);
-    data_source.add_column("close", close);
-    data_source.add_column("volume", volume);
+    let data_source = eidoplot_utils::CsvParser::new().parse(&csv_data).unwrap();
 
     let price_series = ir::series::Line::new(
-        ir::DataCol::SrcRef("date".to_string()),
-        ir::DataCol::SrcRef("close".to_string()),
+        ir::DataCol::SrcRef("Date".to_string()),
+        ir::DataCol::SrcRef("Close".to_string()),
     )
     .with_name("Closing Price".to_string())
     .into();
 
     let volume_series = ir::series::Line::new(
-        ir::DataCol::SrcRef("date".to_string()),
-        ir::DataCol::SrcRef("volume".to_string()),
+        ir::DataCol::SrcRef("Date".to_string()),
+        ir::DataCol::SrcRef("Volume".to_string()),
     )
     .with_name("Volume".to_string())
     .with_y_axis(ir::axis::Ref::Id("volume".to_string()))

@@ -43,7 +43,7 @@ fn main() {
     let iris_csv = iris_csv_path();
     let csv_data = std::fs::read_to_string(&iris_csv).unwrap();
 
-    let table = eidoplot_utils::parse_csv_data(&csv_data, ',').unwrap();
+    let table = eidoplot_utils::CsvParser::new().parse(&csv_data).unwrap();
 
     let species = table.column("Species").unwrap();
     let sepal_length = table.column("SepalLengthCm").unwrap();

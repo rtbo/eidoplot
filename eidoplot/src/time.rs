@@ -51,6 +51,22 @@ impl fmt::Display for ParseError {
 
 impl std::error::Error for ParseError {}
 
+const fn month_days(year: i32) -> &'static [u32] {
+    if is_leap_year(year) {
+        &[31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    } else {
+        &[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    }
+}
+
+const fn is_leap_year(year: i32) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
+}
+
+const fn days_in_year(year: i32) -> i32 {
+    if is_leap_year(year) { 366 } else { 365 }
+}
+
 /// A type representing a date and time.
 /// It is represented by a `f64`, that is the seconds elapsed since Jan. 1, 2030, which is Eidoplot Epoch.
 /// Timezone is not supported.
@@ -58,6 +74,12 @@ impl std::error::Error for ParseError {}
 pub struct DateTime(f64);
 
 impl DateTime {
+    /// Build a DateTime from year, month and day
+    pub fn from_ymd(year: i32, month: u32, day: u32) -> Result<Self, InvalidFieldError> {
+        let date = DateComps { year, month, day };
+        date.try_into()
+    }
+
     /// Parse a string with the given format
     pub fn fmt_parse(input: &str, fmt: &str) -> Result<DateTime, ParseError> {
         let comps = DateTimeComps::fmt_parse(input, fmt)?;
@@ -75,15 +97,6 @@ impl DateTime {
         DateTime(-1893456000.0)
     }
 
-    /// Get the internal representation as a float timestamp
-    /// The value is in seconds elapsed since Jan 1, 2030 ([Self::epoch()]).
-    /// (values before [Self::epoch()] are negative).
-    ///
-    /// The value is guaranteed to be a valid timestamp
-    pub const fn timestamp(&self) -> f64 {
-        self.0
-    }
-
     /// Build a new datetime from a float timestamp.
     /// The value is in seconds elapsed since Jan 1, 2030.
     /// Returns None if the value is not a valid timestamp.
@@ -94,6 +107,15 @@ impl DateTime {
         } else {
             None
         }
+    }
+
+    /// Get the internal representation as a float timestamp
+    /// The value is in seconds elapsed since Jan 1, 2030 ([Self::epoch()]).
+    /// (values before [Self::epoch()] are negative).
+    ///
+    /// The value is guaranteed to be a valid timestamp
+    pub const fn timestamp(&self) -> f64 {
+        self.0
     }
 
     pub fn fmt_write<W>(&self, fmt: &str, out: &mut W) -> fmt::Result
@@ -177,28 +199,33 @@ impl DateTime {
         }
     }
 }
+
+impl TryFrom<DateComps> for DateTime {
+    type Error = InvalidFieldError;
+    fn try_from(comps: DateComps) -> Result<DateTime, InvalidFieldError> {
+        let comps = DateTimeComps {
+            year: comps.year,
+            month: comps.month,
+            day: comps.day,
+            hour: 0,
+            minute: 0,
+            second: 0,
+            micro: 0,
+        };
+        DateTime::try_from(comps)
+    }
+}
+
 /// Write the date time as a string with the format `%Y-%m-%d %H:%M:%S%.f`
 impl fmt::Display for DateTime {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let comps = self.to_comps();
-        comps.fmt_write("%Y-%m-%d %H:%M:%S%.f", f)
+        if comps.micro == 0 {
+            comps.fmt_write("%Y-%m-%d %H:%M:%S", f)
+        } else {
+            comps.fmt_write("%Y-%m-%d %H:%M:%S%.f", f)
+        }
     }
-}
-
-const fn month_days(year: i32) -> &'static [u32] {
-    if is_leap_year(year) {
-        &[31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    } else {
-        &[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    }
-}
-
-const fn is_leap_year(year: i32) -> bool {
-    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
-}
-
-const fn days_in_year(year: i32) -> i32 {
-    if is_leap_year(year) { 366 } else { 365 }
 }
 
 /// A type gathering the date components
@@ -829,7 +856,21 @@ mod tests {
         let input = "2025-01-13 15:46:32.123456789";
         let fmt = "%Y-%m-%d %H:%M:%S%.f";
         let result = DateTimeComps::fmt_parse(input, fmt).unwrap();
+        assert_eq!(result.year, 2025);
+        assert_eq!(result.month, 1);
+        assert_eq!(result.day, 13);
+        assert_eq!(result.hour, 15);
+        assert_eq!(result.minute, 46);
+        assert_eq!(result.second, 32);
         assert_eq!(result.micro, 123456);
+    }
+
+    #[test]
+    fn test_parse_datetime_comps_no_usecs() {
+        let input = "2025-01-13 15:46:32";
+        let fmt = "%Y-%m-%d %H:%M:%S%.f";
+        let result = DateTimeComps::fmt_parse(input, fmt);
+        assert!(matches!(result, Err(ParseError::FormatMismatch)));
     }
 
     #[test]
