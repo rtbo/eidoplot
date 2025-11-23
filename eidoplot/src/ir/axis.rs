@@ -53,6 +53,12 @@ pub enum Ref {
     Id(String),
 }
 
+impl Default for Ref {
+    fn default() -> Self {
+        Ref::Idx(0)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Axis {
     id: Option<String>,

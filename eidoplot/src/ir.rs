@@ -12,7 +12,7 @@ pub mod series;
 pub use axis::Axis;
 pub use figure::{FigLegend, Figure};
 pub use legend::Legend;
-pub use plot::{Plot, PlotLegend, Subplots};
+pub use plot::{Plot, PlotLegend, PlotLine, Subplots};
 pub use series::{DataCol, Series};
 
 // Structs defined with this macro use theme::Color for the generic color of rich properties

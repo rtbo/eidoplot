@@ -5,28 +5,42 @@ use {eidoplot_text as text, eidoplot_utils as utils};
 
 mod common;
 
+/// Computes a single point of the transfer fonction of a series RLC circuit, with output across capacitor
+/// The frequency f is in Hz, r is the resistance, l is the inductance and c is the capacitance.
+/// The returned values are the magnitude in dB and phase in rad at this frequency
+fn rlc_freq_response(f: f64, r: f64, l: f64, c: f64) -> (f64, f64) {
+    let pulse = 2.0 * PI * f;
+
+    // H(jw) = 1 / (1 - w^2LC + jwRC)
+
+    let num = 1.0;
+    let real = 1.0 - pulse * pulse * l * c;
+    let imag = pulse * r * c;
+
+    let mag = num / (real.powi(2) + imag.powi(2)).sqrt();
+    let ph = -(imag / real).atan();
+    (20.0 * mag.log10(), ph)
+}
+
 /// Computes the transfer function of a series RLC circuit, with output across the capacitor.
 /// The input vector is the frequencies in Hz
 /// The returned vectors are the magnitude in dB and the phase in radians
-fn rlc_load_response(frequencies: &[f64], r: f64, l: f64, c: f64) -> (Vec<f64>, Vec<f64>) {
+fn rlc_full_response(frequencies: &[f64], r: f64, l: f64, c: f64) -> (Vec<f64>, Vec<f64>) {
     let mut mags = Vec::with_capacity(frequencies.len());
     let mut phases = Vec::with_capacity(frequencies.len());
 
     for &f in frequencies {
-        let pulse = 2.0 * PI * f;
+        let (mag, phase) = rlc_freq_response(f, r, l, c);
 
-        let num = 1.0;
-        let denom_real = 1.0 - pulse * pulse * l * c;
-        let denom_imag = pulse * r * c;
-
-        let mag = num / (denom_real.powi(2) + denom_imag.powi(2)).sqrt();
-        let ph = -(denom_imag / denom_real).atan();
-
-        mags.push(20.0 * mag.log10());
-        phases.push(ph);
+        mags.push(mag);
+        phases.push(phase);
     }
 
     (mags, phases)
+}
+
+fn lc_cutoff_freq(l: f64, c: f64) -> f64 {
+    1.0 / (2.0 * PI * (l * c).sqrt())
 }
 
 fn main() {
@@ -76,7 +90,7 @@ fn main() {
     let freq = utils::logspace(100.0, 1000000.0, 500);
 
     for (r, mag_col, phase_col, name) in series {
-        let (mag, phase) = rlc_load_response(&freq, r, L, C);
+        let (mag, phase) = rlc_full_response(&freq, r, L, C);
 
         source.add_column(mag_col, Box::new(mag));
         source.add_column(phase_col, Box::new(phase));
@@ -101,9 +115,24 @@ fn main() {
 
     source.add_column("freq", Box::new(freq));
 
+    // cut-off frequency
+    let cutoff = lc_cutoff_freq(L, C);
+    // magnitude two decades after cut-off (to increase precision)
+    let mag_2_decades = rlc_freq_response(cutoff * 100.0, 1.0, L, C).0;
+
+    println!("cutoff = {:.2} kHz", cutoff / 1000.0);
+    println!("slope = {:.0} dB/decade", mag_2_decades / 2.0);
+
+    let cutoff_line = ir::PlotLine::vertical(cutoff).with_pattern(style::Dash::default().into());
+    let slope_line = ir::PlotLine::two_points(cutoff, 0.0, 100.0 * cutoff, mag_2_decades)
+        .with_pattern(style::Dash::default().into());
+
     let mag_plot = ir::Plot::new(mag_series)
         .with_x_axis(mag_freq_axis)
-        .with_y_axis(mag_axis);
+        .with_y_axis(mag_axis)
+        .with_line(cutoff_line)
+        .with_line(slope_line);
+
     let phase_plot = ir::Plot::new(phase_series)
         .with_x_axis(phase_freq_axis)
         .with_y_axis(phase_axis);

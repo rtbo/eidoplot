@@ -5,6 +5,7 @@ use crate::drawing::legend::{Legend, LegendBuilder};
 use crate::drawing::scale::CoordMapXy;
 use crate::drawing::series::{self, Series, SeriesExt};
 use crate::drawing::{Ctx, Error, SurfWrapper};
+use crate::ir::plot::PlotLine;
 use crate::render::{self, Surface};
 use crate::style::defaults;
 use crate::{data, geom, ir, missing_params};
@@ -725,7 +726,11 @@ where
         };
 
         self.draw_plot_axes_grids(ctx, &axes, &plot.plot_rect)?;
+
+        self.draw_plot_lines(ctx, ir_plot, &plot, false)?;
         self.draw_plot_series(ctx, ir_plot.series(), &plot.series, &plot.plot_rect, &axes)?;
+        self.draw_plot_lines(ctx, ir_plot, &plot, true)?;
+
         self.draw_plot_axes(ctx, &axes, &plot.plot_rect)?;
         self.draw_plot_border(ctx, ir_plot.border(), &plot.plot_rect)?;
 
@@ -845,6 +850,92 @@ where
         Ok(())
     }
 
+    fn draw_plot_lines<D>(
+        &mut self,
+        ctx: &Ctx<D>,
+        ir_plot: &ir::Plot,
+        plot: &Plot,
+        above: bool,
+    ) -> Result<(), Error> {
+        let Some(axes) = plot.axes.as_ref() else {
+            return Ok(());
+        };
+
+        for line in ir_plot.lines() {
+            if line.above == above {
+                let x_axis = axes
+                    .or_find(Orientation::X, line.x_axis.as_ref())?
+                    .ok_or_else(|| Error::UnknownAxisRef(line.x_axis.as_ref().unwrap().clone()))?;
+                let y_axis = axes
+                    .or_find(Orientation::Y, line.y_axis.as_ref())?
+                    .ok_or_else(|| Error::UnknownAxisRef(line.y_axis.as_ref().unwrap().clone()))?;
+
+                self.draw_plot_line(ctx, line, x_axis, y_axis, &plot.plot_rect)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn draw_plot_line<D>(
+        &mut self,
+        ctx: &Ctx<D>,
+        line: &PlotLine,
+        x_axis: &Axis,
+        y_axis: &Axis,
+        plot_rect: &geom::Rect,
+    ) -> Result<(), Error> {
+        let (x, y) = (line.x, line.y);
+        let (p1, p2) = match line.direction {
+            ir::plot::Direction::Horizontal => {
+                let y = y_axis.coord_map().map_coord_num(y);
+                let p1 = geom::Point::new(plot_rect.left(), y);
+                let p2 = geom::Point::new(plot_rect.right(), y);
+                (p1, p2)
+            }
+            ir::plot::Direction::Vertical => {
+                let x = x_axis.coord_map().map_coord_num(x);
+                let p1 = geom::Point::new(x, plot_rect.top());
+                let p2 = geom::Point::new(x, plot_rect.bottom());
+                (p1, p2)
+            }
+            ir::plot::Direction::Slope(slope) => {
+                // FIXME: raise error if either X or Y is logarithmic
+                let x1 = x_axis.coord_map().map_coord_num(x);
+                let y1 = y_axis.coord_map().map_coord_num(y);
+                let x2 = x1 + 100.0;
+                let y2 = y1 + 100.0 * slope;
+                (geom::Point::new(x1, y1), geom::Point::new(x2, y2))
+            }
+            ir::plot::Direction::SecondPoint(x2, y2) => {
+                let x1 = x_axis.coord_map().map_coord_num(x);
+                let y1 = y_axis.coord_map().map_coord_num(y);
+                let x2 = x_axis.coord_map().map_coord_num(x2);
+                let y2 = y_axis.coord_map().map_coord_num(y2);
+                (geom::Point::new(x1, y1), geom::Point::new(x2, y2))
+            }
+        };
+
+        let p1 = geom::Point::new(p1.x() + plot_rect.left(), plot_rect.bottom() - p1.y());
+        let p2 = geom::Point::new(p2.x() + plot_rect.left(), plot_rect.bottom() - p2.y());
+
+        let points = plot_rect_intersections(plot_rect, &p1, &p2);
+        if let Some([p1, p2]) = points {
+            let mut path = geom::PathBuilder::with_capacity(2, 2);
+            path.move_to(p1.x(), p1.y());
+            path.line_to(p2.x(), p2.y());
+            let path = path.finish().expect("Should be a valid path");
+            let path = render::Path {
+                path: &path,
+                fill: None,
+                stroke: Some(line.line.as_stroke(ctx.theme())),
+                transform: None,
+            };
+            self.draw_path(&path)?;
+        }
+
+        Ok(())
+    }
+
     fn draw_plot_axes<D>(
         &mut self,
         ctx: &Ctx<D>,
@@ -893,6 +984,69 @@ where
         let top_left = legend_top_left(ir_leg, leg.size(), plot_rect, outer_rect);
         self.draw_legend(ctx, &leg, &top_left)?;
         Ok(())
+    }
+}
+
+pub fn plot_rect_intersections(
+    plot_rect: &geom::Rect,
+    p1: &geom::Point,
+    p2: &geom::Point,
+) -> Option<[geom::Point; 2]> {
+    let mut intersections: [Option<geom::Point>; 4] = [None; 4];
+
+    // Parametric equation of the line: p1 + t * (p2 - p1)
+    let dx = p2.x() - p1.x();
+    let dy = p2.y() - p1.y();
+
+    // Function to calculate Y for given X (if dx != 0)
+    let y_for_x = |x: f32| -> f32 {
+        if dx == 0.0 {
+            p1.y() // vertical line
+        } else {
+            let t = (x - p1.x()) / dx;
+            p1.y() + t * dy
+        }
+    };
+
+    // Function to calculate X for given Y (if dx != 0)
+    let x_for_y = |y: f32| -> f32 {
+        if dy == 0.0 {
+            p1.x() // horizontal line
+        } else {
+            let t = (y - p1.y()) / dy;
+            p1.x() + t * dx
+        }
+    };
+
+    let mut idx = 0;
+
+    // Intersection with vertical edges (left and right)
+    if dx != 0.0 {
+        for &x in &[plot_rect.x(), plot_rect.x() + plot_rect.width()] {
+            let y = y_for_x(x);
+            if y >= plot_rect.y() && y <= plot_rect.y() + plot_rect.height() {
+                intersections[idx] = Some(geom::Point::new(x, y));
+                idx += 1;
+            }
+        }
+    }
+
+    // Intersection with horizontal edges (top and bottom)
+    if dy != 0.0 {
+        for &y in &[plot_rect.y(), plot_rect.y() + plot_rect.height()] {
+            let x = x_for_y(y);
+            if x >= plot_rect.x() && x <= plot_rect.x() + plot_rect.width() {
+                intersections[idx] = Some(geom::Point::new(x, y));
+                idx += 1;
+            }
+        }
+    }
+
+    // We return result only if we have two points
+    if idx == 2 {
+        Some([intersections[0].unwrap(), intersections[1].unwrap()])
+    } else {
+        None
     }
 }
 
