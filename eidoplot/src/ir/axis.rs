@@ -322,12 +322,13 @@ pub mod ticks {
             bins: u32,
         },
         /// Places ticks on a time scale
-        Time(TimeLocator),
+        /// The series must be a time series, otherwise an error is returned.
+        DateTime(DateTimeLocator),
     }
 
     /// Describes how to locate the ticks of an axis
     #[derive(Debug, Default, Clone, Copy)]
-    pub enum TimeLocator {
+    pub enum DateTimeLocator {
         #[default]
         Auto,
         Years(u32),
@@ -340,9 +341,9 @@ pub mod ticks {
         Micros(u32),
     }
 
-    impl From<TimeLocator> for Locator {
-        fn from(locator: TimeLocator) -> Self {
-            Locator::Time(locator)
+    impl From<DateTimeLocator> for Locator {
+        fn from(locator: DateTimeLocator) -> Self {
+            Locator::DateTime(locator)
         }
     }
 
@@ -363,11 +364,16 @@ pub mod ticks {
         /// The labels are percentages (E.g. `0.5` will be formatted as `50%`)
         Percent,
         /// Formats the time ticks
-        Time(TimeFormatter),
+        /// The data must be DateTime, otherwise an error is returned.
+        DateTime(DateTimeFormatter),
+        /// Formats the time delta ticks
+        /// The series must be either TimeDelta or f64, otherwise an error is returned
+        /// If the data is f64, it is assumed to be in seconds
+        TimeDelta(TimeDeltaFormatter),
     }
 
     #[derive(Debug, Clone, Default)]
-    pub enum TimeFormatter {
+    pub enum DateTimeFormatter {
         /// Choose the format automatically according to time bounds
         #[default]
         Auto,
@@ -377,8 +383,29 @@ pub mod ticks {
         Date,
         /// Format time as `HH:MM:SS`
         Time,
-        /// Format the ticks with a custom format
+        /// Format the ticks with a custom DateTime format (see [crate::time::DateTime::fmt_parse])
         Custom(String),
+    }
+
+    impl From<DateTimeFormatter> for Formatter {
+        fn from(fmt: DateTimeFormatter) -> Self {
+            Formatter::DateTime(fmt)
+        }
+    }
+
+    #[derive(Debug, Clone, Default)]
+    pub enum TimeDeltaFormatter {
+        /// Choose the format automatically based on data bounds
+        #[default]
+        Auto,
+        /// Format the ticks with a custom TimeDelta format (see [crate::time::TimeDelta::fmt_parse])
+        Custom(String),
+    }
+
+    impl From<TimeDeltaFormatter> for Formatter {
+        fn from(fmt: TimeDeltaFormatter) -> Self {
+            Formatter::TimeDelta(fmt)
+        }
     }
 
     /// Describes the font of the ticks labels

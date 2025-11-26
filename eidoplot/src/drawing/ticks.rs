@@ -1,6 +1,8 @@
+use std::fmt::Debug;
+
 use crate::data;
 use crate::drawing::{Categories, Error, axis};
-use crate::ir::axis::ticks::{Formatter, Locator, Ticks, TimeFormatter, TimeLocator};
+use crate::ir::axis::ticks::{DateTimeFormatter, DateTimeLocator, Formatter, Locator, Ticks, TimeDeltaFormatter};
 use crate::ir::axis::{LogScale, Scale};
 use crate::time::{DateTime, DateTimeComps, TimeDelta};
 
@@ -66,40 +68,40 @@ pub fn locate_minor(
     }
 }
 
-pub fn locate_time(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTime>, Error> {
+pub fn locate_datetime(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTime>, Error> {
     match locator {
-        Locator::Auto | Locator::Time(TimeLocator::Auto) => {
+        Locator::Auto | Locator::DateTime(DateTimeLocator::Auto) => {
             let span = tb.span();
 
             // heuristics to pick a locator that will yield ~ 5 to 10 ticks
             let locator = if span > TimeDelta::from_days(5.0 * 365.0) {
                 let years = span.seconds() / (10.0 * 365.0 * 86400.0);
-                Locator::Time(TimeLocator::Years((years as u32).max(1)))
+                Locator::DateTime(DateTimeLocator::Years((years as u32).max(1)))
             } else if span > TimeDelta::from_days(5.0 * 30.0) {
                 let months = span.seconds() / (10.0 * 30.0 * 86400.0);
-                Locator::Time(TimeLocator::Months((months as u32).max(1)))
+                Locator::DateTime(DateTimeLocator::Months((months as u32).max(1)))
             } else if span > TimeDelta::from_days(5.0 * 7.0) {
                 let weeks = span.seconds() / (10.0 * 7.0 * 86400.0);
-                Locator::Time(TimeLocator::Weeks((weeks as u32).max(1)))
+                Locator::DateTime(DateTimeLocator::Weeks((weeks as u32).max(1)))
             } else if span > TimeDelta::from_days(5.0) {
                 let days = span.seconds() / (10.0 * 86400.0);
-                Locator::Time(TimeLocator::Days((days as u32).max(1)))
+                Locator::DateTime(DateTimeLocator::Days((days as u32).max(1)))
             } else if span > TimeDelta::from_hours(5.0) {
                 let hours = span.seconds() / (10.0 * 3600.0);
-                Locator::Time(TimeLocator::Hours((hours as u32).max(1)))
+                Locator::DateTime(DateTimeLocator::Hours((hours as u32).max(1)))
             } else if span > TimeDelta::from_minutes(5.0) {
                 let minutes = span.seconds() / (10.0 * 60.0);
-                Locator::Time(TimeLocator::Minutes((minutes as u32).max(1)))
+                Locator::DateTime(DateTimeLocator::Minutes((minutes as u32).max(1)))
             } else if span > TimeDelta::from_seconds(5.0) {
                 let seconds = span.seconds() / 10.0;
-                Locator::Time(TimeLocator::Seconds((seconds as u32).max(1)))
+                Locator::DateTime(DateTimeLocator::Seconds((seconds as u32).max(1)))
             } else {
                 let micro = span.seconds() * 1_000_000.0 / 10.0;
-                Locator::Time(TimeLocator::Micros((micro as u32).max(1)))
+                Locator::DateTime(DateTimeLocator::Micros((micro as u32).max(1)))
             };
-            locate_time(&locator, tb)
+            locate_datetime(&locator, tb)
         }
-        &Locator::Time(TimeLocator::Years(n)) => {
+        &Locator::DateTime(DateTimeLocator::Years(n)) => {
             let start = tb.start().to_comps();
             let end = tb.end().to_comps();
             let mut dt = DateTimeComps {
@@ -113,7 +115,7 @@ pub fn locate_time(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTi
             }
             Ok(res)
         }
-        &Locator::Time(TimeLocator::Months(n)) => {
+        &Locator::DateTime(DateTimeLocator::Months(n)) => {
             let start = tb.start().to_comps();
             let end = tb.end().to_comps();
             let mut dt = DateTimeComps {
@@ -132,14 +134,14 @@ pub fn locate_time(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTi
             }
             Ok(res)
         }
-        &Locator::Time(TimeLocator::Weeks(n)) => {
+        &Locator::DateTime(DateTimeLocator::Weeks(n)) => {
             // TODO: scroll back to Monday
             let start = tb.start();
             let end = tb.end();
             let td = TimeDelta::from_seconds(7.0 * 24.0 * 3600.0) * n as f64;
-            Ok(locate_time_even(start, end, td))
+            Ok(locate_datetime_even(start, end, td))
         }
-        &Locator::Time(TimeLocator::Days(n)) => {
+        &Locator::DateTime(DateTimeLocator::Days(n)) => {
             // TODO: scroll back to Monday
             let start = tb.start().to_comps();
             let start = DateTimeComps {
@@ -150,9 +152,9 @@ pub fn locate_time(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTi
             };
             let td = TimeDelta::from_seconds(24.0 * 3600.0) * n as f64;
             let end = tb.end();
-            Ok(locate_time_even(start.try_into().unwrap(), end, td))
+            Ok(locate_datetime_even(start.try_into().unwrap(), end, td))
         }
-        &Locator::Time(TimeLocator::Hours(n)) => {
+        &Locator::DateTime(DateTimeLocator::Hours(n)) => {
             // TODO: scroll back to Monday
             let start = tb.start().to_comps();
             let start = DateTimeComps {
@@ -163,9 +165,9 @@ pub fn locate_time(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTi
             };
             let end = tb.end();
             let td = TimeDelta::from_seconds(3600.0) * n as f64;
-            Ok(locate_time_even(start.try_into().unwrap(), end, td))
+            Ok(locate_datetime_even(start.try_into().unwrap(), end, td))
         }
-        &Locator::Time(TimeLocator::Minutes(n)) => {
+        &Locator::DateTime(DateTimeLocator::Minutes(n)) => {
             // TODO: scroll back to Monday
             let start = tb.start().to_comps();
             let start = DateTimeComps {
@@ -176,9 +178,9 @@ pub fn locate_time(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTi
             };
             let end = tb.end();
             let td = TimeDelta::from_seconds(60.0) * n as f64;
-            Ok(locate_time_even(start.try_into().unwrap(), end, td))
+            Ok(locate_datetime_even(start.try_into().unwrap(), end, td))
         }
-        &Locator::Time(TimeLocator::Seconds(n)) => {
+        &Locator::DateTime(DateTimeLocator::Seconds(n)) => {
             // TODO: scroll back to Monday
             let start = tb.start().to_comps();
             let start = DateTimeComps {
@@ -189,9 +191,9 @@ pub fn locate_time(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTi
             };
             let end = tb.end();
             let td = TimeDelta::from_seconds(1.0) * n as f64;
-            Ok(locate_time_even(start.try_into().unwrap(), end, td))
+            Ok(locate_datetime_even(start.try_into().unwrap(), end, td))
         }
-        &Locator::Time(TimeLocator::Micros(n)) => {
+        &Locator::DateTime(DateTimeLocator::Micros(n)) => {
             // TODO: scroll back to Monday
             let start = tb.start().to_comps();
             let start = DateTimeComps {
@@ -202,7 +204,7 @@ pub fn locate_time(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTi
             };
             let end = tb.end();
             let td = TimeDelta::from_seconds(1E-6) * n as f64;
-            Ok(locate_time_even(start.try_into().unwrap(), end, td))
+            Ok(locate_datetime_even(start.try_into().unwrap(), end, td))
         }
         _ => Err(Error::InconsistentIr(format!(
             "Inconsistent ticks locator for time axis: {locator:?}"
@@ -210,7 +212,7 @@ pub fn locate_time(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTi
     }
 }
 
-fn locate_time_even(start: DateTime, end: DateTime, td: TimeDelta) -> Vec<DateTime> {
+fn locate_datetime_even(start: DateTime, end: DateTime, td: TimeDelta) -> Vec<DateTime> {
     let mut res = Vec::new();
     let mut cur = start;
     while cur < end {
@@ -412,6 +414,7 @@ pub fn num_label_formatter(
         }
         Some(Formatter::Prec(prec)) => Box::new(PrecLabelFormat(*prec)),
         Some(Formatter::Percent) => Box::new(PercentLabelFormat),
+        Some(Formatter::TimeDelta(tdfmt)) => timedelta_label_formatter(ab, tdfmt),
         None => Box::new(NullFormat),
         _ => todo!(),
     }
@@ -442,33 +445,33 @@ fn auto_label_formatter(
     }
 }
 
-pub fn time_label_formatter(
+pub fn datetime_label_formatter(
     ticks: &Ticks,
     tb: axis::TimeBounds,
     scale: &Scale,
 ) -> Result<Box<dyn LabelFormatter>, Error> {
     match ticks.formatter() {
         Some(Formatter::Auto) if scale.is_shared() => Ok(Box::new(NullFormat)),
-        Some(Formatter::Auto | Formatter::SharedAuto) => auto_time_label_formatter(tb),
-        Some(Formatter::Time(TimeFormatter::Auto)) => auto_time_label_formatter(tb),
-        Some(Formatter::Time(TimeFormatter::DateTime)) => Ok(Box::new(TimeLabelFormat {
+        Some(Formatter::Auto | Formatter::SharedAuto) => auto_datetime_label_formatter(tb),
+        Some(Formatter::DateTime(DateTimeFormatter::Auto)) => auto_datetime_label_formatter(tb),
+        Some(Formatter::DateTime(DateTimeFormatter::DateTime)) => Ok(Box::new(DateTimeLabelFormat {
             fmt: "%Y-%m-%d %H:%M:%S".to_string(),
         })),
-        Some(Formatter::Time(TimeFormatter::Date)) => Ok(Box::new(TimeLabelFormat {
+        Some(Formatter::DateTime(DateTimeFormatter::Date)) => Ok(Box::new(DateTimeLabelFormat {
             fmt: "%Y-%m-%d".to_string(),
         })),
-        Some(Formatter::Time(TimeFormatter::Time)) => Ok(Box::new(TimeLabelFormat {
+        Some(Formatter::DateTime(DateTimeFormatter::Time)) => Ok(Box::new(DateTimeLabelFormat {
             fmt: "%H:%M:%S".to_string(),
         })),
-        Some(Formatter::Time(TimeFormatter::Custom(fmt))) => {
-            Ok(Box::new(TimeLabelFormat { fmt: fmt.clone() }))
+        Some(Formatter::DateTime(DateTimeFormatter::Custom(fmt))) => {
+            Ok(Box::new(DateTimeLabelFormat { fmt: fmt.clone() }))
         }
         None => Ok(Box::new(NullFormat)),
         _ => todo!(),
     }
 }
 
-fn auto_time_label_formatter(tb: axis::TimeBounds) -> Result<Box<dyn LabelFormatter>, Error> {
+fn auto_datetime_label_formatter(tb: axis::TimeBounds) -> Result<Box<dyn LabelFormatter>, Error> {
     let start_date = tb.start().to_date();
     let end_date = tb.end().to_date();
     let span = tb.span();
@@ -489,9 +492,28 @@ fn auto_time_label_formatter(tb: axis::TimeBounds) -> Result<Box<dyn LabelFormat
         "%Y-%m"
     };
 
-    Ok(Box::new(TimeLabelFormat {
+    Ok(Box::new(DateTimeLabelFormat {
         fmt: fmt.to_string(),
     }))
+}
+
+pub fn timedelta_label_formatter(
+    nb: axis::NumBounds,
+    tdfmt: &TimeDeltaFormatter,
+) -> Box<dyn LabelFormatter> {
+    match tdfmt {
+        TimeDeltaFormatter::Auto => {
+            let fmt = if nb.span() >= 86400.0 {
+                "%D %H:%M:%S".to_string()
+            } else {
+                "%H:%M:%S".to_string()
+            };
+            Box::new(TimeDeltaLabelFormat {
+                fmt
+            })
+        },
+        TimeDeltaFormatter::Custom(fmt) => Box::new(TimeDeltaLabelFormat { fmt: fmt.clone() }),
+    }
 }
 
 pub trait LabelFormatter {
@@ -553,14 +575,33 @@ impl LabelFormatter for PercentLabelFormat {
     }
 }
 
-struct TimeLabelFormat {
+struct DateTimeLabelFormat {
     fmt: String,
 }
 
-impl LabelFormatter for TimeLabelFormat {
+impl LabelFormatter for DateTimeLabelFormat {
     fn format_label(&self, data: data::Sample) -> String {
         let dt = data.as_time().unwrap();
         format!("{}", dt.fmt_to_string(&self.fmt))
+    }
+}
+
+struct TimeDeltaLabelFormat {
+    fmt: String,
+}
+
+impl LabelFormatter for TimeDeltaLabelFormat {
+    fn format_label(&self, data: data::Sample) -> String {
+        match data {
+            data::Sample::Num(num) => {
+                let td = TimeDelta::from_seconds(num);
+                td.fmt_to_string(&self.fmt)
+            }
+            data::Sample::TimeDelta(td) => {
+                td.fmt_to_string(&self.fmt)
+            }
+            _ => panic!("data is not compatible with formatter"),
+        }
     }
 }
 

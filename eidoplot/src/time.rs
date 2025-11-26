@@ -78,12 +78,6 @@ impl DateTime {
         date.try_into()
     }
 
-    /// Parse a string with the given format
-    pub fn fmt_parse(input: &str, fmt: &str) -> Result<DateTime, ParseError> {
-        let comps = DateTimeComps::fmt_parse(input, fmt)?;
-        Ok(comps.try_into()?)
-    }
-
     /// The date time of the Eidoplot Epoch, 2030-01-01 00:00:00.
     pub const fn epoch() -> Self {
         DateTime(0.0)
@@ -116,6 +110,26 @@ impl DateTime {
         self.0
     }
 
+    /// Parse a string with the given format string.
+    /// The format string supports the following specifiers:
+    /// - `%Y` for year  (YYYY)
+    /// - `%m` for month (MM)
+    /// - `%d` for day   (DD)
+    /// - `%H` for hour  (HH)
+    /// - `%M` for minute (MM)
+    /// - `%S` for second (SS)
+    /// - `%.f` for second fraction (e.g. 340000 microseconds will format to ".34")
+    /// - `%.3f` for milliseconds (e.g. 340000 microseconds will format to ".340")
+    /// - `%.6f` for microseconds (e.g. 340000 microseconds will format to ".340000")
+    /// - `%.9f` for nanoseconsd (e.g. 340000 microseconds will format to ".340000000")
+    /// As a result, parsing according ISO 8601 can be done e.g. with `%Y-%m-%dT%H:%M:%S`
+    pub fn fmt_parse(input: &str, fmt: &str) -> Result<DateTime, ParseError> {
+        let comps = DateTimeComps::fmt_parse(input, fmt)?;
+        Ok(comps.try_into()?)
+    }
+
+    /// Format this DateTime according to the given format string.
+    /// See [DateTime::fmt_parse] for supported formats.
     pub fn fmt_write<W>(&self, fmt: &str, out: &mut W) -> fmt::Result
     where
         W: fmt::Write,
@@ -123,6 +137,8 @@ impl DateTime {
         self.to_comps().fmt_write(fmt, out)
     }
 
+    /// Format this DateTime according to the given format string.
+    /// See [DateTime::fmt_parse] for supported formats.
     pub fn fmt_to_string(&self, fmt: &str) -> String {
         self.to_comps().fmt_to_string(fmt)
     }
@@ -296,6 +312,8 @@ impl DateTimeComps {
         }
     }
 
+    /// Parse a string with the given format string.
+    /// See [DateTime::fmt_parse] for supported formats.
     pub fn fmt_parse(input: &str, fmt: &str) -> Result<Self, ParseError> {
         let mut res = DateTimeComps {
             year: 0,
@@ -330,6 +348,7 @@ impl DateTimeComps {
                         }
                     }
                 }
+                FmtToken::TimeDeltaDays => return Err(ParseError::FormatMismatch),
             }
         }
 
@@ -339,6 +358,8 @@ impl DateTimeComps {
         Ok(res)
     }
 
+    /// Format this DateTimeComps according to the given format string.
+    /// See [DateTime::fmt_parse] for supported formats.
     pub fn fmt_write<W>(&self, fmt: &str, out: &mut W) -> fmt::Result
     where
         W: fmt::Write,
@@ -358,11 +379,14 @@ impl DateTimeComps {
                 FmtToken::Nano => write!(out, ".{:09}", self.micro * 1000)?,
                 FmtToken::Frac => format_micro_opt(out, self.micro)?,
                 FmtToken::Lit(s) => out.write_str(s)?,
+                FmtToken::TimeDeltaDays => return Err(fmt::Error),
             }
         }
         Ok(())
     }
 
+    /// Format this DateTimeComps according to the given format string.
+    /// See [DateTime::fmt_parse] for supported formats.
     pub fn fmt_to_string(&self, fmt: &str) -> String {
         let mut res = String::new();
         self.fmt_write(fmt, &mut res).unwrap();
@@ -484,6 +508,43 @@ impl TimeDelta {
         self.0
     }
 
+    /// Parse a string with the given format string.
+    /// The format string supports the following specifiers:
+    /// - `%D` for number of days followed by " day" or " days"
+    ///    In parsing, both " day" and " days" are accepted.
+    ///    In writing, it will write either " day" or " days" depending on the value
+    ///    e.g. "1 day" or "3 days"
+    /// - `%H` for hours, 24H wrapped
+    /// - `%M` for minutes, 60M wrapped,
+    /// - `%S` for second,s 60S wrapped,
+    /// - `%.f` for second fraction (e.g. 340000 microseconds will format to ".34")
+    /// - `%.3f` for milliseconds (e.g. 340000 microseconds will format to ".340")
+    ///    maximum value is 999
+    /// - `%.6f` for microseconds (e.g. 340000 microseconds will format to ".340000")
+    ///    maximum value is 999999
+    /// - `%.9f` for nanoseconsd (e.g. 340000 microseconds will format to ".340000000")
+    ///    maximum value is 999999999
+    ///    This will be floored to microsecond
+    pub fn fmt_parse(input: &str, fmt: &str) -> Result<Self, ParseError> {
+        let comps = TimeDeltaComps::fmt_parse(input, fmt)?;
+        Ok(comps.try_into()?)
+    }
+
+    /// Formats a TimeDelta according to given string.
+    /// See [TimeDelta::fmt_parse] for the supported specifiers.
+    pub fn fmt_write<W>(&self, fmt: &str, out: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        self.to_comps().fmt_write(fmt, out)
+    }
+
+    /// Formats a TimeDelta according to given string.
+    /// See [TimeDelta::fmt_parse] for the supported specifiers.
+    pub fn fmt_to_string(&self, fmt: &str) -> String {
+        self.to_comps().fmt_to_string(fmt)
+    }
+
     /// Get the components of this time delta
     pub fn to_comps(&self) -> TimeDeltaComps {
         let total_secs = self.0.abs();
@@ -498,10 +559,10 @@ impl TimeDelta {
 
         TimeDeltaComps {
             days,
-            hours,
-            minutes,
-            seconds,
-            micros: micro,
+            hour: hours,
+            minute: minutes,
+            second: seconds,
+            micro,
             is_neg,
         }
     }
@@ -510,23 +571,118 @@ impl TimeDelta {
 #[derive(Debug, Clone, Copy)]
 pub struct TimeDeltaComps {
     pub days: u32,
-    pub hours: u32,
-    pub minutes: u32,
-    pub seconds: u32,
-    pub micros: u32,
+    pub hour: u32,
+    pub minute: u32,
+    pub second: u32,
+    pub micro: u32,
     pub is_neg: bool,
 }
 
 impl TimeDeltaComps {
+    /// Parse a string with the given format string.
+    /// See [TimeDelta::fmt_parse] for the supported specifiers.
+    pub fn fmt_parse(input: &str, fmt: &str) -> Result<Self, ParseError> {
+        let mut res = TimeDeltaComps {
+            days: 0,
+            hour: 0,
+            minute: 0,
+            second: 0,
+            micro: 0,
+            is_neg: false,
+        };
+
+        let mut input_chars = input.chars().peekable();
+
+        if input_chars.peek() == Some(&'-') {
+            res.is_neg = true;
+            input_chars.next();
+        }
+
+        let fmt = FmtStr(fmt);
+        for tok in fmt.tokens() {
+            let tok = tok?;
+            match tok {
+                FmtToken::TimeDeltaDays => {
+                    res.days = parse_var_number(&mut input_chars)?;
+                    // parse either " day" or " days"
+                    for c in " day".chars() {
+                        if c != input_chars.next().ok_or(ParseError::FormatMismatch)? {
+                            return Err(ParseError::FormatMismatch);
+                        }
+                    }
+                    if input_chars.peek() == Some(&'s') {
+                        input_chars.next();
+                    }
+                }
+                FmtToken::Hour => res.hour = parse_number(&mut input_chars, 2)?,
+                FmtToken::Minute => res.minute = parse_number(&mut input_chars, 2)?,
+                FmtToken::Second => res.second = parse_number(&mut input_chars, 2)?,
+                FmtToken::Milli => res.micro = parse_fraction(&mut input_chars, Some(3))?,
+                FmtToken::Micro => res.micro = parse_fraction(&mut input_chars, Some(6))?,
+                FmtToken::Nano => res.micro = parse_fraction(&mut input_chars, Some(9))?,
+                FmtToken::Frac => res.micro = parse_fraction(&mut input_chars, None)?,
+                FmtToken::Lit(s) => {
+                    for c in s.chars() {
+                        if c != input_chars.next().ok_or(ParseError::FormatMismatch)? {
+                            return Err(ParseError::FormatMismatch);
+                        }
+                    }
+                }
+                _ => return Err(ParseError::FormatMismatch),
+            }
+        }
+
+        // Validate all fields
+        res.check_fields()?;
+
+        Ok(res)
+    }
+
+    /// Formats a TimeDeltaComps according to given string.
+    /// See [TimeDelta::fmt_parse] for the supported specifiers.
+    pub fn fmt_write<W>(&self, fmt: &str, out: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        if self.is_neg {
+            write!(out, "-")?;
+        }
+        let fmt = FmtStr(fmt);
+        for tok in fmt.tokens() {
+            let Ok(tok) = tok else { return Err(fmt::Error) };
+            match tok {
+                FmtToken::TimeDeltaDays => write!(out, "{} day{}", self.days, if self.days > 1 {"s"} else {""})?,
+                FmtToken::Hour => write!(out, "{:02}", self.hour)?,
+                FmtToken::Minute => write!(out, "{:02}", self.minute)?,
+                FmtToken::Second => write!(out, "{:02}", self.second)?,
+                FmtToken::Milli => write!(out, ".{:03}", self.micro / 1000)?,
+                FmtToken::Micro => write!(out, ".{:06}", self.micro)?,
+                FmtToken::Nano => write!(out, ".{:09}", self.micro * 1000)?,
+                FmtToken::Frac => format_micro_opt(out, self.micro)?,
+                FmtToken::Lit(s) => out.write_str(s)?,
+                _ => return Err(fmt::Error),
+            }
+        }
+        Ok(())
+    }
+
+    /// Formats a TimeDeltaComps according to given string.
+    /// See [TimeDelta::fmt_parse] for the supported specifiers.
+    pub fn fmt_to_string(&self, fmt: &str) -> String {
+        let mut res = String::new();
+        self.fmt_write(fmt, &mut res).unwrap();
+        res
+    }
+
     pub fn check_fields(&self) -> Result<(), InvalidFieldError> {
-        if self.hours > 23 {
-            Err(("hour", self.hours as _).into())
-        } else if self.minutes > 59 {
-            Err(("minute", self.minutes as _).into())
-        } else if self.seconds > 59 {
-            Err(("second", self.seconds as _).into())
-        } else if self.micros > 999_999 {
-            Err(("micro", self.micros as _).into())
+        if self.hour > 23 {
+            Err(("hour", self.hour as _).into())
+        } else if self.minute > 59 {
+            Err(("minute", self.minute as _).into())
+        } else if self.second > 59 {
+            Err(("second", self.second as _).into())
+        } else if self.micro > 999_999 {
+            Err(("micro", self.micro as _).into())
         } else {
             Ok(())
         }
@@ -540,16 +696,33 @@ impl TryFrom<TimeDeltaComps> for TimeDelta {
         value.check_fields()?;
 
         let total_seconds = value.days as f64 * 86400.0
-            + value.hours as f64 * 3600.0
-            + value.minutes as f64 * 60.0
-            + value.seconds as f64
-            + value.micros as f64 / 1_000_000.0;
+            + value.hour as f64 * 3600.0
+            + value.minute as f64 * 60.0
+            + value.second as f64
+            + value.micro as f64 / 1_000_000.0;
 
         if value.is_neg {
             Ok(TimeDelta(-total_seconds))
         } else {
             Ok(TimeDelta(total_seconds))
         }
+    }
+}
+
+impl fmt::Display for TimeDelta {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.to_comps().fmt(f)
+    }
+}
+
+impl fmt::Display for TimeDeltaComps {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let fmt = if self.days > 0 {
+            "%D %H:%M:%S"
+        } else {
+            "%H:%M:%S"
+        };
+        self.fmt_write(fmt, f)
     }
 }
 
@@ -579,6 +752,14 @@ impl ops::Add<TimeDelta> for DateTime {
     type Output = DateTime;
     fn add(self, rhs: TimeDelta) -> DateTime {
         DateTime(self.0 + rhs.0)
+    }
+}
+
+impl cmp::Eq for TimeDelta {}
+
+impl cmp::Ord for TimeDelta {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.0.partial_cmp(&other.0).unwrap()
     }
 }
 
@@ -625,6 +806,7 @@ enum FmtToken<'a> {
     Nano,
     Frac,
     Lit(&'a str),
+    TimeDeltaDays,
 }
 
 impl FmtStr<'_> {
@@ -704,6 +886,10 @@ impl<'a> Iterator for FmtTokens<'a> {
                     self.remaining = &self.remaining[2..];
                     return Some(Ok(FmtToken::Lit("%")));
                 }
+                "%D" => {
+                    self.remaining = &self.remaining[2..];
+                    return Some(Ok(FmtToken::TimeDeltaDays));
+                }
                 _ => (),
             }
         }
@@ -739,6 +925,27 @@ where
     for _ in 0..width {
         if let Some(c) = chars.next() {
             s.push(c);
+        } else {
+            return Err(ParseError::Parse("Unexpected end of input".to_string()));
+        }
+    }
+    s.parse()
+        .map_err(|_| ParseError::Parse("Failed to parse number".to_string()))
+}
+
+/// Parse a variable-width number from the input
+fn parse_var_number<T: FromStr>(chars: &mut Peekable<Chars>) -> Result<T, ParseError>
+where
+    T::Err: fmt::Debug,
+{
+    let mut s = String::new();
+    loop {
+        if let Some(c) = chars.peek() {
+            if !c.is_ascii_digit() {
+                break;
+            }
+            s.push(*c);
+            chars.next();
         } else {
             return Err(ParseError::Parse("Unexpected end of input".to_string()));
         }

@@ -465,10 +465,10 @@ where
             ));
         }
 
-        let mut major_locs = ticks::locate_time(major_ticks.locator(), tb)?;
+        let mut major_locs = ticks::locate_datetime(major_ticks.locator(), tb)?;
         major_locs.retain(|l| tb.contains(*l));
 
-        let lbl_formatter = ticks::time_label_formatter(major_ticks, tb, scale)?;
+        let lbl_formatter = ticks::datetime_label_formatter(major_ticks, tb, scale)?;
         let mut ticks = Vec::new();
         for loc in major_locs.into_iter() {
             let text = lbl_formatter.format_label(loc.into());
