@@ -41,6 +41,17 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "bouncing_ball example",
+            "cargo": {
+                "args": [
+                    "build", "--example", "bouncing_ball"
+                ]
+            },
+            "args": ["png", "svg"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "gauss example",
             "cargo": {
                 "args": [
