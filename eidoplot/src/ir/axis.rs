@@ -322,8 +322,12 @@ pub mod ticks {
             bins: u32,
         },
         /// Places ticks on a time scale
-        /// The series must be a time series, otherwise an error is returned.
+        /// The series data must be DateTime, otherwise an error is returned.
         DateTime(DateTimeLocator),
+        /// Places ticks on a time delta scale
+        /// The series data can be either numeric or TimeDelta.
+        /// In the case of numeric data, seconds are assumed.
+        TimeDelta(TimeDeltaLocator),
     }
 
     /// Describes how to locate the ticks of an axis
@@ -344,6 +348,23 @@ pub mod ticks {
     impl From<DateTimeLocator> for Locator {
         fn from(locator: DateTimeLocator) -> Self {
             Locator::DateTime(locator)
+        }
+    }
+
+    #[derive(Debug, Default, Clone, Copy)]
+    pub enum TimeDeltaLocator {
+        #[default]
+        Auto,
+        Days(u32),
+        Hours(u32),
+        Minutes(u32),
+        Seconds(u32),
+        Micros(u32),
+    }
+
+    impl From<TimeDeltaLocator> for Locator {
+        fn from(locator: TimeDeltaLocator) -> Self {
+            Locator::TimeDelta(locator)
         }
     }
 

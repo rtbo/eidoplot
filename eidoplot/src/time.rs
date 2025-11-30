@@ -579,6 +579,17 @@ pub struct TimeDeltaComps {
 }
 
 impl TimeDeltaComps {
+    pub const fn zero() -> Self {
+        TimeDeltaComps {
+            days: 0,
+            hour: 0,
+            minute: 0,
+            second: 0,
+            micro: 0,
+            is_neg: false,
+        }
+    }
+
     /// Parse a string with the given format string.
     /// See [TimeDelta::fmt_parse] for the supported specifiers.
     pub fn fmt_parse(input: &str, fmt: &str) -> Result<Self, ParseError> {
@@ -755,6 +766,18 @@ impl ops::Add<TimeDelta> for DateTime {
     }
 }
 
+impl ops::AddAssign<TimeDelta> for DateTime {
+    fn add_assign(&mut self, rhs: TimeDelta) {
+        self.0 += rhs.0;
+    }
+}
+
+impl ops::SubAssign<TimeDelta> for DateTime {
+    fn sub_assign(&mut self, rhs: TimeDelta) {
+        self.0 -= rhs.0;
+    }
+}
+
 impl cmp::Eq for TimeDelta {}
 
 impl cmp::Ord for TimeDelta {
@@ -767,6 +790,13 @@ impl ops::Add<TimeDelta> for TimeDelta {
     type Output = TimeDelta;
     fn add(self, rhs: TimeDelta) -> TimeDelta {
         TimeDelta(self.0 + rhs.0)
+    }
+}
+
+impl ops::Sub<TimeDelta> for TimeDelta {
+    type Output = TimeDelta;
+    fn sub(self, rhs: TimeDelta) -> TimeDelta {
+        TimeDelta(self.0 - rhs.0)
     }
 }
 
@@ -784,9 +814,15 @@ impl ops::Div<f64> for TimeDelta {
     }
 }
 
-impl ops::AddAssign<TimeDelta> for DateTime {
+impl ops::AddAssign<TimeDelta> for TimeDelta {
     fn add_assign(&mut self, rhs: TimeDelta) {
         self.0 += rhs.0;
+    }
+}
+
+impl ops::SubAssign<TimeDelta> for TimeDelta {
+    fn sub_assign(&mut self, rhs: TimeDelta) {
+        self.0 -= rhs.0;
     }
 }
 

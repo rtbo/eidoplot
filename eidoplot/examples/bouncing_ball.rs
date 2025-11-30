@@ -26,7 +26,7 @@ impl ode_solvers::System<Time, State> for BouncingBall {
         // air density
         let rho = 1.225;
         // gravity constant
-        let grav = 9.81;
+        let g = 9.81;
 
         let vel = y[1];
         let drag_force = 0.5 * rho * vel * vel * s * cd;
@@ -34,9 +34,7 @@ impl ode_solvers::System<Time, State> for BouncingBall {
         let drag_direction = if vel >= 0.0 { 1.0 } else { -1.0 };
 
         dy[H] = y[V];
-        dy[V] = -grav - drag_direction * drag_force / m;
-
-        println!("y = {:?}, dy = {:?}", y, dy);
+        dy[V] = -g - drag_direction * drag_force / m;
     }
 
     fn solout(&mut self, _x: Time, y: &State, _dy: &State) -> bool {
@@ -134,9 +132,13 @@ fn main() {
         ])
         .with_x_axis(
             ir::Axis::new()
-                .with_ticks(ir::axis::Ticks::new().with_formatter(Some(
-                    ir::axis::ticks::TimeDeltaFormatter::Custom("%M:%S".to_string()).into(),
-                )))
+                .with_ticks(
+                    ir::axis::Ticks::new()
+                        .with_locator(ir::axis::ticks::TimeDeltaLocator::Seconds(2).into())
+                        .with_formatter(Some(
+                            ir::axis::ticks::TimeDeltaFormatter::Custom("%M:%S".to_string()).into(),
+                        )),
+                )
                 .with_grid(Default::default())
                 .with_title("Time".to_string().into()),
         )
