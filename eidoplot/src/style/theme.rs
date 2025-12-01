@@ -29,6 +29,12 @@ pub struct Theme {
     palette: Palette,
 }
 
+impl Default for Theme {
+    fn default() -> Self {
+        light(Palette::default())
+    }
+}
+
 impl<M> From<M> for Theme
 where
     M: ThemeMap,

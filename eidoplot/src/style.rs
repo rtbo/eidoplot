@@ -54,20 +54,6 @@ pub struct Line<C: Color> {
     pub opacity: Option<f32>,
 }
 
-impl<C> Default for Line<C>
-where
-    C: Color + Default,
-{
-    fn default() -> Self {
-        Line {
-            color: C::default(),
-            width: 1.0,
-            pattern: LinePattern::default(),
-            opacity: None,
-        }
-    }
-}
-
 const DOT_DASH: &[f32] = &[1.0, 1.0];
 
 impl<C: Color> Line<C> {

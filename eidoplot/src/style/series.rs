@@ -7,6 +7,12 @@ use crate::style::{self, ColorU8, defaults};
 #[derive(Debug, Clone)]
 pub struct Palette(Vec<ColorU8>);
 
+impl Default for Palette {
+    fn default() -> Self {
+        palettes::standard()
+    }
+}
+
 impl Palette {
     pub fn new(colors: Vec<ColorU8>) -> Self {
         Palette(colors)
@@ -88,12 +94,24 @@ impl style::ResolveColor<Color> for (&Palette, usize) {
 
 pub type Line = style::Line<Color>;
 
+impl Default for Line
+{
+    fn default() -> Self {
+        Line {
+            color: Color::default(),
+            width: defaults::SERIES_LINE_WIDTH,
+            pattern: style::LinePattern::default(),
+            opacity: None,
+        }
+    }
+}
+
 impl From<ColorU8> for Line {
     fn from(color: ColorU8) -> Self {
         Line {
             color: color.into(),
             width: defaults::SERIES_LINE_WIDTH,
-            pattern: style::LinePattern::Solid,
+            pattern: style::LinePattern::default(),
             opacity: None,
         }
     }
