@@ -4,7 +4,7 @@ use eidoplot::geom::Transform;
 use eidoplot::render::Surface;
 use eidoplot::style::ColorU8;
 use eidoplot::{geom, render};
-use eidoplot_text::{self as text, line, rich};
+use eidoplot::text::{self, line, rich};
 use svg::Node;
 use svg::node::element;
 use text::font;

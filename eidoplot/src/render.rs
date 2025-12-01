@@ -1,9 +1,9 @@
 use std::fmt;
 
-use eidoplot_text as text;
 
 use crate::geom;
 use crate::style::ColorU8;
+use crate::text;
 
 #[derive(Debug)]
 pub enum Error {

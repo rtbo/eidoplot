@@ -31,8 +31,6 @@
 
 use std::path;
 
-use eidoplot_text::fontdb;
-
 pub mod data;
 pub mod drawing;
 pub mod eplt;
@@ -41,6 +39,16 @@ pub mod ir;
 pub mod render;
 pub mod style;
 pub mod time;
+
+pub mod dsl {
+    pub use eidoplot_dsl::*;
+}
+
+pub mod text {
+    pub use eidoplot_text::*;
+}
+
+pub use text::fontdb;
 
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters

@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use eidoplot_text as text;
-use text::font;
 
 mod bounds;
 mod side;
@@ -14,6 +12,7 @@ use crate::drawing::{Categories, Ctx, Error, SurfWrapper, ticks};
 use crate::render::{self, Surface};
 use crate::style::{Color, theme};
 use crate::{data, geom, ir, missing_params};
+use crate::text::{self, font};
 
 #[derive(Debug, Clone)]
 pub struct Axis {

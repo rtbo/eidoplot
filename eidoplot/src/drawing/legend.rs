@@ -1,13 +1,11 @@
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
-use eidoplot_text::{self as text, LineText};
-use text::fontdb;
-
 use crate::drawing::{self, Ctx, SurfWrapper};
 use crate::render::{self, Surface as _};
 use crate::style::{Color as _, defaults, theme};
 use crate::{geom, ir, style};
+use crate::text::{self, fontdb, LineText};
 
 #[derive(Debug, Clone)]
 pub enum Shape {

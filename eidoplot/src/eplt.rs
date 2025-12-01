@@ -2,10 +2,10 @@ use std::fmt;
 #[cfg(feature = "dsl-diag")]
 use std::path;
 
+use crate::dsl::{self, ast};
+use crate::text::{self, ParseRichTextError, ParsedRichText};
 #[cfg(feature = "dsl-diag")]
 pub use dsl::{Diagnostic, Source};
-use eidoplot_dsl::{self as dsl, ast};
-use eidoplot_text::{ParseRichTextError, ParsedRichText};
 
 use crate::{ir, style};
 
@@ -211,7 +211,7 @@ fn parse_rich_text(
     span: dsl::Span,
     fmt: String,
 ) -> Result<ParsedRichText<style::theme::Color>, Error> {
-    let text = eidoplot_text::parse_rich_text::<style::theme::Color>(&fmt)
+    let text = text::parse_rich_text::<style::theme::Color>(&fmt)
         .map_err(|err| Error::ParseRichText(span.0, err))?;
     Ok(text)
 }

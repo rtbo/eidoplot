@@ -1,9 +1,7 @@
 use std::io;
 use std::sync::Arc;
 
-use eidoplot::{geom, render, style};
-use eidoplot_text as text;
-use text::fontdb;
+use eidoplot::{fontdb, geom, text, render, style};
 use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 #[derive(Debug, Clone)]
@@ -220,7 +218,7 @@ impl State {
     fn draw_text_bbox(
         &mut self,
         px: &mut PixmapMut<'_>,
-        bbox: eidoplot_text::BBox,
+        bbox: text::BBox,
         transform: geom::Transform,
     ) -> Result<(), render::Error> {
         let color = eidoplot::style::color::RED;
@@ -230,7 +228,7 @@ impl State {
             pattern: eidoplot::style::LinePattern::Solid,
             opacity: None,
         };
-        let eidoplot_text::BBox {
+        let text::BBox {
             top,
             right,
             bottom,

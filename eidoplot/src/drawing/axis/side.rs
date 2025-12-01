@@ -1,8 +1,7 @@
-use eidoplot_text as text;
 
 use crate::drawing::plot::Orientation;
 use crate::drawing::scale::CoordMap;
-use crate::{geom, ir, missing_params};
+use crate::{geom, text, ir, missing_params};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {

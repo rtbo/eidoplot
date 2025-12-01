@@ -19,19 +19,19 @@ pub use series::{DataCol, Series};
 // Caller must impl a specific Default for the $props_struct.
 macro_rules! define_rich_text_structs {
     ($text_struct:ident, $props_struct:ident, $opt_props_struct:ident) => {
-        pub type $opt_props_struct = eidoplot_text::rich::TextOptProps<$crate::style::theme::Color>;
+        pub type $opt_props_struct = $crate::text::rich::TextOptProps<$crate::style::theme::Color>;
 
         #[derive(Debug, Clone)]
-        pub struct $props_struct(eidoplot_text::rich::TextProps<$crate::style::theme::Color>);
+        pub struct $props_struct($crate::text::rich::TextProps<$crate::style::theme::Color>);
 
         impl $props_struct {
             fn new(font_size: f32) -> Self {
                 Self(
-                    eidoplot_text::rich::TextProps::new(font_size)
+                    $crate::text::rich::TextProps::new(font_size)
                         .with_font($crate::style::defaults::FONT_FAMILY.parse().unwrap()),
                 )
             }
-            pub fn with_font(self, font: eidoplot_text::font::Font) -> Self {
+            pub fn with_font(self, font: $crate::text::font::Font) -> Self {
                 Self(self.0.with_font(font))
             }
 
@@ -55,7 +55,7 @@ macro_rules! define_rich_text_structs {
                 self.0.font_size()
             }
 
-            pub fn font(&self) -> &eidoplot_text::font::Font {
+            pub fn font(&self) -> &$crate::text::font::Font {
                 self.0.font()
             }
 
@@ -89,8 +89,8 @@ macro_rules! define_rich_text_structs {
             }
         }
 
-        impl From<eidoplot_text::ParsedRichText<$crate::style::theme::Color>> for $text_struct {
-            fn from(text: eidoplot_text::ParsedRichText<$crate::style::theme::Color>) -> Self {
+        impl From<$crate::text::ParsedRichText<$crate::style::theme::Color>> for $text_struct {
+            fn from(text: $crate::text::ParsedRichText<$crate::style::theme::Color>) -> Self {
                 $text_struct {
                     text: text.text,
                     props: $props_struct::default(),
@@ -122,15 +122,15 @@ macro_rules! define_rich_text_structs {
 
             pub(crate) fn to_rich_text<R>(
                 &self,
-                layout: eidoplot_text::rich::Layout,
-                db: &eidoplot_text::fontdb::Database,
+                layout: $crate::text::rich::Layout,
+                db: &$crate::text::fontdb::Database,
                 rc: &R,
-            ) -> std::result::Result<eidoplot_text::RichText, eidoplot_text::Error>
+            ) -> std::result::Result<$crate::text::RichText, $crate::text::Error>
             where
                 R: $crate::style::ResolveColor<$crate::style::theme::Color>,
             {
                 let mut builder =
-                    eidoplot_text::RichTextBuilder::new(self.text.clone(), self.props.0.clone())
+                    $crate::text::RichTextBuilder::new(self.text.clone(), self.props.0.clone())
                         .with_layout(layout);
                 for (start, end, props) in &self.spans {
                     builder.add_span(*start, *end, props.clone());

@@ -289,9 +289,8 @@ impl Scale {
 
 /// Describe the ticks of an axis
 pub mod ticks {
-    use eidoplot_text::Font;
-
     use crate::style::{self, Dash, defaults, theme};
+    use crate::text::Font;
 
     /// Describes how to locate the ticks of an axis
     #[derive(Debug, Default, Clone)]

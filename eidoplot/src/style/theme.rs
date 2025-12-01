@@ -1,6 +1,7 @@
 use crate::style;
 use crate::style::color::{self, ColorU8};
 use crate::style::series::Palette;
+use crate::text;
 
 pub trait ThemeMap {
     fn is_dark(&self) -> bool;
@@ -149,7 +150,7 @@ impl std::str::FromStr for Color {
     }
 }
 
-impl eidoplot_text::rich::Foreground for Color {
+impl text::rich::Foreground for Color {
     fn foreground() -> Self {
         Color::Theme(Col::Foreground)
     }
