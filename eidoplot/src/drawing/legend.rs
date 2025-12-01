@@ -2,6 +2,7 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 
 use crate::drawing::{self, Ctx, SurfWrapper};
+use crate::geom::{Padding, Size};
 use crate::render::{self, Surface as _};
 use crate::style::{Color as _, defaults, theme};
 use crate::text::{self, LineText, fontdb};
@@ -65,8 +66,8 @@ pub struct LegendBuilder {
     fill: Option<theme::Fill>,
     border: Option<theme::Line>,
     columns: Option<NonZeroU32>,
-    spacing: f32,
-    padding: f32,
+    spacing: Size,
+    padding: Padding,
 
     avail_width: f32,
     fontdb: Arc<fontdb::Database>,
@@ -136,32 +137,33 @@ impl LegendBuilder {
         if self.entries.is_empty() {
             return None;
         }
-        let column_width = self.max_label_width();
+        let row_height= self.max_entry_height();
+        let column_width = self.max_entry_width();
         let columns = self
             .columns
             .map(|c| c.get())
             .unwrap_or_else(|| self.calc_columns(column_width))
             .max(1);
         let mut col = 0;
-        let mut x = self.padding;
-        let mut y = self.padding;
+        let mut x = self.padding.left();
+        let mut y = self.padding.top();
         let mut w: f32 = 0.0;
         let mut h: f32 = 0.0;
         for e in &mut self.entries {
             e.x = x;
             e.y = y;
-            w = w.max(x + e.width());
-            h = h.max(y + e.height());
+            w = w.max(x + column_width);
+            h = h.max(y + row_height);
             if col == columns - 1 {
                 col = 0;
-                x = self.padding;
-                y += e.height() + self.spacing;
+                x = self.padding.left();
+                y += row_height + self.spacing.height();
             } else {
                 col += 1;
-                x += e.width() + self.spacing;
+                x += column_width + self.spacing.width();
             }
         }
-        let sz = geom::Size::new(w + self.padding, h + self.padding);
+        let sz = geom::Size::new(w + self.padding.right(), h + self.padding.bottom());
         Some(Legend {
             font: self.font,
             fill: self.fill,
@@ -171,20 +173,28 @@ impl LegendBuilder {
         })
     }
 
-    fn max_label_width(&self) -> f32 {
+    fn max_entry_height(&self) -> f32 {
+        let mut height = f32::NAN;
+        for e in &self.entries {
+            height = height.max(e.height());
+        }
+        height
+    }
+
+    fn max_entry_width(&self) -> f32 {
         let mut width = f32::NAN;
         for e in &self.entries {
-            width = width.max(e.text.width());
+            width = width.max(e.width());
         }
         width
     }
 
     fn calc_columns(&self, column_width: f32) -> u32 {
-        let avail_width = self.avail_width - 2.0 * self.padding;
+        let avail_width = self.avail_width - self.padding.sum_hor();
         let mut cols = 1;
         let mut width = column_width;
-        while (width + column_width + self.spacing) < avail_width {
-            width += column_width + self.spacing;
+        while (width + column_width + self.spacing.width()) < avail_width {
+            width += column_width + self.spacing.width();
             cols += 1;
         }
         cols

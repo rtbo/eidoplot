@@ -1,5 +1,6 @@
 use std::num::NonZeroU32;
 
+use crate::geom::{Padding, Size};
 use crate::style::{defaults, theme};
 use crate::text;
 
@@ -26,8 +27,8 @@ pub struct Legend {
     fill: Option<theme::Fill>,
     border: Option<theme::Line>,
     columns: Option<NonZeroU32>,
-    padding: f32,
-    spacing: f32,
+    padding: Padding,
+    spacing: Size,
 }
 
 impl Default for Legend {
@@ -37,8 +38,8 @@ impl Default for Legend {
             fill: Some(theme::Col::LegendFill.into()),
             border: Some(theme::Col::LegendBorder.into()),
             columns: None,
-            padding: defaults::LEGEND_PADDING,
-            spacing: defaults::LEGEND_SPACING,
+            padding: defaults::LEGEND_PADDING.into(),
+            spacing: Size::new(defaults::LEGEND_H_SPACING, defaults::LEGEND_V_SPACING),
         }
     }
 }
@@ -64,11 +65,11 @@ impl Legend {
         self.columns
     }
 
-    pub fn padding(&self) -> f32 {
+    pub fn padding(&self) -> Padding {
         self.padding
     }
 
-    pub fn spacing(&self) -> f32 {
+    pub fn spacing(&self) -> Size {
         self.spacing
     }
 
@@ -91,11 +92,11 @@ impl Legend {
         }
     }
 
-    pub fn with_padding(self, padding: f32) -> Self {
+    pub fn with_padding(self, padding: Padding) -> Self {
         Self { padding, ..self }
     }
 
-    pub fn with_spacing(self, spacing: f32) -> Self {
+    pub fn with_spacing(self, spacing: Size) -> Self {
         Self { spacing, ..self }
     }
 }
