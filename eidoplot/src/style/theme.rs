@@ -1,7 +1,6 @@
-use crate::style;
 use crate::style::color::{self, ColorU8};
 use crate::style::series::Palette;
-use crate::text;
+use crate::{style, text};
 
 pub trait ThemeMap {
     fn is_dark(&self) -> bool;

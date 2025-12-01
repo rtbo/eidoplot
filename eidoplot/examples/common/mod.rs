@@ -5,7 +5,7 @@ use std::sync::Arc;
 use eidoplot::drawing::{self, SurfaceExt};
 use eidoplot::style::series::palettes;
 use eidoplot::style::{self};
-use eidoplot::{data, ir, fontdb};
+use eidoplot::{data, fontdb, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 use rand::SeedableRng;

@@ -1,7 +1,7 @@
 use std::io;
 use std::sync::Arc;
 
-use eidoplot::{fontdb, geom, text, render, style};
+use eidoplot::{fontdb, geom, render, style, text};
 use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 #[derive(Debug, Clone)]

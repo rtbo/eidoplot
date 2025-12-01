@@ -1,7 +1,6 @@
-
 use crate::drawing::plot::Orientation;
 use crate::drawing::scale::CoordMap;
-use crate::{geom, text, ir, missing_params};
+use crate::{geom, ir, missing_params, text};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {

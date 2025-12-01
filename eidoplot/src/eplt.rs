@@ -2,11 +2,11 @@ use std::fmt;
 #[cfg(feature = "dsl-diag")]
 use std::path;
 
-use crate::dsl::{self, ast};
-use crate::text::{self, ParseRichTextError, ParsedRichText};
 #[cfg(feature = "dsl-diag")]
 pub use dsl::{Diagnostic, Source};
 
+use crate::dsl::{self, ast};
+use crate::text::{self, ParseRichTextError, ParsedRichText};
 use crate::{ir, style};
 
 #[derive(Debug, Clone)]

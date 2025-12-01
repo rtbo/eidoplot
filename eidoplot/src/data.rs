@@ -123,7 +123,6 @@ impl From<Option<DateTime>> for Sample<'_> {
     }
 }
 
-
 impl From<TimeDelta> for Sample<'_> {
     fn from(val: TimeDelta) -> Self {
         Sample::TimeDelta(val)

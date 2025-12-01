@@ -1,10 +1,10 @@
 use std::fmt;
 use std::sync::Arc;
 
+use text::fontdb;
+
 use crate::style::Theme;
 use crate::{data, geom, ir, render, text};
-
-use text::fontdb;
 
 mod axis;
 mod figure;

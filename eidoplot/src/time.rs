@@ -662,7 +662,12 @@ impl TimeDeltaComps {
         for tok in fmt.tokens() {
             let Ok(tok) = tok else { return Err(fmt::Error) };
             match tok {
-                FmtToken::TimeDeltaDays => write!(out, "{} day{}", self.days, if self.days > 1 {"s"} else {""})?,
+                FmtToken::TimeDeltaDays => write!(
+                    out,
+                    "{} day{}",
+                    self.days,
+                    if self.days > 1 { "s" } else { "" }
+                )?,
                 FmtToken::Hour => write!(out, "{:02}", self.hour)?,
                 FmtToken::Minute => write!(out, "{:02}", self.minute)?,
                 FmtToken::Second => write!(out, "{:02}", self.second)?,
