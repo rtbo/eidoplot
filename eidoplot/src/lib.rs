@@ -56,7 +56,7 @@ mod missing_params {
     use crate::geom;
     use crate::style::theme;
 
-    pub const FIG_TITLE_MARGIN: f32 = 6.0;
+    pub const FIG_TITLE_MARGIN: f32 = 12.0;
 
     pub const PLOT_PADDING: geom::Padding = geom::Padding::Even(0.0);
 
