@@ -27,7 +27,7 @@ where
             let title = title.to_rich_text(layout, &ctx.fontdb, ctx.theme())?;
 
             let anchor_x = rect.center_x();
-            let anchor_y = rect.top() + missing_params::FIG_TITLE_MARGIN;
+            let anchor_y = rect.top();
             let transform = geom::Transform::from_translate(anchor_x, anchor_y);
             let text = render::RichText {
                 text: &title,
@@ -35,7 +35,7 @@ where
             };
             self.draw_rich_text(&text)?;
             rect = rect.shifted_top_side(
-                title.visual_bbox().height() + 2.0 * missing_params::FIG_TITLE_MARGIN,
+                title.visual_bbox().height() + missing_params::FIG_TITLE_MARGIN,
             );
         }
 
