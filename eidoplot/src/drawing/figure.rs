@@ -1,65 +1,119 @@
-use crate::drawing::legend::LegendBuilder;
-use crate::drawing::{Ctx, Error, SurfWrapper, plot};
-use crate::render::{self, Surface as _};
+use std::sync::Arc;
+
+
+use crate::drawing::legend::{self, LegendBuilder};
+use crate::drawing::{Ctx, Error, plot};
+use crate::render;
+use crate::style::Theme;
+use crate::text::font;
 use crate::{data, geom, ir, missing_params, text};
 
-impl<S: ?Sized> SurfWrapper<'_, S>
-where
-    S: render::Surface,
-{
-    pub fn draw_toplevel_figure<D>(&mut self, ctx: &Ctx<D>, fig: &ir::Figure) -> Result<(), Error>
+#[derive(Debug)]
+pub struct Figure {
+    fig: ir::Figure,
+    title: Option<(geom::Transform, text::RichText)>,
+    legend: Option<(geom::Point, legend::Legend)>,
+    plots: plot::Plots,
+}
+
+impl Figure {
+    pub fn prepare<D>(
+        ir: ir::Figure,
+        theme: Theme,
+        fontdb: Option<Arc<font::Database>>,
+        data_source: &D,
+    ) -> Result<Self, Error>
     where
         D: data::Source,
     {
-        self.prepare(fig.size())?;
-        if let Some(fill) = fig.fill() {
-            self.fill(fill.as_paint(ctx.theme()))?;
+        let fontdb =
+            fontdb
+            .unwrap_or_else(|| Arc::new(crate::bundled_font_db()));
+        let theme = Arc::new(theme);
+        let ctx = Ctx::new(data_source, theme, fontdb);
+        ctx.setup_figure(&ir)
+    }
+
+    pub fn draw<S>(&self, surface: &mut S, theme: &Theme) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        surface.prepare(self.fig.size())?;
+
+        if let Some(fill) = self.fig.fill() {
+            surface.fill(fill.as_paint(theme))?;
         }
+
+        if let Some((transform, title)) = &self.title {
+            let text = render::RichText {
+                text: title,
+                transform: *transform,
+            };
+            surface.draw_rich_text(&text)?;
+        }
+
+        if let Some((pos, legend)) = &self.legend {
+            legend.draw(surface, theme, pos)?;
+        }
+
+        self.plots.draw(surface, theme, self.fig.plots())?;
+
+        Ok(())
+    }
+}
+
+impl<D> Ctx<'_, D>
+where
+    D: data::Source,
+{
+    fn setup_figure(&self, fig: &ir::Figure) -> Result<Figure, Error> {
 
         let mut rect =
             geom::Rect::from_ps(geom::Point { x: 0.0, y: 0.0 }, fig.size()).pad(fig.padding());
 
-        if let Some(title) = fig.title() {
+        let mut title = None;
+        if let Some(fig_title) = fig.title() {
             let layout = text::rich::Layout::Horizontal(
                 text::rich::Align::Center,
                 text::line::VerAlign::Hanging.into(),
                 Default::default(),
             );
-            let title = title.to_rich_text(layout, &ctx.fontdb, ctx.theme())?;
+            let rich = fig_title.to_rich_text(layout, self.fontdb(), self.theme())?;
 
             let anchor_x = rect.center_x();
             let anchor_y = rect.top();
             let transform = geom::Transform::from_translate(anchor_x, anchor_y);
-            let text = render::RichText {
-                text: &title,
-                transform,
-            };
-            self.draw_rich_text(&text)?;
+
             rect = rect
-                .shifted_top_side(title.visual_bbox().height() + missing_params::FIG_TITLE_MARGIN);
+                .shifted_top_side(rich.visual_bbox().height() + missing_params::FIG_TITLE_MARGIN);
+
+            title = Some((transform, rich));
         }
 
-        if let Some(legend) = fig.legend() {
-            self.draw_figure_legend(ctx, fig, legend, &mut rect)?;
+        let mut legend = None;
+        if let Some(fig_legend) = fig.legend() {
+            let leg = self.prepare_legend(fig, fig_legend, &mut rect)?;
+            if let Some((pos, leg)) = leg {
+                legend = Some((pos, leg));
+            }
         }
 
-        self.draw_figure_plots(ctx, fig.plots(), &rect)?;
+        let plots = self.setup_plots(fig.plots(), &rect)?;
 
-        Ok(())
+        Ok(Figure {
+            fig: fig.clone(),
+            title,
+            legend,
+            plots,
+        })
     }
 
-    fn draw_figure_legend<D>(
-        &mut self,
-        ctx: &Ctx<D>,
-        fig: &ir::Figure,
-        legend: &ir::FigLegend,
-        rect: &mut geom::Rect,
-    ) -> Result<(), Error> {
+    fn prepare_legend(&self, fig: &ir::Figure, legend: &ir::FigLegend, rect: &mut geom::Rect) -> Result<Option<(geom::Point, legend::Legend)>, Error> {
         let mut builder = LegendBuilder::from_ir(
             legend.legend(),
             legend.pos().prefers_vertical(),
             rect.width(),
-            ctx.fontdb().clone(),
+            self.fontdb().clone(),
         );
 
         let mut idx = 0;
@@ -74,7 +128,7 @@ where
         }
 
         let Some(leg) = builder.layout() else {
-            return Ok(());
+            return Ok(None);
         };
 
         let sz = leg.size();
@@ -110,20 +164,6 @@ where
                 tl
             }
         };
-        self.draw_legend(ctx, &leg, &top_left)?;
-        Ok(())
-    }
-    fn draw_figure_plots<D>(
-        &mut self,
-        ctx: &Ctx<D>,
-        ir_plots: &ir::figure::Plots,
-        rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
-        D: data::Source,
-    {
-        let plots = ctx.setup_plots(ir_plots, rect)?;
-        self.draw_plots(ctx, ir_plots, &plots)?;
-        Ok(())
+        Ok(Some((top_left, leg)))
     }
 }

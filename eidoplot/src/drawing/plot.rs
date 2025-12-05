@@ -4,10 +4,10 @@ use crate::drawing::axis::{Axis, AxisScale, Bounds, Side};
 use crate::drawing::legend::{Legend, LegendBuilder};
 use crate::drawing::scale::CoordMapXy;
 use crate::drawing::series::{self, Series, SeriesExt};
-use crate::drawing::{Ctx, Error, SurfWrapper};
+use crate::drawing::{Ctx, Error};
 use crate::ir::plot::PlotLine;
-use crate::render::{self, Surface};
-use crate::style::defaults;
+use crate::render;
+use crate::style::{Theme, defaults};
 use crate::{data, geom, ir, missing_params};
 
 #[derive(Debug, Clone)]
@@ -18,11 +18,10 @@ pub struct Plots {
 #[derive(Debug, Clone)]
 struct Plot {
     plot_rect: geom::Rect,
-    outer_rect: geom::Rect,
     // None when there is no series (empty plot)
     axes: Option<Axes>,
     series: Vec<Series>,
-    legend: Option<Legend>,
+    legend: Option<(geom::Point, Legend)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -271,7 +270,7 @@ where
                 let x_axes = x_axes.next().unwrap();
                 let y_axes = y_axes.next().unwrap();
 
-                if ir_plots.plot(row, col).is_some() {
+                if let Some(ir_plot) = ir_plots.plot(row, col) {
                     let outer_rect = geom::Rect::from_xywh(x, y, width, height);
                     let plot_rect = geom::Rect::from_xywh(
                         x + left_widths[col as usize],
@@ -281,6 +280,16 @@ where
                     );
 
                     let PlotData { series, legend, .. } = data.unwrap();
+
+                    let legend = legend.map(|leg| {
+                        let top_left = legend_top_left(
+                            ir_plot.legend().unwrap(),
+                            leg.size(),
+                            &plot_rect,
+                            &outer_rect,
+                        );
+                        (top_left, leg)
+                    });
 
                     let axes = {
                         let x_ax = x_axes.unwrap();
@@ -300,13 +309,14 @@ where
                     };
 
                     let plt_idx = row * ir_plots.cols() + col;
-                    plots[plt_idx as usize] = Some(Plot {
+                    let mut plot = Plot {
                         plot_rect,
-                        outer_rect,
                         axes,
                         series,
                         legend,
-                    });
+                    };
+                    plot.build_series_path(ir_plot, self.data_source())?;
+                    plots[plt_idx as usize] = Some(plot);
                 }
                 x += width + ir_plots.space();
             }
@@ -694,63 +704,90 @@ fn y_side_matches_out_legend_pos(side: ir::axis::Side, legend_pos: ir::plot::Leg
     }
 }
 
-impl<S: ?Sized> SurfWrapper<'_, S>
-where
-    S: render::Surface,
-{
-    pub fn draw_plots<D>(
-        &mut self,
-        ctx: &Ctx<D>,
+impl Plots {
+    pub fn draw<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
         ir_plots: &ir::figure::Plots,
-        plots: &Plots,
     ) -> Result<(), Error>
     where
-        D: data::Source,
+        S: render::Surface,
     {
-        for (ir_plot, plot) in ir_plots.plots().zip(plots.plots.iter()) {
-            if let (Some(ir_plot), Some(plot)) = (ir_plot, plot.as_ref()) {
-                self.draw_plot(ctx, ir_plot, plot)?;
+        for (plot, ir_plot) in self.plots.iter().zip(ir_plots.plots()) {
+            if let (Some(plot), Some(ir_plot)) = (plot.as_ref(), ir_plot) {
+                plot.draw(surface, theme, ir_plot)?;
             }
         }
         Ok(())
     }
+}
 
-    fn draw_plot<D>(&mut self, ctx: &Ctx<D>, ir_plot: &ir::Plot, plot: &Plot) -> Result<(), Error>
+impl Plot {
+    fn build_series_path<D>(&mut self, ir_plot: &ir::Plot, data_source: &D) -> Result<(), Error>
     where
         D: data::Source,
     {
-        self.draw_plot_background(ctx, ir_plot, &plot.plot_rect)?;
-        let Some(axes) = &plot.axes else {
-            self.draw_plot_border(ctx, ir_plot.border(), &plot.plot_rect)?;
+        let Some(axes) = &self.axes else {
             return Ok(());
         };
 
-        self.draw_plot_axes_grids(ctx, &axes, &plot.plot_rect)?;
+        for (series, ir_series) in self.series.iter_mut().zip(ir_plot.series()) {
+            let (x_ax_ref, y_ax_ref) = ir_series.axes();
+            let x = axes.or_find(Orientation::X, x_ax_ref)?;
+            let y = axes.or_find(Orientation::Y, y_ax_ref)?;
+            let (Some(x), Some(y)) = (x, y) else {
+                unreachable!("Series without axis");
+            };
+            let cm = CoordMapXy {
+                x: x.coord_map(),
+                y: y.coord_map(),
+            };
 
-        self.draw_plot_lines(ctx, ir_plot, &plot, false)?;
-        self.draw_plot_series(ctx, ir_plot.series(), &plot.series, &plot.plot_rect, &axes)?;
-        self.draw_plot_lines(ctx, ir_plot, &plot, true)?;
+            series.build_path(ir_series, data_source, &self.plot_rect, &cm)?;
+        }
+        Ok(())
+    }
 
-        self.draw_plot_axes(ctx, &axes, &plot.plot_rect)?;
-        self.draw_plot_border(ctx, ir_plot.border(), &plot.plot_rect)?;
+    fn draw<S>(&self, surface: &mut S, theme: &Theme, ir_plot: &ir::Plot) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        self.draw_background(surface, theme, ir_plot)?;
+        let Some(axes) = &self.axes else {
+            self.draw_border(surface, theme, ir_plot.border())?;
+            return Ok(());
+        };
 
-        if let (Some(leg), Some(ir_leg)) = (&plot.legend, ir_plot.legend()) {
-            self.draw_plot_legend(ctx, &leg, ir_leg, &plot.plot_rect, &plot.outer_rect)?;
+        axes.draw_grids(surface, theme, &self.plot_rect)?;
+
+        self.draw_lines(surface, theme, axes, ir_plot, false)?;
+        self.draw_series(surface, theme, ir_plot.series())?;
+        self.draw_lines(surface, theme, axes, ir_plot, true)?;
+
+        axes.draw(surface, theme, &self.plot_rect)?;
+        self.draw_border(surface, theme, ir_plot.border())?;
+
+        if let Some((top_left, leg)) = self.legend.as_ref() {
+            leg.draw(surface, theme, top_left)?;
         }
 
         Ok(())
     }
 
-    fn draw_plot_background<D>(
-        &mut self,
-        ctx: &Ctx<D>,
+    fn draw_background<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
         ir_plot: &ir::Plot,
-        rect: &geom::Rect,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
         if let Some(fill) = ir_plot.fill() {
-            self.draw_rect(&render::Rect {
-                rect: *rect,
-                fill: Some(fill.as_paint(ctx.theme())),
+            surface.draw_rect(&render::Rect {
+                rect: self.plot_rect,
+                fill: Some(fill.as_paint(theme)),
                 stroke: None,
                 transform: None,
             })?;
@@ -758,19 +795,23 @@ where
         Ok(())
     }
 
-    fn draw_plot_border<D>(
-        &mut self,
-        ctx: &Ctx<D>,
+    fn draw_border<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
         border: Option<&ir::plot::Border>,
-        rect: &geom::Rect,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        let rect = self.plot_rect;
         match border {
             None => Ok(()),
             Some(ir::plot::Border::Box(stroke)) => {
-                self.draw_rect(&render::Rect {
-                    rect: *rect,
+                surface.draw_rect(&render::Rect {
+                    rect,
                     fill: None,
-                    stroke: Some(stroke.as_stroke(ctx.theme())),
+                    stroke: Some(stroke.as_stroke(theme)),
                     transform: None,
                 })?;
                 Ok(())
@@ -784,10 +825,10 @@ where
                 let path = render::Path {
                     path: &path,
                     fill: None,
-                    stroke: Some(stroke.as_stroke(ctx.theme())),
+                    stroke: Some(stroke.as_stroke(theme)),
                     transform: None,
                 };
-                self.draw_path(&path)?;
+                surface.draw_path(&path)?;
                 Ok(())
             }
             Some(ir::plot::Border::AxisArrow { .. }) => {
@@ -796,72 +837,42 @@ where
         }
     }
 
-    fn draw_plot_series<D>(
-        &mut self,
-        ctx: &Ctx<D>,
+    fn draw_series<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
         ir_series: &[ir::Series],
-        series: &[Series],
-        rect: &geom::Rect,
-        axes: &Axes,
     ) -> Result<(), Error>
     where
-        D: data::Source,
+        S: render::Surface,
     {
+        let rect = self.plot_rect;
+        let series = &self.series;
+
         let clip = render::Clip {
-            rect,
+            rect: &rect,
             transform: None,
         };
-        self.push_clip(&clip)?;
+        surface.push_clip(&clip)?;
 
-        for (ir_series, series) in ir_series.iter().zip(series.iter()) {
-            let (x_ax_ref, y_ax_ref) = ir_series.axes();
-            let x = axes.or_find(Orientation::X, x_ax_ref)?;
-            let y = axes.or_find(Orientation::Y, y_ax_ref)?;
-            let (Some(x), Some(y)) = (x, y) else {
-                unreachable!("Series without axis");
-            };
-            let cm = CoordMapXy {
-                x: x.coord_map(),
-                y: y.coord_map(),
-            };
-            self.draw_series_plot(ctx, ir_series, series, rect, &cm)?;
+        for (series, ir_series) in series.iter().zip(ir_series.iter()) {
+            series.draw(surface, theme, ir_series)?;
         }
-        self.pop_clip()?;
+        surface.pop_clip()?;
         Ok(())
     }
 
-    fn draw_plot_axes_grids<D>(
-        &mut self,
-        ctx: &Ctx<D>,
+    fn draw_lines<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
         axes: &Axes,
-        rect: &geom::Rect,
-    ) -> Result<(), Error> {
-        for axis in axes.x.iter() {
-            self.draw_axis_minor_grids(ctx, axis, rect)?;
-        }
-        for axis in axes.y.iter() {
-            self.draw_axis_minor_grids(ctx, axis, rect)?;
-        }
-        for axis in axes.x.iter() {
-            self.draw_axis_major_grids(ctx, axis, rect)?;
-        }
-        for axis in axes.y.iter() {
-            self.draw_axis_major_grids(ctx, axis, rect)?;
-        }
-        Ok(())
-    }
-
-    fn draw_plot_lines<D>(
-        &mut self,
-        ctx: &Ctx<D>,
         ir_plot: &ir::Plot,
-        plot: &Plot,
         above: bool,
-    ) -> Result<(), Error> {
-        let Some(axes) = plot.axes.as_ref() else {
-            return Ok(());
-        };
-
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
         for line in ir_plot.lines() {
             if line.above == above {
                 let x_axis = axes
@@ -871,20 +882,24 @@ where
                     .or_find(Orientation::Y, line.y_axis.as_ref())?
                     .ok_or_else(|| Error::UnknownAxisRef(line.y_axis.as_ref().unwrap().clone()))?;
 
-                self.draw_plot_line(ctx, line, x_axis, y_axis, &plot.plot_rect)?;
+                self.draw_line(surface, theme, line, x_axis, y_axis, &self.plot_rect)?;
             }
         }
         Ok(())
     }
 
-    fn draw_plot_line<D>(
-        &mut self,
-        ctx: &Ctx<D>,
+    fn draw_line<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
         line: &PlotLine,
         x_axis: &Axis,
         y_axis: &Axis,
         plot_rect: &geom::Rect,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
         let (x, y) = (line.x, line.y);
         let (p1, p2) = match line.direction {
             ir::plot::Direction::Horizontal => {
@@ -950,39 +965,62 @@ where
             let path = render::Path {
                 path: &path,
                 fill: None,
-                stroke: Some(line.line.as_stroke(ctx.theme())),
+                stroke: Some(line.line.as_stroke(theme)),
                 transform: None,
             };
-            self.draw_path(&path)?;
+            surface.draw_path(&path)?;
         }
 
         Ok(())
     }
+}
 
-    fn draw_plot_axes<D>(
-        &mut self,
-        ctx: &Ctx<D>,
-        axes: &Axes,
-        plot_rect: &geom::Rect,
-    ) -> Result<(), Error> {
-        self.draw_plot_axes_side(ctx, &axes.x, Side::Top, plot_rect)?;
-        self.draw_plot_axes_side(ctx, &axes.y, Side::Right, plot_rect)?;
-        self.draw_plot_axes_side(ctx, &axes.x, Side::Bottom, plot_rect)?;
-        self.draw_plot_axes_side(ctx, &axes.y, Side::Left, plot_rect)?;
+impl Axes {
+    fn draw_grids<S>(&self, surface: &mut S, theme: &Theme, rect: &geom::Rect) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        for axis in self.x.iter() {
+            axis.draw_minor_grids(surface, theme, rect)?;
+        }
+        for axis in self.y.iter() {
+            axis.draw_minor_grids(surface, theme, rect)?;
+        }
+        for axis in self.x.iter() {
+            axis.draw_major_grids(surface, theme, rect)?;
+        }
+        for axis in self.y.iter() {
+            axis.draw_major_grids(surface, theme, rect)?;
+        }
         Ok(())
     }
 
-    fn draw_plot_axes_side<D>(
-        &mut self,
-        ctx: &Ctx<D>,
+    fn draw<S>(&self, surface: &mut S, theme: &Theme, plot_rect: &geom::Rect) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        self.draw_side(surface, theme, &self.x, Side::Top, plot_rect)?;
+        self.draw_side(surface, theme, &self.y, Side::Right, plot_rect)?;
+        self.draw_side(surface, theme, &self.x, Side::Bottom, plot_rect)?;
+        self.draw_side(surface, theme, &self.y, Side::Left, plot_rect)?;
+        Ok(())
+    }
+
+    fn draw_side<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
         axes: &[Axis],
         side: Side,
         plot_rect: &geom::Rect,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
         let mut rect = *plot_rect;
         for axis in axes.iter() {
             if axis.side() == side {
-                let shift = self.draw_axis(ctx, axis, &rect)?
+                let shift = axis.draw(surface, theme, &rect)?
                     + missing_params::AXIS_MARGIN
                     + missing_params::AXIS_SPINE_WIDTH;
                 rect = match side {
@@ -993,19 +1031,6 @@ where
                 };
             }
         }
-        Ok(())
-    }
-
-    fn draw_plot_legend<D>(
-        &mut self,
-        ctx: &Ctx<D>,
-        leg: &Legend,
-        ir_leg: &ir::PlotLegend,
-        plot_rect: &geom::Rect,
-        outer_rect: &geom::Rect,
-    ) -> Result<(), Error> {
-        let top_left = legend_top_left(ir_leg, leg.size(), plot_rect, outer_rect);
-        self.draw_legend(ctx, &leg, &top_left)?;
         Ok(())
     }
 }

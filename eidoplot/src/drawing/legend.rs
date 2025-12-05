@@ -1,10 +1,10 @@
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
-use crate::drawing::{self, Ctx, SurfWrapper};
+use crate::drawing;
 use crate::geom::{Padding, Size};
-use crate::render::{self, Surface as _};
-use crate::style::{defaults, theme};
+use crate::render;
+use crate::style::{Theme, defaults, theme};
 use crate::text::{self, LineText, fontdb};
 use crate::{Color as _, geom, ir, style};
 
@@ -205,47 +205,50 @@ impl Legend {
     pub fn size(&self) -> geom::Size {
         self.size
     }
-}
 
-impl<S: ?Sized> SurfWrapper<'_, S>
-where
-    S: render::Surface,
-{
-    pub fn draw_legend<D>(
-        &mut self,
-        ctx: &Ctx<D>,
-        legend: &Legend,
+    pub fn draw<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
         top_left: &geom::Point,
-    ) -> Result<(), render::Error> {
-        let rect = geom::Rect::from_ps(*top_left, legend.size);
-        if legend.fill.is_some() || legend.border.is_some() {
-            self.draw_rect(&render::Rect {
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
+        let rect = geom::Rect::from_ps(*top_left, self.size);
+        if self.fill.is_some() || self.border.is_some() {
+            surface.draw_rect(&render::Rect {
                 rect,
-                fill: legend.fill.map(|f| f.as_paint(ctx.theme())),
-                stroke: legend.border.as_ref().map(|l| l.as_stroke(ctx.theme())),
+                fill: self.fill.map(|f| f.as_paint(theme)),
+                stroke: self.border.as_ref().map(|l| l.as_stroke(theme)),
                 transform: None,
             })?;
         }
 
-        for entry in &legend.entries {
-            self.draw_legend_entry(ctx, entry, &rect, legend.font.color)?;
+        for entry in &self.entries {
+            entry.draw(surface, theme, &rect, self.font.color)?;
         }
 
         Ok(())
     }
+}
 
-    fn draw_legend_entry<D>(
-        &mut self,
-        ctx: &Ctx<D>,
-        entry: &LegendEntry,
+impl LegendEntry {
+    fn draw<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
         rect: &geom::Rect,
         label_color: theme::Color,
-    ) -> Result<(), render::Error> {
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
         let rect = geom::Rect::from_xywh(
-            rect.left() + entry.x,
-            rect.top() + entry.y,
-            entry.width(),
-            entry.height(),
+            rect.left() + self.x,
+            rect.top() + self.y,
+            self.width(),
+            self.height(),
         );
 
         let shape_sz = defaults::LEGEND_SHAPE_SIZE;
@@ -257,9 +260,9 @@ where
             shape_sz,
         );
 
-        let rc = (ctx.theme().palette(), entry.index);
+        let rc = (theme.palette(), self.index);
 
-        match &entry.shape {
+        match &self.shape {
             Shape::Line(line) => {
                 let mut path = geom::PathBuilder::new();
                 path.move_to(shape_rect.left(), shape_rect.center_y());
@@ -272,7 +275,7 @@ where
                     stroke: Some(line.as_stroke(&rc)),
                     transform: None,
                 };
-                self.draw_path(&line)?;
+                surface.draw_path(&line)?;
             }
             Shape::Marker(marker) => {
                 let path = crate::drawing::marker::marker_path(&marker);
@@ -285,7 +288,7 @@ where
                     stroke: marker.stroke.as_ref().map(|s| s.as_stroke(&rc)),
                     transform: Some(&transform),
                 };
-                self.draw_path(&path)?;
+                surface.draw_path(&path)?;
             }
             Shape::Rect(fill, line) => {
                 let r = geom::Rect::from_ps(
@@ -301,7 +304,7 @@ where
                     stroke: line.as_ref().map(|l| l.as_stroke(&rc)),
                     transform: None,
                 };
-                self.draw_rect(&rr)?;
+                surface.draw_rect(&rr)?;
             }
         };
 
@@ -310,11 +313,11 @@ where
             rect.center_y(),
         );
         let rtext = render::LineText {
-            text: &entry.text,
-            fill: label_color.resolve(ctx.theme()).into(),
+            text: &self.text,
+            fill: label_color.resolve(theme).into(),
             transform,
         };
-        self.draw_line_text(&rtext)?;
+        surface.draw_line_text(&rtext)?;
 
         Ok(())
     }

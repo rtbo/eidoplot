@@ -3,8 +3,9 @@ use std::sync::Arc;
 
 use text::fontdb;
 
+use crate::drawing::figure::Figure;
 use crate::style::Theme;
-use crate::{data, geom, ir, render, text};
+use crate::{data, ir, render, text};
 
 mod axis;
 mod figure;
@@ -73,38 +74,49 @@ impl From<Arc<fontdb::Database>> for Options {
     }
 }
 
-pub trait SurfaceExt: render::Surface {
-    fn draw_figure<D>(
-        &mut self,
-        figure: &ir::Figure,
-        data_source: &D,
+pub trait FigureExt {
+    fn draw<S, D>(
+        &self, surface: &mut S,
         theme: &Theme,
-        opts: Options,
+        data_source: &D,
+        fontdb: Option<Arc<fontdb::Database>>,
     ) -> Result<(), Error>
     where
-        D: data::Source,
-    {
-        let fontdb = opts
-            .fontdb
-            .unwrap_or_else(|| Arc::new(crate::bundled_font_db()));
-        let ctx = Ctx::new(data_source, theme, fontdb);
-        let mut wrapper = SurfWrapper { surface: self };
-        wrapper.draw_toplevel_figure(&ctx, figure)?;
-        Ok(())
-    }
+        S: render::Surface,
+        D: data::Source;
 }
 
-impl<T> SurfaceExt for T where T: render::Surface {}
+impl FigureExt for ir::Figure {
+    fn draw<S, D>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
+        data_source: &D,
+        fontdb: Option<Arc<fontdb::Database>>,
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+        D: data::Source,
+    {
+        let figure = Figure::prepare(
+            self.clone(),
+            theme.clone(),
+            fontdb,
+            data_source,
+        )?;
+        figure.draw(surface, theme)
+    }
+}
 
 #[derive(Debug)]
 struct Ctx<'a, D> {
     data_source: &'a D,
-    theme: &'a Theme,
+    theme: Arc<Theme>,
     fontdb: Arc<fontdb::Database>,
 }
 
 impl<'a, D> Ctx<'a, D> {
-    pub fn new(data_source: &'a D, theme: &'a Theme, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D> {
+    pub fn new(data_source: &'a D, theme: Arc<Theme>, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D> {
         Ctx {
             data_source,
             theme,
@@ -122,51 +134,6 @@ impl<'a, D> Ctx<'a, D> {
 
     pub fn fontdb(&self) -> &Arc<fontdb::Database> {
         &self.fontdb
-    }
-}
-
-struct SurfWrapper<'a, S: ?Sized> {
-    surface: &'a mut S,
-}
-
-impl<'a, S: ?Sized> render::Surface for SurfWrapper<'a, S>
-where
-    S: render::Surface,
-{
-    fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
-        self.surface.prepare(size)
-    }
-
-    fn fill(&mut self, fill: render::Paint) -> Result<(), render::Error> {
-        self.surface.fill(fill)
-    }
-
-    fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), render::Error> {
-        self.surface.draw_rect(rect)
-    }
-
-    fn draw_line_text(&mut self, text: &render::LineText) -> Result<(), render::Error> {
-        self.surface.draw_line_text(text)
-    }
-
-    fn draw_rich_text(&mut self, text: &render::RichText) -> Result<(), render::Error> {
-        self.surface.draw_rich_text(text)
-    }
-
-    fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
-        self.surface.draw_text(text)
-    }
-
-    fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
-        self.surface.draw_path(path)
-    }
-
-    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
-        self.surface.push_clip(clip)
-    }
-
-    fn pop_clip(&mut self) -> Result<(), render::Error> {
-        self.surface.pop_clip()
     }
 }
 

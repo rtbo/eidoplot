@@ -2,10 +2,9 @@ use axis::AsBoundRef;
 use scale::{CoordMap, CoordMapXy};
 
 use crate::drawing::plot::Orientation;
-use crate::drawing::{
-    Categories, ColumnExt, Ctx, Error, F64ColumnExt, SurfWrapper, axis, legend, marker, scale,
-};
-use crate::render::{self, Surface as _};
+use crate::drawing::{Categories, ColumnExt, Error, F64ColumnExt, axis, legend, marker, scale};
+use crate::render;
+use crate::style::Theme;
 use crate::{data, geom, ir};
 
 /// trait implemented by series, or any other item that
@@ -224,39 +223,57 @@ impl Series {
             SeriesPlot::BarsGroup(..) => None,
         }
     }
-}
 
-impl<S: ?Sized> SurfWrapper<'_, S>
-where
-    S: render::Surface,
-{
-    pub fn draw_series_plot<D>(
+    pub fn build_path<D>(
         &mut self,
-        ctx: &Ctx<D>,
-        ir_series: &ir::Series,
-        series: &Series,
+        ir: &ir::Series,
+        data_source: &D,
         rect: &geom::Rect,
         cm: &CoordMapXy,
     ) -> Result<(), Error>
     where
         D: data::Source,
     {
-        match (&ir_series, &series.0) {
-            (ir::Series::Line(ir), SeriesPlot::Line(xy)) => {
-                self.draw_series_line(ctx, ir, xy, rect, cm)
+        match (&mut self.0, ir) {
+            (SeriesPlot::Line(xy), ir::Series::Line(ir)) => {
+                xy.build_path(ir, data_source, rect, cm);
             }
-            (ir::Series::Scatter(ir), SeriesPlot::Scatter(sc)) => {
-                self.draw_series_scatter(ctx, ir, sc, rect, cm)
+            (SeriesPlot::Scatter(sc), ir::Series::Scatter(ir)) => {
+                sc.build_path(ir, data_source, rect, cm)
             }
-            (ir::Series::Histogram(ir), SeriesPlot::Histogram(hist)) => {
-                Ok(self.draw_series_histogram(ctx, ir, hist, rect, cm)?)
+            (SeriesPlot::Histogram(hist), ir::Series::Histogram(_)) => {
+                hist.build_path(rect, cm);
             }
-            (ir::Series::Bars(ir), SeriesPlot::Bars(bars)) => {
-                Ok(self.draw_series_bars(ctx, ir, bars, rect, cm)?)
+            (SeriesPlot::Bars(bars), ir::Series::Bars(ir)) => {
+                bars.build_path(ir, data_source, rect, cm);
             }
-            (ir::Series::BarsGroup(ir), SeriesPlot::BarsGroup(bg)) => {
-                Ok(self.draw_series_bars_group(ctx, ir, bg, rect, cm)?)
+            (SeriesPlot::BarsGroup(bg), ir::Series::BarsGroup(ir)) => {
+                bg.build_paths(ir, data_source, rect, cm)
             }
+            _ => unreachable!("Should be the same plot type"),
+        }
+        Ok(())
+    }
+}
+
+impl Series {
+    pub fn draw<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
+        ir_series: &ir::Series,
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        match (&self.0, &ir_series) {
+            (SeriesPlot::Line(xy), ir::Series::Line(ir)) => xy.draw(surface, theme, ir),
+            (SeriesPlot::Scatter(sc), ir::Series::Scatter(ir)) => sc.draw(surface, theme, ir),
+            (SeriesPlot::Histogram(hist), ir::Series::Histogram(ir)) => {
+                hist.draw(surface, theme, ir)
+            }
+            (SeriesPlot::Bars(bars), ir::Series::Bars(ir)) => bars.draw(surface, theme, ir),
+            (SeriesPlot::BarsGroup(bg), ir::Series::BarsGroup(ir)) => bg.draw(surface, theme, ir),
             _ => unreachable!("Should be the same plot type"),
         }
     }
@@ -267,6 +284,7 @@ struct Line {
     index: usize,
     ab: (axis::Bounds, axis::Bounds),
     axes: (Option<ir::axis::Ref>, Option<ir::axis::Ref>),
+    path: Option<geom::Path>,
 }
 
 impl Line {
@@ -279,17 +297,17 @@ impl Line {
             index,
             ab: (x_bounds, y_bounds),
             axes: (ir.x_axis().cloned(), ir.y_axis().cloned()),
+            path: None,
         })
     }
 
     fn build_path<D>(
-        &self,
+        &mut self,
         ir: &ir::series::Line,
         data_source: &D,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> geom::Path
-    where
+    ) where
         D: data::Source,
     {
         // unwraping here as data is checked during setup phase
@@ -316,35 +334,22 @@ impl Line {
                 in_a_line = true;
             }
         }
-        pb.finish().expect("Should be a valid path")
+        self.path = Some(pb.finish().expect("Should be a valid path"));
     }
-}
 
-impl<S: ?Sized> SurfWrapper<'_, S>
-where
-    S: render::Surface,
-{
-    fn draw_series_line<D>(
-        &mut self,
-        ctx: &Ctx<D>,
-        ir: &ir::series::Line,
-        line: &Line,
-        rect: &geom::Rect,
-        cm: &CoordMapXy,
-    ) -> Result<(), Error>
+    fn draw<S>(&self, surface: &mut S, theme: &Theme, ir: &ir::series::Line) -> Result<(), Error>
     where
-        D: data::Source,
+        S: render::Surface,
     {
-        let path = line.build_path(ir, ctx.data_source(), rect, cm);
-        let rc = (ctx.theme().palette(), line.index);
+        let rc = (theme.palette(), self.index);
 
         let path = render::Path {
-            path: &path,
+            path: self.path.as_ref().unwrap(),
             fill: None,
             stroke: Some(ir.line().as_stroke(&rc)),
             transform: None,
         };
-        self.draw_path(&path)?;
+        surface.draw_path(&path)?;
         Ok(())
     }
 }
@@ -354,6 +359,8 @@ struct Scatter {
     index: usize,
     ab: (axis::Bounds, axis::Bounds),
     axes: (Option<ir::axis::Ref>, Option<ir::axis::Ref>),
+    path: geom::Path,
+    points: Vec<geom::Point>,
 }
 
 impl Scatter {
@@ -362,36 +369,30 @@ impl Scatter {
         D: data::Source,
     {
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, ir.x_data(), ir.y_data())?;
+        let path = marker::marker_path(ir.marker());
         Ok(Scatter {
             index,
             ab: (x_bounds, y_bounds),
             axes: (ir.x_axis().cloned(), ir.y_axis().cloned()),
+            path,
+            points: Vec::new(),
         })
     }
-}
 
-impl<S: ?Sized> SurfWrapper<'_, S>
-where
-    S: render::Surface,
-{
-    fn draw_series_scatter<D>(
+    fn build_path<D>(
         &mut self,
-        ctx: &Ctx<D>,
         ir: &ir::series::Scatter,
-        scatter: &Scatter,
+        data_source: &D,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), Error>
-    where
+    ) where
         D: data::Source,
     {
-        let path = marker::marker_path(ir.marker());
-        let rc = (ctx.theme().palette(), scatter.index);
-
-        // unwraping here as data is checked during setup phase
-        let x_col = get_column(ir.x_data(), ctx.data_source()).unwrap();
-        let y_col = get_column(ir.y_data(), ctx.data_source()).unwrap();
+        let x_col = get_column(ir.x_data(), data_source).unwrap();
+        let y_col = get_column(ir.y_data(), data_source).unwrap();
         debug_assert!(x_col.len() == y_col.len());
+
+        let mut points = Vec::with_capacity(x_col.len());
 
         for (x, y) in x_col.iter().zip(y_col.iter()) {
             if x.is_null() || y.is_null() {
@@ -400,16 +401,27 @@ where
             let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
             let x = rect.left() + x;
             let y = rect.bottom() - y;
-            let transform = geom::Transform::from_translate(x, y);
+            points.push(geom::Point { x, y });
+        }
+        self.points = points;
+    }
+
+    fn draw<S>(&self, surface: &mut S, theme: &Theme, ir: &ir::series::Scatter) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        let rc = (theme.palette(), self.index);
+
+        for p in &self.points {
+            let transform = geom::Transform::from_translate(p.x, p.y);
             let path = render::Path {
-                path: &path,
+                path: &self.path,
                 fill: ir.marker().fill.as_ref().map(|f| f.as_paint(&rc)),
                 stroke: ir.marker().stroke.as_ref().map(|l| l.as_stroke(&rc)),
                 transform: Some(&transform),
             };
-            self.draw_path(&path)?;
+            surface.draw_path(&path)?;
         }
-
         Ok(())
     }
 }
@@ -428,6 +440,7 @@ struct Histogram {
     ab: (axis::NumBounds, axis::NumBounds),
     axes: (Option<ir::axis::Ref>, Option<ir::axis::Ref>),
     bins: Vec<HistBin>,
+    path: Option<geom::Path>,
 }
 
 impl Histogram {
@@ -480,30 +493,17 @@ impl Histogram {
             ab: (x_bounds, y_bounds),
             axes: (hist.x_axis().cloned(), hist.y_axis().cloned()),
             bins,
+            path: None,
         })
     }
-}
 
-impl<S: ?Sized> SurfWrapper<'_, S>
-where
-    S: render::Surface,
-{
-    fn draw_series_histogram<D>(
-        &mut self,
-        ctx: &Ctx<D>,
-        ir: &ir::series::Histogram,
-        hist: &Histogram,
-        rect: &geom::Rect,
-        cm: &CoordMapXy,
-    ) -> Result<(), render::Error> {
-        let rc = (ctx.theme().palette(), hist.index);
-
+    fn build_path(&mut self, rect: &geom::Rect, cm: &CoordMapXy) {
         let mut pb = geom::PathBuilder::new();
-        let mut x = rect.left() + cm.x.map_coord_num(hist.bins[0].range.0);
+        let mut x = rect.left() + cm.x.map_coord_num(self.bins[0].range.0);
         let mut y = rect.bottom() - cm.y.map_coord_num(0.0);
         pb.move_to(x, y);
 
-        for bin in hist.bins.iter() {
+        for bin in self.bins.iter() {
             y = rect.bottom() - cm.y.map_coord_num(bin.value);
             pb.line_to(x, y);
             x = rect.left() + cm.x.map_coord_num(bin.range.1);
@@ -514,13 +514,27 @@ where
         pb.line_to(x, y);
 
         let path = pb.finish().expect("Should be a valid path");
+        self.path = Some(path);
+    }
+
+    fn draw<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
+        ir: &ir::series::Histogram,
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        let rc = (theme.palette(), self.index);
+
         let path = render::Path {
-            path: &path,
+            path: self.path.as_ref().unwrap(),
             fill: Some(ir.fill().as_paint(&rc)),
             stroke: ir.line().as_ref().map(|l| l.as_stroke(&rc)),
             transform: None,
         };
-        self.draw_path(&path)?;
+        surface.draw_path(&path)?;
         Ok(())
     }
 }
@@ -535,6 +549,7 @@ enum BarsBounds {
 struct Bars {
     index: usize,
     bounds: BarsBounds,
+    path: Option<geom::Path>,
 }
 
 impl Bars {
@@ -560,7 +575,11 @@ impl Bars {
             }
         };
 
-        Ok(Bars { index, bounds })
+        Ok(Bars {
+            index,
+            bounds,
+            path: None,
+        })
     }
 
     fn bounds(&self) -> (axis::BoundsRef<'_>, axis::BoundsRef<'_>) {
@@ -569,33 +588,24 @@ impl Bars {
             &BarsBounds::Horizontal(x_bounds, ref y_bounds) => (x_bounds.into(), y_bounds.into()),
         }
     }
-}
 
-impl<S: ?Sized> SurfWrapper<'_, S>
-where
-    S: render::Surface,
-{
-    fn draw_series_bars<D>(
+    fn build_path<D>(
         &mut self,
-        ctx: &Ctx<D>,
         ir: &ir::series::Bars,
-        bars: &Bars,
+        data_source: &D,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), render::Error>
-    where
+    ) where
         D: data::Source,
     {
-        let rc = (ctx.theme().palette(), bars.index);
-
         // unwraping here as data is checked during setup phase
-        let x_col = get_column(ir.x_data(), ctx.data_source()).unwrap();
-        let y_col = get_column(ir.y_data(), ctx.data_source()).unwrap();
+        let x_col = get_column(ir.x_data(), data_source).unwrap();
+        let y_col = get_column(ir.y_data(), data_source).unwrap();
         debug_assert!(x_col.len() == y_col.len());
 
         let mut pb = geom::PathBuilder::new();
 
-        match &bars.bounds {
+        match &self.bounds {
             BarsBounds::Vertical(..) => {
                 let cat_bin_width = cm.x.cat_bin_size();
                 let y_start = rect.bottom() - cm.y.map_coord_num(0.0);
@@ -637,13 +647,22 @@ where
         }
 
         let path = pb.finish().expect("Should be a valid path");
+        self.path = Some(path);
+    }
+
+    fn draw<S>(&self, surface: &mut S, theme: &Theme, ir: &ir::series::Bars) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        let rc = (theme.palette(), self.index);
+
         let path = render::Path {
-            path: &path,
+            path: self.path.as_ref().unwrap(),
             fill: Some(ir.fill().as_paint(&rc)),
-            stroke: ir.line().map(|l| l.as_stroke(&rc)),
+            stroke: ir.line().as_ref().map(|l| l.as_stroke(&rc)),
             transform: None,
         };
-        self.draw_path(&path)?;
+        surface.draw_path(&path)?;
         Ok(())
     }
 }
@@ -652,6 +671,7 @@ where
 pub struct BarsGroup {
     fst_index: usize,
     bounds: (axis::Bounds, axis::Bounds),
+    series_paths: Vec<geom::Path>,
 }
 
 impl BarsGroup {
@@ -716,56 +736,49 @@ impl BarsGroup {
         Ok(BarsGroup {
             fst_index: index,
             bounds,
+            series_paths: Vec::new(),
         })
     }
-}
 
-impl<S: ?Sized> SurfWrapper<'_, S>
-where
-    S: render::Surface,
-{
-    fn draw_series_bars_group<D>(
+    fn build_paths<D>(
         &mut self,
-        ctx: &Ctx<D>,
         ir: &ir::series::BarsGroup,
-        bg: &BarsGroup,
+        data_source: &D,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), render::Error>
-    where
+    ) where
         D: data::Source,
     {
         let categories = match ir.orientation() {
-            ir::series::BarsOrientation::Vertical => bg.bounds.0.as_cat().unwrap(),
-            ir::series::BarsOrientation::Horizontal => bg.bounds.1.as_cat().unwrap(),
+            ir::series::BarsOrientation::Vertical => self.bounds.0.as_cat().unwrap(),
+            ir::series::BarsOrientation::Horizontal => self.bounds.1.as_cat().unwrap(),
         };
 
-        match ir.arrangement() {
+        let paths = match ir.arrangement() {
             ir::series::BarsArrangement::Aside(aside) => {
-                self.draw_series_bars_aside(ctx, ir, &aside, bg, categories, rect, cm)
+                Self::build_paths_aside(ir, data_source, &aside, categories, rect, cm)
             }
             ir::series::BarsArrangement::Stack(stack) => {
-                self.draw_series_bars_stack(ctx, ir, &stack, bg, categories, rect, cm)
+                Self::build_paths_stack(ir, data_source, &stack, categories, rect, cm)
             }
-        }
+        };
+        self.series_paths = paths;
     }
 
-    fn draw_series_bars_aside<D>(
-        &mut self,
-        ctx: &Ctx<D>,
+    fn build_paths_aside<D>(
         ir: &ir::series::BarsGroup,
+        data_source: &D,
         arrangement: &ir::series::BarsAsideArrangement,
-        bg: &BarsGroup,
         categories: &Categories,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), render::Error>
+    ) -> Vec<geom::Path>
     where
         D: data::Source,
     {
         let num_series = ir.series().len();
         if num_series == 0 {
-            return Ok(());
+            return Vec::new();
         }
         let num_gaps = num_series - 1;
 
@@ -776,10 +789,10 @@ where
         } = *arrangement;
         let width = (width - gap * num_gaps as f32) / num_series as f32;
 
-        let mut col_idx = bg.fst_index;
+        let mut paths = Vec::with_capacity(num_series);
 
         for series in ir.series() {
-            let data_col = get_column(series.data(), ctx.data_source()).unwrap();
+            let data_col = get_column(series.data(), data_source).unwrap();
             let data_col = data_col.f64().unwrap();
 
             let mut pb = geom::PathBuilder::new();
@@ -797,42 +810,30 @@ where
             }
 
             let path = pb.finish().expect("Failed to build path");
-
-            let rc = (ctx.theme().palette(), col_idx);
-            col_idx += 1;
-
-            let rpath = render::Path {
-                path: &path,
-                fill: Some(series.fill().as_paint(&rc)),
-                stroke: series.line().map(|l| l.as_stroke(&rc)),
-                transform: None,
-            };
-            self.draw_path(&rpath)?;
+            paths.push(path);
 
             offset += width + gap;
         }
-        Ok(())
+        paths
     }
 
-    fn draw_series_bars_stack<D>(
-        &mut self,
-        ctx: &Ctx<D>,
+    fn build_paths_stack<D>(
         ir: &ir::series::BarsGroup,
+        data_source: &D,
         arrangement: &ir::series::BarsStackArrangement,
-        bg: &BarsGroup,
         categories: &Categories,
         rect: &geom::Rect,
         cm: &CoordMapXy,
-    ) -> Result<(), render::Error>
+    ) -> Vec<geom::Path>
     where
         D: data::Source,
     {
         let mut cat_values = vec![0.0; categories.len()];
 
-        let mut col_idx = bg.fst_index;
+        let mut paths = Vec::with_capacity(ir.series().len());
 
         for series in ir.series() {
-            let data_col = get_column(series.data(), ctx.data_source()).unwrap();
+            let data_col = get_column(series.data(), data_source).unwrap();
             let data_col = data_col.f64().unwrap();
 
             let mut pb = geom::PathBuilder::new();
@@ -858,17 +859,33 @@ where
             }
 
             let path = pb.finish().expect("Failed to build path");
+            paths.push(path);
+        }
+        paths
+    }
 
-            let rc = (ctx.theme().palette(), col_idx);
+    fn draw<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
+        ir: &ir::series::BarsGroup,
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        let mut col_idx = self.fst_index;
+
+        for (series, path) in ir.series().iter().zip(self.series_paths.iter()) {
+            let rc = (theme.palette(), col_idx);
             col_idx += 1;
 
             let rpath = render::Path {
-                path: &path,
+                path,
                 fill: Some(series.fill().as_paint(&rc)),
                 stroke: series.line().map(|l| l.as_stroke(&rc)),
                 transform: None,
             };
-            self.draw_path(&rpath)?;
+            surface.draw_path(&rpath)?;
         }
         Ok(())
     }

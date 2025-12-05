@@ -2,7 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use eidoplot::drawing::{self, SurfaceExt};
+use eidoplot::drawing::FigureExt;
 use eidoplot::style::series::palettes;
 use eidoplot::style::{self};
 use eidoplot::{data, fontdb, ir};
@@ -182,15 +182,8 @@ fn save_fig_as_png<D>(
     let width = (fig.size().width() * 2.0) as _;
     let height = (fig.size().height() * 2.0) as _;
     let mut pxl = PxlSurface::new(width, height, Some(fontdb.clone())).unwrap();
-    pxl.draw_figure(
-        fig,
-        data_source,
-        theme,
-        drawing::Options {
-            fontdb: Some(fontdb),
-        },
-    )
-    .unwrap();
+    fig.draw(&mut pxl, theme, data_source, Some(fontdb))
+        .unwrap();
     pxl.save_png(file_name).unwrap();
 }
 
@@ -206,14 +199,7 @@ fn save_fig_as_svg<D>(
     let width = fig.size().width() as _;
     let height = fig.size().height() as _;
     let mut svg = SvgSurface::new(width, height);
-    svg.draw_figure(
-        fig,
-        data_source,
-        theme,
-        drawing::Options {
-            fontdb: Some(fontdb),
-        },
-    )
-    .unwrap();
+    fig.draw(&mut svg, theme, data_source, Some(fontdb))
+        .unwrap();
     svg.save_svg(file_name).unwrap();
 }
