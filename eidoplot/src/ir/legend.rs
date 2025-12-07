@@ -85,9 +85,9 @@ impl Legend {
         Self { border, ..self }
     }
 
-    pub fn with_columns(self, columns: NonZeroU32) -> Self {
+    pub fn with_columns(self, columns: u32) -> Self {
         Self {
-            columns: Some(columns),
+            columns: Some(NonZeroU32::new(columns).expect("columns > 0")),
             ..self
         }
     }
