@@ -6,8 +6,8 @@
  * Y low coordinates are at the top.
  */
 
-use strict_num::PositiveF32;
-pub use tiny_skia_path::{Path, PathBuilder, PathSegment, Transform, PathVerb};
+use strict_num::{FiniteF32, PositiveF32};
+pub use tiny_skia_path::{Path, PathBuilder, PathSegment, PathVerb, Transform};
 
 /// A point in 2D space reprensented by x and y coordinates
 #[derive(Debug, Clone, Copy)]
@@ -84,8 +84,8 @@ impl Size {
 /// A rectangle in 2D space reprensented by x, y, width and height
 #[derive(Debug, Clone, Copy)]
 pub struct Rect {
-    x: f32,
-    y: f32,
+    x: FiniteF32,
+    y: FiniteF32,
     w: PositiveF32,
     h: PositiveF32,
 }
@@ -94,8 +94,8 @@ impl Rect {
     /// Build a rectangle from x, y, width and height
     pub fn from_xywh(x: f32, y: f32, w: f32, h: f32) -> Self {
         Rect {
-            x,
-            y,
+            x: FiniteF32::new(x).unwrap(),
+            y: FiniteF32::new(y).unwrap(),
             w: PositiveF32::new(w).unwrap(),
             h: PositiveF32::new(h).unwrap(),
         }
@@ -104,8 +104,8 @@ impl Rect {
     /// Build a rectangle from top, right, bottom and left
     pub fn from_trbl(top: f32, right: f32, bottom: f32, left: f32) -> Self {
         Rect {
-            x: left,
-            y: top,
+            x: FiniteF32::new(left).unwrap(),
+            y: FiniteF32::new(top).unwrap(),
             w: PositiveF32::new(right - left).unwrap(),
             h: PositiveF32::new(bottom - top).unwrap(),
         }
@@ -119,8 +119,8 @@ impl Rect {
     /// Pad the rectangle, removing padding from 4 sides
     pub fn pad(&self, padding: &Padding) -> Self {
         Rect {
-            x: self.x + padding.left(),
-            y: self.y + padding.top(),
+            x: FiniteF32::new(self.x.get() + padding.left()).unwrap(),
+            y: FiniteF32::new(self.y.get() + padding.top()).unwrap(),
             w: PositiveF32::new(self.w.get() - padding.sum_hor()).unwrap(),
             h: PositiveF32::new(self.h.get() - padding.sum_ver()).unwrap(),
         }
@@ -168,12 +168,12 @@ impl Rect {
 
     /// The X coordinate of the left side
     pub const fn x(&self) -> f32 {
-        self.x
+        self.x.get()
     }
 
     /// The Y coordinate of the top side
     pub const fn y(&self) -> f32 {
-        self.y
+        self.y.get()
     }
 
     /// The center point of the rectangle
@@ -206,27 +206,27 @@ impl Rect {
 
     /// The top Y coordinate
     pub const fn top(&self) -> f32 {
-        self.y
+        self.y.get()
     }
 
     /// The right X coordinate
     pub const fn right(&self) -> f32 {
-        self.x + self.w.get()
+        self.x.get() + self.w.get()
     }
 
     /// The bottom Y coordinate
     pub const fn bottom(&self) -> f32 {
-        self.y + self.h.get()
+        self.y.get() + self.h.get()
     }
 
     /// The left X coordinate
     pub const fn left(&self) -> f32 {
-        self.x
+        self.x.get()
     }
 
     /// Set the top Y coordinate
-    pub const fn set_top(&mut self, top: f32) {
-        self.y = top;
+    pub fn set_top(&mut self, top: f32) {
+        self.y = FiniteF32::new(top).unwrap();
     }
 
     /// Set the right X coordinate
@@ -240,15 +240,15 @@ impl Rect {
     }
 
     /// Set the left X coordinate
-    pub const fn set_left(&mut self, left: f32) {
-        self.x = left;
+    pub fn set_left(&mut self, left: f32) {
+        self.x = FiniteF32::new(left).unwrap();
     }
 
     /// Shift the top side down by shift
     pub fn shifted_top_side(&self, shift: f32) -> Rect {
         Rect {
             x: self.x,
-            y: self.y + shift,
+            y: FiniteF32::new(self.y.get() + shift).unwrap(),
             w: self.w,
             h: PositiveF32::new(self.h.get() - shift).unwrap(),
         }
@@ -277,7 +277,7 @@ impl Rect {
     /// Shift the left side right by shift
     pub fn shifted_left_side(&self, shift: f32) -> Rect {
         Rect {
-            x: self.x + shift,
+            x: FiniteF32::new(self.x.get() + shift).unwrap(),
             y: self.y,
             w: PositiveF32::new(self.w.get() - shift).unwrap(),
             h: self.h,
@@ -286,7 +286,7 @@ impl Rect {
 
     /// Shift the top side down by shift (in-place)
     pub fn shift_top_side(&mut self, shift: f32) {
-        self.y += shift;
+        self.y = FiniteF32::new(self.y.get() + shift).unwrap();
         self.h = PositiveF32::new(self.h.get() - shift).unwrap();
     }
 
@@ -302,7 +302,7 @@ impl Rect {
 
     /// Shift the left side right by shift (in-place)
     pub fn shift_left_side(&mut self, shift: f32) {
-        self.x += shift;
+        self.x = FiniteF32::new(self.x.get() + shift).unwrap();
         self.w = PositiveF32::new(self.w.get() - shift).unwrap();
     }
 
@@ -310,7 +310,7 @@ impl Rect {
     pub fn with_top(self, top: f32) -> Rect {
         let new_h = self.bottom() - top;
         Rect {
-            y: top,
+            y: FiniteF32::new(top).unwrap(),
             h: PositiveF32::new(new_h).unwrap(),
             ..self
         }
@@ -318,7 +318,7 @@ impl Rect {
 
     /// Build a copy of the rect with a new right side
     pub fn with_right(self, right: f32) -> Rect {
-        let new_w = right - self.x;
+        let new_w = right - self.x();
         Rect {
             w: PositiveF32::new(new_w).unwrap(),
             ..self
@@ -327,7 +327,7 @@ impl Rect {
 
     /// Build a copy of the rect with a new bottom side
     pub fn with_bottom(self, bottom: f32) -> Rect {
-        let new_h = bottom - self.y;
+        let new_h = bottom - self.y();
         Rect {
             h: PositiveF32::new(new_h).unwrap(),
             ..self
@@ -338,7 +338,7 @@ impl Rect {
     pub fn with_left(self, left: f32) -> Rect {
         let new_w = self.right() - left;
         Rect {
-            x: left,
+            x: FiniteF32::new(left).unwrap(),
             w: PositiveF32::new(new_w).unwrap(),
             ..self
         }
@@ -347,7 +347,8 @@ impl Rect {
     /// Build a path from the rectangle
     pub fn to_path(&self) -> Path {
         PathBuilder::from_rect(
-            tiny_skia_path::Rect::from_xywh(self.x, self.y, self.w.get(), self.h.get()).unwrap(),
+            tiny_skia_path::Rect::from_xywh(self.x.get(), self.y.get(), self.w.get(), self.h.get())
+                .unwrap(),
         )
     }
 }
