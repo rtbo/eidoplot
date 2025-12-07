@@ -189,17 +189,40 @@ impl From<(f64, f64)> for NumBounds {
     }
 }
 
+// in case that start and end are equal, we get a lot if issues during scale and ticks calculations.
+// start, end and span handle the case of null span by adjusting the perceived bounds with following heuristics.
+// - if the start and end are both zero, the start is -1, and the end is 1 
+// - else if the span is zero (start and end equal), the start is 0 and the end is 2 x the value
+// - else normal value is returned
 impl NumBounds {
     pub fn start(&self) -> f64 {
-        self.0
+        if self.0 == self.1 && self.0 == 0.0 {
+            -1.0
+        } else if self.0 == self.1 {
+            0.0
+        } else {
+            self.0
+        }
     }
 
     pub fn end(&self) -> f64 {
-        self.1
+        if self.0 == self.1 && self.0 == 0.0 {
+            1.0
+        } else if self.0 == self.1 {
+            2.0 * self.1
+        } else {
+            self.1
+        }
     }
 
     pub fn span(&self) -> f64 {
-        self.1 - self.0
+        if self.0 == self.1 && self.0 == 0.0 {
+            2.0
+        } else if self.0 == self.1 {
+            2.0 * self.1
+        } else {
+            self.1 - self.0
+        }
     }
 
     pub fn log_span(&self, base: f64) -> f64 {
