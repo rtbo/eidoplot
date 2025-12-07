@@ -1126,6 +1126,10 @@ impl TableSource {
         }
     }
 
+    pub fn heads(&self) -> &[String] {
+        &self.heads
+    }
+
     pub fn add_column(&mut self, name: &str, col: VecColumn) {
         self.len = self.len.max(col.len());
         self.heads.push(name.to_string());
