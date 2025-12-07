@@ -234,10 +234,10 @@ fn guess_column_type(data: &str, num_nulls: usize) -> CsvColumn {
         let mut vec: Vec<Option<DateTime>> = vec![None; num_nulls];
         vec.push(Some(dt));
         CsvColumn::Time(vec, Some("%Y-%m-%d".to_string()))
-    } else if let Ok(d) = data.parse::<i64>() {
-        let mut vec: Vec<Option<i64>> = vec![None; num_nulls];
-        vec.push(Some(d));
-        CsvColumn::I64(vec)
+    // } else if let Ok(d) = data.parse::<i64>() {
+    //     let mut vec: Vec<Option<i64>> = vec![None; num_nulls];
+    //     vec.push(Some(d));
+    //     CsvColumn::I64(vec)
     } else if let Ok(d) = data.parse::<f64>() {
         let mut vec: Vec<f64> = vec![f64::NAN; num_nulls];
         vec.push(d);
