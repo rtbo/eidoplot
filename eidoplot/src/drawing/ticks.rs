@@ -7,7 +7,7 @@ use crate::ir::axis::ticks::{
     TimeDeltaLocator,
 };
 use crate::ir::axis::{LogScale, Scale};
-use crate::time::{DateTime, DateTimeComps, TimeDelta, TimeDeltaComps};
+use crate::time::{DateTime, DateTimeComps, TimeDelta};
 
 pub fn locate_num(
     locator: &Locator,
@@ -233,101 +233,65 @@ fn locate_datetime_even(start: DateTime, tb: axis::TimeBounds, td: TimeDelta) ->
     res
 }
 
+fn time_steps(steps: &[u32], secs: f64, multiplier: f64) -> u32 {
+    for s in steps {
+        let bins = secs / ((*s as f64) * multiplier);
+        if bins < 10.0 {
+            return *s;
+        }
+    }
+    steps[steps.len() - 1]
+}
+
 fn locate_timedelta_num(loc: &TimeDeltaLocator, nb: axis::NumBounds) -> Result<Vec<f64>, Error> {
-    match loc {
+    let step = match loc {
         TimeDeltaLocator::Auto => {
             let secs = nb.span();
             let locator = if secs > 5.0 * 86400.0 {
                 let days = secs / (10.0 * 86400.0);
                 TimeDeltaLocator::Days((days as u32).max(1))
             } else if secs > 5.0 * 3600.0 {
-                let hours = secs / (10.0 * 3600.0);
-                TimeDeltaLocator::Hours((hours as u32).max(1))
+                let hours = time_steps(&[1, 2, 3, 4, 6, 12, 24], secs, 3600.0);
+                TimeDeltaLocator::Hours(hours)
             } else if secs > 5.0 * 60.0 {
-                let minutes = secs / (10.0 * 60.0);
-                TimeDeltaLocator::Minutes((minutes as u32).max(1))
+                let minutes = time_steps(&[1, 5, 10, 15, 30], secs, 60.0);
+                TimeDeltaLocator::Minutes(minutes)
             } else if secs > 5.0 {
-                let seconds = secs / (10.0);
-                TimeDeltaLocator::Seconds((seconds as u32).max(1))
+                let seconds = time_steps(&[1, 5, 10, 15, 30], secs, 1.0);
+                TimeDeltaLocator::Seconds(seconds)
             } else {
-                let micros = secs * 1E6 / 10.0;
-                TimeDeltaLocator::Micros((micros as u32).max(1))
+                let micros = time_steps(
+                    &[
+                        1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
+                        100000, 200000, 500000,
+                    ],
+                    secs,
+                    1E-6,
+                );
+                TimeDeltaLocator::Seconds(micros)
             };
-            locate_timedelta_num(&locator, nb)
+            return locate_timedelta_num(&locator, nb);
         }
-        TimeDeltaLocator::Days(n) => {
-            let start = TimeDelta::from_seconds(nb.start()).to_comps();
-            let start = TimeDeltaComps {
-                days: start.days,
-                ..TimeDeltaComps::zero()
-            };
-            let td = TimeDelta::from_seconds(86400.0) * *n as f64;
-            Ok(locate_timedelta_even(start.try_into().unwrap(), nb, td))
-        }
-        TimeDeltaLocator::Hours(n) => {
-            let start = TimeDelta::from_seconds(nb.start()).to_comps();
-            let start = TimeDeltaComps {
-                days: start.days,
-                hour: start.hour,
-                ..TimeDeltaComps::zero()
-            };
-            let td = TimeDelta::from_seconds(3600.0) * *n as f64;
-            Ok(locate_timedelta_even(start.try_into().unwrap(), nb, td))
-        }
-        TimeDeltaLocator::Minutes(n) => {
-            let start = TimeDelta::from_seconds(nb.start()).to_comps();
-            let start = TimeDeltaComps {
-                days: start.days,
-                hour: start.hour,
-                minute: start.minute,
-                ..TimeDeltaComps::zero()
-            };
-            let td = TimeDelta::from_seconds(60.0) * *n as f64;
-            Ok(locate_timedelta_even(start.try_into().unwrap(), nb, td))
-        }
-        TimeDeltaLocator::Seconds(n) => {
-            let start = TimeDelta::from_seconds(nb.start()).to_comps();
-            let start = TimeDeltaComps {
-                days: start.days,
-                hour: start.hour,
-                minute: start.minute,
-                second: start.second,
-                ..TimeDeltaComps::zero()
-            };
-            let td = TimeDelta::from_seconds(1.0) * *n as f64;
-            Ok(locate_timedelta_even(start.try_into().unwrap(), nb, td))
-        }
-        TimeDeltaLocator::Micros(n) => {
-            let start = TimeDelta::from_seconds(nb.start()).to_comps();
-            let start = TimeDeltaComps {
-                days: start.days,
-                hour: start.hour,
-                minute: start.minute,
-                second: start.second,
-                micro: start.micro,
-                ..TimeDeltaComps::zero()
-            };
-            let td = TimeDelta::from_seconds(1E-6) * *n as f64;
-            Ok(locate_timedelta_even(start.try_into().unwrap(), nb, td))
-        }
-    }
+        TimeDeltaLocator::Days(n) if *n > 0 => *n as f64 * 86400.0,
+        TimeDeltaLocator::Hours(n) if *n > 0 => *n as f64 * 3600.0,
+        TimeDeltaLocator::Minutes(n) if *n > 0 => *n as f64 * 60.0,
+        TimeDeltaLocator::Seconds(n) if *n > 0 => *n as f64,
+        TimeDeltaLocator::Micros(n) if *n > 0 => *n as f64 * 1E-6,
+        _ => return Err(Error::InconsistentIr("TimeDeltaLocator with null step".into())),
+    };
+    let start = (nb.start() / step).floor() * step;
+    let end = nb.end();
+    Ok(locate_timedelta_even(start, end, step))
 }
 
-fn locate_timedelta_even(start: TimeDelta, nb: axis::NumBounds, td: TimeDelta) -> Vec<f64> {
+fn locate_timedelta_even(start: f64, end: f64, step: f64) -> Vec<f64> {
     // pushing from one tick before start to one tick after end
-    let mut res = Vec::new();
-    let mut cur = start.seconds();
-    let td = td.seconds();
-    if cur >= nb.start() {
-        cur -= td;
+    let mut res = Vec::with_capacity((1.0 + (end - start) / step) as usize);
+    let mut current = start;
+    while current <= end {
+        res.push(current);
+        current += step;
     }
-    while cur < nb.end() {
-        if (cur + td) >= nb.start() {
-            res.push(cur);
-        }
-        cur += td;
-    }
-    res.push(cur);
     res
 }
 
