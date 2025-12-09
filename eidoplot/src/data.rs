@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::time::{DateTime, TimeDelta};
 
 #[cfg(feature = "polars")]
@@ -454,7 +456,7 @@ pub trait TimeDeltaColumn: std::fmt::Debug {
 }
 
 /// Trait for a table-like data source
-pub trait Source {
+pub trait Source: fmt::Debug {
     fn column(&self, name: &str) -> Option<&dyn Column>;
 }
 
