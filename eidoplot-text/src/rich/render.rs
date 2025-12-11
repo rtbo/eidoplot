@@ -1,15 +1,23 @@
+use eidoplot_color::ColorU8;
 use ttf_parser as ttf;
 
 use super::RichText;
 use crate::{BBox, font, fontdb};
 
-pub fn render_rich_text(
+#[derive(Debug)]
+pub enum RichPrimitive<'a> {
+    Fill(&'a tiny_skia_path::Path, ColorU8),
+    Stroke(&'a tiny_skia_path::Path, ColorU8, f32),
+}
+
+pub fn render_rich_text_with<RenderFn>(
     text: &RichText,
     fontdb: &fontdb::Database,
-    transform: tiny_skia_path::Transform,
-    mask: Option<&tiny_skia::Mask>,
-    pixmap: &mut tiny_skia::PixmapMut<'_>,
-) -> Result<(), ttf::FaceParsingError> {
+    mut render_fn: RenderFn,
+) -> Result<(), ttf::FaceParsingError>
+where
+    RenderFn: FnMut(RichPrimitive<'_>),
+{
     let mut span_builder = tiny_skia_path::PathBuilder::new();
     let mut glyph_builder = tiny_skia_path::PathBuilder::new();
 
@@ -58,22 +66,12 @@ pub fn render_rich_text(
 
                         if let Some(path) = span_builder.finish() {
                             if let Some(c) = span.props.fill.as_ref() {
-                                let mut paint = tiny_skia::Paint::default();
-                                paint.set_color_rgba8(c.red(), c.green(), c.blue(), c.alpha());
-                                pixmap.fill_path(
-                                    &path,
-                                    &paint,
-                                    tiny_skia::FillRule::Winding,
-                                    transform,
-                                    mask,
-                                );
+                                let prim = RichPrimitive::Fill(&path, *c);
+                                render_fn(prim);
                             }
                             if let Some((c, thickness)) = span.props.outline.as_ref() {
-                                let mut paint = tiny_skia::Paint::default();
-                                paint.set_color_rgba8(c.red(), c.green(), c.blue(), c.alpha());
-                                let mut stroke = tiny_skia::Stroke::default();
-                                stroke.width = *thickness;
-                                pixmap.stroke_path(&path, &paint, &stroke, transform, mask);
+                                let prim = RichPrimitive::Stroke(&path, *c, *thickness);
+                                render_fn(prim);
                             }
                             span_builder = path.clear();
                         } else {
@@ -88,6 +86,30 @@ pub fn render_rich_text(
     }
 
     Ok(())
+}
+
+pub fn render_rich_text(
+    text: &RichText,
+    fontdb: &fontdb::Database,
+    transform: tiny_skia_path::Transform,
+    mask: Option<&tiny_skia::Mask>,
+    pixmap: &mut tiny_skia::PixmapMut<'_>,
+) -> Result<(), ttf::FaceParsingError> {
+    let render_fn = |primitive: RichPrimitive| match primitive {
+        RichPrimitive::Fill(path, color) => {
+            let mut paint = tiny_skia::Paint::default();
+            paint.set_color_rgba8(color.red(), color.green(), color.blue(), color.alpha());
+            pixmap.fill_path(path, &paint, tiny_skia::FillRule::Winding, transform, mask);
+        }
+        RichPrimitive::Stroke(path, color, width) => {
+            let mut paint = tiny_skia::Paint::default();
+            paint.set_color_rgba8(color.red(), color.green(), color.blue(), color.alpha());
+            let mut stroke = tiny_skia::Stroke::default();
+            stroke.width = width;
+            pixmap.stroke_path(path, &paint, &stroke, transform, mask);
+        }
+    };
+    render_rich_text_with(text, fontdb, render_fn)
 }
 
 fn line_path(

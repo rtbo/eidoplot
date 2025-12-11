@@ -12,7 +12,7 @@ use boundaries::Boundaries;
 pub use parse::{
     ParseRichTextError, ParsedRichText, parse_rich_text, parse_rich_text_with_classes,
 };
-pub use render::render_rich_text;
+pub use render::{render_rich_text, render_rich_text_with, RichPrimitive};
 
 /// Typographic alignment, possibly depending on the script direction.
 #[derive(Debug, Clone, Copy, Default)]

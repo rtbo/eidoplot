@@ -324,20 +324,10 @@ impl Shape {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct RenderOptions<'a> {
-    pub fill: Option<tiny_skia::Paint<'a>>,
-    pub outline: Option<(tiny_skia::Paint<'a>, tiny_skia::Stroke)>,
-    pub mask: Option<&'a tiny_skia::Mask>,
-    pub transform: tiny_skia_path::Transform,
-}
-
-pub fn render_line_text(
-    line: &LineText,
-    opts: &RenderOptions<'_>,
-    db: &font::Database,
-    pixmap: &mut tiny_skia::PixmapMut<'_>,
-) {
+pub fn render_line_text_with<R>(line: &LineText, db: &font::Database, mut render_fn: R)
+where
+    R: FnMut(&tiny_skia_path::Path),
+{
     for shape in line.shapes.iter() {
         db.with_face_data(shape.face_id, |data, index| {
             let mut face = ttf::Face::parse(data, index).unwrap();
@@ -365,19 +355,39 @@ pub fn render_line_text(
             }
 
             if let Some(path) = str_pb.finish() {
-                if let Some(paint) = opts.fill.as_ref() {
-                    pixmap.fill_path(
-                        &path,
-                        &paint,
-                        tiny_skia::FillRule::Winding,
-                        opts.transform,
-                        opts.mask,
-                    );
-                }
-                if let Some((paint, stroke)) = opts.outline.as_ref() {
-                    pixmap.stroke_path(&path, &paint, &stroke, opts.transform, opts.mask);
-                }
+                render_fn(&path);
             }
         });
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct RenderOptions<'a> {
+    pub fill: Option<tiny_skia::Paint<'a>>,
+    pub outline: Option<(tiny_skia::Paint<'a>, tiny_skia::Stroke)>,
+    pub mask: Option<&'a tiny_skia::Mask>,
+    pub transform: tiny_skia_path::Transform,
+}
+
+pub fn render_line_text(
+    line: &LineText,
+    opts: &RenderOptions<'_>,
+    db: &font::Database,
+    pixmap: &mut tiny_skia::PixmapMut<'_>,
+) {
+    let render_fn = |path: &tiny_skia_path::Path| {
+        if let Some(paint) = opts.fill.as_ref() {
+            pixmap.fill_path(
+                &path,
+                &paint,
+                tiny_skia::FillRule::Winding,
+                opts.transform,
+                opts.mask,
+            );
+        }
+        if let Some((paint, stroke)) = opts.outline.as_ref() {
+            pixmap.stroke_path(&path, &paint, &stroke, opts.transform, opts.mask);
+        }
+    };
+    render_line_text_with(line, db, render_fn);
 }
