@@ -7,7 +7,7 @@
  */
 
 use strict_num::PositiveF32;
-pub use tiny_skia_path::{Path, PathBuilder, PathSegment, Transform};
+pub use tiny_skia_path::{Path, PathBuilder, PathSegment, Transform, PathVerb};
 
 /// A point in 2D space reprensented by x and y coordinates
 #[derive(Debug, Clone, Copy)]
