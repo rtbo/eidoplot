@@ -1,5 +1,5 @@
 use crate::style::color::{self, ColorU8};
-use crate::style::series::Palette;
+use crate::style::series::{Palette, palettes};
 use crate::{style, text};
 
 pub trait ThemeMap {
@@ -200,12 +200,22 @@ impl From<Col> for Fill {
 
 /// Build the black on white thelme
 pub fn black_white() -> Theme {
-    Light(style::series::palettes::black()).into()
+    Light(palettes::black()).into()
+}
+
+/// Build the default light theme
+pub fn standard_light() -> Theme {
+    Light(palettes::standard()).into()
 }
 
 /// Build a light theme with the given palette
 pub fn light(palette: Palette) -> Theme {
     Light(palette).into()
+}
+
+/// Build the default dark theme
+pub fn standard_dark() -> Theme {
+    Dark(palettes::pastel()).into()
 }
 
 /// Build a dark theme with the given palette
