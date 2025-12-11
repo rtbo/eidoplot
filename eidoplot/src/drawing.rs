@@ -65,6 +65,14 @@ pub struct Options {
     pub fontdb: Option<Arc<fontdb::Database>>,
 }
 
+impl From<Arc<fontdb::Database>> for Options {
+    fn from(fontdb: Arc<fontdb::Database>) -> Self {
+        Options {
+            fontdb: Some(fontdb),
+        }
+    }
+}
+
 pub trait SurfaceExt: render::Surface {
     fn draw_figure<D>(
         &mut self,
