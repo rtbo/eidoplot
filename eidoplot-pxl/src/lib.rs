@@ -93,22 +93,6 @@ impl State {
         Ok(())
     }
 
-    fn draw_rect(
-        &mut self,
-        px: &mut PixmapMut<'_>,
-        rect: &render::Rect,
-    ) -> Result<(), render::Error> {
-        let path = rect.rect.to_path();
-        let path = render::Path {
-            path: &path,
-            fill: rect.fill,
-            stroke: rect.stroke,
-            transform: rect.transform,
-        };
-        self.draw_path(px, &path)?;
-        Ok(())
-    }
-
     fn draw_path(
         &mut self,
         px: &mut PixmapMut<'_>,
@@ -285,11 +269,6 @@ impl render::Surface for PxlSurface {
         self.state.fill(&mut px, fill)
     }
 
-    fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), render::Error> {
-        let mut px = self.pixmap.as_mut();
-        self.state.draw_rect(&mut px, rect)
-    }
-
     fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
         let mut px = self.pixmap.as_mut();
         self.state.draw_path(&mut px, path)
@@ -326,10 +305,6 @@ impl render::Surface for PxlSurfaceRef<'_> {
 
     fn fill(&mut self, fill: render::Paint) -> Result<(), render::Error> {
         self.state.fill(&mut self.pixmap, fill)
-    }
-
-    fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), render::Error> {
-        self.state.draw_rect(&mut self.pixmap, rect)
     }
 
     fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {

@@ -38,7 +38,19 @@ pub trait Surface {
     fn fill(&mut self, fill: Paint) -> Result<(), Error>;
 
     /// Draw a rectangle
-    fn draw_rect(&mut self, rect: &Rect) -> Result<(), Error>;
+    ///
+    /// Default implementation converts the rectangle to a path and call [`draw_path`](Surface::draw_path)
+    fn draw_rect(&mut self, rect: &Rect) -> Result<(), Error> {
+        let path = rect.rect.to_path();
+        let path = self::Path {
+            path: &path,
+            fill: rect.fill,
+            stroke: rect.stroke,
+            transform: rect.transform,
+        };
+        self.draw_path(&path)?;
+        Ok(())
+    }
 
     /// Draw a path
     fn draw_path(&mut self, path: &Path) -> Result<(), Error>;
@@ -46,7 +58,7 @@ pub trait Surface {
     /// Draw a line of text
     fn draw_text(&mut self, text: &Text) -> Result<(), Error>;
 
-    /// Draw a line of text
+    /// Draw a pre-shaped line of text
     fn draw_line_text(&mut self, text: &LineText) -> Result<(), Error>;
 
     /// Draw a rich text
