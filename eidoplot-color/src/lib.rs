@@ -110,6 +110,14 @@ impl ColorU8 {
         [self.r, self.g, self.b, self.a]
     }
 
+    pub const fn rgb_f32(&self) -> [f32; 3] {
+        [self.r as f32 / 255.0, self.g as f32 / 255.0, self.b as f32 / 255.0]
+    }
+
+    pub const fn rgba_f32(&self) -> [f32; 4] {
+        [self.r as f32 / 255.0, self.g as f32 / 255.0, self.b as f32 / 255.0, self.a as f32 / 255.0]
+    }
+
     pub const fn red(&self) -> u8 {
         self.r
     }
