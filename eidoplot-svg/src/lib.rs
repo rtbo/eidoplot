@@ -148,11 +148,11 @@ impl Surface for SvgSurface {
     fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
         let clip_id = self.bump_clip_id();
         let clip_id_url = format!("url(#{})", clip_id);
-        let mut path_node = element::Path::new().set("d", path_data(&clip.path));
-        assign_transform(&mut path_node, clip.transform);
+        let mut rect_node = rectangle_node(&clip.rect);
+        assign_transform(&mut rect_node, clip.transform);
         let node = element::ClipPath::new()
             .set("id", clip_id.clone())
-            .add(path_node);
+            .add(rect_node);
         self.append_node(node);
         self.group_stack
             .push(element::Group::new().set("clip-path", clip_id_url));

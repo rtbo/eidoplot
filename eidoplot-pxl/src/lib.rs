@@ -262,7 +262,8 @@ impl State {
                 .transform
                 .map(|t| t.post_concat(self.transform))
                 .unwrap_or(self.transform);
-            mask.fill_path(&clip.path, FillRule::Winding, true, transform);
+            let path = clip.rect.to_path();
+            mask.fill_path(&path, FillRule::Winding, true, transform);
             self.clip = Some(mask);
         }
         Ok(())

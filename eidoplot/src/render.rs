@@ -52,12 +52,12 @@ pub trait Surface {
     /// Draw a rich text
     fn draw_rich_text(&mut self, text: &RichText) -> Result<(), Error>;
 
-    /// Push a clipping path
-    /// Subsequent draw operations will be clipped to this path,
+    /// Push a clipping rect
+    /// Subsequent draw operations will be clipped to this rect,
     /// until a matching [`pop_clip`] is called
     fn push_clip(&mut self, clip: &Clip) -> Result<(), Error>;
 
-    /// Pop a clipping path that was pushed previously with [`push_clip`]
+    /// Pop a clipping rect that was pushed previously with [`push_clip`]
     fn pop_clip(&mut self) -> Result<(), Error>;
 }
 
@@ -107,7 +107,7 @@ pub struct Path<'a> {
 
 #[derive(Debug, Clone)]
 pub struct Clip<'a> {
-    pub path: &'a geom::Path,
+    pub rect: &'a geom::Rect,
     pub transform: Option<&'a geom::Transform>,
 }
 

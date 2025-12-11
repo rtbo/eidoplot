@@ -807,10 +807,11 @@ where
     where
         D: data::Source,
     {
-        self.push_clip(&render::Clip {
-            path: &rect.to_path(),
+        let clip = render::Clip {
+            rect,
             transform: None,
-        })?;
+        };
+        self.push_clip(&clip)?;
 
         for (ir_series, series) in ir_series.iter().zip(series.iter()) {
             let (x_ax_ref, y_ax_ref) = ir_series.axes();
