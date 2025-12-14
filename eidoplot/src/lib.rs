@@ -40,6 +40,11 @@ pub mod render;
 pub mod style;
 pub mod time;
 
+pub mod color {
+    pub use eidoplot_color::*;
+}
+pub use color::{Color, ColorU8, ResolveColor};
+
 pub mod dsl {
     pub use eidoplot_dsl::*;
 }
@@ -47,13 +52,40 @@ pub mod dsl {
 pub mod text {
     pub use eidoplot_text::*;
 }
-
-pub mod color {
-    pub use eidoplot_color::*;
-}
-pub use color::{Color, ColorU8, ResolveColor};
-
 pub use text::fontdb;
+
+#[cfg(feature = "utils")]
+pub mod utils {
+    use crate::time::DateTime;
+
+    /// Create a linearly spaced vector of `num` elements between `start` and `end`
+    pub fn linspace(start: f64, end: f64, num: usize) -> Vec<f64> {
+        let step = (end - start) / (num as f64 - 1.0);
+        (0..num).map(|i| start + i as f64 * step).collect()
+    }
+
+    /// Create a log-spaced vector of `num` elements between `start` and `end`
+    pub fn logspace(start: f64, end: f64, num: usize) -> Vec<f64> {
+        let log_start = start.log10();
+        let log_end = end.log10();
+        let step = (log_end - log_start) / (num as f64 - 1.0);
+        (0..num)
+            .map(|i| 10f64.powf(log_start + i as f64 * step))
+            .collect()
+    }
+
+    /// Create a linearly spaced time vector of `num` elements between `start` and `end`
+    pub fn timespace(start: DateTime, end: DateTime, num: usize) -> Vec<DateTime> {
+        let step = (end - start) / (num as f64 - 1.0);
+        let mut result = Vec::with_capacity(num);
+        let mut cur = start;
+        for _ in 0..num {
+            result.push(cur);
+            cur += step;
+        }
+        result
+    }
+}
 
 /// Module containing missing configuration values
 /// Basically we put here all magic values that would require proper parameters

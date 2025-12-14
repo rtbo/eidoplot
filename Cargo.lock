@@ -523,7 +523,6 @@ dependencies = [
  "eidoplot-pxl",
  "eidoplot-svg",
  "eidoplot-text",
- "eidoplot-utils",
  "miette",
  "ode_solvers",
  "polars",
@@ -584,13 +583,6 @@ dependencies = [
  "tinyvec",
  "ttf-parser",
  "unicode-bidi",
-]
-
-[[package]]
-name = "eidoplot-utils"
-version = "0.1.0-dev"
-dependencies = [
- "eidoplot",
 ]
 
 [[package]]

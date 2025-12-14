@@ -1,5 +1,4 @@
-use eidoplot::{data, eplt};
-use eidoplot_utils as utils;
+use eidoplot::{data, eplt, utils};
 
 mod common;
 

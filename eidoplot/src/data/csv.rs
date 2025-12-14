@@ -1,33 +1,5 @@
-use eidoplot::data::{TableSource, VecColumn};
-use eidoplot::time::DateTime;
-
-/// Create a linearly spaced vector of `num` elements between `start` and `end`
-pub fn linspace(start: f64, end: f64, num: usize) -> Vec<f64> {
-    let step = (end - start) / (num as f64 - 1.0);
-    (0..num).map(|i| start + i as f64 * step).collect()
-}
-
-/// Create a log-spaced vector of `num` elements between `start` and `end`
-pub fn logspace(start: f64, end: f64, num: usize) -> Vec<f64> {
-    let log_start = start.log10();
-    let log_end = end.log10();
-    let step = (log_end - log_start) / (num as f64 - 1.0);
-    (0..num)
-        .map(|i| 10f64.powf(log_start + i as f64 * step))
-        .collect()
-}
-
-/// Create a linearly spaced time vector of `num` elements between `start` and `end`
-pub fn timespace(start: DateTime, end: DateTime, num: usize) -> Vec<DateTime> {
-    let step = (end - start) / (num as f64 - 1.0);
-    let mut result = Vec::with_capacity(num);
-    let mut cur = start;
-    for _ in 0..num {
-        result.push(cur);
-        cur += step;
-    }
-    result
-}
+use super::{TableSource, VecColumn};
+use crate::time::DateTime;
 
 #[derive(Debug, Clone)]
 pub enum CsvParseError {
@@ -318,7 +290,7 @@ fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), CsvParseErro
 
 #[cfg(test)]
 mod tests {
-    use eidoplot::data::Source;
+    use crate::data::Source;
 
     use super::*;
 

@@ -2,7 +2,12 @@ use core::fmt;
 
 use crate::time::{DateTime, TimeDelta};
 
-#[cfg(feature = "polars")]
+#[cfg(feature = "data-csv")]
+mod csv;
+#[cfg(feature = "data-csv")]
+pub use csv::CsvParser;
+
+#[cfg(feature = "data-polars")]
 pub mod polars;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]

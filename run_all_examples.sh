@@ -39,6 +39,6 @@ cargo run --example multiple_axes_eplt --features dsl-diag -- ${POS_ARGS[@]}
 cargo run --example subplots_eplt --features dsl-diag -- ${POS_ARGS[@]}
 
 if [ "$RUN_POLARS" = "y" ]; then
-        cargo run --example polars_iris --features polars -- ${POS_ARGS[@]}
-        cargo run --example polars_sine --features polars -- ${POS_ARGS[@]}
+        cargo run --example polars_iris --features data-polars -- ${POS_ARGS[@]}
+        cargo run --example polars_sine --features data-polars -- ${POS_ARGS[@]}
 fi
