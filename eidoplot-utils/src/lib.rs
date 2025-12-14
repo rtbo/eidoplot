@@ -331,7 +331,7 @@ mod tests {
 
         let int_col = src
             .column("Int")
-            .and_then(|c| c.i64())
+            .and_then(|c| c.f64())
             .unwrap()
             .iter()
             .map(|v| v.unwrap())
@@ -353,7 +353,7 @@ mod tests {
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
-        assert_eq!(int_col, &[1, 2, 3]);
+        assert_eq!(int_col, &[1.0, 2.0, 3.0]);
         assert_eq!(float_col, &[1.0, 2.0, 3.0]);
         assert_eq!(str_col, &["one", "two", "three"]);
     }
@@ -367,7 +367,7 @@ mod tests {
 
         let int_col = src
             .column("Int")
-            .and_then(|c| c.i64())
+            .and_then(|c| c.f64())
             .unwrap()
             .iter()
             .map(|v| v.unwrap())
@@ -388,7 +388,7 @@ mod tests {
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
-        assert_eq!(int_col, &[1, 2, 3]);
+        assert_eq!(int_col, &[1.0, 2.0, 3.0]);
         assert_eq!(float_col, &[Some(1.0), None, Some(3.0)]);
         assert_eq!(str_col, &["one", "two", "three"]);
     }
@@ -402,7 +402,7 @@ mod tests {
 
         let int_col = src
             .column("Int")
-            .and_then(|c| c.i64())
+            .and_then(|c| c.f64())
             .unwrap()
             .iter()
             .map(|v| v.unwrap())
@@ -423,12 +423,12 @@ mod tests {
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
-        assert_eq!(int_col, &[1, 2, 3]);
+        assert_eq!(int_col, &[1.0, 2.0, 3.0]);
         assert_eq!(float_col, &[None, Some(2.0), Some(3.0)]);
         assert_eq!(str_col, &["one", "two", "three"]);
     }
 
-    pub const CSV_DATE: &str = "Date,Int\n2025-01-01,1\n2025-01-02,2\n2025-01-03,3\n";
+    pub const CSV_DATE: &str = "Date,Float\n2025-01-01,1.0\n2025-01-02,2.0\n2025-01-03,3.0\n";
 
     #[test]
     fn test_parse_csv_date() {
@@ -443,9 +443,9 @@ mod tests {
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
-        let int_col = src
-            .column("Int")
-            .and_then(|c| c.i64())
+        let float_col = src
+            .column("Float")
+            .and_then(|c| c.f64())
             .unwrap()
             .iter()
             .map(|v| v.unwrap())
@@ -459,6 +459,6 @@ mod tests {
                 DateTime::from_ymd(2025, 1, 3).unwrap()
             ]
         );
-        assert_eq!(int_col, &[1, 2, 3]);
+        assert_eq!(float_col, &[1.0, 2.0, 3.0]);
     }
 }
