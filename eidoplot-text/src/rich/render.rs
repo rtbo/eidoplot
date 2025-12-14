@@ -1,4 +1,4 @@
-use eidoplot_color::ColorU8;
+use eidoplot_base::ColorU8;
 use ttf_parser as ttf;
 
 use super::RichText;

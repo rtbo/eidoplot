@@ -6,17 +6,16 @@
  * A simple and minimal data plotting library for Rust
  *
  * Eidoplot separates figure design from data representation and from rendering surfaces.
- * It aims to be the LATEX of data plotting.
  *
  * ## Supported figure types
  *  - XY line plots
+ *  - Scatter plots
  *  - Histograms
  *
  * ## Notes about eidoplot's design
  *
  * The figure design lies in the `ir` module (IR = Intermediate Representation).
  * The IR describes the figure design in a declarative way. It ignores everything about the rendering surfaces.
- * A yet to be designed DSL for figure will be provided to describe the IR in text files that can be parsed by eidoplot.
  * This will allow to bridge easily eidoplot to other programming languages and to write a compiler for eidoplot figures.
  *
  * The rendering surfaces implements the `render::Surface` trait and are in separate crates.
@@ -34,19 +33,22 @@ use std::path;
 pub mod data;
 pub mod drawing;
 pub mod eplt;
-pub mod geom;
 pub mod ir;
 pub mod render;
 pub mod style;
 pub mod time;
 
 pub mod color {
-    pub use eidoplot_color::*;
+    pub use eidoplot_base::color::*;
 }
 pub use color::{Color, ColorU8, ResolveColor};
 
 pub mod dsl {
     pub use eidoplot_dsl::*;
+}
+
+pub mod geom {
+    pub use eidoplot_base::geom::*;
 }
 
 pub mod text {

@@ -1,4 +1,4 @@
-use eidoplot_color::{Color, ColorU8, ResolveColor};
+use eidoplot_base::{color, Color, ColorU8, ResolveColor};
 use ttf_parser as ttf;
 
 use crate::{BBox, Error, font, fontdb, line};
@@ -339,7 +339,7 @@ pub trait Foreground {
 
 impl Foreground for ColorU8 {
     fn foreground() -> Self {
-        eidoplot_color::BLACK
+        color::BLACK
     }
 }
 

@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "eidoplot",
-    "eidoplot-color",
+    "eidoplot-base",
     "eidoplot-dsl",
     "eidoplot-pxl",
     "eidoplot-svg",
@@ -17,7 +17,7 @@ edition = "2024"
 
 [workspace.dependencies]
 eidoplot = { version = "0.1.0-dev", path = "eidoplot" }
-eidoplot-color = { version = "0.1.0-dev", path = "eidoplot-color" }
+eidoplot-base = { version = "0.1.0-dev", path = "eidoplot-base" }
 eidoplot-dsl = { version = "0.1.0-dev", path = "eidoplot-dsl" }
 eidoplot-pxl = { version = "0.1.0-dev", path = "eidoplot-pxl" }
 eidoplot-svg = { version = "0.1.0-dev", path = "eidoplot-svg" }

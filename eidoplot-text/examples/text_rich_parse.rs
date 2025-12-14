@@ -1,4 +1,4 @@
-use eidoplot_color as color;
+use eidoplot_base::color;
 use eidoplot_text::{self as text, Font, font, rich};
 use tiny_skia::Transform;
 fn main() {

@@ -518,7 +518,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 name = "eidoplot"
 version = "0.1.0-dev"
 dependencies = [
- "eidoplot-color",
+ "eidoplot-base",
  "eidoplot-dsl",
  "eidoplot-pxl",
  "eidoplot-svg",
@@ -530,14 +530,16 @@ dependencies = [
  "rand_chacha",
  "rand_distr",
  "rustybuzz",
- "strict-num 0.2.0",
- "tiny-skia-path",
  "ttf-parser",
 ]
 
 [[package]]
-name = "eidoplot-color"
+name = "eidoplot-base"
 version = "0.1.0-dev"
+dependencies = [
+ "strict-num 0.2.0",
+ "tiny-skia-path",
+]
 
 [[package]]
 name = "eidoplot-dsl"
@@ -572,7 +574,7 @@ dependencies = [
 name = "eidoplot-text"
 version = "0.1.0-dev"
 dependencies = [
- "eidoplot-color",
+ "eidoplot-base",
  "fontconfig-parser",
  "log",
  "memmap2",

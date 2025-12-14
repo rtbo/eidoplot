@@ -1,0 +1,9 @@
+[package]
+name = "eidoplot-base"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+tiny-skia-path.workspace = true
+strict-num.workspace = true

@@ -1,4 +1,4 @@
-use eidoplot_color::{Color, ResolveColor};
+use eidoplot_base::{Color, ResolveColor};
 use tiny_skia::Transform;
 use ttf_parser as ttf;
 
@@ -707,7 +707,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use eidoplot_color::ColorU8;
+    use eidoplot_base::ColorU8;
 
     use super::*;
 

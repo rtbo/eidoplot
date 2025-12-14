@@ -5,13 +5,11 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
-eidoplot-color.workspace = true
+eidoplot-base.workspace = true
 eidoplot-dsl.workspace = true
 eidoplot-text.workspace = true
 rustybuzz.workspace = true
 ttf-parser.workspace = true
-tiny-skia-path.workspace = true
-strict-num.workspace = true
 miette = { workspace = true, optional = true }
 polars = { version = "0.50.0", features = ["lazy"], optional = true }
 
@@ -36,6 +34,7 @@ name = "bars"
 
 [[example]]
 name = "bitcoin"
+required-features = ["data-csv"]
 
 [[example]]
 name = "bode_rlc"
@@ -52,10 +51,11 @@ name = "gauss"
 
 [[example]]
 name = "iris"
+required-features = ["data-csv"]
 
 [[example]]
 name = "iris_eplt"
-required-features = ["dsl-diag"]
+required-features = ["dsl-diag", "data-csv"]
 
 [[example]]
 name = "multiple_axes"
@@ -66,11 +66,11 @@ required-features = ["dsl-diag"]
 
 [[example]]
 name = "polars_iris"
-required-features = ["polars"]
+required-features = ["data-polars"]
 
 [[example]]
 name = "polars_sine"
-required-features = ["polars"]
+required-features = ["data-polars"]
 
 [[example]]
 name = "sine"
