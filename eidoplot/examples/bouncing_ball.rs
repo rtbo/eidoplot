@@ -6,7 +6,7 @@ const START_HEIGHT: f64 = 60.0;
 const BOUNCE_RESTITUTION: f64 = 0.76;
 
 type Time = f64;
-type State = ode_solvers::Vector2<f64>; // stores location and velocity
+type State = ode_solvers::Vector2<f64>; // stores height and velocity
 const H: usize = 0;
 const V: usize = 1;
 
@@ -147,6 +147,7 @@ fn main() {
                 .with_ticks(ir::axis::Ticks::new())
                 .with_grid(Default::default()),
         )
+        .with_line(ir::PlotLine::horizontal(0.0))
         .with_legend(ir::plot::LegendPos::InTopRight.into())
         .into(),
     )
