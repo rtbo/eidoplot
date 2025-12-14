@@ -250,7 +250,10 @@ where
 
         let shape_sz = defaults::LEGEND_SHAPE_SIZE;
         let shape_rect = geom::Rect::from_ps(
-            geom::Point::new(rect.left(), rect.center_y() - shape_sz.height() / 2.0),
+            geom::Point {
+                x: rect.left(),
+                y: rect.center_y() - shape_sz.height() / 2.0,
+            },
             shape_sz,
         );
 
@@ -286,7 +289,10 @@ where
             }
             Shape::Rect(fill, line) => {
                 let r = geom::Rect::from_ps(
-                    geom::Point::new(rect.left(), rect.center_y() - shape_sz.height() / 2.0),
+                    geom::Point {
+                        x: rect.left(),
+                        y: rect.center_y() - shape_sz.height() / 2.0,
+                    },
                     shape_sz,
                 );
                 let rr = render::Rect {
@@ -299,11 +305,10 @@ where
             }
         };
 
-        let pos = geom::Point::new(
+        let transform = geom::Transform::from_translate(
             rect.left() + shape_sz.width() + defaults::LEGEND_SHAPE_SPACING,
             rect.center_y(),
         );
-        let transform = pos.translation();
         let rtext = render::LineText {
             text: &entry.text,
             fill: label_color.resolve(ctx.theme()).into(),

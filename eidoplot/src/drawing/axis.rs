@@ -605,8 +605,8 @@ where
                 let stroke = Some(grid.as_stroke(ctx.theme()));
                 for t in minor_ticks.locs.iter().copied() {
                     let (p1, p2) = axis.side.grid_line_points(t, &**cm, plot_rect);
-                    pathb.move_to(p1.x(), p1.y());
-                    pathb.line_to(p2.x(), p2.y());
+                    pathb.move_to(p1.x, p1.y);
+                    pathb.line_to(p2.x, p2.y);
                     let path = pathb.finish().expect("Should be a valid path");
                     let rpath = render::Path {
                         path: &path,
@@ -638,8 +638,8 @@ where
                 let stroke = Some(grid.as_stroke(ctx.theme()));
                 for t in ticks.ticks.iter() {
                     let (p1, p2) = axis.side.grid_line_points(t.loc, &**cm, plot_rect);
-                    pathb.move_to(p1.x(), p1.y());
-                    pathb.line_to(p2.x(), p2.y());
+                    pathb.move_to(p1.x, p1.y);
+                    pathb.line_to(p2.x, p2.y);
                     let path = pathb.finish().expect("Should be a valid path");
                     let rpath = render::Path {
                         path: &path,

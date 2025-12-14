@@ -7,47 +7,8 @@
  */
 
 use strict_num::{FiniteF32, PositiveF32};
-pub use tiny_skia_path::{Path, PathBuilder, PathSegment, PathVerb, Transform};
+pub use tiny_skia_path::{Path, PathBuilder, PathSegment, PathVerb, Point, Transform};
 
-/// A point in 2D space reprensented by x and y coordinates
-#[derive(Debug, Clone, Copy)]
-pub struct Point {
-    x: f32,
-    y: f32,
-}
-
-impl Point {
-    /// The point at origin (0, 0)
-    pub const ORIGIN: Point = Point { x: 0.0, y: 0.0 };
-
-    /// Construct a new point at (x, y)
-    pub const fn new(x: f32, y: f32) -> Self {
-        Point { x, y }
-    }
-
-    /// The X coordinate
-    pub const fn x(&self) -> f32 {
-        self.x
-    }
-
-    /// The Y coordinate
-    pub const fn y(&self) -> f32 {
-        self.y
-    }
-
-    /// Translate the point by dx and dy
-    pub const fn translate(self, dx: f32, dy: f32) -> Point {
-        Point {
-            x: self.x + dx,
-            y: self.y + dy,
-        }
-    }
-
-    /// Get a translation transform for this point
-    pub fn translation(&self) -> Transform {
-        Transform::from_translate(self.x, self.y)
-    }
-}
 
 /// A size in 2D space reprensented by width and height
 #[derive(Debug, Clone, Copy)]

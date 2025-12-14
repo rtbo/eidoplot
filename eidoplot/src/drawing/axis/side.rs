@@ -206,26 +206,50 @@ impl Side {
         match self {
             Side::Bottom => {
                 let x = plot_rect.left() + cm.map_coord_num(data_num);
-                let p1 = geom::Point::new(x, plot_rect.bottom());
-                let p2 = geom::Point::new(x, plot_rect.top());
+                let p1 = geom::Point {
+                    x,
+                    y: plot_rect.bottom(),
+                };
+                let p2 = geom::Point {
+                    x,
+                    y: plot_rect.top(),
+                };
                 (p1, p2)
             }
             Side::Top => {
                 let x = plot_rect.left() + cm.map_coord_num(data_num);
-                let p1 = geom::Point::new(x, plot_rect.top());
-                let p2 = geom::Point::new(x, plot_rect.bottom());
+                let p1 = geom::Point {
+                    x,
+                    y: plot_rect.top(),
+                };
+                let p2 = geom::Point {
+                    x,
+                    y: plot_rect.bottom(),
+                };
                 (p1, p2)
             }
             Side::Left => {
                 let y = plot_rect.bottom() - cm.map_coord_num(data_num);
-                let p1 = geom::Point::new(plot_rect.left(), y);
-                let p2 = geom::Point::new(plot_rect.right(), y);
+                let p1 = geom::Point {
+                    x: plot_rect.left(),
+                    y,
+                };
+                let p2 = geom::Point {
+                    x: plot_rect.right(),
+                    y,
+                };
                 (p1, p2)
             }
             Side::Right => {
                 let y = plot_rect.bottom() - cm.map_coord_num(data_num);
-                let p1 = geom::Point::new(plot_rect.right(), y);
-                let p2 = geom::Point::new(plot_rect.left(), y);
+                let p1 = geom::Point {
+                    x: plot_rect.right(),
+                    y,
+                };
+                let p2 = geom::Point {
+                    x: plot_rect.left(),
+                    y,
+                };
                 (p1, p2)
             }
         }

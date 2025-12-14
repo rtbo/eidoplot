@@ -889,14 +889,26 @@ where
         let (p1, p2) = match line.direction {
             ir::plot::Direction::Horizontal => {
                 let y = y_axis.coord_map().map_coord_num(y);
-                let p1 = geom::Point::new(plot_rect.left(), y);
-                let p2 = geom::Point::new(plot_rect.right(), y);
+                let p1 = geom::Point {
+                    x: plot_rect.left(),
+                    y,
+                };
+                let p2 = geom::Point {
+                    x: plot_rect.right(),
+                    y,
+                };
                 (p1, p2)
             }
             ir::plot::Direction::Vertical => {
                 let x = x_axis.coord_map().map_coord_num(x);
-                let p1 = geom::Point::new(x, plot_rect.top());
-                let p2 = geom::Point::new(x, plot_rect.bottom());
+                let p1 = geom::Point {
+                    x,
+                    y: plot_rect.top(),
+                };
+                let p2 = geom::Point {
+                    x,
+                    y: plot_rect.bottom(),
+                };
                 (p1, p2)
             }
             ir::plot::Direction::Slope(slope) => {
@@ -905,25 +917,35 @@ where
                 let y1 = y_axis.coord_map().map_coord_num(y);
                 let x2 = x1 + 100.0;
                 let y2 = y1 + 100.0 * slope;
-                (geom::Point::new(x1, y1), geom::Point::new(x2, y2))
+                let p1 = geom::Point { x: x1, y: y1 };
+                let p2 = geom::Point { x: x2, y: y2 };
+                (p1, p2)
             }
             ir::plot::Direction::SecondPoint(x2, y2) => {
                 let x1 = x_axis.coord_map().map_coord_num(x);
                 let y1 = y_axis.coord_map().map_coord_num(y);
                 let x2 = x_axis.coord_map().map_coord_num(x2);
                 let y2 = y_axis.coord_map().map_coord_num(y2);
-                (geom::Point::new(x1, y1), geom::Point::new(x2, y2))
+                let p1 = geom::Point { x: x1, y: y1 };
+                let p2 = geom::Point { x: x2, y: y2 };
+                (p1, p2)
             }
         };
 
-        let p1 = geom::Point::new(p1.x() + plot_rect.left(), plot_rect.bottom() - p1.y());
-        let p2 = geom::Point::new(p2.x() + plot_rect.left(), plot_rect.bottom() - p2.y());
+        let p1 = geom::Point {
+            x: p1.x + plot_rect.left(),
+            y: plot_rect.bottom() - p1.y,
+        };
+        let p2 = geom::Point {
+            x: p2.x + plot_rect.left(),
+            y: plot_rect.bottom() - p2.y,
+        };
 
         let points = plot_rect_intersections(plot_rect, &p1, &p2);
         if let Some([p1, p2]) = points {
             let mut path = geom::PathBuilder::with_capacity(2, 2);
-            path.move_to(p1.x(), p1.y());
-            path.line_to(p2.x(), p2.y());
+            path.move_to(p1.x, p1.y);
+            path.line_to(p2.x, p2.y);
             let path = path.finish().expect("Should be a valid path");
             let path = render::Path {
                 path: &path,
@@ -996,26 +1018,26 @@ pub fn plot_rect_intersections(
     let mut intersections: [Option<geom::Point>; 4] = [None; 4];
 
     // Parametric equation of the line: p1 + t * (p2 - p1)
-    let dx = p2.x() - p1.x();
-    let dy = p2.y() - p1.y();
+    let dx = p2.x - p1.x;
+    let dy = p2.y - p1.y;
 
     // Function to calculate Y for given X (if dx != 0)
     let y_for_x = |x: f32| -> f32 {
         if dx == 0.0 {
-            p1.y() // vertical line
+            p1.y // vertical line
         } else {
-            let t = (x - p1.x()) / dx;
-            p1.y() + t * dy
+            let t = (x - p1.x) / dx;
+            p1.y + t * dy
         }
     };
 
     // Function to calculate X for given Y (if dx != 0)
     let x_for_y = |y: f32| -> f32 {
         if dy == 0.0 {
-            p1.x() // horizontal line
+            p1.x // horizontal line
         } else {
-            let t = (y - p1.y()) / dy;
-            p1.x() + t * dx
+            let t = (y - p1.y) / dy;
+            p1.x + t * dx
         }
     };
 
@@ -1026,7 +1048,7 @@ pub fn plot_rect_intersections(
         for &x in &[plot_rect.x(), plot_rect.x() + plot_rect.width()] {
             let y = y_for_x(x);
             if y >= plot_rect.y() && y <= plot_rect.y() + plot_rect.height() {
-                intersections[idx] = Some(geom::Point::new(x, y));
+                intersections[idx] = Some(geom::Point { x, y });
                 idx += 1;
             }
         }
@@ -1037,7 +1059,7 @@ pub fn plot_rect_intersections(
         for &y in &[plot_rect.y(), plot_rect.y() + plot_rect.height()] {
             let x = x_for_y(y);
             if x >= plot_rect.x() && x <= plot_rect.x() + plot_rect.width() {
-                intersections[idx] = Some(geom::Point::new(x, y));
+                intersections[idx] = Some(geom::Point { x, y });
                 idx += 1;
             }
         }
@@ -1058,52 +1080,53 @@ fn legend_top_left(
     outer_rect: &geom::Rect,
 ) -> geom::Point {
     match legend.pos() {
-        ir::plot::LegendPos::OutTop => {
-            geom::Point::new(outer_rect.center_x() - sz.width() / 2.0, outer_rect.top())
-        }
-        ir::plot::LegendPos::OutRight => geom::Point::new(
-            outer_rect.right() - sz.width(),
-            outer_rect.center_y() - sz.height() / 2.0,
-        ),
-        ir::plot::LegendPos::OutBottom => geom::Point::new(
-            outer_rect.center_x() - sz.width() / 2.0,
-            outer_rect.bottom() - sz.height(),
-        ),
-        ir::plot::LegendPos::OutLeft => {
-            geom::Point::new(outer_rect.left(), outer_rect.center_y() - sz.height() / 2.0)
-        }
-
-        ir::plot::LegendPos::InTop => geom::Point::new(
-            plot_rect.center_x() - sz.width() / 2.0,
-            plot_rect.top() + legend.margin(),
-        ),
-        ir::plot::LegendPos::InTopRight => geom::Point::new(
-            plot_rect.right() - sz.width() - legend.margin(),
-            plot_rect.top() + legend.margin(),
-        ),
-        ir::plot::LegendPos::InRight => geom::Point::new(
-            plot_rect.right() - sz.width() - legend.margin(),
-            plot_rect.center_y() - sz.height() / 2.0,
-        ),
-        ir::plot::LegendPos::InBottomRight => geom::Point::new(
-            plot_rect.right() - sz.width() - legend.margin(),
-            plot_rect.bottom() - sz.height() - legend.margin(),
-        ),
-        ir::plot::LegendPos::InBottom => geom::Point::new(
-            plot_rect.center_x() - sz.width() / 2.0,
-            plot_rect.bottom() - sz.height() - legend.margin(),
-        ),
-        ir::plot::LegendPos::InBottomLeft => geom::Point::new(
-            plot_rect.left() + legend.margin(),
-            plot_rect.bottom() - sz.height() - legend.margin(),
-        ),
-        ir::plot::LegendPos::InLeft => geom::Point::new(
-            plot_rect.left() + legend.margin(),
-            plot_rect.center_y() - sz.height() / 2.0,
-        ),
-        ir::plot::LegendPos::InTopLeft => geom::Point::new(
-            plot_rect.left() + legend.margin(),
-            plot_rect.top() + legend.margin(),
-        ),
+        ir::plot::LegendPos::OutTop => geom::Point {
+            x: outer_rect.center_x() - sz.width() / 2.0,
+            y: outer_rect.top(),
+        },
+        ir::plot::LegendPos::OutRight => geom::Point {
+            x: outer_rect.right() - sz.width(),
+            y: outer_rect.center_y() - sz.height() / 2.0,
+        },
+        ir::plot::LegendPos::OutBottom => geom::Point {
+            x: outer_rect.center_x() - sz.width() / 2.0,
+            y: outer_rect.bottom() - sz.height(),
+        },
+        ir::plot::LegendPos::OutLeft => geom::Point {
+            x: outer_rect.left(),
+            y: outer_rect.center_y() - sz.height() / 2.0,
+        },
+        ir::plot::LegendPos::InTop => geom::Point {
+            x: plot_rect.center_x() - sz.width() / 2.0,
+            y: plot_rect.top() + legend.margin(),
+        },
+        ir::plot::LegendPos::InTopRight => geom::Point {
+            x: plot_rect.right() - sz.width() - legend.margin(),
+            y: plot_rect.top() + legend.margin(),
+        },
+        ir::plot::LegendPos::InRight => geom::Point {
+            x: plot_rect.right() - sz.width() - legend.margin(),
+            y: plot_rect.center_y() - sz.height() / 2.0,
+        },
+        ir::plot::LegendPos::InBottomRight => geom::Point {
+            x: plot_rect.right() - sz.width() - legend.margin(),
+            y: plot_rect.bottom() - sz.height() - legend.margin(),
+        },
+        ir::plot::LegendPos::InBottom => geom::Point {
+            x: plot_rect.center_x() - sz.width() / 2.0,
+            y: plot_rect.bottom() - sz.height() - legend.margin(),
+        },
+        ir::plot::LegendPos::InBottomLeft => geom::Point {
+            x: plot_rect.left() + legend.margin(),
+            y: plot_rect.bottom() - sz.height() - legend.margin(),
+        },
+        ir::plot::LegendPos::InLeft => geom::Point {
+            x: plot_rect.left() + legend.margin(),
+            y: plot_rect.center_y() - sz.height() / 2.0,
+        },
+        ir::plot::LegendPos::InTopLeft => geom::Point {
+            x: plot_rect.left() + legend.margin(),
+            y: plot_rect.top() + legend.margin(),
+        },
     }
 }

@@ -16,7 +16,8 @@ where
             self.fill(fill.as_paint(ctx.theme()))?;
         }
 
-        let mut rect = geom::Rect::from_ps(geom::Point::ORIGIN, fig.size()).pad(fig.padding());
+        let mut rect =
+            geom::Rect::from_ps(geom::Point { x: 0.0, y: 0.0 }, fig.size()).pad(fig.padding());
 
         if let Some(title) = fig.title() {
             let layout = text::rich::Layout::Horizontal(
@@ -34,9 +35,8 @@ where
                 transform,
             };
             self.draw_rich_text(&text)?;
-            rect = rect.shifted_top_side(
-                title.visual_bbox().height() + missing_params::FIG_TITLE_MARGIN,
-            );
+            rect = rect
+                .shifted_top_side(title.visual_bbox().height() + missing_params::FIG_TITLE_MARGIN);
         }
 
         if let Some(legend) = fig.legend() {
@@ -80,26 +80,32 @@ where
         let sz = leg.size();
         let top_left = match legend.pos() {
             ir::figure::LegendPos::Top => {
-                let tl = geom::Point::new(rect.center_x() - sz.width() / 2.0, rect.top());
+                let tl = geom::Point {
+                    x: rect.center_x() - sz.width() / 2.0,
+                    y: rect.top(),
+                };
                 rect.shift_top_side(sz.height() + legend.margin());
                 tl
             }
             ir::figure::LegendPos::Right => {
                 rect.shift_right_side(-sz.width() - legend.margin());
-                geom::Point::new(
-                    rect.right() + legend.margin(),
-                    rect.center_y() - sz.height() / 2.0,
-                )
+                geom::Point {
+                    x: rect.right() + legend.margin(),
+                    y: rect.center_y() - sz.height() / 2.0,
+                }
             }
             ir::figure::LegendPos::Bottom => {
                 rect.shift_bottom_side(-sz.height() - legend.margin());
-                geom::Point::new(
-                    rect.center_x() - sz.width() / 2.0,
-                    rect.bottom() + legend.margin(),
-                )
+                geom::Point {
+                    x: rect.center_x() - sz.width() / 2.0,
+                    y: rect.bottom() + legend.margin(),
+                }
             }
             ir::figure::LegendPos::Left => {
-                let tl = geom::Point::new(rect.left(), rect.center_y() - sz.height() / 2.0);
+                let tl = geom::Point {
+                    x: rect.left(),
+                    y: rect.center_y() - sz.height() / 2.0,
+                };
                 rect.shift_left_side(sz.width() + legend.margin());
                 tl
             }
