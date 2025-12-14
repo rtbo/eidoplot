@@ -6,13 +6,7 @@ pub mod theme;
 pub use series::Palette;
 pub use theme::Theme;
 
-use crate::render;
-
-pub mod color {
-    pub use eidoplot_color::*;
-}
-
-pub use color::{Color, ColorU8, ResolveColor};
+use crate::{Color, ResolveColor, render};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Dash(pub Vec<f32>);
@@ -245,6 +239,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ColorU8;
     use crate::style::theme;
 
     #[test]

@@ -1,8 +1,8 @@
-use crate::{geom, style};
+use crate::{geom, style, Color};
 
 const SQRT2: f32 = 1.41421356237;
 
-pub fn marker_path<C: style::Color>(marker: &style::Marker<C>) -> geom::Path {
+pub fn marker_path<C: Color>(marker: &style::Marker<C>) -> geom::Path {
     match marker.shape {
         style::MarkerShape::Circle => {
             let radius = marker.size.0 / 2.0;

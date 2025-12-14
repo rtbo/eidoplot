@@ -4,9 +4,9 @@ use std::sync::Arc;
 use crate::drawing::{self, Ctx, SurfWrapper};
 use crate::geom::{Padding, Size};
 use crate::render::{self, Surface as _};
-use crate::style::{Color as _, defaults, theme};
+use crate::style::{defaults, theme};
 use crate::text::{self, LineText, fontdb};
-use crate::{geom, ir, style};
+use crate::{Color as _, geom, ir, style};
 
 #[derive(Debug, Clone)]
 pub enum Shape {
@@ -137,7 +137,7 @@ impl LegendBuilder {
         if self.entries.is_empty() {
             return None;
         }
-        let row_height= self.max_entry_height();
+        let row_height = self.max_entry_height();
         let column_width = self.max_entry_width();
         let columns = self
             .columns

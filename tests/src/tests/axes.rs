@@ -1,4 +1,4 @@
-use eidoplot::{ir, style};
+use eidoplot::{ir, color};
 
 use super::{fig_small, line, line2};
 use crate::tests::fig_mid;
@@ -201,7 +201,7 @@ fn axes_categories() {
     let x = vec!["a".to_string(), "b".to_string(), "c".to_string()];
     let y = vec![1.0, 1.4, 3.0];
     let series = ir::series::Bars::new(x.into(), y.into())
-        .with_fill(style::color::TRANSPARENT.into())
+        .with_fill(color::TRANSPARENT.into())
         .with_line(Default::default());
 
     let plot = ir::Plot::new(vec![series.into()])

@@ -1,7 +1,6 @@
 use std::fmt;
 
-use crate::style::ColorU8;
-use crate::{geom, text};
+use crate::{ColorU8, geom, text};
 
 #[derive(Debug)]
 pub enum Error {

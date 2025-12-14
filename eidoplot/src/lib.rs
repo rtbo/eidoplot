@@ -48,6 +48,11 @@ pub mod text {
     pub use eidoplot_text::*;
 }
 
+pub mod color {
+    pub use eidoplot_color::*;
+}
+pub use color::{Color, ColorU8, ResolveColor};
+
 pub use text::fontdb;
 
 /// Module containing missing configuration values

@@ -127,7 +127,7 @@ macro_rules! define_rich_text_structs {
                 rc: &R,
             ) -> std::result::Result<$crate::text::RichText, $crate::text::Error>
             where
-                R: $crate::style::ResolveColor<$crate::style::theme::Color>,
+                R: $crate::ResolveColor<$crate::style::theme::Color>,
             {
                 let mut builder =
                     $crate::text::RichTextBuilder::new(self.text.clone(), self.props.0.clone())

@@ -1,7 +1,8 @@
 /*!
  * This module deals with colors and style of data series.
  */
-use crate::style::{self, ColorU8, defaults};
+use crate::ColorU8;
+use crate::style::{self, defaults};
 
 /// A series color palette
 #[derive(Debug, Clone)]
@@ -146,7 +147,7 @@ impl From<ColorU8> for Marker {
 
 pub mod palettes {
     use super::Palette;
-    use crate::style::ColorU8;
+    use crate::ColorU8;
 
     /// A Palette for monochrome black plotting
     /// Don't use with a dark theme.

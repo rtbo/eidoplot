@@ -1,4 +1,4 @@
-use crate::style::color::{self, ColorU8};
+use crate::color::{self, ColorU8};
 use crate::style::series::{Palette, palettes};
 use crate::{style, text};
 

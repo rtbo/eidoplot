@@ -1,7 +1,7 @@
 use std::io;
 use std::sync::Arc;
 
-use eidoplot::{fontdb, geom, render, style, text};
+use eidoplot::{fontdb, geom, render, ColorU8, text};
 use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 #[derive(Debug, Clone)]
@@ -154,7 +154,7 @@ impl State {
         #[cfg(feature = "debug-text-bbox")]
         self.draw_text_bbox(
             px,
-            layout.bbox(),
+            *line.bbox(),
             *text.transform.unwrap_or(&geom::Transform::identity()),
         )?;
 
@@ -205,7 +205,7 @@ impl State {
         bbox: text::BBox,
         transform: geom::Transform,
     ) -> Result<(), render::Error> {
-        let color = eidoplot::style::color::RED;
+        let color = eidoplot::color::RED;
         let stroke = eidoplot::style::Line {
             width: 1.0,
             color,
@@ -227,13 +227,14 @@ impl State {
             },
         ];
         transform.map_points(&mut tl_br);
-        let rrect = render::Rect {
-            rect,
+        let path = rect.to_path();
+        let rpath = render::Path {
+            path: &path,
             fill: None,
             stroke: Some(stroke.as_stroke(&())),
             transform: Some(&transform),
         };
-        self.draw_rect(px, &rrect)?;
+        self.draw_path(px, &rpath)?;
         Ok(())
     }
 
@@ -332,7 +333,7 @@ impl render::Surface for PxlSurfaceRef<'_> {
     }
 }
 
-fn ts_color(color: style::ColorU8) -> tiny_skia::Color {
+fn ts_color(color: ColorU8) -> tiny_skia::Color {
     tiny_skia::Color::from_rgba8(color.red(), color.green(), color.blue(), color.alpha())
 }
 
