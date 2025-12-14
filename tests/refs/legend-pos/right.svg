@@ -1,7 +1,7 @@
 <svg height="300" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg">
 <rect fill="#ffffff" height="100%" width="100%"/>
 <clipPath id="eidoplot-clip1">
-<path d="M20,20 L294.926,20 L294.926,280 L20,280 z"/>
+<rect height="260" width="274.926" x="20" y="20"/>
 </clipPath>
 <g clip-path="url(#eidoplot-clip1)">
 <path d="M40,260 L157.463,150 L274.926,40" fill="none" stroke="#000000" stroke-width="1.5"/>
