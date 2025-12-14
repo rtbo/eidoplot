@@ -516,7 +516,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
 name = "eidoplot"
-version = "0.1.0"
+version = "0.1.0-dev"
 dependencies = [
  "eidoplot-color",
  "eidoplot-dsl",
@@ -538,18 +538,18 @@ dependencies = [
 
 [[package]]
 name = "eidoplot-color"
-version = "0.1.0"
+version = "0.1.0-dev"
 
 [[package]]
 name = "eidoplot-dsl"
-version = "0.1.0"
+version = "0.1.0-dev"
 dependencies = [
  "miette",
 ]
 
 [[package]]
 name = "eidoplot-pxl"
-version = "0.1.0"
+version = "0.1.0-dev"
 dependencies = [
  "eidoplot",
  "eidoplot-text",
@@ -561,7 +561,7 @@ dependencies = [
 
 [[package]]
 name = "eidoplot-svg"
-version = "0.1.0"
+version = "0.1.0-dev"
 dependencies = [
  "eidoplot",
  "eidoplot-text",
@@ -571,7 +571,7 @@ dependencies = [
 
 [[package]]
 name = "eidoplot-text"
-version = "0.1.0"
+version = "0.1.0-dev"
 dependencies = [
  "eidoplot-color",
  "fontconfig-parser",
@@ -588,7 +588,7 @@ dependencies = [
 
 [[package]]
 name = "eidoplot-utils"
-version = "0.1.0"
+version = "0.1.0-dev"
 dependencies = [
  "eidoplot",
 ]
@@ -2974,7 +2974,7 @@ dependencies = [
 
 [[package]]
 name = "tests"
-version = "0.1.0"
+version = "0.1.0-dev"
 dependencies = [
  "eidoplot",
  "eidoplot-pxl",

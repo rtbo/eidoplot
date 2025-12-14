@@ -5,5 +5,5 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
-eidoplot = { path = "../eidoplot" }
+eidoplot.workspace = true
 

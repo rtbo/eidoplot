@@ -12,11 +12,18 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.0-dev"
 authors = ["Rémi THEBAULT"]
 edition = "2024"
 
 [workspace.dependencies]
+eidoplot = { version = "0.1.0-dev", path = "eidoplot" }
+eidoplot-color = { version = "0.1.0-dev", path = "eidoplot-color" }
+eidoplot-dsl = { version = "0.1.0-dev", path = "eidoplot-dsl" }
+eidoplot-pxl = { version = "0.1.0-dev", path = "eidoplot-pxl" }
+eidoplot-svg = { version = "0.1.0-dev", path = "eidoplot-svg" }
+eidoplot-text = { version = "0.1.0-dev", path = "eidoplot-text" }
+eidoplot-utils = { version = "0.1.0-dev", path = "eidoplot-utils" }
 log = "0.4"
 rustybuzz = "0.20.1"
 tiny-skia = "0.11.4"
