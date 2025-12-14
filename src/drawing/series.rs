@@ -224,7 +224,7 @@ impl Series {
         }
     }
 
-    pub fn build_path<D>(
+    pub fn update_data<D>(
         &mut self,
         ir: &ir::Series,
         data_source: &D,
@@ -236,19 +236,19 @@ impl Series {
     {
         match (&mut self.0, ir) {
             (SeriesPlot::Line(xy), ir::Series::Line(ir)) => {
-                xy.build_path(ir, data_source, rect, cm);
+                xy.update_data(ir, data_source, rect, cm);
             }
             (SeriesPlot::Scatter(sc), ir::Series::Scatter(ir)) => {
-                sc.build_path(ir, data_source, rect, cm)
+                sc.update_data(ir, data_source, rect, cm)
             }
             (SeriesPlot::Histogram(hist), ir::Series::Histogram(_)) => {
-                hist.build_path(rect, cm);
+                hist.update_data(rect, cm);
             }
             (SeriesPlot::Bars(bars), ir::Series::Bars(ir)) => {
-                bars.build_path(ir, data_source, rect, cm);
+                bars.update_data(ir, data_source, rect, cm);
             }
             (SeriesPlot::BarsGroup(bg), ir::Series::BarsGroup(ir)) => {
-                bg.build_paths(ir, data_source, rect, cm)
+                bg.update_data(ir, data_source, rect, cm)
             }
             _ => unreachable!("Should be the same plot type"),
         }
@@ -301,7 +301,7 @@ impl Line {
         })
     }
 
-    fn build_path<D>(
+    fn update_data<D>(
         &mut self,
         ir: &ir::series::Line,
         data_source: &D,
@@ -327,6 +327,9 @@ impl Line {
             let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
             let x = rect.left() + x;
             let y = rect.bottom() - y;
+            // if x_col.len() == 1024 {
+            //     println!("  adding point {} {}", x, y);
+            // }
             if in_a_line {
                 pb.line_to(x, y);
             } else {
@@ -379,7 +382,7 @@ impl Scatter {
         })
     }
 
-    fn build_path<D>(
+    fn update_data<D>(
         &mut self,
         ir: &ir::series::Scatter,
         data_source: &D,
@@ -497,7 +500,7 @@ impl Histogram {
         })
     }
 
-    fn build_path(&mut self, rect: &geom::Rect, cm: &CoordMapXy) {
+    fn update_data(&mut self, rect: &geom::Rect, cm: &CoordMapXy) {
         let mut pb = geom::PathBuilder::new();
         let mut x = rect.left() + cm.x.map_coord_num(self.bins[0].range.0);
         let mut y = rect.bottom() - cm.y.map_coord_num(0.0);
@@ -589,7 +592,7 @@ impl Bars {
         }
     }
 
-    fn build_path<D>(
+    fn update_data<D>(
         &mut self,
         ir: &ir::series::Bars,
         data_source: &D,
@@ -740,7 +743,7 @@ impl BarsGroup {
         })
     }
 
-    fn build_paths<D>(
+    fn update_data<D>(
         &mut self,
         ir: &ir::series::BarsGroup,
         data_source: &D,

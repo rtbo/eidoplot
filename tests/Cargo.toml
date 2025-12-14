@@ -1,14 +1,14 @@
 [package]
-name = "tests"
+name = "eidoplot-tests"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
 publish = false
 
 [dependencies]
-eidoplot = { path = "../eidoplot" }
-eidoplot-pxl = { path = "../eidoplot-pxl" }
-eidoplot-svg = { path = "../eidoplot-svg" }
+eidoplot.workspace = true
+eidoplot-pxl.workspace = true
+eidoplot-svg.workspace = true
 tiny-skia.workspace = true
 similar = "2.7.0"
 

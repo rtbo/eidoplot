@@ -504,11 +504,12 @@ fn auto_label_formatter(
             Box::new(SciLabelFormat)
         }
         (Locator::Auto, _) => {
-            let min = ab.start().abs().min(ab.end().abs());
             let max = ab.start().abs().max(ab.end().abs());
-            if max >= 10000.0 || min < 0.01 {
+            if max >= 10000.0 || max < 0.01 {
                 Box::new(SciLabelFormat)
-            } else if max >= 100.0 && min >= 1.0 {
+            } else if max >= 100.0 {
+                Box::new(PrecLabelFormat(0))
+            } else if max >= 10.0 {
                 Box::new(PrecLabelFormat(1))
             } else {
                 Box::new(PrecLabelFormat(2))

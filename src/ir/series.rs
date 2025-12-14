@@ -8,6 +8,18 @@ pub enum DataCol {
     SrcRef(String),
 }
 
+impl From<&str> for DataCol {
+    fn from(col: &str) -> Self {
+        DataCol::SrcRef(col.to_string())
+    }
+}
+
+impl From<String> for DataCol {
+    fn from(col: String) -> Self {
+        DataCol::SrcRef(col)
+    }
+}
+
 impl From<data::VecColumn> for DataCol {
     fn from(col: data::VecColumn) -> Self {
         DataCol::Inline(col)

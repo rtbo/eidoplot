@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use text::fontdb;
 
-use crate::drawing::figure::Figure;
 use crate::style::Theme;
 use crate::{data, ir, render, text};
 
@@ -15,6 +14,8 @@ mod plot;
 mod scale;
 mod series;
 mod ticks;
+
+pub use figure::Figure;
 
 #[derive(Debug)]
 pub enum Error {

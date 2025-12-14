@@ -309,13 +309,12 @@ where
                     };
 
                     let plt_idx = row * ir_plots.cols() + col;
-                    let mut plot = Plot {
+                    let plot = Plot {
                         plot_rect,
                         axes,
                         series,
                         legend,
                     };
-                    plot.build_series_path(ir_plot, self.data_source())?;
                     plots[plt_idx as usize] = Some(plot);
                 }
                 x += width + ir_plots.space();
@@ -324,7 +323,13 @@ where
             y += height + ir_plots.space();
         }
 
-        Ok(Plots { plots })
+        let mut plots = Plots {
+            plots,
+        };
+
+        plots.update_series_data(ir_plots, self.data_source())?;
+
+        Ok(plots)
     }
 
     fn setup_plot_data(
@@ -705,6 +710,18 @@ fn y_side_matches_out_legend_pos(side: ir::axis::Side, legend_pos: ir::plot::Leg
 }
 
 impl Plots {
+    pub fn update_series_data<D>(&mut self, ir_plots: &ir::figure::Plots, data_source: &D) -> Result<(), Error>
+    where
+        D: data::Source,
+    {
+        for (plot, ir_plot) in self.plots.iter_mut().zip(ir_plots.plots()) {
+            if let (Some(plot), Some(ir_plot)) = (plot.as_mut(), ir_plot) {
+                plot.update_series_data(ir_plot, data_source)?;
+            }
+        }
+        Ok(())
+    }
+
     pub fn draw<S>(
         &self,
         surface: &mut S,
@@ -724,7 +741,7 @@ impl Plots {
 }
 
 impl Plot {
-    fn build_series_path<D>(&mut self, ir_plot: &ir::Plot, data_source: &D) -> Result<(), Error>
+    fn update_series_data<D>(&mut self, ir_plot: &ir::Plot, data_source: &D) -> Result<(), Error>
     where
         D: data::Source,
     {
@@ -744,7 +761,7 @@ impl Plot {
                 y: y.coord_map(),
             };
 
-            series.build_path(ir_series, data_source, &self.plot_rect, &cm)?;
+            series.update_data(ir_series, data_source, &self.plot_rect, &cm)?;
         }
         Ok(())
     }

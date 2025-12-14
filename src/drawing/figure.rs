@@ -17,6 +17,10 @@ pub struct Figure {
 }
 
 impl Figure {
+    pub fn size(&self) -> geom::Size {
+        self.fig.size()
+    }
+
     pub fn prepare<D>(
         ir: ir::Figure,
         theme: Theme,
@@ -32,6 +36,17 @@ impl Figure {
         let theme = Arc::new(theme);
         let ctx = Ctx::new(data_source, theme, fontdb);
         ctx.setup_figure(&ir)
+    }
+
+    pub fn update_series_data<D>(
+        &mut self,
+        data_source: &D,
+    ) -> Result<(), Error>
+    where
+        D: data::Source,
+    {
+        self.plots.update_series_data(self.fig.plots(), data_source)?;
+        Ok(())
     }
 
     pub fn draw<S>(&self, surface: &mut S, theme: &Theme) -> Result<(), Error>

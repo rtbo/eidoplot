@@ -113,8 +113,6 @@ mod missing_params {
 
 fn resource_folder() -> path::PathBuf {
     path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
         .join("share")
 }
 

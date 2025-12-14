@@ -695,6 +695,37 @@ impl Column for Vec<f64> {
     }
 }
 
+impl F64Column for Vec<f32> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_finite()).count()
+    }
+
+    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(
+            self.as_slice()
+                .iter()
+                .copied()
+                .map(|f| if f.is_finite() { Some(f as f64) } else { None }),
+        )
+    }
+}
+
+impl Column for Vec<f32> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_finite()).count()
+    }
+    fn f64(&self) -> Option<&dyn F64Column> {
+        Some(self)
+    }
+}
+
 impl F64Column for Vec<Option<i64>> {
     fn len(&self) -> usize {
         self.len()

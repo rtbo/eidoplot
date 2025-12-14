@@ -571,6 +571,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "eidoplot-tests"
+version = "0.1.0-dev"
+dependencies = [
+ "eidoplot",
+ "eidoplot-pxl",
+ "eidoplot-svg",
+ "similar",
+ "tiny-skia",
+]
+
+[[package]]
 name = "eidoplot-text"
 version = "0.1.0-dev"
 dependencies = [
@@ -2964,17 +2975,6 @@ checksum = "45c6481c4829e4cc63825e62c49186a34538b7b2750b73b266581ffb612fb5ed"
 dependencies = [
  "rustix 1.0.8",
  "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "tests"
-version = "0.1.0-dev"
-dependencies = [
- "eidoplot",
- "eidoplot-pxl",
- "eidoplot-svg",
- "similar",
- "tiny-skia",
 ]
 
 [[package]]
