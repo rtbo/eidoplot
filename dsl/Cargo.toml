@@ -3,6 +3,10 @@ name = "eidoplot-dsl"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
+repository.workspace = true
+license.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 [dependencies]
 miette = { workspace = true, optional = true }
