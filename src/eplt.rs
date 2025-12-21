@@ -104,6 +104,7 @@ pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<ir::Figure>, Error> {
 }
 
 #[cfg(feature = "dsl-diag")]
+/// Parse EPLT DSL input into a list of IR figures, returning diagnostics on error.
 pub fn parse_diag<'a>(
     input: &'a str,
     file_name: Option<&'a path::Path>,

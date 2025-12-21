@@ -1,3 +1,4 @@
+//! Polars data source integration in eidoplot.
 use polars::prelude::*;
 
 use crate::data;
