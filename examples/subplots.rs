@@ -26,16 +26,8 @@ fn main() {
         .with_grid(Default::default());
     let ax_y2 = ir::Axis::new().with_ticks(Default::default());
 
-    let series1 = ir::series::Line::new(
-        ir::data_src_ref("x1"),
-        ir::data_src_ref("y1"),
-    )
-    .into();
-    let series2 = ir::series::Line::new(
-        ir::data_src_ref("x2"),
-        ir::data_src_ref("y2"),
-    )
-    .into();
+    let series1 = ir::series::Line::new(ir::data_src_ref("x1"), ir::data_src_ref("y1")).into();
+    let series2 = ir::series::Line::new(ir::data_src_ref("x2"), ir::data_src_ref("y2")).into();
 
     let plot1 = ir::Plot::new(vec![series1])
         .with_x_axis(ax_x1)

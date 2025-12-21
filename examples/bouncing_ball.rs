@@ -117,18 +117,12 @@ fn main() {
 
     let fig = ir::Figure::new(
         ir::Plot::new(vec![
-            ir::series::Line::new(
-                ir::data_src_ref("time"),
-                ir::data_src_ref("height"),
-            )
-            .with_name("Height (m)")
-            .into(),
-            ir::series::Line::new(
-                ir::data_src_ref("time"),
-                ir::data_src_ref("velocity"),
-            )
-            .with_name("Velocity (m/s)")
-            .into(),
+            ir::series::Line::new(ir::data_src_ref("time"), ir::data_src_ref("height"))
+                .with_name("Height (m)")
+                .into(),
+            ir::series::Line::new(ir::data_src_ref("time"), ir::data_src_ref("velocity"))
+                .with_name("Velocity (m/s)")
+                .into(),
         ])
         .with_x_axis(
             ir::Axis::new()

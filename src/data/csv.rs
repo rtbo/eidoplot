@@ -290,9 +290,8 @@ fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), CsvParseErro
 
 #[cfg(test)]
 mod tests {
-    use crate::data::Source;
-
     use super::*;
+    use crate::data::Source;
 
     pub const CSV_DATA: &str = "Int,Float,Str\n1,1.0,one\n2,2.0,two\n3,3.0,three\n";
 

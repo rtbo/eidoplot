@@ -1,4 +1,4 @@
-use eidoplot_base::{color, Color, ColorU8, ResolveColor};
+use eidoplot_base::{Color, ColorU8, ResolveColor, color};
 use ttf_parser as ttf;
 
 use crate::{BBox, Error, font, fontdb, line};
@@ -12,7 +12,7 @@ use boundaries::Boundaries;
 pub use parse::{
     ParseRichTextError, ParsedRichText, parse_rich_text, parse_rich_text_with_classes,
 };
-pub use render::{render_rich_text, render_rich_text_with, RichPrimitive};
+pub use render::{RichPrimitive, render_rich_text, render_rich_text_with};
 
 /// Typographic alignment, possibly depending on the script direction.
 #[derive(Debug, Clone, Copy, Default)]

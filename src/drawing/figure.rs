@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-
 use crate::drawing::legend::{self, LegendBuilder};
 use crate::drawing::{Ctx, Error, plot};
-use crate::render;
 use crate::style::Theme;
 use crate::text::font;
-use crate::{data, geom, ir, missing_params, text};
+use crate::{data, geom, ir, missing_params, render, text};
 
 #[derive(Debug)]
 pub struct Figure {
@@ -30,22 +28,18 @@ impl Figure {
     where
         D: data::Source,
     {
-        let fontdb =
-            fontdb
-            .unwrap_or_else(|| Arc::new(crate::bundled_font_db()));
+        let fontdb = fontdb.unwrap_or_else(|| Arc::new(crate::bundled_font_db()));
         let theme = Arc::new(theme);
         let ctx = Ctx::new(data_source, theme, fontdb);
         ctx.setup_figure(&ir)
     }
 
-    pub fn update_series_data<D>(
-        &mut self,
-        data_source: &D,
-    ) -> Result<(), Error>
+    pub fn update_series_data<D>(&mut self, data_source: &D) -> Result<(), Error>
     where
         D: data::Source,
     {
-        self.plots.update_series_data(self.fig.plots(), data_source)?;
+        self.plots
+            .update_series_data(self.fig.plots(), data_source)?;
         Ok(())
     }
 
@@ -82,7 +76,6 @@ where
     D: data::Source,
 {
     fn setup_figure(&self, fig: &ir::Figure) -> Result<Figure, Error> {
-
         let mut rect =
             geom::Rect::from_ps(geom::Point { x: 0.0, y: 0.0 }, fig.size()).pad(fig.padding());
 
@@ -123,7 +116,12 @@ where
         })
     }
 
-    fn prepare_legend(&self, fig: &ir::Figure, legend: &ir::FigLegend, rect: &mut geom::Rect) -> Result<Option<(geom::Point, legend::Legend)>, Error> {
+    fn prepare_legend(
+        &self,
+        fig: &ir::Figure,
+        legend: &ir::FigLegend,
+        rect: &mut geom::Rect,
+    ) -> Result<Option<(geom::Point, legend::Legend)>, Error> {
         let mut builder = LegendBuilder::from_ir(
             legend.legend(),
             legend.pos().prefers_vertical(),

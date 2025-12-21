@@ -25,12 +25,9 @@ fn main() {
         .with_ticks(Default::default());
 
     let series = ir::Series::Line(
-        ir::series::Line::new(
-            ir::data_src_ref("x"),
-            ir::data_src_ref("y"),
-        )
-        .with_name("y=sin(x)")
-        .with_line(style::series::Line::default().with_width(4.0)),
+        ir::series::Line::new(ir::data_src_ref("x"), ir::data_src_ref("y"))
+            .with_name("y=sin(x)")
+            .with_line(style::series::Line::default().with_width(4.0)),
     );
 
     let plot = ir::Plot::new(vec![series])

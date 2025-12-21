@@ -96,19 +96,12 @@ fn main() {
 
         // name only on the magnitude to avoid double legend
         mag_series.push(
-            ir::series::Line::new(
-                ir::data_src_ref("freq"),
-                ir::data_src_ref(mag_col),
-            )
-            .with_name(name)
-            .into(),
+            ir::series::Line::new(ir::data_src_ref("freq"), ir::data_src_ref(mag_col))
+                .with_name(name)
+                .into(),
         );
         phase_series.push(
-            ir::series::Line::new(
-                ir::data_src_ref("freq"),
-                ir::data_src_ref(phase_col),
-            )
-            .into(),
+            ir::series::Line::new(ir::data_src_ref("freq"), ir::data_src_ref(phase_col)).into(),
         );
     }
 

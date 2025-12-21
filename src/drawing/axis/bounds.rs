@@ -191,7 +191,7 @@ impl From<(f64, f64)> for NumBounds {
 
 // in case that start and end are equal, we get a lot if issues during scale and ticks calculations.
 // start, end and span handle the case of null span by adjusting the perceived bounds with following heuristics.
-// - if the start and end are both zero, the start is -1, and the end is 1 
+// - if the start and end are both zero, the start is -1, and the end is 1
 // - else if the span is zero (start and end equal), the start is 0 and the end is 2 x the value
 // - else normal value is returned
 impl NumBounds {

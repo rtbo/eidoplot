@@ -9,7 +9,6 @@
 use strict_num::{FiniteF32, PositiveF32};
 pub use tiny_skia_path::{Path, PathBuilder, PathSegment, PathVerb, Point, Transform};
 
-
 /// A size in 2D space reprensented by width and height
 #[derive(Debug, Clone, Copy)]
 pub struct Size {

@@ -95,8 +95,7 @@ impl style::ResolveColor<Color> for (&Palette, usize) {
 
 pub type Line = style::Line<Color>;
 
-impl Default for Line
-{
+impl Default for Line {
     fn default() -> Self {
         Line {
             color: Color::default(),

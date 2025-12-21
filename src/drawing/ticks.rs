@@ -277,7 +277,11 @@ fn locate_timedelta_num(loc: &TimeDeltaLocator, nb: axis::NumBounds) -> Result<V
         TimeDeltaLocator::Minutes(n) if *n > 0 => *n as f64 * 60.0,
         TimeDeltaLocator::Seconds(n) if *n > 0 => *n as f64,
         TimeDeltaLocator::Micros(n) if *n > 0 => *n as f64 * 1E-6,
-        _ => return Err(Error::InconsistentIr("TimeDeltaLocator with null step".into())),
+        _ => {
+            return Err(Error::InconsistentIr(
+                "TimeDeltaLocator with null step".into(),
+            ));
+        }
     };
     let start = (nb.start() / step).floor() * step;
     let end = nb.end();

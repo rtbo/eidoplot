@@ -77,7 +77,8 @@ impl From<Arc<fontdb::Database>> for Options {
 
 pub trait FigureExt {
     fn draw<S, D>(
-        &self, surface: &mut S,
+        &self,
+        surface: &mut S,
         theme: &Theme,
         data_source: &D,
         fontdb: Option<Arc<fontdb::Database>>,
@@ -99,12 +100,7 @@ impl FigureExt for ir::Figure {
         S: render::Surface,
         D: data::Source,
     {
-        let figure = Figure::prepare(
-            self.clone(),
-            theme.clone(),
-            fontdb,
-            data_source,
-        )?;
+        let figure = Figure::prepare(self.clone(), theme.clone(), fontdb, data_source)?;
         figure.draw(surface, theme)
     }
 }

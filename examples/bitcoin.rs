@@ -1,5 +1,4 @@
-use eidoplot::ir;
-use eidoplot::data;
+use eidoplot::{data, ir};
 
 mod common;
 
@@ -9,20 +8,14 @@ fn main() {
     let csv_data = std::fs::read_to_string(&btc_csv).unwrap();
     let data_source = data::CsvParser::new().parse(&csv_data).unwrap();
 
-    let price_series = ir::series::Line::new(
-        ir::data_src_ref("Date"),
-        ir::data_src_ref("Close"),
-    )
-    .with_name("Closing Price")
-    .into();
+    let price_series = ir::series::Line::new(ir::data_src_ref("Date"), ir::data_src_ref("Close"))
+        .with_name("Closing Price")
+        .into();
 
-    let volume_series = ir::series::Line::new(
-        ir::data_src_ref("Date"),
-        ir::data_src_ref("Volume"),
-    )
-    .with_name("Volume")
-    .with_y_axis(ir::axis::ref_id("volume"))
-    .into();
+    let volume_series = ir::series::Line::new(ir::data_src_ref("Date"), ir::data_src_ref("Volume"))
+        .with_name("Volume")
+        .with_y_axis(ir::axis::ref_id("volume"))
+        .into();
 
     let date_axis = ir::Axis::new().with_ticks(Default::default());
     // setting Y-ranges to have ticks at same level

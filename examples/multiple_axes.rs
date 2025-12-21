@@ -25,19 +25,13 @@ fn main() {
         .with_scale(ir::axis::LogScale::default().into())
         .with_ticks(Default::default());
 
-    let series1 = ir::series::Line::new(
-        ir::data_src_ref("x"),
-        ir::data_src_ref("sin(x)"),
-    )
-    .with_name("sin(x)")
-    .into();
-    let series2 = ir::series::Line::new(
-        ir::data_src_ref("x"),
-        ir::data_src_ref("exp(x)"),
-    )
-    .with_name("exp(x)")
-    .with_y_axis(ir::axis::ref_id("exp(x)"))
-    .into();
+    let series1 = ir::series::Line::new(ir::data_src_ref("x"), ir::data_src_ref("sin(x)"))
+        .with_name("sin(x)")
+        .into();
+    let series2 = ir::series::Line::new(ir::data_src_ref("x"), ir::data_src_ref("exp(x)"))
+        .with_name("exp(x)")
+        .with_y_axis(ir::axis::ref_id("exp(x)"))
+        .into();
 
     let plot = ir::Plot::new(vec![series1, series2])
         .with_x_axis(x_axis)

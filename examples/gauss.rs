@@ -32,11 +32,9 @@ fn main() {
     let x_axis = ir::Axis::new()
         .with_title("x".into())
         .with_ticks(Default::default());
-    let y_axis = ir::Axis::new()
-        .with_title("y".into())
-        .with_ticks(
-            ir::axis::Ticks::new().with_formatter(Some(ir::axis::ticks::Formatter::Percent)),
-        );
+    let y_axis = ir::Axis::new().with_title("y".into()).with_ticks(
+        ir::axis::Ticks::new().with_formatter(Some(ir::axis::ticks::Formatter::Percent)),
+    );
 
     let pop_series = ir::Series::Histogram(
         ir::series::Histogram::new(ir::data_src_ref("pop"))

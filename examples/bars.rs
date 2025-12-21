@@ -50,37 +50,28 @@ fn main() {
     // let series = vec![bars_group];
 
     let stocks_2023 = ir::Series::Bars(
-        ir::series::Bars::new(
-            ir::data_src_ref("fruits"),
-            ir::data_src_ref("stocks_2023"),
-        )
-        .with_name("Stocks 2023")
-        .with_position(ir::series::BarsPosition {
-            offset: 0.2,
-            width: 0.2,
-        }),
+        ir::series::Bars::new(ir::data_src_ref("fruits"), ir::data_src_ref("stocks_2023"))
+            .with_name("Stocks 2023")
+            .with_position(ir::series::BarsPosition {
+                offset: 0.2,
+                width: 0.2,
+            }),
     );
     let stocks_2024 = ir::Series::Bars(
-        ir::series::Bars::new(
-            ir::data_src_ref("fruits"),
-            ir::data_src_ref("stocks_2024"),
-        )
-        .with_name("Stocks 2024")
-        .with_position(ir::series::BarsPosition {
-            offset: 0.4,
-            width: 0.2,
-        }),
+        ir::series::Bars::new(ir::data_src_ref("fruits"), ir::data_src_ref("stocks_2024"))
+            .with_name("Stocks 2024")
+            .with_position(ir::series::BarsPosition {
+                offset: 0.4,
+                width: 0.2,
+            }),
     );
     let stocks_2025 = ir::Series::Bars(
-        ir::series::Bars::new(
-            ir::data_src_ref("fruits"),
-            ir::data_src_ref("stocks_2025"),
-        )
-        .with_name("Stocks 2025")
-        .with_position(ir::series::BarsPosition {
-            offset: 0.6,
-            width: 0.2,
-        }),
+        ir::series::Bars::new(ir::data_src_ref("fruits"), ir::data_src_ref("stocks_2025"))
+            .with_name("Stocks 2025")
+            .with_position(ir::series::BarsPosition {
+                offset: 0.6,
+                width: 0.2,
+            }),
     );
 
     let series = vec![stocks_2023, stocks_2024, stocks_2025];

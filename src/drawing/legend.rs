@@ -1,12 +1,10 @@
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
-use crate::drawing;
 use crate::geom::{Padding, Size};
-use crate::render;
 use crate::style::{Theme, defaults, theme};
 use crate::text::{self, LineText, fontdb};
-use crate::{Color as _, geom, ir, style};
+use crate::{Color as _, drawing, geom, ir, render, style};
 
 #[derive(Debug, Clone)]
 pub enum Shape {

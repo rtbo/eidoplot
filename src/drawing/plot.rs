@@ -6,9 +6,8 @@ use crate::drawing::scale::CoordMapXy;
 use crate::drawing::series::{self, Series, SeriesExt};
 use crate::drawing::{Ctx, Error};
 use crate::ir::plot::PlotLine;
-use crate::render;
 use crate::style::{Theme, defaults};
-use crate::{data, geom, ir, missing_params};
+use crate::{data, geom, ir, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub struct Plots {
@@ -323,9 +322,7 @@ where
             y += height + ir_plots.space();
         }
 
-        let mut plots = Plots {
-            plots,
-        };
+        let mut plots = Plots { plots };
 
         plots.update_series_data(ir_plots, self.data_source())?;
 
@@ -710,7 +707,11 @@ fn y_side_matches_out_legend_pos(side: ir::axis::Side, legend_pos: ir::plot::Leg
 }
 
 impl Plots {
-    pub fn update_series_data<D>(&mut self, ir_plots: &ir::figure::Plots, data_source: &D) -> Result<(), Error>
+    pub fn update_series_data<D>(
+        &mut self,
+        ir_plots: &ir::figure::Plots,
+        data_source: &D,
+    ) -> Result<(), Error>
     where
         D: data::Source,
     {

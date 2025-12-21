@@ -3,9 +3,8 @@ use scale::{CoordMap, CoordMapXy};
 
 use crate::drawing::plot::Orientation;
 use crate::drawing::{Categories, ColumnExt, Error, F64ColumnExt, axis, legend, marker, scale};
-use crate::render;
 use crate::style::Theme;
-use crate::{data, geom, ir};
+use crate::{data, geom, ir, render};
 
 /// trait implemented by series, or any other item that
 /// has to populate the legend

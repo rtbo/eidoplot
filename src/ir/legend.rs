@@ -74,15 +74,24 @@ impl Legend {
     }
 
     pub fn with_font(self, font: impl Into<EntryFont>) -> Self {
-        Self { font: font.into(), ..self }
+        Self {
+            font: font.into(),
+            ..self
+        }
     }
 
     pub fn with_fill(self, fill: impl Into<Option<theme::Fill>>) -> Self {
-        Self { fill: fill.into(), ..self }
+        Self {
+            fill: fill.into(),
+            ..self
+        }
     }
 
     pub fn with_border(self, border: impl Into<Option<theme::Line>>) -> Self {
-        Self { border: border.into(), ..self }
+        Self {
+            border: border.into(),
+            ..self
+        }
     }
 
     pub fn with_columns(self, columns: u32) -> Self {
@@ -93,10 +102,16 @@ impl Legend {
     }
 
     pub fn with_padding(self, padding: impl Into<Padding>) -> Self {
-        Self { padding: padding.into(), ..self }
+        Self {
+            padding: padding.into(),
+            ..self
+        }
     }
 
     pub fn with_spacing(self, spacing: impl Into<Size>) -> Self {
-        Self { spacing: spacing.into(), ..self }
+        Self {
+            spacing: spacing.into(),
+            ..self
+        }
     }
 }

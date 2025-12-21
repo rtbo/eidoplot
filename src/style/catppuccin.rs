@@ -1,4 +1,4 @@
-use crate::{style, ColorU8};
+use crate::{ColorU8, style};
 
 /// Build the Catppuccin Latte theme
 pub fn latte() -> style::Theme {

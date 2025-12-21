@@ -8,10 +8,9 @@ pub use side::Side;
 
 use crate::drawing::scale::{self, CoordMap};
 use crate::drawing::{Categories, Ctx, Error, ticks};
-use crate::render;
 use crate::style::{Theme, theme};
 use crate::text::{self, font};
-use crate::{Color, data, geom, ir, missing_params};
+use crate::{Color, data, geom, ir, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub struct Axis {
@@ -688,8 +687,8 @@ impl Axis {
                     )?);
                 }
                 if let Some(ticks) = ticks {
-                    shift = shift
-                        .max(self.draw_major_ticks(surface, theme, &**cm, ticks, plot_rect)?);
+                    shift =
+                        shift.max(self.draw_major_ticks(surface, theme, &**cm, ticks, plot_rect)?);
                 }
                 shift
             }
@@ -807,7 +806,7 @@ impl Axis {
     ) -> Result<f32, Error>
     where
         S: render::Surface,
-     {
+    {
         let Some(mark) = self.draw_opts.minor_marks.as_ref() else {
             return Ok(0.0);
         };

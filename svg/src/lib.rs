@@ -1,9 +1,9 @@
 use std::io;
 
+use eidoplot::ColorU8;
 use eidoplot::geom::{self, Transform};
 use eidoplot::render::{self, Surface};
 use eidoplot::text::{self, line, rich};
-use eidoplot::ColorU8;
 use svg::Node;
 use svg::node::element;
 use text::font;

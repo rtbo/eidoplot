@@ -112,8 +112,7 @@ mod missing_params {
 }
 
 fn resource_folder() -> path::PathBuf {
-    path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("share")
+    path::Path::new(env!("CARGO_MANIFEST_DIR")).join("share")
 }
 
 /// Loads fonts that are bundled with eidoplot

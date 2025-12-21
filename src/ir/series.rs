@@ -12,7 +12,6 @@ pub fn data_src_ref<S: Into<String>>(src: S) -> DataCol {
     DataCol::SrcRef(src.into())
 }
 
-
 impl From<data::VecColumn> for DataCol {
     fn from(col: data::VecColumn) -> Self {
         DataCol::Inline(col)

@@ -1,4 +1,4 @@
-use eidoplot::{ir, color};
+use eidoplot::{color, ir};
 
 use super::{fig_small, line, line2};
 use crate::tests::fig_mid;
@@ -16,8 +16,8 @@ fn axes_default() {
 #[test]
 fn axes_x_title() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series])
-        .with_x_axis(ir::Axis::default().with_title("x axis".into()));
+    let plot =
+        ir::Plot::new(vec![series]).with_x_axis(ir::Axis::default().with_title("x axis".into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/x-title");
@@ -26,8 +26,8 @@ fn axes_x_title() {
 #[test]
 fn axes_y_title() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series])
-        .with_y_axis(ir::Axis::default().with_title("y axis".into()));
+    let plot =
+        ir::Plot::new(vec![series]).with_y_axis(ir::Axis::default().with_title("y axis".into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/y-title");
@@ -277,16 +277,8 @@ fn axes_multiple_bl() {
     let plot = ir::Plot::new(vec![s1.into(), s2.into()])
         .with_x_axis(ir::Axis::new().with_ticks(Default::default()))
         .with_y_axis(ir::Axis::new().with_ticks(Default::default()))
-        .with_x_axis(
-            ir::Axis::new()
-                .with_ticks(Default::default())
-                .with_id("x2"),
-        )
-        .with_y_axis(
-            ir::Axis::new()
-                .with_ticks(Default::default())
-                .with_id("y2"),
-        );
+        .with_x_axis(ir::Axis::new().with_ticks(Default::default()).with_id("x2"))
+        .with_y_axis(ir::Axis::new().with_ticks(Default::default()).with_id("y2"));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/multiple-bl");

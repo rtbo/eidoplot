@@ -1,4 +1,4 @@
-use crate::{geom, style, Color};
+use crate::{Color, geom, style};
 
 const SQRT2: f32 = 1.41421356237;
 
