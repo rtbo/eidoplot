@@ -15,6 +15,3 @@ eidoplot-pxl.workspace = true
 eidoplot-svg.workspace = true
 tiny-skia.workspace = true
 similar = "2.7.0"
-
-[features]
-regenerate-refs = []

@@ -9,11 +9,7 @@ use eidoplot_svg::SvgSurface;
 
 use crate::pixelmatch;
 
-#[cfg(feature = "regenerate-refs")]
-const REGENERATE_REFS: bool = true;
-
-#[cfg(not(feature = "regenerate-refs"))]
-const REGENERATE_REFS: bool = false;
+const FORCE_REGENERATE_REFS: bool = false;
 
 pub trait TestHarness {
     type DrawnFig;
@@ -159,9 +155,9 @@ impl TestHarness for PxlHarness {
     }
 
     fn regenerate_refs() -> bool {
-        REGENERATE_REFS
-            || std::env::var("EIDOPLOT_TEST_REGENERATE_REFS").is_ok()
-            || std::env::var("EIDOPLOT_TEST_REGENERATE_PNG_REFS").is_ok()
+        FORCE_REGENERATE_REFS
+            || std::env::var("REGENERATE_REFS").is_ok()
+            || std::env::var("REGENERATE_PNG_REFS").is_ok()
     }
 
     fn serialize_fig(file: &Path, fig: &Self::DrawnFig) {
@@ -215,9 +211,9 @@ impl TestHarness for SvgHarness {
     }
 
     fn regenerate_refs() -> bool {
-        REGENERATE_REFS
-            || std::env::var("EIDOPLOT_TEST_REGENERATE_REFS").is_ok()
-            || std::env::var("EIDOPLOT_TEST_REGENERATE_SVG_REFS").is_ok()
+        FORCE_REGENERATE_REFS
+            || std::env::var("REGENERATE_REFS").is_ok()
+            || std::env::var("REGENERATE_SVG_REFS").is_ok()
     }
 
     fn serialize_fig(file: &Path, fig: &Self::DrawnFig) {
