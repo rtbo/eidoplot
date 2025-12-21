@@ -15,6 +15,32 @@ pub use rich::{
     parse_rich_text_with_classes, render_rich_text, render_rich_text_with,
 };
 
+fn resource_folder() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("share")
+}
+
+/// Loads fonts that are bundled with eidoplot
+/// and returns an Arc to the database.
+pub fn bundled_font_db() -> fontdb::Database {
+    const FONTDB_FAMILY_SANS: &str = "Noto Sans";
+    const FONTDB_FAMILY_SERIF: &str = "Noto Serif";
+    const FONTDB_FAMILY_MONO: &str = "Noto Mono";
+
+    let res_dir = crate::resource_folder();
+
+    let mut db = fontdb::Database::new();
+
+    db.load_fonts_dir(&res_dir);
+    db.set_sans_serif_family(FONTDB_FAMILY_SANS);
+    db.set_serif_family(FONTDB_FAMILY_SERIF);
+    db.set_monospace_family(FONTDB_FAMILY_MONO);
+
+    db
+}
+
 #[derive(Debug, Clone)]
 pub enum Error {
     InvalidSpan(String),

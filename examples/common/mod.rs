@@ -5,7 +5,7 @@ use std::sync::Arc;
 use eidoplot::drawing::FigureExt;
 use eidoplot::style::series::palettes;
 use eidoplot::style::{self};
-use eidoplot::{data, fontdb, ir};
+use eidoplot::{data, fontdb, ir, text};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 use rand::SeedableRng;
@@ -129,7 +129,7 @@ where
 {
     let args = parse_args();
     let theme = args.theme.into();
-    let fontdb = Arc::new(eidoplot::bundled_font_db());
+    let fontdb = Arc::new(text::bundled_font_db());
     save_fig(fig, data_source, &theme, &args, default_name, fontdb);
 }
 

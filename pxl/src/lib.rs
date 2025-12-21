@@ -66,7 +66,7 @@ struct State {
 
 impl State {
     fn new(width: u32, height: u32, fontdb: Option<Arc<fontdb::Database>>) -> Self {
-        let fontdb = fontdb.unwrap_or_else(|| Arc::new(eidoplot::bundled_font_db()));
+        let fontdb = fontdb.unwrap_or_else(|| Arc::new(text::bundled_font_db()));
         Self {
             width,
             height,

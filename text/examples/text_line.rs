@@ -1,14 +1,8 @@
-use eidoplot_text::{BBox, font, line};
+use eidoplot_text::{BBox, bundled_font_db, font, line};
 use line::LineText;
 
 fn main() {
-    let share_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .join("share");
-    let mut db = font::Database::new();
-    db.load_fonts_dir(&share_dir);
-    db.load_system_fonts();
+    let db = bundled_font_db();
 
     let font = font::Font::default().with_families(vec![
         font::Family::Named("Noto Sans".to_string()),

@@ -41,7 +41,7 @@ impl Figure {
     where
         D: data::Source,
     {
-        let fontdb = fontdb.unwrap_or_else(|| Arc::new(crate::bundled_font_db()));
+        let fontdb = fontdb.unwrap_or_else(|| Arc::new(text::bundled_font_db()));
         let theme = Arc::new(theme);
         let ctx = Ctx::new(data_source, theme, fontdb);
         ctx.setup_figure(&ir)

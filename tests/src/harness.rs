@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use eidoplot::drawing::FigureExt;
-use eidoplot::ir;
+use eidoplot::{ir, text};
 use eidoplot::style::Theme;
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
@@ -130,7 +130,7 @@ impl TestHarness for PxlHarness {
 
     fn draw_fig(fig: &ir::Figure, theme: &Theme) -> Self::DrawnFig {
         let size = fig.size();
-        let fontdb = Arc::new(eidoplot::bundled_font_db());
+        let fontdb = Arc::new(text::bundled_font_db());
         let mut pxl = PxlSurface::new(
             size.width() as u32,
             size.height() as u32,

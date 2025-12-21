@@ -709,12 +709,13 @@ where
 mod tests {
     use eidoplot_base::ColorU8;
 
+    use crate::bundled_font_db;
+
     use super::*;
 
     #[test]
     fn underline_span() {
-        let mut db = fontdb::Database::new();
-        db.load_system_fonts();
+        let db = bundled_font_db();
         let mut builder: RichTextBuilder<ColorU8> =
             RichTextBuilder::new("Some RICH\ntext string".to_string(), TextProps::new(12.0));
         builder.add_span(

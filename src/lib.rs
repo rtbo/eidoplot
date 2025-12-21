@@ -28,8 +28,6 @@
 // Eidoplot is released under the MIT License with the following copyright:
 // Copyright (c) 2025 Rémi Thebault
 
-use std::path;
-
 pub mod data;
 pub mod drawing;
 pub mod eplt;
@@ -114,29 +112,6 @@ mod missing_params {
     pub const TICK_LABEL_MARGIN: f32 = 4.0;
     pub const MINOR_TICK_LINE_WIDTH: f32 = 0.5;
     pub const MINOR_TICK_SIZE: f32 = 2.0;
-}
-
-fn resource_folder() -> path::PathBuf {
-    path::Path::new(env!("CARGO_MANIFEST_DIR")).join("share")
-}
-
-/// Loads fonts that are bundled with eidoplot
-/// and returns an Arc to the database.
-pub fn bundled_font_db() -> fontdb::Database {
-    const FONTDB_FAMILY_SANS: &str = "Noto Sans";
-    const FONTDB_FAMILY_SERIF: &str = "Noto Serif";
-    const FONTDB_FAMILY_MONO: &str = "Noto Mono";
-
-    let res_dir = crate::resource_folder();
-
-    let mut db = fontdb::Database::new();
-
-    db.load_fonts_dir(&res_dir);
-    db.set_sans_serif_family(FONTDB_FAMILY_SANS);
-    db.set_serif_family(FONTDB_FAMILY_SERIF);
-    db.set_monospace_family(FONTDB_FAMILY_MONO);
-
-    db
 }
 
 #[cfg(test)]
