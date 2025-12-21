@@ -140,7 +140,6 @@ fn main() {
         ir::Subplots::new(2, 1)
             .with_plot(0, 0, mag_plot)
             .with_plot(0, 1, phase_plot)
-            .with_space(10.0)
             .into(),
     )
     .with_title(title.into())
