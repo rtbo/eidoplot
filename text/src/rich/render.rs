@@ -1,4 +1,4 @@
-use eidoplot_base::ColorU8;
+use eidoplot_base::{ColorU8, geom};
 use ttf_parser as ttf;
 
 use super::RichText;
@@ -6,8 +6,8 @@ use crate::{BBox, font, fontdb};
 
 #[derive(Debug)]
 pub enum RichPrimitive<'a> {
-    Fill(&'a tiny_skia_path::Path, ColorU8),
-    Stroke(&'a tiny_skia_path::Path, ColorU8, f32),
+    Fill(&'a geom::Path, ColorU8),
+    Stroke(&'a geom::Path, ColorU8, f32),
 }
 
 pub fn render_rich_text_with<RenderFn>(
@@ -18,8 +18,8 @@ pub fn render_rich_text_with<RenderFn>(
 where
     RenderFn: FnMut(RichPrimitive<'_>),
 {
-    let mut span_builder = tiny_skia_path::PathBuilder::new();
-    let mut glyph_builder = tiny_skia_path::PathBuilder::new();
+    let mut span_builder = geom::PathBuilder::new();
+    let mut glyph_builder = geom::PathBuilder::new();
 
     for line in &text.lines {
         for shape in &line.shapes {
@@ -47,7 +47,7 @@ where
 
                                 glyph_builder = path.clear();
                             } else {
-                                glyph_builder = tiny_skia::PathBuilder::new();
+                                glyph_builder = geom::PathBuilder::new();
                             }
                         }
 
@@ -75,7 +75,7 @@ where
                             }
                             span_builder = path.clear();
                         } else {
-                            span_builder = tiny_skia_path::PathBuilder::new();
+                            span_builder = geom::PathBuilder::new();
                         }
                     }
 
@@ -91,7 +91,7 @@ where
 pub fn render_rich_text(
     text: &RichText,
     fontdb: &fontdb::Database,
-    transform: tiny_skia_path::Transform,
+    transform: geom::Transform,
     mask: Option<&tiny_skia::Mask>,
     pixmap: &mut tiny_skia::PixmapMut<'_>,
 ) -> Result<(), ttf::FaceParsingError> {
@@ -116,8 +116,8 @@ fn line_path(
     bbox: BBox,
     y_baseline: f32,
     line: font::ScaledLineMetrics,
-    mut builder: tiny_skia_path::PathBuilder,
-) -> tiny_skia::Path {
+    mut builder: geom::PathBuilder,
+) -> geom::Path {
     // there is no y-flip transform on this one
     builder.move_to(bbox.left, y_baseline - line.position);
     builder.line_to(bbox.right, y_baseline - line.position);

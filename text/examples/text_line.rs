@@ -1,3 +1,4 @@
+use eidoplot_base::geom;
 use eidoplot_text::{BBox, bundled_font_db, font, line};
 use line::LineText;
 
@@ -59,8 +60,8 @@ fn draw_line_bbox(line: &line::LineText, (tx, ty): (f32, f32), pm_mut: &mut tiny
     );
 }
 
-fn bbox_rect_path(bbox: BBox) -> tiny_skia_path::Path {
-    let mut pb = tiny_skia_path::PathBuilder::new();
+fn bbox_rect_path(bbox: BBox) -> geom::Path {
+    let mut pb = geom::PathBuilder::new();
     pb.move_to(bbox.left, bbox.top);
     pb.line_to(bbox.right, bbox.top);
     pb.line_to(bbox.right, bbox.bottom);

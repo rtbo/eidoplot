@@ -1,4 +1,4 @@
-use eidoplot_base::{Color, ColorU8, ResolveColor, color};
+use eidoplot_base::{Color, ColorU8, ResolveColor, color, geom};
 use ttf_parser as ttf;
 
 use crate::{BBox, Error, font, fontdb, line};
@@ -694,11 +694,11 @@ struct Glyph {
 impl Glyph {
     fn visual_bbox(&self) -> BBox {
         let mut tl_br = [
-            tiny_skia_path::Point {
+            geom::Point {
                 x: self.rect.x_min as f32,
                 y: self.rect.y_max as f32,
             },
-            tiny_skia_path::Point {
+            geom::Point {
                 x: self.rect.x_max as f32,
                 y: self.rect.y_min as f32,
             },

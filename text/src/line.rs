@@ -1,6 +1,6 @@
 //! Module that contains a simple single line text layout and rendering engine
 
-use tiny_skia_path::Transform;
+use eidoplot_base::geom;
 use ttf_parser as ttf;
 
 use crate::bidi::{self, BidiAlgo};
@@ -173,14 +173,14 @@ impl LineText {
 
         let mut x_cursor = x_start;
 
-        let y_flip = Transform::from_scale(1.0, -1.0);
+        let y_flip = geom::Transform::from_scale(1.0, -1.0);
 
         for shape in shapes.iter_mut() {
-            let scale_ts = Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
+            let scale_ts = geom::Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
             for glyph in shape.glyphs.iter_mut() {
                 let x = x_cursor + glyph.x_offset;
                 let y = y_cursor - glyph.y_offset;
-                let pos_ts = Transform::from_translate(x, y);
+                let pos_ts = geom::Transform::from_translate(x, y);
                 glyph.ts = y_flip.post_concat(scale_ts).post_concat(pos_ts);
                 x_cursor += glyph.x_advance;
                 y_cursor -= glyph.y_advance;
@@ -254,7 +254,7 @@ pub(crate) struct Glyph {
     y_offset: f32,
     x_advance: f32,
     y_advance: f32,
-    pub(crate) ts: Transform,
+    pub(crate) ts: geom::Transform,
 }
 
 #[derive(Debug)]
@@ -326,7 +326,7 @@ impl Shape {
 
 pub fn render_line_text_with<R>(line: &LineText, db: &font::Database, mut render_fn: R)
 where
-    R: FnMut(&tiny_skia_path::Path),
+    R: FnMut(&geom::Path),
 {
     for shape in line.shapes.iter() {
         db.with_face_data(shape.face_id, |data, index| {
@@ -334,9 +334,9 @@ where
             font::apply_ttf_variations(&mut face, line.font());
 
             // the path builder for the entire string
-            let mut str_pb = tiny_skia_path::PathBuilder::new();
+            let mut str_pb = geom::PathBuilder::new();
             // the path builder for each glyph
-            let mut gl_pb = tiny_skia_path::PathBuilder::new();
+            let mut gl_pb = geom::PathBuilder::new();
 
             for gl in &shape.glyphs {
                 {
@@ -350,7 +350,7 @@ where
 
                     gl_pb = path.clear();
                 } else {
-                    gl_pb = tiny_skia_path::PathBuilder::new();
+                    gl_pb = geom::PathBuilder::new();
                 }
             }
 
@@ -366,7 +366,7 @@ pub struct RenderOptions<'a> {
     pub fill: Option<tiny_skia::Paint<'a>>,
     pub outline: Option<(tiny_skia::Paint<'a>, tiny_skia::Stroke)>,
     pub mask: Option<&'a tiny_skia::Mask>,
-    pub transform: tiny_skia_path::Transform,
+    pub transform: geom::Transform,
 }
 
 pub fn render_line_text(
@@ -375,7 +375,7 @@ pub fn render_line_text(
     db: &font::Database,
     pixmap: &mut tiny_skia::PixmapMut<'_>,
 ) {
-    let render_fn = |path: &tiny_skia_path::Path| {
+    let render_fn = |path: &geom::Path| {
         if let Some(paint) = opts.fill.as_ref() {
             pixmap.fill_path(
                 &path,

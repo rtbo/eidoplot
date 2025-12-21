@@ -1,5 +1,7 @@
 use std::fmt;
 
+use eidoplot_base::geom;
+
 use ttf_parser as ttf;
 
 mod bidi;
@@ -139,12 +141,12 @@ impl BBox {
         self.bottom - self.top
     }
 
-    pub fn transform(self, transform: &tiny_skia_path::Transform) -> BBox {
-        let mut top_left = tiny_skia_path::Point {
+    pub fn transform(self, transform: &geom::Transform) -> BBox {
+        let mut top_left = geom::Point {
             x: self.left,
             y: self.top,
         };
-        let mut bottom_right = tiny_skia_path::Point {
+        let mut bottom_right = geom::Point {
             x: self.right,
             y: self.bottom,
         };
@@ -187,7 +189,7 @@ fn script_is_rtl(text: &str) -> Option<bool> {
     if in_doublt_rtl { Some(true) } else { None }
 }
 
-struct Outliner<'a>(&'a mut tiny_skia_path::PathBuilder);
+struct Outliner<'a>(&'a mut geom::PathBuilder);
 
 impl ttf::OutlineBuilder for Outliner<'_> {
     fn move_to(&mut self, x: f32, y: f32) {

@@ -220,8 +220,8 @@ impl State {
         } = bbox;
         let rect = geom::Rect::from_trbl(top, right, bottom, left);
         let mut tl_br = [
-            tiny_skia_path::Point { x: left, y: top },
-            tiny_skia_path::Point {
+            geom::Point { x: left, y: top },
+            geom::Point {
                 x: right,
                 y: bottom,
             },
