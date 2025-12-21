@@ -130,10 +130,9 @@ impl TestHarness for PxlHarness {
         let mut pxl = PxlSurface::new(
             size.width() as u32,
             size.height() as u32,
-            Some(fontdb.clone()),
         )
         .unwrap();
-        fig.draw(&mut pxl, theme, &(), Some(fontdb.clone()))
+        fig.draw(&mut pxl, theme, &(), Some(fontdb))
             .unwrap();
         pxl.into_pixmap()
     }

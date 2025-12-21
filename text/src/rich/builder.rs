@@ -1,53 +1,54 @@
-use eidoplot_base::{Color, ResolveColor};
-use tiny_skia::Transform;
+use eidoplot_base::geom;
 use ttf_parser as ttf;
 
 use super::{
-    Align, Boundaries, Direction, Error, Glyph, HorAlign, Layout, LineSpan, PropsSpan,
-    ResolvedProps, RichText, RichTextBuilder, ShapeSpan, TextOptProps, TextProps, VerAlign,
-    VerDirection, VerProgression,
+    Align, Boundaries, Direction, Error, Glyph, HorAlign, Layout, LineSpan, PropsSpan, RichText,
+    RichTextBuilder, ShapeSpan, TextOptProps, TextProps, VerAlign, VerDirection, VerProgression,
 };
 use crate::bidi::BidiAlgo;
 use crate::font::{self, DatabaseExt};
 use crate::{BBox, fontdb, line};
 
 #[derive(Debug)]
-struct BuilderCtx<'a, C, R> {
-    resolver: PropsResolver<'a, C, R>,
+struct BuilderCtx<C>
+where
+    C: Clone,
+{
+    resolver: PropsResolver<C>,
     bidi_algo: BidiAlgo,
     buffer: Option<rustybuzz::UnicodeBuffer>,
 }
 
 #[derive(Debug)]
-struct PropsResolver<'a, C, R> {
+struct PropsResolver<C>
+where
+    C: Clone,
+{
     init_props: TextProps<C>,
     stack: Vec<TextOptProps<C>>,
-    rc: &'a R,
 }
 
-impl<'a, C, R> PropsResolver<'a, C, R>
+impl<C> PropsResolver<C>
 where
-    C: Color + PartialEq,
-    R: ResolveColor<C>,
+    C: Clone + PartialEq,
 {
-    fn new(init_props: TextProps<C>, rc: &'a R) -> PropsResolver<'a, C, R> {
+    fn new(init_props: TextProps<C>) -> PropsResolver<C> {
         PropsResolver {
             init_props,
             stack: Vec::new(),
-            rc,
         }
     }
 
-    fn resolved(&self) -> ResolvedProps {
+    fn resolved(&self) -> TextProps<C> {
         let mut props = self.init_props.clone();
         for opts in self.stack.iter() {
             props.apply_opts(opts);
         }
-        ResolvedProps {
+        TextProps {
             font: props.font,
             font_size: props.font_size,
-            fill: props.fill.map(|c| self.rc.resolve_color(&c)),
-            outline: props.outline.map(|l| (self.rc.resolve_color(&l.0), l.1)),
+            fill: props.fill.clone(),
+            outline: props.outline.clone(),
             underline: props.underline,
             strikeout: props.strikeout,
         }
@@ -73,20 +74,29 @@ enum Justify {
     Glyph { fact: f32 },
 }
 
-impl ShapeSpan {
+impl<C> ShapeSpan<C>
+where
+    C: Clone,
+{
     fn x_advance(&self) -> f32 {
         self.glyphs.iter().map(|g| g.x_advance as f32).sum()
     }
 }
 
 // implementation specific to vertical text
-impl ShapeSpan {
+impl<C> ShapeSpan<C>
+where
+    C: Clone,
+{
     fn col_y_advance(&self) -> f32 {
         self.glyphs.iter().map(|g| g.y_advance as f32).sum()
     }
 }
 
-impl LineSpan {
+impl<C> LineSpan<C>
+where
+    C: Clone,
+{
     fn metrics(&self) -> font::ScaledMetrics {
         let mut metrics = font::ScaledMetrics::null();
         for s in &self.shapes {
@@ -114,7 +124,10 @@ impl LineSpan {
 }
 
 // This implementation gathers method specific to vertical text
-impl LineSpan {
+impl<C> LineSpan<C>
+where
+    C: Clone,
+{
     /// The column width if this TextLine is a vertical text column
     fn col_width(&self) -> f32 {
         self.shapes
@@ -133,7 +146,10 @@ trait Lines {
     fn baseline(&self, idx: usize) -> f32;
 }
 
-impl Lines for [LineSpan] {
+impl<C> Lines for [LineSpan<C>]
+where
+    C: Clone,
+{
     fn baseline(&self, idx: usize) -> f32 {
         let mut h = 0.0;
         let mut l = 0;
@@ -157,13 +173,10 @@ impl VerProgression {
 
 impl<C> RichTextBuilder<C>
 where
-    C: Color + PartialEq,
+    C: Clone + PartialEq,
 {
     /// Create a RichText from this builder
-    pub(super) fn done_impl<R>(self, fontdb: &fontdb::Database, rc: &R) -> Result<RichText, Error>
-    where
-        R: ResolveColor<C>,
-    {
+    pub(super) fn done_impl(self, fontdb: &fontdb::Database) -> Result<RichText<C>, Error> {
         if self.text.is_empty() {
             return Ok(RichText::empty());
         }
@@ -190,7 +203,7 @@ where
             }
         };
 
-        let resolver = PropsResolver::new(self.root_props.clone(), rc);
+        let resolver = PropsResolver::new(self.root_props.clone());
 
         let mut ctx = BuilderCtx {
             resolver,
@@ -240,17 +253,14 @@ where
         self.build_layout(lines)
     }
 
-    fn shape_line<'a, R>(
+    fn shape_line(
         &self,
         start: usize,
         end: usize,
         _eol: usize,
         fontdb: &fontdb::Database,
-        ctx: &mut BuilderCtx<'a, C, R>,
-    ) -> Result<LineSpan, Error>
-    where
-        R: ResolveColor<C>,
-    {
+        ctx: &mut BuilderCtx<C>,
+    ) -> Result<LineSpan<C>, Error> {
         debug_assert!(self.text.is_char_boundary(start) && self.text.is_char_boundary(end));
         let line_txt = &self.text[start..end];
 
@@ -294,17 +304,14 @@ where
         })
     }
 
-    fn shape_span<'a, R>(
+    fn shape_span(
         &self,
         start: usize,
         end: usize,
         dir: rustybuzz::Direction,
         fontdb: &fontdb::Database,
-        ctx: &mut BuilderCtx<'a, C, R>,
-    ) -> Result<ShapeSpan, Error>
-    where
-        R: ResolveColor<C>,
-    {
+        ctx: &mut BuilderCtx<C>,
+    ) -> Result<ShapeSpan<C>, Error> {
         debug_assert!(self.text.is_char_boundary(start) && self.text.is_char_boundary(end));
 
         let txt = &self.text[start..end];
@@ -407,7 +414,7 @@ where
         Ok(shape)
     }
 
-    fn build_layout(self, mut lines: Vec<LineSpan>) -> Result<RichText, Error> {
+    fn build_layout(self, mut lines: Vec<LineSpan<C>>) -> Result<RichText<C>, Error> {
         if lines.is_empty() {
             return Ok(RichText::empty());
         }
@@ -438,7 +445,7 @@ where
         })
     }
 
-    fn build_horizontal_layout(&self, lines: &mut Vec<LineSpan>) -> Result<(), Error> {
+    fn build_horizontal_layout(&self, lines: &mut Vec<LineSpan<C>>) -> Result<(), Error> {
         let Layout::Horizontal(align, ver_align, _) = self.layout else {
             unreachable!()
         };
@@ -480,7 +487,7 @@ where
         Ok(())
     }
 
-    fn layout_horizontal_line(&self, line: &mut LineSpan, y_baseline: f32, align: Align) {
+    fn layout_horizontal_line(&self, line: &mut LineSpan<C>, y_baseline: f32, align: Align) {
         let ws = self.text[line.start..line.end]
             .chars()
             .filter(|c| c.is_whitespace())
@@ -518,14 +525,14 @@ where
         let mut x_cursor = x_start;
         let mut y_cursor = y_baseline;
 
-        let y_flip = Transform::from_scale(1.0, -1.0);
+        let y_flip = geom::Transform::from_scale(1.0, -1.0);
         for shape in line.shapes.iter_mut() {
             let shape_start = x_cursor;
-            let scale_ts = Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
+            let scale_ts = geom::Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
             for glyph in shape.glyphs.iter_mut() {
                 let x = x_cursor + glyph.x_offset;
                 let y = y_cursor - glyph.y_offset;
-                let pos_ts = Transform::from_translate(x, y);
+                let pos_ts = geom::Transform::from_translate(x, y);
                 glyph.ts = y_flip.post_concat(scale_ts).post_concat(pos_ts);
                 let glyph_start = x_cursor;
                 x_cursor += match justify {
@@ -575,7 +582,7 @@ where
         };
     }
 
-    fn build_vertical_layout(&self, cols: &mut Vec<LineSpan>) -> Result<VerProgression, Error> {
+    fn build_vertical_layout(&self, cols: &mut Vec<LineSpan<C>>) -> Result<VerProgression, Error> {
         let Layout::Vertical(align, hor_align, _, progression, inter_col) = self.layout else {
             unreachable!()
         };
@@ -612,7 +619,7 @@ where
         Ok(progression)
     }
 
-    fn layout_vertical_column(&self, col: &mut LineSpan, x_leftline: f32, type_align: Align) {
+    fn layout_vertical_column(&self, col: &mut LineSpan<C>, x_leftline: f32, type_align: Align) {
         let ws = self.text[col.start..col.end]
             .chars()
             .filter(|c| c.is_whitespace())
@@ -650,14 +657,14 @@ where
         let mut x_cursor = x_leftline;
         let mut y_cursor = y_start;
 
-        let y_flip = Transform::from_scale(1.0, -1.0);
+        let y_flip = geom::Transform::from_scale(1.0, -1.0);
         for shape in col.shapes.iter_mut() {
             let shape_start = x_cursor;
-            let scale_ts = Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
+            let scale_ts = geom::Transform::from_scale(shape.metrics.scale, shape.metrics.scale);
             for glyph in shape.glyphs.iter_mut() {
                 let x = x_cursor + glyph.x_offset;
                 let y = y_cursor - glyph.y_offset;
-                let pos_ts = Transform::from_translate(x, y);
+                let pos_ts = geom::Transform::from_translate(x, y);
                 glyph.ts = y_flip.post_concat(scale_ts).post_concat(pos_ts);
                 let glyph_start = y_cursor;
                 y_cursor -= match justify {
@@ -726,7 +733,7 @@ mod tests {
                 ..Default::default()
             },
         );
-        let text = builder.done(&db, &()).unwrap();
+        let text = builder.done(&db).unwrap();
         assert_eq!(text.lines.len(), 2);
         assert_eq!(text.lines[0].shapes.len(), 1);
         assert_eq!(text.lines[1].shapes.len(), 1);

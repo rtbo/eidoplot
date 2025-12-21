@@ -7,17 +7,18 @@ pub use bounds::{AsBoundRef, Bounds, BoundsRef, NumBounds, TimeBounds};
 pub use side::Side;
 
 use crate::drawing::scale::{self, CoordMap};
-use crate::drawing::{Categories, Ctx, Error, ticks};
+use crate::drawing::{Categories, Ctx, Error, Text, ticks};
 use crate::style::{Theme, theme};
 use crate::text::{self, font};
-use crate::{Color, data, geom, ir, missing_params, render};
+use crate::{data, geom, ir, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub struct Axis {
     id: Option<String>,
+    title_text: Option<String>,
     side: Side,
-    scale: Arc<AxisScale>,
     draw_opts: DrawOpts,
+    scale: Arc<AxisScale>,
 }
 
 impl Axis {
@@ -26,7 +27,7 @@ impl Axis {
     }
 
     pub fn title_text(&self) -> Option<&str> {
-        self.draw_opts.title.as_ref().map(|t| t.text())
+        self.title_text.as_deref()
     }
 
     pub fn side(&self) -> Side {
@@ -51,7 +52,7 @@ impl Axis {
         };
         if let Some(title) = self.draw_opts.title.as_ref() {
             // vertical axis rotate the title, therefore we take the height in all cases.
-            size += title.bbox().height() + missing_params::AXIS_TITLE_MARGIN;
+            size += title.bbox.height() + missing_params::AXIS_TITLE_MARGIN;
         }
         size
     }
@@ -85,12 +86,10 @@ pub enum AxisScale {
 
 #[derive(Debug, Clone)]
 pub struct NumTicks {
-    /// The color of the ticks labels
-    lbl_color: theme::Color,
     /// The list of ticks
     ticks: Vec<NumTick>,
     /// Annotation of the axis (e.g. a multiplication factor)
-    annot: Option<text::LineText>,
+    annot: Option<Text>,
 }
 
 impl NumTicks {
@@ -112,7 +111,7 @@ impl NumTicks {
                 let max_h = self
                     .ticks
                     .iter()
-                    .map(|t| t.lbl.height())
+                    .map(|t| t.lbl.bbox.height())
                     .max_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap_or(0.0);
                 size += max_h;
@@ -121,7 +120,7 @@ impl NumTicks {
                 let max_w = self
                     .ticks
                     .iter()
-                    .map(|t| t.lbl.width())
+                    .map(|t| t.lbl.bbox.width())
                     .max_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap_or(0.0);
                 size += max_w;
@@ -135,7 +134,7 @@ impl NumTicks {
 #[derive(Debug, Clone)]
 struct NumTick {
     loc: f64,
-    lbl: text::LineText,
+    lbl: Text,
 }
 
 #[derive(Debug, Clone)]
@@ -204,8 +203,8 @@ impl CoordMap for CategoryBins {
 
 #[derive(Debug, Clone)]
 pub struct CategoryTicks {
-    lbl_color: theme::Color,
-    lbls: Vec<text::LineText>,
+    font_size: f32,
+    lbls: Vec<Text>,
     sep: Option<TickMark>,
 }
 
@@ -222,8 +221,8 @@ impl CategoryTicks {
 
         match side {
             Side::Bottom | Side::Top => {
-                if let Some(lbl) = self.lbls.first() {
-                    size += missing_params::TICK_LABEL_MARGIN + lbl.font_size();
+                if !self.lbls.is_empty() {
+                    size += missing_params::TICK_LABEL_MARGIN + self.font_size;
                 }
             }
             Side::Left | Side::Right => {
@@ -233,7 +232,7 @@ impl CategoryTicks {
                 let max_w = self
                     .lbls
                     .iter()
-                    .map(|t| t.width())
+                    .map(|t| t.bbox.width())
                     .max_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap_or(0.0);
                 size += max_w;
@@ -248,7 +247,7 @@ impl CategoryTicks {
 /// The location of ticks and their labels is determined by the shared scale
 #[derive(Debug, Clone)]
 struct DrawOpts {
-    title: Option<text::RichText>,
+    title: Option<Text>,
     spine: Option<theme::Line>,
     marks: Option<TickMark>,
     minor_marks: Option<TickMark>,
@@ -298,23 +297,25 @@ where
         shared_scale: Option<Arc<AxisScale>>,
         off_plot_area: bool,
     ) -> Result<Axis, Error> {
-        let insets = side.insets(insets);
+        let id = ir_axis.id().map(|s| s.to_string());
+        let title_text = ir_axis.title().map(|t| t.text().to_string());
 
         let uses_shared = shared_scale.is_some();
+        let draw_opts = self.setup_axis_draw_opts(ir_axis, side, uses_shared, off_plot_area)?;
 
         let scale = if let Some(scale) = shared_scale {
             scale
         } else {
+            let insets = side.insets(insets);
             Arc::new(self.setup_axis_scale(ir_axis, bounds, side, size_along, insets)?)
         };
 
-        let draw_opts = self.setup_axis_draw_opts(ir_axis, side, uses_shared, off_plot_area)?;
-
         Ok(Axis {
-            id: ir_axis.id().map(|s| s.to_string()),
+            id,
+            title_text,
             side,
-            scale,
             draw_opts,
+            scale,
         })
     }
 
@@ -405,6 +406,7 @@ where
         for loc in major_locs.into_iter() {
             let text = lbl_formatter.format_label(loc.into());
             let lbl = text::LineText::new(text, ticks_align, font.size, font.font.clone(), db)?;
+            let lbl = Text::from_line_text(&lbl, db, major_ticks.color())?;
             ticks.push(NumTick { loc, lbl });
         }
 
@@ -413,11 +415,12 @@ where
             .map(|l| {
                 text::LineText::new(l.to_string(), annot_align, font.size, font.font.clone(), db)
             })
+            .transpose()?
+            .map(|lbl| Text::from_line_text(&lbl, db, major_ticks.color()))
             .transpose()?;
 
         Ok(NumTicks {
             ticks,
-            lbl_color: major_ticks.color(),
             annot,
         })
     }
@@ -470,6 +473,7 @@ where
         for loc in major_locs.into_iter() {
             let text = lbl_formatter.format_label(loc.into());
             let lbl = text::LineText::new(text, ticks_align, font.size, font.font.clone(), db)?;
+            let lbl = Text::from_line_text(&lbl, db, major_ticks.color())?;
             ticks.push(NumTick {
                 loc: loc.timestamp(),
                 lbl,
@@ -481,11 +485,12 @@ where
             .map(|l| {
                 text::LineText::new(l.to_string(), annot_align, font.size, font.font.clone(), db)
             })
+            .transpose()?
+            .map(|lbl| Text::from_line_text(&lbl, db, major_ticks.color()))
             .transpose()?;
 
         Ok(NumTicks {
             ticks,
-            lbl_color: major_ticks.color(),
             annot,
         })
     }
@@ -510,6 +515,7 @@ where
                 font.font.clone(),
                 db,
             )?;
+            let lbl = Text::from_line_text(&lbl, db, ir.color())?;
             lbls.push(lbl);
         }
 
@@ -520,7 +526,7 @@ where
         });
 
         Ok(CategoryTicks {
-            lbl_color: ir.color(),
+            font_size: font.size,
             lbls,
             sep,
         })
@@ -535,7 +541,9 @@ where
     ) -> Result<DrawOpts, Error> {
         let title = ir_axis
             .title()
-            .map(|title| title.to_rich_text(side.title_layout(), &self.fontdb, self.theme()))
+            .map(|title| title.to_rich_text(side.title_layout(), &self.fontdb))
+            .transpose()?
+            .map(|rich| Text::from_rich_text(&rich, &self.fontdb))
             .transpose()?;
 
         let spine = if off_plot_area {
@@ -704,13 +712,9 @@ impl Axis {
         if let Some(title) = self.draw_opts.title.as_ref() {
             shift_across += missing_params::AXIS_TITLE_MARGIN;
             let transform = self.side.title_transform(shift_across, plot_rect);
-            let rtext = render::RichText {
-                text: title,
-                transform: transform,
-            };
-            surface.draw_rich_text(&rtext)?;
+            title.draw(surface, theme, Some(&transform))?;
             // vertical titles are rotated, so it is always the height that is relevant here.
-            shift_across += title.bbox().height();
+            shift_across += title.bbox.height();
         }
         Ok(shift_across)
     }
@@ -738,38 +742,25 @@ impl Axis {
             return Ok(shift_across);
         }
 
-        let color = ticks.lbl_color.resolve(theme);
-        let paint: render::Paint = color.into();
-
         shift_across += missing_params::TICK_LABEL_MARGIN;
         let mut max_lbl_size: f32 = 0.0;
 
         for t in ticks.ticks.iter() {
-            let lbl_size = geom::Size::new(t.lbl.width(), t.lbl.height());
+            let lbl_size = geom::Size::new(t.lbl.bbox.width(), t.lbl.bbox.height());
             max_lbl_size = max_lbl_size.max(self.side.size_across(&lbl_size));
 
             let pos_along = cm.map_coord_num(t.loc);
             let transform = self
                 .side
                 .tick_label_transform(pos_along, shift_across, plot_rect);
-            let rline = render::LineText {
-                text: &t.lbl,
-                fill: paint,
-                transform,
-            };
-            surface.draw_line_text(&rline)?;
+            t.lbl.draw(surface, theme, Some(&transform))?;
         }
 
         shift_across += max_lbl_size;
 
         if let Some(annot) = ticks.annot.as_ref() {
             let transform = self.side.annot_transform(shift_across, plot_rect);
-            let rtext = render::LineText {
-                text: &annot,
-                fill: paint,
-                transform,
-            };
-            surface.draw_line_text(&rtext)?;
+            annot.draw(surface, theme, Some(&transform))?;
         }
         Ok(shift_across)
     }
@@ -838,25 +829,17 @@ impl Axis {
         // tick marks are separators, so not counted in shift_across, because not supposed to overlap
         let shift_across = missing_params::TICK_LABEL_MARGIN;
 
-        let color = ticks.lbl_color.resolve(theme);
-        let fill: render::Paint = color.into();
-
         let mut max_lbl_size: f32 = 0.0;
 
         for (i, lbl) in ticks.lbls.iter().enumerate() {
-            let txt_size = geom::Size::new(lbl.width(), lbl.height());
+            let txt_size = geom::Size::new(lbl.bbox.width(), lbl.bbox.height());
             max_lbl_size = max_lbl_size.max(self.side.size_across(&txt_size));
 
             let pos_along = bins.cat_location(i);
             let transform = self
                 .side
                 .tick_label_transform(pos_along, shift_across, plot_rect);
-            let rline = render::LineText {
-                text: lbl,
-                fill,
-                transform,
-            };
-            surface.draw_line_text(&rline)?;
+            lbl.draw(surface, theme, Some(&transform))?;
         }
 
         Ok(shift_across + max_lbl_size)

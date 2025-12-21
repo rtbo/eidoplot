@@ -181,7 +181,7 @@ fn save_fig_as_png<D>(
 {
     let width = (fig.size().width() * 2.0) as _;
     let height = (fig.size().height() * 2.0) as _;
-    let mut pxl = PxlSurface::new(width, height, Some(fontdb.clone())).unwrap();
+    let mut pxl = PxlSurface::new(width, height).unwrap();
     fig.draw(&mut pxl, theme, data_source, Some(fontdb))
         .unwrap();
     pxl.save_png(file_name).unwrap();

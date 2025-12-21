@@ -5,18 +5,21 @@ use super::RichText;
 use crate::{BBox, font, fontdb};
 
 #[derive(Debug)]
-pub enum RichPrimitive<'a> {
-    Fill(&'a geom::Path, ColorU8),
-    Stroke(&'a geom::Path, ColorU8, f32),
+pub enum RichPrimitive<'a, C = ColorU8>
+where C: Clone
+{
+    Fill(&'a geom::Path, C),
+    Stroke(&'a geom::Path, C, f32),
 }
 
-pub fn render_rich_text_with<RenderFn>(
-    text: &RichText,
+pub fn render_rich_text_with<C, RenderFn>(
+    text: &RichText<C>,
     fontdb: &fontdb::Database,
     mut render_fn: RenderFn,
 ) -> Result<(), ttf::FaceParsingError>
 where
-    RenderFn: FnMut(RichPrimitive<'_>),
+    C: Clone,
+    RenderFn: FnMut(RichPrimitive<'_, C>),
 {
     let mut span_builder = geom::PathBuilder::new();
     let mut glyph_builder = geom::PathBuilder::new();
@@ -66,11 +69,11 @@ where
 
                         if let Some(path) = span_builder.finish() {
                             if let Some(c) = span.props.fill.as_ref() {
-                                let prim = RichPrimitive::Fill(&path, *c);
+                                let prim = RichPrimitive::Fill(&path, c.clone());
                                 render_fn(prim);
                             }
                             if let Some((c, thickness)) = span.props.outline.as_ref() {
-                                let prim = RichPrimitive::Stroke(&path, *c, *thickness);
+                                let prim = RichPrimitive::Stroke(&path, c.clone(), *thickness);
                                 render_fn(prim);
                             }
                             span_builder = path.clear();

@@ -61,15 +61,6 @@ pub trait Surface {
     /// Draw a path
     fn draw_path(&mut self, path: &Path) -> Result<(), Error>;
 
-    /// Draw a line of text
-    fn draw_text(&mut self, text: &Text) -> Result<(), Error>;
-
-    /// Draw a pre-shaped line of text
-    fn draw_line_text(&mut self, text: &LineText) -> Result<(), Error>;
-
-    /// Draw a rich text
-    fn draw_rich_text(&mut self, text: &RichText) -> Result<(), Error>;
-
     /// Push a clipping rect
     /// Subsequent draw operations will be clipped to this rect,
     /// until a matching [`pop_clip`] is called
@@ -146,41 +137,4 @@ pub struct Clip<'a> {
     pub rect: &'a geom::Rect,
     /// Optional transform to apply to the clipping rectangle
     pub transform: Option<&'a geom::Transform>,
-}
-
-/// Text to draw
-#[derive(Debug, Clone)]
-pub struct Text<'a> {
-    /// Text content
-    pub text: &'a str,
-    /// Font to use
-    pub font: &'a text::Font,
-    /// Font size in figure units
-    pub font_size: f32,
-    /// Fill style
-    pub fill: Paint,
-    /// Alignment
-    pub align: (text::line::Align, text::line::VerAlign),
-    /// Optional transform to apply to the text
-    pub transform: Option<&'a geom::Transform>,
-}
-
-/// Pre-shaped line of text to draw
-#[derive(Debug, Clone)]
-pub struct LineText<'a> {
-    /// Line text content
-    pub text: &'a text::LineText,
-    /// Font size in figure units
-    pub fill: Paint,
-    /// Optional transform to apply to the text
-    pub transform: geom::Transform,
-}
-
-/// Rich text to draw
-#[derive(Debug, Clone)]
-pub struct RichText<'a> {
-    /// Rich text content
-    pub text: &'a text::RichText,
-    /// Fill style
-    pub transform: geom::Transform,
 }

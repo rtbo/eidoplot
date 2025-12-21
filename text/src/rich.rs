@@ -1,4 +1,4 @@
-use eidoplot_base::{Color, ColorU8, ResolveColor, color, geom};
+use eidoplot_base::{Color, ColorU8, color, geom};
 use ttf_parser as ttf;
 
 use crate::{BBox, Error, font, fontdb, line};
@@ -152,7 +152,10 @@ impl Default for Layout {
 
 /// A builder struct for rich text
 #[derive(Debug, Clone)]
-pub struct RichTextBuilder<C> {
+pub struct RichTextBuilder<C>
+where
+    C: Clone + PartialEq,
+{
     text: String,
     root_props: TextProps<C>,
     layout: Layout,
@@ -161,7 +164,7 @@ pub struct RichTextBuilder<C> {
 
 impl<C> RichTextBuilder<C>
 where
-    C: Color + PartialEq,
+    C: Clone + PartialEq,
 {
     /// Create a new RichTextBuilder
     pub fn new(text: String, root_props: TextProps<C>) -> RichTextBuilder<C> {
@@ -189,23 +192,26 @@ where
     }
 
     /// Create a RichText from this builder
-    pub fn done<R>(self, fontdb: &fontdb::Database, rc: &R) -> Result<RichText, Error>
-    where
-        R: ResolveColor<C>,
-    {
-        self.done_impl(fontdb, rc)
+    pub fn done(self, fontdb: &fontdb::Database) -> Result<RichText<C>, Error> {
+        self.done_impl(fontdb)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct RichText {
+pub struct RichText<C = ColorU8>
+where
+    C: Clone,
+{
     text: String,
     layout: Layout,
-    lines: Vec<LineSpan>,
+    lines: Vec<LineSpan<C>>,
     bbox: BBox,
 }
 
-impl RichText {
+impl<C> RichText<C>
+where
+    C: Clone,
+{
     pub fn text(&self) -> &str {
         &self.text
     }
@@ -214,7 +220,7 @@ impl RichText {
         self.layout
     }
 
-    pub fn lines(&self) -> &[LineSpan] {
+    pub fn lines(&self) -> &[LineSpan<C>] {
         &self.lines
     }
 
@@ -241,6 +247,24 @@ impl RichText {
             bbox = BBox::unite(&bbox, &l.visual_bbox());
         }
         bbox
+    }
+
+    /// Convert this RichText to another color type using the provided mapping function
+    pub fn to_other_color<D, M>(&self, color_map: M) -> RichText<D>
+    where
+        D: Clone,
+        M: Fn(&C) -> D,
+    {
+        RichText {
+            text: self.text.clone(),
+            layout: self.layout,
+            lines: self
+                .lines
+                .iter()
+                .map(|l| l.to_other_color(&color_map))
+                .collect(),
+            bbox: self.bbox,
+        }
     }
 
     fn empty() -> Self {
@@ -322,13 +346,37 @@ impl<C> TextOptProps<C> {
 
 /// A set of resolved properties for a text span
 #[derive(Debug, Clone)]
-pub struct TextProps<C> {
+pub struct TextProps<C>
+where
+    C: Clone,
+{
     font_size: f32,
     font: font::Font,
     fill: Option<C>,
     outline: Option<(C, f32)>,
     underline: bool,
     strikeout: bool,
+}
+
+impl<C> TextProps<C>
+where
+    C: Clone,
+{
+    /// Convert this TextProps to another color type using the provided mapping function
+    pub fn to_other_color<D, M>(&self, color_map: M) -> TextProps<D>
+    where
+        D: Clone,
+        M: Fn(&C) -> D,
+    {
+        TextProps {
+            font_size: self.font_size,
+            font: self.font.clone(),
+            fill: self.fill.as_ref().map(|c| color_map(c)),
+            outline: self.outline.as_ref().map(|(c, w)| (color_map(c), *w)),
+            underline: self.underline,
+            strikeout: self.strikeout,
+        }
+    }
 }
 
 /// A color that has meaning for the foreground
@@ -342,8 +390,6 @@ impl Foreground for ColorU8 {
         color::BLACK
     }
 }
-
-pub type ResolvedProps = TextProps<ColorU8>;
 
 impl<C> TextProps<C>
 where
@@ -363,7 +409,7 @@ where
 
 impl<C> TextProps<C>
 where
-    C: Color,
+    C: Clone,
 {
     pub fn with_font(mut self, font: font::Font) -> Self {
         self.font = font;
@@ -399,11 +445,11 @@ where
     }
 
     pub fn fill(&self) -> Option<C> {
-        self.fill
+        self.fill.clone()
     }
 
     pub fn outline(&self) -> Option<(C, f32)> {
-        self.outline
+        self.outline.clone()
     }
 
     pub fn underline(&self) -> bool {
@@ -430,11 +476,11 @@ where
         if let Some(font_size) = opts.font_size {
             self.font_size = font_size;
         }
-        if let Some(fill) = opts.fill {
-            self.fill = Some(fill);
+        if let Some(fill) = opts.fill.as_ref() {
+            self.fill = Some(fill.clone());
         }
-        if let Some(stroke) = opts.stroke {
-            self.outline = Some(stroke);
+        if let Some(stroke) = opts.stroke.as_ref() {
+            self.outline = Some(stroke.clone());
         }
         if let Some(underline) = opts.underline {
             self.underline = underline;
@@ -455,15 +501,40 @@ struct TextSpan<C> {
 
 /// A line of rich text
 #[derive(Debug, Clone)]
-pub struct LineSpan {
+pub struct LineSpan<C>
+where
+    C: Clone,
+{
     start: usize,
     end: usize,
-    shapes: Vec<ShapeSpan>,
+    shapes: Vec<ShapeSpan<C>>,
     main_dir: rustybuzz::Direction,
     bbox: BBox,
 }
 
-impl LineSpan {
+impl<C> LineSpan<C>
+where
+    C: Clone,
+{
+    /// Convert this LineSpan to another color type using the provided mapping function
+    pub fn to_other_color<D, M>(&self, color_map: M) -> LineSpan<D>
+    where
+        D: Clone,
+        M: Fn(&C) -> D,
+    {
+        LineSpan {
+            start: self.start,
+            end: self.end,
+            shapes: self
+                .shapes
+                .iter()
+                .map(|s| s.to_other_color(&color_map))
+                .collect(),
+            main_dir: self.main_dir,
+            bbox: self.bbox,
+        }
+    }
+
     /// Byte index where the line starts in the text
     pub fn start(&self) -> usize {
         self.start
@@ -475,7 +546,7 @@ impl LineSpan {
     }
 
     /// The text shapes in this line
-    pub fn shapes(&self) -> &[ShapeSpan] {
+    pub fn shapes(&self) -> &[ShapeSpan<C>] {
         &self.shapes
     }
 
@@ -578,10 +649,13 @@ impl LineSpan {
 ///   - font size
 ///   - script direction
 #[derive(Debug, Clone)]
-pub struct ShapeSpan {
+pub struct ShapeSpan<C>
+where
+    C: Clone,
+{
     start: usize,
     end: usize,
-    spans: Vec<PropsSpan>,
+    spans: Vec<PropsSpan<C>>,
     face_id: fontdb::ID,
     glyphs: Vec<Glyph>,
     metrics: font::ScaledMetrics,
@@ -589,7 +663,32 @@ pub struct ShapeSpan {
     bbox: BBox,
 }
 
-impl ShapeSpan {
+impl<C> ShapeSpan<C>
+where
+    C: Clone,
+{
+    /// Convert this ShapeSpan to another color type using the provided mapping function
+    pub fn to_other_color<D, M>(&self, color_map: M) -> ShapeSpan<D>
+    where
+        D: Clone,
+        M: Fn(&C) -> D,
+    {
+        ShapeSpan {
+            start: self.start,
+            end: self.end,
+            spans: self
+                .spans
+                .iter()
+                .map(|s| s.to_other_color(&color_map))
+                .collect(),
+            face_id: self.face_id,
+            glyphs: self.glyphs.clone(),
+            metrics: self.metrics,
+            y_baseline: self.y_baseline,
+            bbox: self.bbox,
+        }
+    }
+
     /// Byte index where the shape starts in the text
     pub fn start(&self) -> usize {
         self.start
@@ -611,7 +710,7 @@ impl ShapeSpan {
     }
 
     /// The text spans in this shape
-    pub fn spans(&self) -> &[PropsSpan] {
+    pub fn spans(&self) -> &[PropsSpan<C>] {
         &self.spans
     }
 
@@ -650,14 +749,34 @@ impl ShapeSpan {
 
 /// A span of text with the same properties
 #[derive(Debug, Clone)]
-pub struct PropsSpan {
+pub struct PropsSpan<C>
+where
+    C: Clone,
+{
     start: usize,
     end: usize,
-    props: ResolvedProps,
+    props: TextProps<C>,
     bbox: BBox,
 }
 
-impl PropsSpan {
+impl<C> PropsSpan<C>
+where
+    C: Clone,
+{
+    /// Convert this PropSpan to another color type using the provided mapping function
+    pub fn to_other_color<D, M>(&self, color_map: M) -> PropsSpan<D>
+    where
+        D: Clone,
+        M: Fn(&C) -> D,
+    {
+        PropsSpan {
+            start: self.start,
+            end: self.end,
+            props: self.props.to_other_color(color_map),
+            bbox: self.bbox,
+        }
+    }
+
     /// Byte index where the span starts in the text
     pub fn start(&self) -> usize {
         self.start
@@ -669,7 +788,7 @@ impl PropsSpan {
     }
 
     /// The properties of this span
-    pub fn props(&self) -> &ResolvedProps {
+    pub fn props(&self) -> &TextProps<C> {
         &self.props
     }
 

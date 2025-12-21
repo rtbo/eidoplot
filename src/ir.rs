@@ -149,14 +149,11 @@ macro_rules! define_rich_text_structs {
                 &self.spans
             }
 
-            pub(crate) fn to_rich_text<R>(
+            pub(crate) fn to_rich_text(
                 &self,
                 layout: $crate::text::rich::Layout,
                 db: &$crate::text::fontdb::Database,
-                rc: &R,
-            ) -> std::result::Result<$crate::text::RichText, $crate::text::Error>
-            where
-                R: $crate::ResolveColor<$crate::style::theme::Color>,
+            ) -> std::result::Result<$crate::text::RichText<$crate::style::theme::Color>, $crate::text::Error>
             {
                 let mut builder =
                     $crate::text::RichTextBuilder::new(self.text.clone(), self.props.0.clone())
@@ -164,7 +161,7 @@ macro_rules! define_rich_text_structs {
                 for (start, end, props) in &self.spans {
                     builder.add_span(*start, *end, props.clone());
                 }
-                builder.done(db, rc)
+                builder.done(db)
             }
         }
     };

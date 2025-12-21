@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use crate::drawing::Text;
 use crate::geom::{Padding, Size};
 use crate::style::{Theme, defaults, theme};
 use crate::text::{self, LineText, fontdb};
-use crate::{Color as _, drawing, geom, ir, render, style};
+use crate::{drawing, geom, ir, render, style};
 
 #[derive(Debug, Clone)]
 pub enum Shape {
@@ -42,18 +43,23 @@ pub struct Entry<'a> {
 struct LegendEntry {
     index: usize,
     shape: Shape,
-    text: LineText,
+    text: Text,
     x: f32,
     y: f32,
 }
 
 impl LegendEntry {
     fn width(&self) -> f32 {
-        self.text.width() + defaults::LEGEND_SHAPE_SPACING + defaults::LEGEND_SHAPE_SIZE.width()
+        self.text.bbox.width()
+            + defaults::LEGEND_SHAPE_SPACING
+            + defaults::LEGEND_SHAPE_SIZE.width()
     }
 
     fn height(&self) -> f32 {
-        self.text.height().max(defaults::LEGEND_SHAPE_SIZE.height())
+        self.text
+            .bbox
+            .height()
+            .max(defaults::LEGEND_SHAPE_SIZE.height())
     }
 }
 
@@ -73,7 +79,6 @@ pub struct LegendBuilder {
 
 #[derive(Debug, Clone)]
 pub struct Legend {
-    font: ir::legend::EntryFont,
     fill: Option<theme::Fill>,
     border: Option<theme::Line>,
     entries: Vec<LegendEntry>,
@@ -120,6 +125,7 @@ impl LegendBuilder {
             font.font.clone(),
             &self.fontdb,
         )?;
+        let text = Text::from_line_text(&text, &self.fontdb, font.color)?;
         self.entries.push(LegendEntry {
             index,
             shape,
@@ -161,7 +167,6 @@ impl LegendBuilder {
         }
         let sz = geom::Size::new(w + self.padding.right(), h + self.padding.bottom());
         Some(Legend {
-            font: self.font,
             fill: self.fill,
             border: self.border,
             entries: self.entries,
@@ -222,7 +227,7 @@ impl Legend {
         }
 
         for entry in &self.entries {
-            entry.draw(surface, theme, &rect, self.font.color)?;
+            entry.draw(surface, theme, &rect)?;
         }
 
         Ok(())
@@ -235,7 +240,6 @@ impl LegendEntry {
         surface: &mut S,
         theme: &Theme,
         rect: &geom::Rect,
-        label_color: theme::Color,
     ) -> Result<(), render::Error>
     where
         S: render::Surface,
@@ -308,12 +312,7 @@ impl LegendEntry {
             rect.left() + shape_sz.width() + defaults::LEGEND_SHAPE_SPACING,
             rect.center_y(),
         );
-        let rtext = render::LineText {
-            text: &self.text,
-            fill: label_color.resolve(theme).into(),
-            transform,
-        };
-        surface.draw_line_text(&rtext)?;
+        self.text.draw(surface, theme, Some(&transform))?;
 
         Ok(())
     }

@@ -6,18 +6,17 @@ use crate::style::Theme;
 use crate::text::font;
 use crate::{data, geom, ir, missing_params, render, text};
 
-// FIXME: avoid possibility of using different font databases in preparation and drawing.
-
 /// A figure that has been prepared for drawing. See [`Figure::prepare`].
 /// It contains all the necessary data and layout information.
 ///
-/// The texts have been shaped and laid out.
-/// They reference fonts id and glyphs from a font database. So it is important that the
-/// same font database is used during drawing.
+/// The texts have been shaped, laid out and transformed to paths.
+/// Therefore, the fonts are no longer needed at draw time.
+///
+/// The colors, strokes and fills will be resolved at draw time using the given theme.
 #[derive(Debug)]
 pub struct Figure {
     fig: ir::Figure,
-    title: Option<(geom::Transform, text::RichText)>,
+    title: Option<(geom::Transform, super::Text)>,
     legend: Option<(geom::Point, legend::Legend)>,
     plots: plot::Plots,
 }
@@ -30,11 +29,12 @@ impl Figure {
 
     /// Prepare a figure for drawing.
     /// The resulting [`Figure`] can then be drawn multiple times on different rendering surfaces.
-    /// The texts are shaped and laid out using the given font database.
-    /// It is important that the same font database is given to the rendering surface during drawing.
+    /// The texts are shaped, laid out and transformed to paths using the given font database.
+    ///
+    /// Theme and series colors are not applied at this stage, they will be resolved at draw time.
+    /// So the same prepared figure can be drawn with different themes.
     pub fn prepare<D>(
         ir: ir::Figure,
-        theme: Theme,
         fontdb: Option<Arc<font::Database>>,
         data_source: &D,
     ) -> Result<Self, Error>
@@ -42,8 +42,7 @@ impl Figure {
         D: data::Source,
     {
         let fontdb = fontdb.unwrap_or_else(|| Arc::new(text::bundled_font_db()));
-        let theme = Arc::new(theme);
-        let ctx = Ctx::new(data_source, theme, fontdb);
+        let ctx = Ctx::new(data_source, fontdb);
         ctx.setup_figure(&ir)
     }
 
@@ -74,11 +73,7 @@ impl Figure {
         }
 
         if let Some((transform, title)) = &self.title {
-            let text = render::RichText {
-                text: title,
-                transform: *transform,
-            };
-            surface.draw_rich_text(&text)?;
+            title.draw(surface, theme, Some(transform))?;
         }
 
         if let Some((pos, legend)) = &self.legend {
@@ -106,7 +101,8 @@ where
                 text::line::VerAlign::Hanging.into(),
                 Default::default(),
             );
-            let rich = fig_title.to_rich_text(layout, self.fontdb(), self.theme())?;
+            let rich = fig_title.to_rich_text(layout, self.fontdb())?;
+            let paths = super::Text::from_rich_text(&rich, self.fontdb())?;
 
             let anchor_x = rect.center_x();
             let anchor_y = rect.top();
@@ -115,7 +111,7 @@ where
             rect = rect
                 .shifted_top_side(rich.visual_bbox().height() + missing_params::FIG_TITLE_MARGIN);
 
-            title = Some((transform, rich));
+            title = Some((transform, paths));
         }
 
         let mut legend = None;

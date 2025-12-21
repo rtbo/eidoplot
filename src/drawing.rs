@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use text::fontdb;
 
-use crate::style::Theme;
-use crate::{data, ir, render, text};
+use crate::style::{Theme, theme};
+use crate::{data, geom, ir, render, text};
 
 mod axis;
 mod figure;
@@ -56,6 +56,12 @@ impl From<render::Error> for Error {
 impl From<text::Error> for Error {
     fn from(err: text::Error) -> Self {
         Error::FontOrText(err)
+    }
+}
+
+impl From<ttf_parser::FaceParsingError> for Error {
+    fn from(err: ttf_parser::FaceParsingError) -> Self {
+        Error::FontOrText(text::Error::FaceParsingError(err))
     }
 }
 
@@ -106,7 +112,7 @@ impl FigureExt for ir::Figure {
         S: render::Surface,
         D: data::Source,
     {
-        let figure = Figure::prepare(self.clone(), theme.clone(), fontdb, data_source)?;
+        let figure = Figure::prepare(self.clone(), fontdb, data_source)?;
         figure.draw(surface, theme)
     }
 }
@@ -114,15 +120,13 @@ impl FigureExt for ir::Figure {
 #[derive(Debug)]
 struct Ctx<'a, D> {
     data_source: &'a D,
-    theme: Arc<Theme>,
     fontdb: Arc<fontdb::Database>,
 }
 
 impl<'a, D> Ctx<'a, D> {
-    pub fn new(data_source: &'a D, theme: Arc<Theme>, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D> {
+    pub fn new(data_source: &'a D, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D> {
         Ctx {
             data_source,
-            theme,
             fontdb,
         }
     }
@@ -131,12 +135,95 @@ impl<'a, D> Ctx<'a, D> {
         self.data_source
     }
 
-    pub fn theme(&self) -> &Theme {
-        &self.theme
-    }
-
     pub fn fontdb(&self) -> &Arc<fontdb::Database> {
         &self.fontdb
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Text {
+    spans: Vec<TextSpan>,
+    bbox: text::BBox,
+}
+
+#[derive(Debug, Clone)]
+struct TextSpan {
+    path: geom::Path,
+    fill: Option<theme::Fill>,
+    stroke: Option<theme::Line>,
+}
+
+impl Text {
+    fn from_line_text(
+        text: &text::LineText,
+        fontdb: &fontdb::Database,
+        color: theme::Color,
+    ) -> Result<Text, Error> {
+        let mut spans = Vec::new();
+        text::line::render_line_text_with(text, fontdb, |path| {
+            spans.push(TextSpan {
+                path: path.clone(),
+                fill: Some(color.into()),
+                stroke: None,
+            });
+        });
+        Ok(Text {
+            spans,
+            bbox: *text.bbox(),
+        })
+    }
+
+    fn from_rich_text(
+        text: &text::RichText<theme::Color>,
+        fontdb: &fontdb::Database,
+    ) -> Result<Text, Error> {
+        let mut spans = Vec::new();
+        text::rich::render_rich_text_with(text, fontdb, |prim| match prim {
+            text::RichPrimitive::Fill(path, color) => {
+                spans.push(TextSpan {
+                    path: path.clone(),
+                    fill: Some(color.into()),
+                    stroke: None,
+                });
+            }
+            text::RichPrimitive::Stroke(path, color, thickness) => {
+                spans.push(TextSpan {
+                    path: path.clone(),
+                    fill: None,
+                    stroke: Some(theme::Line {
+                        color: color.into(),
+                        width: thickness,
+                        opacity: None,
+                        pattern: Default::default(),
+                    }),
+                });
+            }
+        })?;
+        Ok(Text {
+            spans,
+            bbox: text.bbox(),
+        })
+    }
+
+    fn draw<S>(
+        &self,
+        surface: &mut S,
+        theme: &Theme,
+        transform: Option<&geom::Transform>,
+    ) -> Result<(), render::Error>
+    where
+        S: render::Surface,
+    {
+        for span in &self.spans {
+            let rpath = render::Path {
+                path: &span.path,
+                fill: span.fill.as_ref().map(|f| f.as_paint(theme)),
+                stroke: span.stroke.as_ref().map(|s| s.as_stroke(theme)),
+                transform,
+            };
+            surface.draw_path(&rpath)?;
+        }
+        Ok(())
     }
 }
 

@@ -1,7 +1,6 @@
 use std::io;
-use std::sync::Arc;
 
-use eidoplot::{ColorU8, fontdb, geom, render, text};
+use eidoplot::{ColorU8, geom, render};
 use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 #[derive(Debug, Clone)]
@@ -11,9 +10,9 @@ pub struct PxlSurface {
 }
 
 impl PxlSurface {
-    pub fn new(width: u32, height: u32, fontdb: Option<Arc<fontdb::Database>>) -> Option<Self> {
+    pub fn new(width: u32, height: u32) -> Option<Self> {
         let pixmap = Pixmap::new(width, height)?;
-        let state = State::new(width, height, fontdb);
+        let state = State::new(width, height);
         Some(Self { pixmap, state })
     }
 
@@ -33,8 +32,8 @@ pub struct PxlSurfaceRef<'a> {
 }
 
 impl<'a> PxlSurfaceRef<'a> {
-    pub fn from_pixmap_mut(pixmap: PixmapMut<'a>, fontdb: Option<Arc<fontdb::Database>>) -> Self {
-        let state = State::new(pixmap.width(), pixmap.height(), fontdb);
+    pub fn from_pixmap_mut(pixmap: PixmapMut<'a>) -> Self {
+        let state = State::new(pixmap.width(), pixmap.height());
         Self { pixmap, state }
     }
 
@@ -42,10 +41,9 @@ impl<'a> PxlSurfaceRef<'a> {
         bytes: &'a mut [u8],
         width: u32,
         height: u32,
-        fontdb: Option<Arc<fontdb::Database>>,
     ) -> Option<Self> {
         let pixmap = PixmapMut::from_bytes(bytes, width, height)?;
-        let state = State::new(pixmap.width(), pixmap.height(), fontdb);
+        let state = State::new(pixmap.width(), pixmap.height());
         Some(Self { pixmap, state })
     }
 
@@ -59,18 +57,15 @@ impl<'a> PxlSurfaceRef<'a> {
 struct State {
     width: u32,
     height: u32,
-    fontdb: Arc<fontdb::Database>,
     transform: geom::Transform,
     clip: Option<Mask>,
 }
 
 impl State {
-    fn new(width: u32, height: u32, fontdb: Option<Arc<fontdb::Database>>) -> Self {
-        let fontdb = fontdb.unwrap_or_else(|| Arc::new(text::bundled_font_db()));
+    fn new(width: u32, height: u32) -> Self {
         Self {
             width,
             height,
-            fontdb,
             transform: geom::Transform::identity(),
             clip: None,
         }
@@ -123,121 +118,6 @@ impl State {
         Ok(())
     }
 
-    fn draw_text(
-        &mut self,
-        px: &mut PixmapMut<'_>,
-        text: &render::Text,
-    ) -> Result<(), render::Error> {
-        let ts_text = text
-            .transform
-            .map(|t| t.post_concat(self.transform))
-            .unwrap_or(self.transform);
-        let line = text::line::LineText::new(
-            text.text.to_string(),
-            text.align,
-            text.font_size,
-            text.font.clone(),
-            &self.fontdb,
-        )?;
-
-        let mut paint = tiny_skia::Paint::default();
-        ts_text_fill(text.fill, &mut paint);
-        let render_opts = text::line::RenderOptions {
-            fill: Some(paint),
-            outline: None,
-            transform: ts_text,
-            mask: self.clip.as_ref(),
-        };
-        let db = &self.fontdb;
-        text::line::render_line_text(&line, &render_opts, db, px);
-
-        #[cfg(feature = "debug-text-bbox")]
-        self.draw_text_bbox(
-            px,
-            *line.bbox(),
-            *text.transform.unwrap_or(&geom::Transform::identity()),
-        )?;
-
-        Ok(())
-    }
-
-    fn draw_line_text(
-        &mut self,
-        px: &mut PixmapMut<'_>,
-        rtext: &render::LineText,
-    ) -> Result<(), render::Error> {
-        let ts_text = rtext.transform.post_concat(self.transform);
-
-        let mut paint = tiny_skia::Paint::default();
-        ts_text_fill(rtext.fill, &mut paint);
-
-        let render_opts = text::line::RenderOptions {
-            fill: Some(paint),
-            outline: None,
-            transform: ts_text,
-            mask: None,
-        };
-
-        text::line::render_line_text(&rtext.text, &render_opts, &self.fontdb, px);
-
-        Ok(())
-    }
-
-    fn draw_rich_text(
-        &mut self,
-        px: &mut PixmapMut<'_>,
-        rtext: &render::RichText,
-    ) -> Result<(), render::Error> {
-        let ts_text = rtext.transform.post_concat(self.transform);
-
-        text::render_rich_text(&rtext.text, &self.fontdb, ts_text, None, px)?;
-
-        #[cfg(feature = "debug-text-bbox")]
-        self.draw_text_bbox(px, rtext.text.bbox(), rtext.transform)?;
-
-        Ok(())
-    }
-
-    #[cfg(feature = "debug-text-bbox")]
-    fn draw_text_bbox(
-        &mut self,
-        px: &mut PixmapMut<'_>,
-        bbox: text::BBox,
-        transform: geom::Transform,
-    ) -> Result<(), render::Error> {
-        let color = eidoplot::color::RED;
-        let stroke = eidoplot::style::Line {
-            width: 1.0,
-            color,
-            pattern: eidoplot::style::LinePattern::Solid,
-            opacity: None,
-        };
-        let text::BBox {
-            top,
-            right,
-            bottom,
-            left,
-        } = bbox;
-        let rect = geom::Rect::from_trbl(top, right, bottom, left);
-        let mut tl_br = [
-            geom::Point { x: left, y: top },
-            geom::Point {
-                x: right,
-                y: bottom,
-            },
-        ];
-        transform.map_points(&mut tl_br);
-        let path = rect.to_path();
-        let rpath = render::Path {
-            path: &path,
-            fill: None,
-            stroke: Some(stroke.as_stroke(&())),
-            transform: Some(&transform),
-        };
-        self.draw_path(px, &rpath)?;
-        Ok(())
-    }
-
     fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
         if self.clip.is_some() {
             unimplemented!("clip with more than 1 layer");
@@ -275,21 +155,6 @@ impl render::Surface for PxlSurface {
         self.state.draw_path(&mut px, path)
     }
 
-    fn draw_line_text(&mut self, text: &render::LineText) -> Result<(), render::Error> {
-        let mut px = self.pixmap.as_mut();
-        self.state.draw_line_text(&mut px, text)
-    }
-
-    fn draw_rich_text(&mut self, text: &render::RichText) -> Result<(), render::Error> {
-        let mut px = self.pixmap.as_mut();
-        self.state.draw_rich_text(&mut px, text)
-    }
-
-    fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
-        let mut px = self.pixmap.as_mut();
-        self.state.draw_text(&mut px, text)
-    }
-
     fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
         self.state.push_clip(clip)
     }
@@ -312,18 +177,6 @@ impl render::Surface for PxlSurfaceRef<'_> {
         self.state.draw_path(&mut self.pixmap, path)
     }
 
-    fn draw_line_text(&mut self, text: &render::LineText) -> Result<(), render::Error> {
-        self.state.draw_line_text(&mut self.pixmap, text)
-    }
-
-    fn draw_rich_text(&mut self, text: &render::RichText) -> Result<(), render::Error> {
-        self.state.draw_rich_text(&mut self.pixmap, text)
-    }
-
-    fn draw_text(&mut self, text: &render::Text) -> Result<(), render::Error> {
-        self.state.draw_text(&mut self.pixmap, text)
-    }
-
     fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
         self.state.push_clip(clip)
     }
@@ -338,16 +191,6 @@ fn ts_color(color: ColorU8) -> tiny_skia::Color {
 }
 
 fn ts_fill(fill: render::Paint, paint: &mut tiny_skia::Paint) {
-    match fill {
-        render::Paint::Solid(color) => {
-            let color = ts_color(color);
-            paint.set_color(color);
-        }
-    }
-    paint.force_hq_pipeline = true;
-}
-
-fn ts_text_fill(fill: render::Paint, paint: &mut tiny_skia::Paint) {
     match fill {
         render::Paint::Solid(color) => {
             let color = ts_color(color);

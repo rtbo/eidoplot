@@ -32,7 +32,7 @@ fn main() {
             rich::VerAlign::Center,
             Default::default(),
         ))
-        .done(&db, &())
+        .done(&db)
         .unwrap();
 
     text::render_rich_text(
