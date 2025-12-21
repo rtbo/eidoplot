@@ -1,13 +1,34 @@
 use super::{TableSource, VecColumn};
 use crate::time::DateTime;
 
+/// CSV parsing error
 #[derive(Debug, Clone)]
 pub enum CsvParseError {
-    ColCount { line: usize },
-    ColType { line: usize },
-    UnknownCol { title: String },
-    UnknownColIdx { idx: usize },
-    AllNull { col: usize },
+    /// Inconsistent column count
+    ColCount {
+        /// Line number where the error occurred
+        line: usize,
+    },
+    /// Inconsistent column type
+    ColType {
+        /// Line number where the error occurred
+        line: usize,
+    },
+    /// A unknown column title was referenced
+    UnknownCol {
+        /// Column title
+        title: String,
+    },
+    /// A unknown column index was referenced
+    UnknownColIdx {
+        /// Column index
+        idx: usize,
+    },
+    /// Column contains only null values
+    AllNull {
+        /// Column index
+        col: usize,
+    },
 }
 
 impl std::fmt::Display for CsvParseError {
@@ -35,12 +56,22 @@ impl std::error::Error for CsvParseError {}
 /// CSV parsing spec for a specific column
 #[derive(Debug, Clone)]
 pub enum CsvColSpec {
+    /// Let the parser guess the column type
+    /// (the default if no spec is provided)
     Auto,
+    /// Column of floating point numbers
     F64,
+    /// Column of integer numbers
     I64,
+    /// Column of strings
     Str,
+    /// Column of date/time values with automatic format detection
     TimeAuto,
-    TimeCustom { fmt: String },
+    /// Column of date/time values with custom format
+    TimeCustom {
+        /// Date/time format string
+        fmt: String,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -78,6 +109,7 @@ impl CsvColumn {
     }
 }
 
+/// A CSV file parser
 #[derive(Debug, Clone)]
 pub struct CsvParser {
     sep: char,
@@ -85,6 +117,7 @@ pub struct CsvParser {
 }
 
 impl CsvParser {
+    /// Creates a new CSV parser with default settings.
     pub fn new() -> Self {
         CsvParser {
             sep: ',',
@@ -92,21 +125,25 @@ impl CsvParser {
         }
     }
 
+    /// Set the separator character
     pub fn with_sep(mut self, sep: char) -> Self {
         self.sep = sep;
         self
     }
 
+    /// Add a column specification by title
     pub fn with_col_spec(mut self, title: &str, spec: CsvColSpec) -> Self {
         self.col_specs.push((ColId::Tit(title.to_string()), spec));
         self
     }
 
+    /// Add a column specification by index
     pub fn with_col_spec_idx(mut self, idx: usize, spec: CsvColSpec) -> Self {
         self.col_specs.push((ColId::Idx(idx), spec));
         self
     }
 
+    /// Parse the given CSV data
     pub fn parse(self, data: &str) -> Result<TableSource, CsvParseError> {
         let sep = self.sep;
         let mut col_specs = self.col_specs;

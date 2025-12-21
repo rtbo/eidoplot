@@ -15,14 +15,17 @@ impl Default for Palette {
 }
 
 impl Palette {
+    /// Build a new palette from a list of colors
     pub fn new(colors: Vec<ColorU8>) -> Self {
         Palette(colors)
     }
 
+    /// Get the number of colors in the palette
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Get a color from the palette by its index
     pub fn get(&self, color: IndexColor) -> ColorU8 {
         self.0[color.0 % self.len()]
     }
@@ -56,9 +59,12 @@ impl style::Color for AutoColor {}
 /// A flexible color for data series
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Color {
+    /// Automatic color from the palette
     #[default]
     Auto,
+    /// Color from the palette by index
     Index(IndexColor),
+    /// Fixed RGB color
     Fixed(ColorU8),
 }
 
@@ -93,6 +99,7 @@ impl style::ResolveColor<Color> for (&Palette, usize) {
     }
 }
 
+/// Line style for theme elements
 pub type Line = style::Line<Color>;
 
 impl Default for Line {
@@ -117,6 +124,7 @@ impl From<ColorU8> for Line {
     }
 }
 
+/// Fill style for theme elements
 pub type Fill = style::Fill<Color>;
 
 impl From<ColorU8> for Fill {
@@ -128,6 +136,7 @@ impl From<ColorU8> for Fill {
     }
 }
 
+/// Marker style for theme elements
 pub type Marker = style::Marker<Color>;
 
 impl From<ColorU8> for Marker {
@@ -144,6 +153,7 @@ impl From<ColorU8> for Marker {
     }
 }
 
+/// Predefined color palettes
 pub mod palettes {
     use super::Palette;
     use crate::ColorU8;

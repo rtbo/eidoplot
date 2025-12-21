@@ -1,9 +1,15 @@
+//! Render module: provides abstraction over rendering surfaces, like pixel-based, SVG, or GUI.
+//!
+//! All rendering surfaces must implement the `Surface` trait.
+//! See the `eidoplot-pxl` and `eidoplot-svg` crates for examples.
 use std::fmt;
 
 use crate::{ColorU8, geom, text};
 
+/// Errors that can occur during rendering
 #[derive(Debug)]
 pub enum Error {
+    /// Font or text related error
     FontOrText(text::Error),
 }
 
@@ -29,6 +35,7 @@ impl From<ttf_parser::FaceParsingError> for Error {
 
 impl std::error::Error for Error {}
 
+/// Surface trait: defines the rendering surface API
 pub trait Surface {
     /// Prepare the surface for drawing, with the given size in plot units
     fn prepare(&mut self, size: geom::Size) -> Result<(), Error>;
@@ -72,8 +79,10 @@ pub trait Surface {
     fn pop_clip(&mut self) -> Result<(), Error>;
 }
 
+/// Paint pattern, used for fill operations
 #[derive(Debug, Clone, Copy)]
 pub enum Paint {
+    /// Solid color fill
     Solid(ColorU8),
 }
 
@@ -93,54 +102,85 @@ pub enum LinePattern<'a> {
     Dash(&'a [f32]),
 }
 
+/// Stroke style definition
 #[derive(Debug, Clone, Copy)]
 pub struct Stroke<'a> {
+    /// Line color
     pub color: ColorU8,
+    /// Line width in figure units
     pub width: f32,
+    /// Line pattern
     pub pattern: LinePattern<'a>,
 }
 
+/// Rectangle to draw
 #[derive(Debug, Clone)]
 pub struct Rect<'a> {
+    /// Rectangle geometry
     pub rect: geom::Rect,
+    /// Fill style
     pub fill: Option<Paint>,
+    /// Stroke style
     pub stroke: Option<Stroke<'a>>,
+    /// Optional transform to apply to the rectangle
     pub transform: Option<&'a geom::Transform>,
 }
 
+/// Path to draw
 #[derive(Debug, Clone)]
 pub struct Path<'a> {
+    /// Path geometry
     pub path: &'a geom::Path,
+    /// Fill style
     pub fill: Option<Paint>,
+    /// Stroke style
     pub stroke: Option<Stroke<'a>>,
+    /// Optional transform to apply to the path
     pub transform: Option<&'a geom::Transform>,
 }
 
+/// Clipping rectangle
 #[derive(Debug, Clone)]
 pub struct Clip<'a> {
+    /// Clipping rectangle
     pub rect: &'a geom::Rect,
+    /// Optional transform to apply to the clipping rectangle
     pub transform: Option<&'a geom::Transform>,
 }
 
+/// Text to draw
 #[derive(Debug, Clone)]
 pub struct Text<'a> {
+    /// Text content
     pub text: &'a str,
+    /// Font to use
     pub font: &'a text::Font,
+    /// Font size in figure units
     pub font_size: f32,
+    /// Fill style
     pub fill: Paint,
+    /// Alignment
     pub align: (text::line::Align, text::line::VerAlign),
+    /// Optional transform to apply to the text
     pub transform: Option<&'a geom::Transform>,
 }
 
+/// Pre-shaped line of text to draw
 #[derive(Debug, Clone)]
 pub struct LineText<'a> {
+    /// Line text content
     pub text: &'a text::LineText,
+    /// Font size in figure units
     pub fill: Paint,
+    /// Optional transform to apply to the text
     pub transform: geom::Transform,
 }
 
+/// Rich text to draw
 #[derive(Debug, Clone)]
 pub struct RichText<'a> {
+    /// Rich text content
     pub text: &'a text::RichText,
+    /// Fill style
     pub transform: geom::Transform,
 }

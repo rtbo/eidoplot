@@ -1,13 +1,21 @@
+//! Plot IR structures
 use crate::ir::{Axis, Legend, Series, axis};
 use crate::style::{self, defaults, theme};
 
+/// Border style for the plot area
 #[derive(Debug, Clone)]
 pub enum Border {
+    /// A box border around the plot area
     Box(theme::Line),
+    /// Border only on the axes sides
     Axis(theme::Line),
+    /// Arrow border on the axes sides
     AxisArrow {
+        /// Line style for the border
         stroke: theme::Line,
+        /// Size of the arrow head
         size: f32,
+        /// Extra length of the axis beyond the
         overflow: f32,
     },
 }
@@ -25,24 +33,37 @@ pub enum Insets {
     /// The insets depends on the style of series
     #[default]
     Auto,
+    /// Fixed insets in figure units
     Fixed(f32, f32),
 }
 
 /// Position of the legend relatively to the plot
 #[derive(Debug, Default, Clone, Copy)]
 pub enum LegendPos {
+    /// Position the legend outside the plot area at the top
     OutTop,
+    /// Position the legend outside the plot area at the right
     OutRight,
+    /// Position the legend outside the plot area at the bottom (default)
     #[default]
     OutBottom,
+    /// Position the legend outside the plot area at the left
     OutLeft,
+    /// Position the legend inside the plot area at the top
     InTop,
+    /// Position the legend inside the plot area at the top right
     InTopRight,
+    /// Position the legend inside the plot area at the right
     InRight,
+    /// Position the legend inside the plot area at the bottom right
     InBottomRight,
+    /// Position the legend inside the plot area at the bottom
     InBottom,
+    /// Position the legend inside the plot area at the bottom left
     InBottomLeft,
+    /// Position the legend inside the plot area at the left
     InLeft,
+    /// Position the legend inside the plot area at the top left
     InTopLeft,
 }
 
@@ -106,14 +127,17 @@ impl PlotLegend {
         &self.legend
     }
 
+    /// The margin around the legend
     pub fn margin(&self) -> f32 {
         self.margin
     }
 
+    /// Set the position of the legend and return self for chaining
     pub fn with_pos(self, pos: LegendPos) -> Self {
         Self { pos, ..self }
     }
 
+    /// Set the margin around the legend and return self for chaining
     pub fn with_margin(self, margin: f32) -> Self {
         Self { margin, ..self }
     }
@@ -247,6 +271,7 @@ impl PlotLine {
     }
 }
 
+/// A plot, containing series, axes, title, legend, and styles
 #[derive(Debug, Clone)]
 pub struct Plot {
     series: Vec<Series>,
@@ -264,6 +289,7 @@ pub struct Plot {
 }
 
 impl Plot {
+    /// Create a new plot with the given series
     pub fn new(series: Vec<Series>) -> Self {
         Plot {
             series,
@@ -280,6 +306,9 @@ impl Plot {
         }
     }
 
+    /// Set an X-axis for the plot
+    /// The first call replace the initial default axis.
+    /// Subsequent calls add additional X-axes.
     pub fn with_x_axis(mut self, x_axis: Axis) -> Self {
         if !self.x_axis_set {
             self.x_axes.clear();
@@ -289,6 +318,9 @@ impl Plot {
         self
     }
 
+    /// Set a Y-axis for the plot
+    /// The first call replace the initial default axis.
+    /// Subsequent calls add additional Y-axes.
     pub fn with_y_axis(mut self, y_axis: Axis) -> Self {
         if !self.y_axis_set {
             self.y_axes.clear();
@@ -298,6 +330,7 @@ impl Plot {
         self
     }
 
+    /// Set the title of the plot and return self for chaining
     pub fn with_title(self, title: String) -> Self {
         Self {
             title: Some(title),
@@ -305,6 +338,7 @@ impl Plot {
         }
     }
 
+    /// Set the fill of the plot area and return self for chaining
     pub fn with_fill(self, fill: theme::Fill) -> Self {
         Self {
             fill: Some(fill),
@@ -312,14 +346,17 @@ impl Plot {
         }
     }
 
+    /// Set the border of the plot area and return self for chaining
     pub fn with_border(self, border: Option<Border>) -> Self {
         Self { border, ..self }
     }
 
+    /// Set the insets of the plot area and return self for chaining
     pub fn with_insets(self, insets: Option<Insets>) -> Self {
         Self { insets, ..self }
     }
 
+    /// Set the legend of the plot and return self for chaining
     pub fn with_legend(self, legend: PlotLegend) -> Self {
         Self {
             legend: Some(legend),
@@ -327,51 +364,63 @@ impl Plot {
         }
     }
 
+    /// Add a line to the plot and return self for chaining
     pub fn with_line(mut self, line: PlotLine) -> Self {
         self.lines.push(line);
         self
     }
 
+    /// Get the series of the plot
     pub fn series(&self) -> &[Series] {
         &self.series
     }
 
+    /// Get the X-axes of the plot
     pub fn x_axes(&self) -> &[Axis] {
         &self.x_axes
     }
 
+    /// Get the Y-axes of the plot
     pub fn y_axes(&self) -> &[Axis] {
         &self.y_axes
     }
 
+    /// Get the title of the plot
     pub fn title(&self) -> Option<&str> {
         self.title.as_deref()
     }
 
+    /// Get the fill of the plot area
     pub fn fill(&self) -> Option<&theme::Fill> {
         self.fill.as_ref()
     }
 
+    /// Get the border of the plot area
     pub fn border(&self) -> Option<&Border> {
         self.border.as_ref()
     }
 
+    /// Get the insets of the plot area
     pub fn insets(&self) -> Option<&Insets> {
         self.insets.as_ref()
     }
 
+    /// Get the legend of the plot
     pub fn legend(&self) -> Option<&PlotLegend> {
         self.legend.as_ref()
     }
 
+    /// Get the lines of the plot
     pub fn lines(&self) -> &[PlotLine] {
         &self.lines
     }
 
+    /// Add a series to the plot
     pub fn push_series(&mut self, series: Series) {
         self.series.push(series);
     }
 
+    /// Add a line to the plot
     pub fn push_line(&mut self, line: PlotLine) {
         self.lines.push(line);
     }
@@ -387,6 +436,7 @@ pub struct Subplots {
 }
 
 impl Subplots {
+    /// Create a new subplot grid with the given number of rows and columns
     pub fn new(rows: u32, cols: u32) -> Self {
         Subplots {
             rows,
@@ -396,37 +446,45 @@ impl Subplots {
         }
     }
 
+    /// Set a plot at the given row and column and return self for chaining
     pub fn with_plot(mut self, row: u32, col: u32, plot: Plot) -> Self {
         let index = self.index(row, col);
         self.plots[index] = Some(plot);
         self
     }
 
+    /// Set the space between plots and return self for chaining
     pub fn with_space(self, space: f32) -> Self {
         Self { space, ..self }
     }
 
+    /// Get a reference to a plot at the given row and column
     pub fn plot(&self, row: u32, col: u32) -> Option<&Plot> {
         self.plots[self.index(row, col)].as_ref()
     }
 
+    /// Get a mutable reference to a plot at the given row and column
     pub fn plot_mut(&mut self, row: u32, col: u32) -> Option<&mut Plot> {
         let index = self.index(row, col);
         self.plots[index].as_mut()
     }
 
+    /// The number of plots in the subplot grid
     pub fn len(&self) -> usize {
         self.plots.len()
     }
 
+    /// The number of rows in the subplot grid
     pub fn rows(&self) -> u32 {
         self.rows
     }
 
+    /// The number of columns in the subplot grid
     pub fn cols(&self) -> u32 {
         self.cols
     }
 
+    /// The space between plots in the subplot grid
     pub fn space(&self) -> f32 {
         self.space
     }

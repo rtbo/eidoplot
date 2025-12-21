@@ -1,4 +1,4 @@
-//#![warn(missing_docs)]
+#![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_copy_implementations)]
 /*!
@@ -38,19 +38,23 @@ pub mod render;
 pub mod style;
 pub mod time;
 
+/// Rexports of [`eidoplot_base::color`]` items
 pub mod color {
     pub use eidoplot_base::color::*;
 }
 pub use color::{Color, ColorU8, ResolveColor};
 
+/// Rexports of [`eidoplot_dsl`]` items
 pub mod dsl {
     pub use eidoplot_dsl::*;
 }
 
+/// Rexports of [`eidoplot_base::geom`]` items
 pub mod geom {
     pub use eidoplot_base::geom::*;
 }
 
+/// Rexports of [`eidoplot_text`]` items
 pub mod text {
     pub use eidoplot_text::*;
 }
@@ -58,6 +62,7 @@ pub use text::fontdb;
 
 #[cfg(feature = "utils")]
 pub mod utils {
+    //! Utility functions for data generation
     use crate::time::DateTime;
 
     /// Create a linearly spaced vector of `num` elements between `start` and `end`

@@ -1,4 +1,3 @@
-use std::num::NonZeroU32;
 use std::sync::Arc;
 
 use crate::geom::{Padding, Size};
@@ -63,7 +62,7 @@ pub struct LegendBuilder {
     font: ir::legend::EntryFont,
     fill: Option<theme::Fill>,
     border: Option<theme::Line>,
-    columns: Option<NonZeroU32>,
+    columns: Option<u32>,
     spacing: Size,
     padding: Padding,
 
@@ -91,7 +90,7 @@ impl LegendBuilder {
     ) -> LegendBuilder {
         let mut columns = legend.columns();
         if columns.is_none() && prefers_vertical {
-            columns.replace(NonZeroU32::new(1).unwrap());
+            columns.replace(1);
         }
         LegendBuilder {
             font: legend.font().clone(),
@@ -139,7 +138,6 @@ impl LegendBuilder {
         let column_width = self.max_entry_width();
         let columns = self
             .columns
-            .map(|c| c.get())
             .unwrap_or_else(|| self.calc_columns(column_width))
             .max(1);
         let mut col = 0;

@@ -1,3 +1,8 @@
+//! Drawing module
+//!
+//! This module contains all the logic to convert an IR figure into rendering commands
+//! for a given rendering surface.
+//! It is the bridge between the [`ir`] module and the [`render`] module.
 use std::fmt;
 use std::sync::Arc;
 
@@ -17,16 +22,28 @@ mod ticks;
 
 pub use figure::Figure;
 
+/// Errors that can occur during figure drawing
 #[derive(Debug)]
 pub enum Error {
+    /// Error during rendering
     Render(render::Error),
+    /// A series references a missing data source
     MissingDataSrc(String),
+    /// An axis reference is unknown
     UnknownAxisRef(ir::axis::Ref),
+    /// An axis reference is illegal in the given context
     IllegalAxisRef(ir::axis::Ref),
+    /// An axis has no bounds (e.g. all data is NaN)
     UnboundedAxis,
+    /// The IR model is inconsistent
     InconsistentIr(String),
+    /// Axis bounds are inconsistent.
+    /// For example, different data types are mixed on the same axis.
     InconsistentAxisBounds(String),
+    /// Data is inconsistent.
+    /// For example, columns have different lengths in a context it is not allowed.
     InconsistentData(String),
+    /// Font or text related error, e.g. missing glyphs or font not found
     FontOrText(text::Error),
 }
 
@@ -62,20 +79,9 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-#[derive(Debug, Default, Clone)]
-pub struct Options {
-    pub fontdb: Option<Arc<fontdb::Database>>,
-}
-
-impl From<Arc<fontdb::Database>> for Options {
-    fn from(fontdb: Arc<fontdb::Database>) -> Self {
-        Options {
-            fontdb: Some(fontdb),
-        }
-    }
-}
-
+/// Extension trait to draw an IR figure directly
 pub trait FigureExt {
+    /// Draw the figure on the given rendering surface, using the given theme and data source
     fn draw<S, D>(
         &self,
         surface: &mut S,

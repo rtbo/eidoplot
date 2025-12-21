@@ -1,3 +1,4 @@
+//! Catppuccin theme implementation
 use crate::{ColorU8, style};
 
 /// Build the Catppuccin Latte theme

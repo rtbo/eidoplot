@@ -1,12 +1,21 @@
+//! Time and date handling module
+//! This module provides a `DateTime` type representing date and time values,
+//! for use in time series plots.
+//!
+//! The [`DateTime`] type represents a date and time as a floating-point.
+//! The value is the number of seconds elapsed since Jan 1, 2030 (Eidoplot Epoch).
 use core::{cmp, fmt, ops};
 use std::iter::Peekable;
 use std::str::{Chars, FromStr};
 
 const EPOCH_YEAR: i32 = 2030;
 
+/// An error indicating that a field has an invalid value
 #[derive(Debug, Copy, Clone)]
 pub struct InvalidFieldError {
+    /// The name of the invalid field
     pub field: &'static str,
+    /// The invalid value
     pub value: i32,
 }
 
@@ -24,10 +33,14 @@ impl fmt::Display for InvalidFieldError {
 
 impl std::error::Error for InvalidFieldError {}
 
+/// An error indicating that parsing a date time string failed
 #[derive(Debug)]
 pub enum ParseError {
+    /// An error occurred during parsing
     Parse(String),
+    /// A field had an invalid value
     InvalidField(&'static str, i32),
+    /// The input string did not match the expected format
     FormatMismatch,
 }
 
@@ -467,18 +480,22 @@ impl fmt::Display for DateTimeComps {
 pub struct TimeDelta(f64);
 
 impl TimeDelta {
+    /// The zero time delta
     pub const fn zero() -> Self {
         TimeDelta(0.0)
     }
 
+    /// Build a new time delta from a total number of days
     pub const fn from_days(days: f64) -> Self {
         TimeDelta(days * 86400.0)
     }
 
+    /// Build a new time delta from a total number of hours
     pub const fn from_hours(hours: f64) -> Self {
         TimeDelta(hours * 3600.0)
     }
 
+    /// Build a new time delta from a total number of minutes
     pub const fn from_minutes(minutes: f64) -> Self {
         TimeDelta(minutes * 60.0)
     }
@@ -568,17 +585,25 @@ impl TimeDelta {
     }
 }
 
+/// A type gathering the components of a time delta
 #[derive(Debug, Clone, Copy)]
 pub struct TimeDeltaComps {
+    /// The number of days
     pub days: u32,
+    /// The hour in the day (0 to 23)
     pub hour: u32,
+    /// The minute in the hour (0 to 59)
     pub minute: u32,
+    /// The second in the minute (0 to 59)
     pub second: u32,
+    /// The microseconds in the second (0 to 999,999)
     pub micro: u32,
+    /// Whether the time delta is negative
     pub is_neg: bool,
 }
 
 impl TimeDeltaComps {
+    /// The zero time delta components
     pub const fn zero() -> Self {
         TimeDeltaComps {
             days: 0,
@@ -690,6 +715,7 @@ impl TimeDeltaComps {
         res
     }
 
+    /// Validate all fields
     pub fn check_fields(&self) -> Result<(), InvalidFieldError> {
         if self.hour > 23 {
             Err(("hour", self.hour as _).into())

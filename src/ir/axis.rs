@@ -17,6 +17,7 @@ impl Default for TitleProps {
     }
 }
 
+/// Side of the axis in the plot, applies to both X and Y axes.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Side {
     /// Axis is on the main side of the plot.
@@ -68,10 +69,13 @@ where
     }
 }
 
+/// Create an axis reference from a string id.
+/// The id can refer to the axis id (see [Axis::id]) or to the axis title (see [Axis::title]).
 pub fn ref_id(id: impl Into<String>) -> Ref {
     Ref::Id(id.into())
 }
 
+/// Axis definition
 #[derive(Debug, Clone)]
 pub struct Axis {
     id: Option<String>,
@@ -119,6 +123,7 @@ impl Axis {
         }
     }
 
+    /// Set the title of this axis and return self for chaining
     pub fn with_title(self, title: Title) -> Self {
         Self {
             title: Some(title),
@@ -126,6 +131,7 @@ impl Axis {
         }
     }
 
+    /// Set this axis on the opposite side of the plot and return self for chaining
     pub fn with_opposite_side(self) -> Self {
         Self {
             side: Side::Opposite,
@@ -133,10 +139,12 @@ impl Axis {
         }
     }
 
+    /// Set the side of this axis and return self for chaining
     pub fn with_scale(self, scale: Scale) -> Self {
         Self { scale, ..self }
     }
 
+    /// Set the ticks of this axis and return self for chaining
     pub fn with_ticks(self, ticks: Ticks) -> Self {
         Self {
             ticks: Some(ticks),
@@ -144,6 +152,7 @@ impl Axis {
         }
     }
 
+    /// Set the minor ticks of this axis and return self for chaining
     pub fn with_minor_ticks(self, minor_ticks: MinorTicks) -> Self {
         Self {
             minor_ticks: Some(minor_ticks),
@@ -173,23 +182,32 @@ impl Axis {
         }
     }
 
+    /// Get the id of this axis, if any
     pub fn id(&self) -> Option<&str> {
         self.id.as_deref()
     }
 
+    /// Get the title of this axis, if any
     pub fn title(&self) -> Option<&Title> {
         self.title.as_ref()
     }
+
+    /// Get the side of this axis
     pub fn side(&self) -> Side {
         self.side
     }
 
+    /// Get the scale of this axis
     pub fn scale(&self) -> &Scale {
         &self.scale
     }
+
+    /// Major ticks configuration
     pub fn ticks(&self) -> Option<&Ticks> {
         self.ticks.as_ref()
     }
+
+    /// Minor ticks configuration
     pub fn minor_ticks(&self) -> Option<&MinorTicks> {
         self.minor_ticks.as_ref()
     }
@@ -197,6 +215,7 @@ impl Axis {
     pub fn grid(&self) -> Option<&Grid> {
         self.grid.as_ref()
     }
+
     /// Minor gridline style
     pub fn minor_grid(&self) -> Option<&MinorGrid> {
         self.minor_grid.as_ref()
@@ -233,12 +252,25 @@ pub enum Range {
 /// Describe a logarithmic scale options
 #[derive(Debug, Clone, Copy)]
 pub struct LogScale {
+    /// Logarithm base (typically 10.0)
     pub base: f64,
+    /// Data range (both min and max must have the same sign)
     pub range: Range,
 }
 
 impl LogScale {
+    /// Create a new logarithmic scale with the specified base and range
+    ///
+    /// Panics if the range min and max have different signs
+    /// For automatic min or max, the panic might happen during drawing, when the data bounds are known.
     pub fn new(base: f64, range: Range) -> Self {
+        if let Range::MinMax(min, max) = range {
+            assert!(
+                (min > 0.0 && max > 0.0) || (min < 0.0 && max < 0.0),
+                "LogScale range min and max must have the same sign"
+            );
+        }
+
         Self { base, range }
     }
 }
@@ -292,6 +324,7 @@ impl Scale {
         matches!(self, Scale::Shared(_))
     }
 
+    /// If the scale is shared, return the reference to the shared axis
     pub fn shared_ref(&self) -> Option<&Ref> {
         match self {
             Scale::Shared(ref_) => Some(ref_),
@@ -342,18 +375,28 @@ pub mod ticks {
         TimeDelta(TimeDeltaLocator),
     }
 
-    /// Describes how to locate the ticks of an axis
+    /// Describes how to locate the ticks of a DateTime axis
     #[derive(Debug, Default, Clone, Copy)]
     pub enum DateTimeLocator {
+        /// Automatic tick placement for DateTime axis using
+        /// the axis bounds and heuristics to have a reasonable number of ticks
         #[default]
         Auto,
+        /// Place ticks every N years
         Years(u32),
+        /// Place ticks every N months
         Months(u32),
+        /// Place ticks every N weeks
         Weeks(u32),
+        /// Place ticks every N days
         Days(u32),
+        /// Place ticks every N hours
         Hours(u32),
+        /// Place ticks every N minutes
         Minutes(u32),
+        /// Place ticks every N seconds
         Seconds(u32),
+        /// Place ticks every N microseconds
         Micros(u32),
     }
 
@@ -363,14 +406,22 @@ pub mod ticks {
         }
     }
 
+    /// Describes how to locate the ticks of a TimeDelta axis
     #[derive(Debug, Default, Clone, Copy)]
     pub enum TimeDeltaLocator {
+        /// Automatic tick placement for TimeDelta axis using
+        /// the axis bounds and heuristics to have a reasonable number of ticks
         #[default]
         Auto,
+        /// Place ticks every N days
         Days(u32),
+        /// Place ticks every N hours
         Hours(u32),
+        /// Place ticks every N minutes
         Minutes(u32),
+        /// Place ticks every N seconds
         Seconds(u32),
+        /// Place ticks every N microseconds
         Micros(u32),
     }
 
@@ -405,6 +456,7 @@ pub mod ticks {
         TimeDelta(TimeDeltaFormatter),
     }
 
+    /// A label formatter for DateTime ticks
     #[derive(Debug, Clone, Default)]
     pub enum DateTimeFormatter {
         /// Choose the format automatically according to time bounds
@@ -426,6 +478,7 @@ pub mod ticks {
         }
     }
 
+    /// A label formatter for TimeDelta ticks
     #[derive(Debug, Clone, Default)]
     pub enum TimeDeltaFormatter {
         /// Choose the format automatically based on data bounds
@@ -505,6 +558,8 @@ pub mod ticks {
     }
 
     impl Ticks {
+        /// Returns a new `Ticks` with default parameters.
+        /// (same as [`Ticks::default()`])
         pub fn new() -> Self {
             Self::default()
         }
@@ -575,6 +630,7 @@ pub mod ticks {
         }
     }
 
+    /// Describes the minor ticks of an axis
     #[derive(Debug, Clone)]
     pub struct MinorTicks {
         /// Minor ticks locator
@@ -602,19 +658,25 @@ pub mod ticks {
     }
 
     impl MinorTicks {
+        /// Returns a new `MinorTicks` with default parameters.
+        /// (same as [`MinorTicks::default()`])
         pub fn new() -> Self {
             Self::default()
         }
+        /// Returns a new `MinorTicks` with the specified locator and return self for chaining
         pub fn with_locator(self, locator: Locator) -> Self {
             Self { locator, ..self }
         }
+        /// Returns a new `MinorTicks` with the specified color and return self for chaining
         pub fn with_color(self, color: theme::Color) -> Self {
             Self { color, ..self }
         }
 
+        /// Get the locator of these minor ticks
         pub fn locator(&self) -> &Locator {
             &self.locator
         }
+        /// Get the color of these minor ticks
         pub fn color(&self) -> theme::Color {
             self.color
         }

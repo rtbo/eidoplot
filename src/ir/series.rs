@@ -1,13 +1,30 @@
+//! Data series definitions for plots.
 use crate::data;
 use crate::ir::axis;
 use crate::style::{self, defaults};
 
+/// A data column, either inline or a reference to a data source.
+///
+/// Data columns can contain either inline data (vectors of values) or references
+/// to columns in a data source. This allows for flexible data handling in series.
 #[derive(Debug, Clone)]
 pub enum DataCol {
+    /// The data is provided inline, directly in the series
     Inline(data::VecColumn),
+    /// The data is a column reference to a data source
     SrcRef(String),
 }
 
+/// Build a data source column reference.
+///
+/// Creates a [`DataCol::SrcRef`] variant from a string-like value.
+/// Use this to reference a column in an external data source.
+///
+/// # Examples
+///
+/// ```ignore
+/// let col = data_src_ref("temperature");
+/// ```
 pub fn data_src_ref<S: Into<String>>(src: S) -> DataCol {
     DataCol::SrcRef(src.into())
 }
@@ -30,7 +47,10 @@ impl From<Vec<String>> for DataCol {
     }
 }
 
-/// A data series to be plotted in a plot
+/// A data series to be plotted in a plot.
+///
+/// This enum represents the different types of series that can be visualized.
+/// Each variant contains specific configuration and data for that series type.
 #[derive(Debug, Clone)]
 pub enum Series {
     /// Plots data as a continuous line.
@@ -46,6 +66,9 @@ pub enum Series {
 }
 
 impl Series {
+    /// Get the x and y axis references used by this series, if any
+    /// None indicates the default axis (the first axis of that orientation),
+    /// or that it is not applicable for this series type.
     pub fn axes(&self) -> (Option<&axis::Ref>, Option<&axis::Ref>) {
         match self {
             Series::Line(s) => (s.x_axis(), s.y_axis()),
@@ -86,6 +109,10 @@ impl From<BarsGroup> for Series {
     }
 }
 
+/// A line series structure.
+///
+/// Plots data as a continuous line connecting points in order.
+/// This is one of the most common series types for visualizing trends and continuous data.
 #[derive(Debug, Clone)]
 pub struct Line {
     x_data: DataCol,
@@ -98,6 +125,7 @@ pub struct Line {
 }
 
 impl Line {
+    /// Create a new line series with the given x and y data columns
     pub fn new(x_data: DataCol, y_data: DataCol) -> Self {
         Line {
             x_data,
@@ -110,6 +138,7 @@ impl Line {
         }
     }
 
+    /// Set the name and return self for chaining
     pub fn with_name(self, name: impl Into<String>) -> Self {
         Self {
             name: Some(name.into()),
@@ -117,46 +146,61 @@ impl Line {
         }
     }
 
+    /// Set a reference to the x axis and return self for chaining
+    /// Use this to associate the series with a specific x axis in the plot, when a plot has multiple x axes.
     pub fn with_x_axis(mut self, axis: axis::Ref) -> Self {
         self.x_axis = Some(axis);
         self
     }
 
+    /// Set a reference to the y axis and return self for chaining
+    /// Use this to associate the series with a specific y axis in the plot, when a plot has multiple y axes.
     pub fn with_y_axis(mut self, axis: axis::Ref) -> Self {
         self.y_axis = Some(axis);
         self
     }
 
+    /// Set the line style and return self for chaining
     pub fn with_line(mut self, line: style::series::Line) -> Self {
         self.line = line;
         self
     }
 
+    /// Get the x data column
     pub fn x_data(&self) -> &DataCol {
         &self.x_data
     }
 
+    /// Get the y data column
     pub fn y_data(&self) -> &DataCol {
         &self.y_data
     }
 
+    /// Get the name
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
 
+    /// Get a reference to the x axis, if any
     pub fn x_axis(&self) -> Option<&axis::Ref> {
         self.x_axis.as_ref()
     }
 
+    /// Get a reference to the y axis, if any
     pub fn y_axis(&self) -> Option<&axis::Ref> {
         self.y_axis.as_ref()
     }
 
+    /// Get the line style
     pub fn line(&self) -> &style::series::Line {
         &self.line
     }
 }
 
+/// A scatter series structure.
+///
+/// Plots data as individual scatter points without connecting them.
+/// Useful for visualizing correlations, distributions, and discrete data points.
 #[derive(Debug, Clone)]
 pub struct Scatter {
     x_data: DataCol,
@@ -169,6 +213,7 @@ pub struct Scatter {
 }
 
 impl Scatter {
+    /// Create a new scatter series with the given x and y data columns
     pub fn new(x_data: DataCol, y_data: DataCol) -> Self {
         Scatter {
             x_data,
@@ -181,6 +226,7 @@ impl Scatter {
         }
     }
 
+    /// Set the name and return self for chaining
     pub fn with_name(self, name: impl Into<String>) -> Self {
         Self {
             name: Some(name.into()),
@@ -188,46 +234,61 @@ impl Scatter {
         }
     }
 
+    /// Set a reference to the x axis and return self for chaining
+    /// Use this to associate the series with a specific x axis in the plot, when a plot has multiple x axes.
     pub fn with_x_axis(mut self, axis: axis::Ref) -> Self {
         self.x_axis = Some(axis);
         self
     }
 
+    /// Set a reference to the y axis and return self for chaining
+    /// Use this to associate the series with a specific y axis in the plot, when a plot has multiple y axes.
     pub fn with_y_axis(mut self, axis: axis::Ref) -> Self {
         self.y_axis = Some(axis);
         self
     }
 
+    /// Set the marker style and return self for chaining
     pub fn with_marker(mut self, marker: style::series::Marker) -> Self {
         self.marker = marker;
         self
     }
 
+    /// Get the x data column
     pub fn x_data(&self) -> &DataCol {
         &self.x_data
     }
 
+    /// Get the y data column
     pub fn y_data(&self) -> &DataCol {
         &self.y_data
     }
 
+    /// Get the name
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
 
+    /// Get a reference to the x axis, if any
     pub fn x_axis(&self) -> Option<&axis::Ref> {
         self.x_axis.as_ref()
     }
 
+    /// Get a reference to the y axis, if any
     pub fn y_axis(&self) -> Option<&axis::Ref> {
         self.y_axis.as_ref()
     }
 
+    /// Get the marker style
     pub fn marker(&self) -> &style::series::Marker {
         &self.marker
     }
 }
 
+/// A histogram series structure.
+///
+/// Plots data by grouping values into bins and showing the frequency or density
+/// of values in each bin. Useful for visualizing distributions of continuous data.
 #[derive(Debug, Clone)]
 pub struct Histogram {
     data: DataCol,
@@ -242,6 +303,7 @@ pub struct Histogram {
 }
 
 impl Histogram {
+    /// Create a new histogram series with the given data column
     pub fn new(data: DataCol) -> Self {
         Histogram {
             data,
@@ -256,6 +318,7 @@ impl Histogram {
         }
     }
 
+    /// Set the name and return self for chaining
     pub fn with_name(self, name: impl Into<String>) -> Self {
         Self {
             name: Some(name.into()),
@@ -263,75 +326,93 @@ impl Histogram {
         }
     }
 
+    /// Set a reference to the x axis and return self for chaining
     pub fn with_x_axis(mut self, axis: axis::Ref) -> Self {
         self.x_axis = Some(axis);
         self
     }
 
+    /// Set a reference to the y axis and return self for chaining
     pub fn with_y_axis(mut self, axis: axis::Ref) -> Self {
         self.y_axis = Some(axis);
         self
     }
 
+    /// Set the fill style and return self for chaining
     pub fn with_fill(self, fill: style::series::Fill) -> Self {
         Self { fill, ..self }
     }
 
+    /// Set the line style for the histogram outline and return self for chaining
     pub fn with_line(mut self, line: style::series::Line) -> Self {
         self.line = Some(line);
         self
     }
 
+    /// Set the number of bins and return self for chaining
     pub fn with_bins(mut self, bins: u32) -> Self {
         self.bins = bins;
         self
     }
 
+    /// Enable density mode (normalize by total count) and return self for chaining
     pub fn with_density(mut self) -> Self {
         self.density = true;
         self
     }
 
+    /// Get the data column
     pub fn data(&self) -> &DataCol {
         &self.data
     }
 
+    /// Get the name
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
 
+    /// Get a reference to the x axis, if any
     pub fn x_axis(&self) -> Option<&axis::Ref> {
         self.x_axis.as_ref()
     }
 
+    /// Get a reference to the y axis, if any
     pub fn y_axis(&self) -> Option<&axis::Ref> {
         self.y_axis.as_ref()
     }
 
+    /// Get the fill style
     pub fn fill(&self) -> &style::series::Fill {
         &self.fill
     }
 
+    /// Get the line style, if any
     pub fn line(&self) -> Option<&style::series::Line> {
         self.line.as_ref()
     }
 
+    /// Get the number of bins
     pub fn bins(&self) -> u32 {
         self.bins
     }
 
+    /// Get whether density mode is enabled
     pub fn density(&self) -> bool {
         self.density
     }
 }
 
-/// Offset and width of the bar, in ratio of the category bin width
-/// The default is offset of 0.3, and width of 0.4, which has effect of a bar centered in the bin.
-/// (the bar starts at 30% of the bin and ends at 70% of the bin)
-/// If multiple series are plotted, this offset and width are to be adjusted, otherwise the bars will overlap.
+/// Offset and width of the bar, in ratio of the category bin width.
+///
+/// The default is offset of 0.3, and width of 0.4, which has the effect of a bar centered in the bin
+/// (the bar starts at 30% of the bin and ends at 70% of the bin).
+///
+/// If multiple series are plotted, this offset and width should be adjusted, otherwise the bars will overlap.
 #[derive(Debug, Clone, Copy)]
 pub struct BarsPosition {
+    /// Offset from the start of the category bin (0.0 to 1.0).
     pub offset: f32,
+    /// Width of the bar as a ratio of the bin width (0.0 to 1.0).
     pub width: f32,
 }
 
@@ -344,8 +425,10 @@ impl Default for BarsPosition {
     }
 }
 
-/// The structure for [`SeriesPlot::Bars`]
-/// One of the axis must be categories, and the other must be numeric
+/// A bars series structure.
+///
+/// Plots data as discrete bars. One axis must contain categories, and the other must be numeric.
+/// Each category gets one bar whose height (or length for horizontal bars) represents the data value.
 #[derive(Debug, Clone)]
 pub struct Bars {
     x_data: DataCol,
@@ -358,6 +441,7 @@ pub struct Bars {
 }
 
 impl Bars {
+    /// Create a new bars series with the given x and y data columns
     pub fn new(x_data: DataCol, y_data: DataCol) -> Self {
         Bars {
             x_data,
@@ -370,6 +454,7 @@ impl Bars {
         }
     }
 
+    /// Set the name and return self for chaining
     pub fn with_name(self, name: impl Into<String>) -> Self {
         Self {
             name: Some(name.into()),
@@ -377,10 +462,12 @@ impl Bars {
         }
     }
 
+    /// Set the fill style and return self for chaining
     pub fn with_fill(self, fill: style::series::Fill) -> Self {
         Self { fill, ..self }
     }
 
+    /// Set the line style for the bar outline and return self for chaining
     pub fn with_line(self, line: style::series::Line) -> Self {
         Self {
             line: Some(line),
@@ -388,36 +475,46 @@ impl Bars {
         }
     }
 
+    /// Set the position (offset and width) and return self for chaining
     pub fn with_position(self, position: BarsPosition) -> Self {
         Self { position, ..self }
     }
 
+    /// Get the x data column
     pub fn x_data(&self) -> &DataCol {
         &self.x_data
     }
 
+    /// Get the y data column
     pub fn y_data(&self) -> &DataCol {
         &self.y_data
     }
 
+    /// Get the name
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
 
+    /// Get the fill style
     pub fn fill(&self) -> &style::series::Fill {
         &self.fill
     }
 
+    /// Get the line style, if any
     pub fn line(&self) -> Option<&style::series::Line> {
         self.line.as_ref()
     }
 
+    /// Get the position configuration
     pub fn position(&self) -> &BarsPosition {
         &self.position
     }
 }
 
-/// The series structure for [`Series::BarsGroup`]
+/// A bar series within a bars group.
+///
+/// Represents a single series of bars within a [`BarsGroup`].
+/// Each `BarSeries` contains data for one set of bars across all categories.
 #[derive(Debug, Clone)]
 pub struct BarSeries {
     data: DataCol,
@@ -428,6 +525,7 @@ pub struct BarSeries {
 }
 
 impl BarSeries {
+    /// Create a new bar series with the given data column
     pub fn new(data: DataCol) -> Self {
         BarSeries {
             data,
@@ -438,6 +536,7 @@ impl BarSeries {
         }
     }
 
+    /// Set the name and return self for chaining
     pub fn with_name(self, name: impl Into<String>) -> Self {
         Self {
             name: Some(name.into()),
@@ -445,10 +544,12 @@ impl BarSeries {
         }
     }
 
+    /// Set the fill style and return self for chaining
     pub fn with_fill(self, fill: style::series::Fill) -> Self {
         Self { fill, ..self }
     }
 
+    /// Set the line style for the bar outline and return self for chaining
     pub fn with_line(self, line: style::series::Line) -> Self {
         Self {
             line: Some(line),
@@ -456,53 +557,73 @@ impl BarSeries {
         }
     }
 
+    /// Get the data column
     pub fn data(&self) -> &DataCol {
         &self.data
     }
 
+    /// Get the name
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
 
+    /// Get the fill style
     pub fn fill(&self) -> &style::series::Fill {
         &self.fill
     }
 
+    /// Get the line style, if any
     pub fn line(&self) -> Option<&style::series::Line> {
         self.line.as_ref()
     }
 }
 
+/// Orientation of bars in a bar chart.
+///
+/// Determines whether bars extend vertically (from the x-axis) or horizontally (from the y-axis).
 #[derive(Debug, Clone, Copy, Default)]
 pub enum BarsOrientation {
+    /// Bars extend vertically from the x-axis.
     #[default]
     Vertical,
+    /// Bars extend horizontally from the y-axis.
     Horizontal,
 }
 
 impl BarsOrientation {
+    /// Check if the orientation is vertical
     pub fn is_vertical(&self) -> bool {
         matches!(self, Self::Vertical)
     }
 
+    /// Check if the orientation is horizontal
     pub fn is_horizontal(&self) -> bool {
         matches!(self, Self::Horizontal)
     }
 }
 
+/// Arrangement of multiple bar series within a group.
+///
+/// Defines how multiple bar series are positioned relative to each other:
+/// either side-by-side or stacked on top of each other.
 #[derive(Debug, Clone, Copy)]
 pub enum BarsArrangement {
+    /// Bars are placed side-by-side within each category.
     Aside(BarsAsideArrangement),
+    /// Bars are stacked on top of each other within each category.
     Stack(BarsStackArrangement),
 }
 
+/// Configuration for side-by-side bar arrangement.
+///
+/// Specifies how bars are positioned when placed side-by-side within each category.
 #[derive(Debug, Clone, Copy)]
 pub struct BarsAsideArrangement {
-    /// offset of the first bar within the bin
+    /// Offset of the first bar within the bin (0.0 to 1.0).
     pub offset: f32,
-    /// width of the whole group within the bin
+    /// Width of the whole group within the bin (0.0 to 1.0).
     pub width: f32,
-    /// gap between the bars
+    /// Gap between adjacent bars as a ratio of the available space.
     pub gap: f32,
 }
 
@@ -516,11 +637,14 @@ impl Default for BarsAsideArrangement {
     }
 }
 
+/// Configuration for stacked bar arrangement.
+///
+/// Specifies how bars are positioned when stacked on top of each other within each category.
 #[derive(Debug, Clone, Copy)]
 pub struct BarsStackArrangement {
-    /// offset of the first bar within the bin
+    /// Offset of the stacked bars within the bin (0.0 to 1.0).
     pub offset: f32,
-    /// width of the whole group within the bin
+    /// Width of the stacked bars within the bin (0.0 to 1.0).
     pub width: f32,
 }
 
@@ -539,6 +663,11 @@ impl Default for BarsArrangement {
     }
 }
 
+/// A group of bar series.
+///
+/// Represents multiple bar series that share the same categories.
+/// The bars can be arranged either side-by-side or stacked, and can be oriented
+/// vertically or horizontally.
 #[derive(Debug, Clone)]
 pub struct BarsGroup {
     categories: DataCol,
@@ -549,6 +678,7 @@ pub struct BarsGroup {
 }
 
 impl BarsGroup {
+    /// Create a new bars group with the given categories and bar series
     pub fn new(categories: DataCol, series: Vec<BarSeries>) -> Self {
         BarsGroup {
             categories,
@@ -558,6 +688,7 @@ impl BarsGroup {
         }
     }
 
+    /// Set the orientation and return self for chaining
     pub fn with_orientation(self, orientation: BarsOrientation) -> Self {
         Self {
             orientation,
@@ -565,6 +696,7 @@ impl BarsGroup {
         }
     }
 
+    /// Set the arrangement and return self for chaining
     pub fn with_arrangement(self, arrangement: BarsArrangement) -> Self {
         Self {
             arrangement,
@@ -572,18 +704,22 @@ impl BarsGroup {
         }
     }
 
+    /// Get the categories data column
     pub fn categories(&self) -> &DataCol {
         &self.categories
     }
 
+    /// Get the bar series
     pub fn series(&self) -> &[BarSeries] {
         &self.series
     }
 
+    /// Get the orientation
     pub fn orientation(&self) -> &BarsOrientation {
         &self.orientation
     }
 
+    /// Get the arrangement
     pub fn arrangement(&self) -> &BarsArrangement {
         &self.arrangement
     }

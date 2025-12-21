@@ -6,6 +6,14 @@ use crate::style::Theme;
 use crate::text::font;
 use crate::{data, geom, ir, missing_params, render, text};
 
+// FIXME: avoid possibility of using different font databases in preparation and drawing.
+
+/// A figure that has been prepared for drawing. See [`Figure::prepare`].
+/// It contains all the necessary data and layout information.
+///
+/// The texts have been shaped and laid out.
+/// They reference fonts id and glyphs from a font database. So it is important that the
+/// same font database is used during drawing.
 #[derive(Debug)]
 pub struct Figure {
     fig: ir::Figure,
@@ -15,10 +23,15 @@ pub struct Figure {
 }
 
 impl Figure {
+    /// The size of the figure in figure units
     pub fn size(&self) -> geom::Size {
         self.fig.size()
     }
 
+    /// Prepare a figure for drawing.
+    /// The resulting [`Figure`] can then be drawn multiple times on different rendering surfaces.
+    /// The texts are shaped and laid out using the given font database.
+    /// It is important that the same font database is given to the rendering surface during drawing.
     pub fn prepare<D>(
         ir: ir::Figure,
         theme: Theme,
@@ -34,6 +47,11 @@ impl Figure {
         ctx.setup_figure(&ir)
     }
 
+    /// Update the data for all series in the figure from the given data source.
+    /// This allows reusing the same prepared figure with different data and to perform
+    /// efficient redraws in real-time applications.
+    /// Note that axis bounds are not recomputed, only the series data is updated,
+    /// within the same axes bounds.
     pub fn update_series_data<D>(&mut self, data_source: &D) -> Result<(), Error>
     where
         D: data::Source,
@@ -43,6 +61,8 @@ impl Figure {
         Ok(())
     }
 
+    /// Draw the figure on the given rendering surface, using the given theme
+    /// The surface content will be replaced by the figure drawing.
     pub fn draw<S>(&self, surface: &mut S, theme: &Theme) -> Result<(), Error>
     where
         S: render::Surface,

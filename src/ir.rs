@@ -19,8 +19,10 @@ pub use series::{DataCol, Series, data_src_ref};
 // Caller must impl a specific Default for the $props_struct.
 macro_rules! define_rich_text_structs {
     ($text_struct:ident, $props_struct:ident, $opt_props_struct:ident) => {
+        /// Rich text properties that can apply only some properties on a given text span
         pub type $opt_props_struct = $crate::text::rich::TextOptProps<$crate::style::theme::Color>;
 
+        /// Rich text base properties with eidoplot theme colors
         #[derive(Debug, Clone)]
         pub struct $props_struct($crate::text::rich::TextProps<$crate::style::theme::Color>);
 
@@ -31,47 +33,59 @@ macro_rules! define_rich_text_structs {
                         .with_font($crate::style::defaults::FONT_FAMILY.parse().unwrap()),
                 )
             }
+
+            /// Set the font properties and return self for chaining
             pub fn with_font(self, font: $crate::text::font::Font) -> Self {
                 Self(self.0.with_font(font))
             }
 
+            /// Set the text fill color and return self for chaining
             pub fn with_fill(self, fill: Option<$crate::style::theme::Color>) -> Self {
                 Self(self.0.with_fill(fill))
             }
 
+            /// Set the outline properties and return self for chaining
             pub fn with_outline(self, outline: ($crate::style::theme::Color, f32)) -> Self {
                 Self(self.0.with_outline(outline))
             }
 
+            /// Set underline to true and return self for chaining
             pub fn with_underline(self) -> Self {
                 Self(self.0.with_underline())
             }
 
+            /// Set strikeout to true and return self for chaining
             pub fn with_strikeout(self) -> Self {
                 Self(self.0.with_strikeout())
             }
 
+            /// Get the font size
             pub fn font_size(&self) -> f32 {
                 self.0.font_size()
             }
 
+            /// Get the font
             pub fn font(&self) -> &$crate::text::font::Font {
                 self.0.font()
             }
 
+            /// Get the fill color
             pub fn fill(&self) -> Option<$crate::style::theme::Color> {
                 self.0.fill()
             }
 
+            /// Get the outline properties
             pub fn outline(&self) -> Option<($crate::style::theme::Color, f32)> {
                 self.0.outline()
             }
 
+            /// Check if strikeout is enabled
             pub fn underline(&self) -> bool {
                 self.0.underline()
             }
         }
 
+        /// Rich text structure with eidoplot theme colors
         #[derive(Debug, Clone)]
         pub struct $text_struct {
             text: String,
@@ -110,22 +124,27 @@ macro_rules! define_rich_text_structs {
         }
 
         impl $text_struct {
+            /// Set the base properties and return self for chaining
             pub fn with_props(self, props: $props_struct) -> Self {
                 Self { props, ..self }
             }
 
+            /// Set the spans and return self for chaining
             pub fn with_spans(self, spans: Vec<(usize, usize, $opt_props_struct)>) -> Self {
                 Self { spans, ..self }
             }
 
+            /// Get the text content
             pub fn text(&self) -> &str {
                 &self.text
             }
 
+            /// Get the base properties
             pub fn props(&self) -> &$props_struct {
                 &self.props
             }
 
+            /// Get the spans
             pub fn spans(&self) -> &[(usize, usize, $opt_props_struct)] {
                 &self.spans
             }

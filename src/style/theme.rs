@@ -1,22 +1,40 @@
+//! Theme definitions and implementations
 use crate::color::{self, ColorU8};
 use crate::style::series::{Palette, palettes};
 use crate::{style, text};
 
+/// A trait for mapping theme elements to colors
 pub trait ThemeMap {
-    fn is_dark(&self) -> bool;
+    /// Return true if the theme is dark
+    fn is_dark(&self) -> bool {
+        self.background().luminance() < 0.5
+    }
+
+    /// Get the background color
     fn background(&self) -> ColorU8;
+
+    /// Get the foreground color.
+    /// That is, the main text and line color.
     fn foreground(&self) -> ColorU8;
+
+    /// Get the grid line color
     fn grid(&self) -> ColorU8;
+
+    /// Get the legend background fill color
     fn legend_fill(&self) -> ColorU8 {
         self.background().with_opacity(0.5)
     }
+
+    /// Get the legend border color
     fn legend_border(&self) -> ColorU8 {
         self.foreground()
     }
 
+    /// Convert the theme map into a palette
     fn into_palette(self) -> Palette;
 }
 
+/// A complete theme definition
 #[derive(Debug, Clone)]
 pub struct Theme {
     background: ColorU8,
@@ -53,10 +71,12 @@ where
 }
 
 impl Theme {
+    /// Check if the theme is dark
     pub fn is_dark(&self) -> bool {
         self.is_dark
     }
 
+    /// Get the color for a given theme element
     pub fn get(&self, col: Col) -> ColorU8 {
         match col {
             Col::Background => self.background(),
@@ -67,35 +87,49 @@ impl Theme {
         }
     }
 
+    /// Get the palette associated with the theme
     pub fn background(&self) -> ColorU8 {
         self.background
     }
+
+    /// Get the foreground color
     pub fn foreground(&self) -> ColorU8 {
         self.foreground
     }
+
+    /// Get the grid line color
     pub fn grid(&self) -> ColorU8 {
         self.grid
     }
 
+    /// Get the legend fill color
     pub fn legend_fill(&self) -> ColorU8 {
         self.legend_fill
     }
 
+    /// Get the legend border color
     pub fn legend_border(&self) -> ColorU8 {
         self.legend_border
     }
 
+    /// Get the palette associated with the theme
     pub fn palette(&self) -> &Palette {
         &self.palette
     }
 }
 
+/// Predefined colors for theme elements
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Col {
+    /// Background color
     Background,
+    /// Foreground color
     Foreground,
+    /// Grid line color
     Grid,
+    /// Legend background fill color
     LegendFill,
+    /// Legend border color
     LegendBorder,
 }
 
@@ -124,7 +158,9 @@ impl std::str::FromStr for Col {
 /// A flexible color for theme elements
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Color {
+    /// A color from the theme
     Theme(Col),
+    /// A fixed RGB color
     Fixed(ColorU8),
 }
 
@@ -170,6 +206,7 @@ impl super::ResolveColor<Color> for Theme {
     }
 }
 
+/// Line style for theme elements
 pub type Line = style::Line<Color>;
 
 // From<Color> for Line is already defined in style.rs, using generics.
@@ -185,6 +222,7 @@ impl From<Col> for Line {
     }
 }
 
+/// Fill style for theme elements
 pub type Fill = style::Fill<Color>;
 
 // From<Color> for Fill is already defined in style.rs, using generics.

@@ -1,3 +1,7 @@
+//! EPLT DSL parser
+//!
+//! EPLT is a domain-specific language for defining plots and figures.
+//! An `*.eplt*` file contains one or more [`ir::Figure`] definitions.
 use std::fmt;
 #[cfg(feature = "dsl-diag")]
 use std::path;
@@ -9,13 +13,20 @@ use crate::dsl::{self, ast};
 use crate::text::{self, ParseRichTextError, ParsedRichText};
 use crate::{ir, style};
 
+/// Errors that can occur during EPLT parsing
 #[derive(Debug, Clone)]
 pub enum Error {
+    /// DSL parsing error
     Dsl(dsl::Error),
+    /// Rich text parsing error with offset
     ParseRichText(usize, ParseRichTextError),
+    /// General parse error
     Parse {
+        /// Span of the error
         span: dsl::Span,
+        /// Reason for the error
         reason: String,
+        /// Optional help message
         help: Option<String>,
     },
 }
@@ -72,6 +83,7 @@ impl dsl::DiagTrait for Error {
     }
 }
 
+/// Parse EPLT DSL input into a list of IR figures
 pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<ir::Figure>, Error> {
     let props = dsl::parse(input.as_ref().chars())?;
 

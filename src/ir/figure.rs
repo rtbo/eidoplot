@@ -1,3 +1,4 @@
+//! Figure IR structures
 use std::iter::FusedIterator;
 
 use crate::geom;
@@ -15,10 +16,14 @@ impl Default for TitleProps {
 /// Position of the legend relatively to the figure
 #[derive(Debug, Clone, Copy, Default)]
 pub enum LegendPos {
+    /// Position the legend at the top of the figure
     Top,
+    /// Position the legend at the right of the figure
     Right,
+    /// Position the legend at the bottom of the figure (default)
     #[default]
     Bottom,
+    /// Position the legend at the left of the figure
     Left,
 }
 
@@ -85,6 +90,7 @@ impl From<LegendPos> for FigLegend {
     }
 }
 
+/// Figure structure. This is the top-level structure representing a figure to be drawn.
 #[derive(Debug, Clone)]
 pub struct Figure {
     plots: Plots,
@@ -97,6 +103,7 @@ pub struct Figure {
 }
 
 impl Figure {
+    /// Create a new figure with the given plots
     pub fn new(plots: Plots) -> Figure {
         Figure {
             plots,
@@ -109,6 +116,7 @@ impl Figure {
         }
     }
 
+    /// Set the title and return self for chaining
     pub fn with_title(self, title: Title) -> Self {
         Figure {
             title: Some(title),
@@ -116,10 +124,12 @@ impl Figure {
         }
     }
 
+        /// Set the size and return self for chaining
     pub fn with_size(self, size: geom::Size) -> Self {
         Figure { size: size, ..self }
     }
 
+    /// Set the legend and return self for chaining
     pub fn with_legend(self, legend: FigLegend) -> Self {
         Figure {
             legend: Some(legend),
@@ -127,38 +137,48 @@ impl Figure {
         }
     }
 
+    /// Set the fill and return self for chaining
+    /// Set this to None for a transparent background
     pub fn with_fill(self, fill: Option<theme::Fill>) -> Self {
         Figure { fill, ..self }
     }
 
+    /// Set the padding and return self for chaining
     pub fn with_padding(self, padding: geom::Padding) -> Self {
         Figure { padding, ..self }
     }
 
+    /// Get the size of the figure
     pub fn size(&self) -> geom::Size {
         self.size
     }
 
+    /// Get the title of the figure
     pub fn title(&self) -> Option<&Title> {
         self.title.as_ref()
     }
 
+    /// Get the plots of the figure
     pub fn plots(&self) -> &Plots {
         &self.plots
     }
 
+    /// Get a mutable reference to the plots of the figure
     pub fn plots_mut(&mut self) -> &mut Plots {
         &mut self.plots
     }
 
+    /// Get the legend of the figure
     pub fn legend(&self) -> Option<&FigLegend> {
         self.legend.as_ref()
     }
 
+    /// Get the fill of the figure
     pub fn fill(&self) -> Option<theme::Fill> {
         self.fill
     }
 
+    /// Get the padding of the figure
     pub fn padding(&self) -> &geom::Padding {
         &self.padding
     }
@@ -186,6 +206,7 @@ impl From<Subplots> for Plots {
 }
 
 impl Plots {
+    /// The number of plots in this figure
     pub fn len(&self) -> usize {
         match self {
             Plots::Plot(..) => 1,
@@ -193,6 +214,7 @@ impl Plots {
         }
     }
 
+    /// The number of rows of plots in this figure
     pub fn rows(&self) -> u32 {
         match self {
             Plots::Plot(..) => 1,
@@ -200,6 +222,7 @@ impl Plots {
         }
     }
 
+    /// The number of columns of plots in this figure
     pub fn cols(&self) -> u32 {
         match self {
             Plots::Plot(..) => 1,
@@ -207,6 +230,7 @@ impl Plots {
         }
     }
 
+    /// Get a reference to a plot at the given row and column
     pub fn plot(&self, row: u32, col: u32) -> Option<&Plot> {
         match self {
             Plots::Plot(plot) if row == 0 && col == 0 => Some(plot),
@@ -215,6 +239,7 @@ impl Plots {
         }
     }
 
+    /// Get a mutable reference to a plot at the given row and column
     pub fn plot_mut(&mut self, row: u32, col: u32) -> Option<&mut Plot> {
         match self {
             Plots::Plot(plot) if row == 0 && col == 0 => Some(plot),
@@ -223,6 +248,8 @@ impl Plots {
         }
     }
 
+    /// Returns an iterator over the plots in this figure.
+    /// The plots are iterated row by row, from top to bottom and left to right.
     pub fn iter(&self) -> PlotIter<'_> {
         PlotIter {
             plots: self,
@@ -231,6 +258,7 @@ impl Plots {
         }
     }
 
+    /// The space between plots in this figure (only for subplots)
     pub fn space(&self) -> f32 {
         match self {
             Plots::Plot(..) => 0.0,

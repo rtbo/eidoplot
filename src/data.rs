@@ -1,3 +1,11 @@
+//! Data source abstractions and implementations.
+//!
+//! Data provided to series must implement the [`Column`] trait.
+//! The columns are grouped in a struct implementing the [`Source`] trait.
+//! This data source is provided to the plotting functions.
+//!
+//! Several column implementations are provided in this module, for common data types
+//! like `Vec<f64>`, `Vec<i64>`, `Vec<String>`, `Vec<DateTime>`, etc.
 use core::fmt;
 
 use crate::time::{DateTime, TimeDelta};
@@ -5,26 +13,38 @@ use crate::time::{DateTime, TimeDelta};
 #[cfg(feature = "data-csv")]
 mod csv;
 #[cfg(feature = "data-csv")]
-pub use csv::CsvParser;
+pub use csv::{CsvParser, CsvParseError, CsvColSpec};
 
 #[cfg(feature = "data-polars")]
 pub mod polars;
 
+/// Sample value enum. Useful when the type is not known at compile time.
+/// You will typically not used a `Vec<Sample>`. Rather a [`VecColumn`] or similar
+/// that iterate over samples in a more efficient way.
+///
+/// This type borrows string data for categorical samples. See also [`OwnedSample`].
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub enum Sample<'a> {
+    /// Null value
     #[default]
     Null,
+    /// Numeric value
     Num(f64),
+    /// Categorical value
     Cat(&'a str),
+    /// Time value
     Time(DateTime),
+    /// Time delta value
     TimeDelta(TimeDelta),
 }
 
 impl Sample<'_> {
+    /// Check if the sample is null
     pub fn is_null(&self) -> bool {
         matches!(self, Sample::Null)
     }
 
+    /// Get the sample as a numeric value, if possible
     pub fn as_num(&self) -> Option<f64> {
         match self {
             Sample::Num(v) => Some(*v),
@@ -32,6 +52,7 @@ impl Sample<'_> {
         }
     }
 
+    /// Get the sample as a categorical value, if possible
     pub fn as_cat(&self) -> Option<&str> {
         match self {
             Sample::Cat(v) => Some(v),
@@ -39,6 +60,7 @@ impl Sample<'_> {
         }
     }
 
+    /// Get the sample as a time value, if possible
     pub fn as_time(&self) -> Option<DateTime> {
         match self {
             Sample::Time(v) => Some(*v),
@@ -46,6 +68,7 @@ impl Sample<'_> {
         }
     }
 
+    /// Get the sample as a time delta value, if possible
     pub fn as_time_delta(&self) -> Option<TimeDelta> {
         match self {
             Sample::TimeDelta(v) => Some(*v),
@@ -53,6 +76,7 @@ impl Sample<'_> {
         }
     }
 
+    /// Convert the sample to an owned sample
     pub fn to_owned(&self) -> OwnedSample {
         match self {
             Sample::Null => OwnedSample::Null,
@@ -145,21 +169,29 @@ impl From<Option<TimeDelta>> for Sample<'_> {
     }
 }
 
+/// Owned version of [`Sample`].
 #[derive(Debug, Clone, Default, PartialEq)]
 pub enum OwnedSample {
+    /// Null value
     #[default]
     Null,
+    /// Numeric value
     Num(f64),
+    /// Categorical value
     Cat(String),
+    /// Time value
     Time(DateTime),
+    /// Time delta value
     TimeDelta(TimeDelta),
 }
 
 impl OwnedSample {
+    /// Check if the sample is null
     pub fn is_null(&self) -> bool {
         matches!(self, OwnedSample::Null)
     }
 
+    /// Get the sample as a numeric value, if possible
     pub fn as_num(&self) -> Option<f64> {
         match self {
             OwnedSample::Num(v) => Some(*v),
@@ -167,6 +199,7 @@ impl OwnedSample {
         }
     }
 
+    /// Get the sample as a categorical value, if possible
     pub fn as_cat(&self) -> Option<&str> {
         match self {
             OwnedSample::Cat(v) => Some(v),
@@ -174,6 +207,7 @@ impl OwnedSample {
         }
     }
 
+    /// Get the sample as a time value, if possible
     pub fn as_time(&self) -> Option<DateTime> {
         match self {
             OwnedSample::Time(v) => Some(*v),
@@ -181,6 +215,7 @@ impl OwnedSample {
         }
     }
 
+    /// Get the sample as a time delta value, if possible
     pub fn as_time_delta(&self) -> Option<TimeDelta> {
         match self {
             OwnedSample::TimeDelta(v) => Some(*v),
@@ -188,6 +223,7 @@ impl OwnedSample {
         }
     }
 
+    /// Convert the owned sample to a borrowed sample
     pub fn as_sample(&self) -> Sample<'_> {
         match self {
             OwnedSample::Null => Sample::Null,
@@ -286,12 +322,16 @@ impl From<Option<TimeDelta>> for OwnedSample {
     }
 }
 
-/// Trait for a column of unspecified type
+/// Trait for a column of unspecified type.
+/// This is the base trait for data given to series.
 pub trait Column: std::fmt::Debug {
+    /// Get the length of the column
     fn len(&self) -> usize;
 
+    /// Get the number of non-null values in the column
     fn len_some(&self) -> usize;
 
+    /// Get an iterator over the samples in the column
     fn iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
         if let Some(iter) = self.as_time_iter() {
             Box::new(iter.map(Sample::from))
@@ -306,55 +346,73 @@ pub trait Column: std::fmt::Debug {
         }
     }
 
+    /// Get the column as a f64 column, if possible
     fn f64(&self) -> Option<&dyn F64Column> {
         None
     }
 
+    /// Get the column as an i64 column, if possible
     fn i64(&self) -> Option<&dyn I64Column> {
         None
     }
 
+    /// Get the column as a str column, if possible
     fn str(&self) -> Option<&dyn StrColumn> {
         None
     }
 
+    /// Get the column as a time column, if possible
     fn time(&self) -> Option<&dyn TimeColumn> {
         None
     }
 
+    /// Get the column as a time delta column, if possible
     fn time_delta(&self) -> Option<&dyn TimeDeltaColumn> {
         None
     }
 
+    /// Helper to get f64 iterator
     fn as_f64_iter(&self) -> Option<Box<dyn Iterator<Item = Option<f64>> + '_>> {
         self.f64().map(|c| c.iter())
     }
 
+    /// Helper to get i64 iterator
     fn as_i64_iter(&self) -> Option<Box<dyn Iterator<Item = Option<i64>> + '_>> {
         self.i64().map(|c| c.iter())
     }
+
+    /// Helper to get str iterator
     fn as_str_iter(&self) -> Option<Box<dyn Iterator<Item = Option<&str>> + '_>> {
         self.str().map(|c| c.iter())
     }
 
+    /// Helper to get time iterator
     fn as_time_iter(&self) -> Option<Box<dyn Iterator<Item = Option<DateTime>> + '_>> {
         self.time().map(|c| c.iter())
     }
 
+    /// Helper to get time delta iterator
     fn as_time_delta_iter(&self) -> Option<Box<dyn Iterator<Item = Option<TimeDelta>> + '_>> {
         self.time_delta().map(|c| c.iter())
     }
 }
 
+/// Trait for a column of f64 values
 pub trait F64Column: std::fmt::Debug {
+    /// Get the length of the column
     fn len(&self) -> usize;
 
+    /// Get the number of non-null values in the column
+    /// That is, the number of values that are not NaN
     fn len_some(&self) -> usize {
         self.iter().filter(|v| v.is_some()).count()
     }
 
+    /// Get an iterator over the f64 values in the column
     fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_>;
 
+    /// Get the min and max values in the column.
+    /// Returns None if there are only null values.
     fn minmax(&self) -> Option<(f64, f64)> {
         let mut res: Option<(f64, f64)> = None;
         for v in self.iter() {
@@ -372,15 +430,21 @@ pub trait F64Column: std::fmt::Debug {
     }
 }
 
+/// Trait for a column of i64 values
 pub trait I64Column: std::fmt::Debug {
+    /// Get the length of the column
     fn len(&self) -> usize;
 
+    /// Get the number of non-null values in the column
     fn len_some(&self) -> usize {
         self.iter().filter(|v| v.is_some()).count()
     }
 
+    /// Get an iterator over the i64 values in the column
     fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_>;
 
+    /// Get the min and max values in the column.
+    /// Returns None if there are only null values.
     fn minmax(&self) -> Option<(i64, i64)> {
         let mut res: Option<(i64, i64)> = None;
         for v in self.iter() {
@@ -398,25 +462,35 @@ pub trait I64Column: std::fmt::Debug {
     }
 }
 
+/// Trait for a column of string values
 pub trait StrColumn: std::fmt::Debug {
+    /// Get the length of the column
     fn len(&self) -> usize;
 
+    /// Get the number of non-null values in the column
     fn len_some(&self) -> usize {
         self.iter().filter(|v| v.is_some()).count()
     }
 
+    /// Get an iterator over the string values in the column
     fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_>;
 }
 
+/// Trait for a column of time values
 pub trait TimeColumn: std::fmt::Debug {
+    /// Get the length of the column
     fn len(&self) -> usize;
 
+    /// Get the number of non-null values in the column
     fn len_some(&self) -> usize {
         self.iter().filter(|v| v.is_some()).count()
     }
 
+    /// Get an iterator over the time values in the column
     fn iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_>;
 
+    /// Get the min and max values in the column.
+    /// Returns None if there are only null values.
     fn minmax(&self) -> Option<(DateTime, DateTime)> {
         let mut res: Option<(DateTime, DateTime)> = None;
         for v in self.iter() {
@@ -434,15 +508,21 @@ pub trait TimeColumn: std::fmt::Debug {
     }
 }
 
+/// Trait for a column of time delta values
 pub trait TimeDeltaColumn: std::fmt::Debug {
+    /// Get the length of the column
     fn len(&self) -> usize;
 
+    /// Get the number of non-null values in the column
     fn len_some(&self) -> usize {
         self.iter().filter(|v| v.is_some()).count()
     }
 
+    /// Get an iterator over the time delta values in the column
     fn iter(&self) -> Box<dyn Iterator<Item = Option<TimeDelta>> + '_>;
 
+    /// Get the min and max values in the column.
+    /// Returns None if there are only null values.
     fn minmax(&self) -> Option<(TimeDelta, TimeDelta)> {
         let mut res: Option<(TimeDelta, TimeDelta)> = None;
         for v in self.iter() {
@@ -460,8 +540,11 @@ pub trait TimeDeltaColumn: std::fmt::Debug {
     }
 }
 
-/// Trait for a table-like data source
+/// Trait for a data source.
+/// This groups multiple columns together by name and provides
+/// data access to plotting functions.
 pub trait Source: fmt::Debug {
+    /// Get a column by name
     fn column(&self, name: &str) -> Option<&dyn Column>;
 }
 
@@ -473,6 +556,7 @@ impl Source for () {
     }
 }
 
+/// Column implementation for a slice of f64 values
 #[derive(Debug, Clone, Copy)]
 pub struct FCol<'a>(pub &'a [f64]);
 
@@ -505,6 +589,7 @@ impl Column for FCol<'_> {
     }
 }
 
+/// Column implementation for a slice of i64 values
 #[derive(Debug, Clone, Copy)]
 pub struct ICol<'a>(pub &'a [i64]);
 
@@ -547,6 +632,7 @@ impl Column for ICol<'_> {
     }
 }
 
+/// Column implementation for a slice of string-like values
 #[derive(Debug)]
 pub struct SCol<'a, T>(pub &'a [T]);
 
@@ -580,6 +666,7 @@ where
     }
 }
 
+/// Column implementation for a slice of DateTime values
 #[derive(Debug)]
 pub struct TCol<'a>(pub &'a [DateTime]);
 
@@ -622,6 +709,7 @@ impl Column for TCol<'_> {
     }
 }
 
+/// Column implementation for a slice of TimeDelta values
 #[derive(Debug)]
 pub struct TdCol<'a>(pub &'a [TimeDelta]);
 
@@ -976,6 +1064,7 @@ pub struct NamedOwnedColumns {
 }
 
 impl NamedOwnedColumns {
+    /// Create a new empty collection
     pub fn new() -> Self {
         Self {
             names: Vec::new(),
@@ -983,6 +1072,7 @@ impl NamedOwnedColumns {
         }
     }
 
+    /// Add a column with the given name
     pub fn add_column(&mut self, name: &str, col: Box<dyn Column>) {
         let position = self.names.as_slice().iter().position(|n| n == name);
         if let Some(pos) = position {
@@ -1011,6 +1101,7 @@ pub struct NamedColumns<'a> {
 }
 
 impl<'a> NamedColumns<'a> {
+    /// Create a new empty collection
     pub fn new() -> Self {
         Self {
             names: Vec::new(),
@@ -1018,6 +1109,7 @@ impl<'a> NamedColumns<'a> {
         }
     }
 
+    /// Add a column with the given name
     pub fn add_column(&mut self, name: &str, col: &'a dyn Column) {
         let position = self.names.as_slice().iter().position(|n| n == name);
         if let Some(pos) = position {
@@ -1038,13 +1130,18 @@ impl<'a> Source for NamedColumns<'a> {
     }
 }
 
-// Simple vector base implementation
+/// Column implementation backed by vectors, type known at runtime
 #[derive(Debug, Clone)]
 pub enum VecColumn {
+    /// f64 column
     F64(Vec<f64>),
+    /// i64 column
     I64(Vec<Option<i64>>),
+    /// string column
     Str(Vec<Option<String>>),
+    /// time column
     Time(Vec<Option<DateTime>>),
+    /// time delta column
     TimeDelta(Vec<Option<TimeDelta>>),
 }
 
@@ -1149,6 +1246,7 @@ impl Column for VecColumn {
 }
 
 /// Simple table source backed by vectors
+/// This source owns the data and ensure that all columns have the same length
 pub struct TableSource {
     heads: Vec<String>,
     columns: Vec<VecColumn>,
@@ -1156,6 +1254,7 @@ pub struct TableSource {
 }
 
 impl TableSource {
+    /// Create a new empty collection
     pub fn new() -> Self {
         Self {
             heads: Vec::new(),
@@ -1164,10 +1263,14 @@ impl TableSource {
         }
     }
 
+    /// Get the column names
     pub fn heads(&self) -> &[String] {
         &self.heads
     }
 
+    /// Add a column with the given name
+    /// If the column is shorter than existing columns, it will be padded with null values.
+    /// If the column is longer than existing columns, existing columns will be padded with null values
     pub fn add_column(&mut self, name: &str, col: VecColumn) {
         self.len = self.len.max(col.len());
         self.heads.push(name.to_string());
@@ -1185,36 +1288,43 @@ impl TableSource {
         }
     }
 
+    /// Add a column with the given name, returning self for chaining
     pub fn with_column(mut self, name: &str, col: VecColumn) -> Self {
         self.add_column(name, col);
         self
     }
 
+    /// Add a f64 column with the given name, returning self for chaining
     pub fn with_f64_column(mut self, name: &str, col: Vec<f64>) -> Self {
         self.add_column(name, VecColumn::F64(col));
         self
     }
 
+    /// Add an i64 column with the given name, returning self for chaining
     pub fn with_i64_column(mut self, name: &str, col: Vec<Option<i64>>) -> Self {
         self.add_column(name, VecColumn::I64(col));
         self
     }
 
+    /// Add a string column with the given name, returning self for chaining
     pub fn with_str_column(mut self, name: &str, col: Vec<Option<String>>) -> Self {
         self.add_column(name, VecColumn::Str(col));
         self
     }
 
+    /// Add a time column with the given name, returning self for chaining
     pub fn with_time_column(mut self, name: &str, col: Vec<Option<DateTime>>) -> Self {
         self.add_column(name, VecColumn::Time(col));
         self
     }
 
+    /// Add a time delta column with the given name, returning self for chaining
     pub fn with_time_delta_column(mut self, name: &str, col: Vec<Option<TimeDelta>>) -> Self {
         self.add_column(name, VecColumn::TimeDelta(col));
         self
     }
 
+    /// Get the number of rows in the table
     pub fn len(&self) -> usize {
         self.len
     }

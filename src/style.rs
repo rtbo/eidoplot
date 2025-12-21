@@ -1,3 +1,4 @@
+//! Style definitions for lines, fills, markers, and themes.
 pub mod catppuccin;
 pub(crate) mod defaults;
 pub mod series;
@@ -8,6 +9,12 @@ pub use theme::Theme;
 
 use crate::{Color, ResolveColor, render};
 
+/// Dash pattern for dashed lines
+/// A dash pattern is a sequence of lengths that specify the lengths of
+/// alternating dashes and gaps.
+///
+/// The lengths are relative to the line width.
+/// So a pattern will scale with the line width and remain visually consistent.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Dash(pub Vec<f32>);
 
@@ -40,21 +47,31 @@ impl From<Dash> for LinePattern {
     }
 }
 
+/// Line style definition
+///
+/// The color is a generic parameter to support different color resolution strategies,
+/// such as fixed colors, theme-based colors, or series-based colors.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Line<C: Color> {
+    /// Line color
     pub color: C,
+    /// Line width in figure units
     pub width: f32,
+    /// Line pattern
     pub pattern: LinePattern,
+    /// Line opacity (0.0 to 1.0)
     pub opacity: Option<f32>,
 }
 
 const DOT_DASH: &[f32] = &[1.0, 1.0];
 
 impl<C: Color> Line<C> {
+    /// Set the line width in figure units, returning self for chaining
     pub fn with_width(self, width: f32) -> Self {
         Line { width, ..self }
     }
 
+    /// Set the line opacity (0.0 to 1.0), returning self for chaining
     pub fn with_opacity(self, opacity: f32) -> Self {
         Line {
             opacity: Some(opacity),
@@ -62,10 +79,12 @@ impl<C: Color> Line<C> {
         }
     }
 
+    /// Set the line pattern, returning self for chaining
     pub fn with_pattern(self, pattern: LinePattern) -> Self {
         Line { pattern, ..self }
     }
 
+    /// Convert to a renderable stroke, resolving colors using the provided resolver
     pub fn as_stroke<'a, R>(&'a self, rc: &R) -> render::Stroke<'a>
     where
         R: ResolveColor<C>,
@@ -134,9 +153,18 @@ impl<C: Color> From<(C, f32, Dash)> for Line<C> {
     }
 }
 
+/// Fill style definition
+/// The color is a generic parameter to support different color resolution strategies,
+/// such as fixed colors, theme based colors, or series-based colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Fill<C: Color> {
-    Solid { color: C, opacity: Option<f32> },
+    /// Solid fill
+    Solid {
+        /// Fill color
+        color: C,
+        /// Fill opacity (0.0 to 1.0)
+        opacity: Option<f32>,
+    },
 }
 
 impl<C> Default for Fill<C>
@@ -152,6 +180,7 @@ where
 }
 
 impl<C: Color> Fill<C> {
+    /// Set the fill opacity (0.0 to 1.0), returning self for chaining
     pub fn with_opacity(self, opacity: f32) -> Self {
         match self {
             Fill::Solid { color, .. } => Fill::Solid {
@@ -161,6 +190,7 @@ impl<C: Color> Fill<C> {
         }
     }
 
+    /// Convert to a renderable paint, resolving colors using the provided resolver
     pub fn as_paint<R>(&self, rc: &R) -> render::Paint
     where
         R: ResolveColor<C>,
@@ -187,18 +217,27 @@ impl<C: Color> From<C> for Fill<C> {
     }
 }
 
+/// Shape of a marker, used in scatter plots
 #[derive(Debug, Clone, Copy, Default)]
 pub enum MarkerShape {
+    /// Circle marker (the default)
     #[default]
     Circle,
+    /// Square marker
     Square,
+    ///  Diamond marker
     Diamond,
+    ///  Cross marker
     Cross,
+    ///  Plus marker
     Plus,
+    ///  Upward pointing triangle marker
     TriangleUp,
+    ///  Downward pointing triangle marker
     TriangleDown,
 }
 
+/// Size of a marker, used in scatter plots
 #[derive(Debug, Clone, Copy)]
 pub struct MarkerSize(pub f32);
 
@@ -214,11 +253,16 @@ impl From<f32> for MarkerSize {
     }
 }
 
+/// Marker style definition, used in scatter plots
 #[derive(Debug, Clone)]
 pub struct Marker<C: Color> {
+    /// Marker size
     pub size: MarkerSize,
+    /// Marker shape
     pub shape: MarkerShape,
+    /// Marker fill style
     pub fill: Option<Fill<C>>,
+    /// Marker stroke style
     pub stroke: Option<Line<C>>,
 }
 

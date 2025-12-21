@@ -182,6 +182,12 @@ impl ColorU8 {
     pub const fn without_opacity(self) -> Self {
         ColorU8 { a: 255, ..self }
     }
+
+    pub const fn luminance(&self) -> f32 {
+        0.2126 * (self.r as f32 / 255.0)
+            + 0.7152 * (self.g as f32 / 255.0)
+            + 0.0722 * (self.b as f32 / 255.0)
+    }
 }
 
 const fn hex_to_u8(hex: u8) -> u8 {
