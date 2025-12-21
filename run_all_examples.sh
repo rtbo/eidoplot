@@ -20,8 +20,8 @@ while [[ $# -gt 0 ]]; do
         esac
 done
 
-cargo run --example text_line
-cargo run --example text_rich
+cargo run --example text_line --package eidoplot-text
+cargo run --example text_rich --package eidoplot-text
 
 cargo run --example bars -- ${POS_ARGS[@]}
 cargo run --example bitcoin -- ${POS_ARGS[@]}
