@@ -2,7 +2,12 @@ use eidoplot_base::color;
 use eidoplot_text::{self as text, Font, font, rich};
 use tiny_skia::Transform;
 fn main() {
+    let share_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("share");
     let mut db = font::Database::new();
+    db.load_fonts_dir(&share_dir);
     db.load_system_fonts();
 
     const PM_SIZE: (u32, u32) = (600, 500);
