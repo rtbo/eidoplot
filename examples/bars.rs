@@ -21,29 +21,27 @@ fn main() {
     source.add_column("stocks_2024", &stocks_2024);
     source.add_column("stocks_2025", &stocks_2025);
 
-    let title = ir::figure::Title::from("Categorical bars".to_string());
-
     let x_axis = ir::Axis::new()
-        .with_title("Fruits".to_string().into())
+        .with_title("Fruits".into())
         .with_ticks(Default::default());
     let y_axis = ir::Axis::new()
-        .with_title("Stocks".to_string().into())
+        .with_title("Stocks".into())
         .with_ticks(Default::default());
 
     // let bars_group: ir::Series = ir::series::BarsGroup::new(
-    //     ir::DataCol::SrcRef("fruits".to_string()),
+    //     ir::data_src_ref("fruits"),
     //     vec![
     //         ir::series::BarSeries::new(
     //             Some("Stocks 2023".into()),
-    //             ir::DataCol::SrcRef("stocks_2023".to_string()),
+    //             ir::data_src_ref("stocks_2023"),
     //         ),
     //         ir::series::BarSeries::new(
     //             Some("Stocks 2024".into()),
-    //             ir::DataCol::SrcRef("stocks_2024".to_string()),
+    //             ir::data_src_ref("stocks_2024"),
     //         ),
     //         ir::series::BarSeries::new(
     //             Some("Stocks 2025".into()),
-    //             ir::DataCol::SrcRef("stocks_2025".to_string()),
+    //             ir::data_src_ref("stocks_2025"),
     //         ),
     //     ],
     // )
@@ -53,10 +51,10 @@ fn main() {
 
     let stocks_2023 = ir::Series::Bars(
         ir::series::Bars::new(
-            ir::DataCol::SrcRef("fruits".to_string()),
-            ir::DataCol::SrcRef("stocks_2023".to_string()),
+            ir::data_src_ref("fruits"),
+            ir::data_src_ref("stocks_2023"),
         )
-        .with_name("Stocks 2023".into())
+        .with_name("Stocks 2023")
         .with_position(ir::series::BarsPosition {
             offset: 0.2,
             width: 0.2,
@@ -64,10 +62,10 @@ fn main() {
     );
     let stocks_2024 = ir::Series::Bars(
         ir::series::Bars::new(
-            ir::DataCol::SrcRef("fruits".to_string()),
-            ir::DataCol::SrcRef("stocks_2024".to_string()),
+            ir::data_src_ref("fruits"),
+            ir::data_src_ref("stocks_2024"),
         )
-        .with_name("Stocks 2024".into())
+        .with_name("Stocks 2024")
         .with_position(ir::series::BarsPosition {
             offset: 0.4,
             width: 0.2,
@@ -75,10 +73,10 @@ fn main() {
     );
     let stocks_2025 = ir::Series::Bars(
         ir::series::Bars::new(
-            ir::DataCol::SrcRef("fruits".to_string()),
-            ir::DataCol::SrcRef("stocks_2025".to_string()),
+            ir::data_src_ref("fruits"),
+            ir::data_src_ref("stocks_2025"),
         )
-        .with_name("Stocks 2025".into())
+        .with_name("Stocks 2025")
         .with_position(ir::series::BarsPosition {
             offset: 0.6,
             width: 0.2,
@@ -92,7 +90,7 @@ fn main() {
         .with_y_axis(y_axis)
         .with_legend(Default::default());
 
-    let fig = ir::Figure::new(plot.into()).with_title(title);
+    let fig = ir::Figure::new(plot.into()).with_title("Categorial bars".into());
 
     common::save_figure(&fig, &source, "bars");
 }

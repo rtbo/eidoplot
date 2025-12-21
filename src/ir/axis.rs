@@ -59,6 +59,19 @@ impl Default for Ref {
     }
 }
 
+impl<T> From<T> for Ref
+where
+    T: Into<String>,
+{
+    fn from(id: T) -> Self {
+        Ref::Id(id.into())
+    }
+}
+
+pub fn ref_id(id: impl Into<String>) -> Ref {
+    Ref::Id(id.into())
+}
+
 #[derive(Debug, Clone)]
 pub struct Axis {
     id: Option<String>,
@@ -99,9 +112,9 @@ impl Axis {
     /// Set the id of this axis.
     /// The id is used to refer to this axis in the context of shared axes.
     /// Note that title can also be used to refer to an axis.
-    pub fn with_id(self, id: String) -> Self {
+    pub fn with_id(self, id: impl Into<String>) -> Self {
         Self {
-            id: Some(id),
+            id: Some(id.into()),
             ..self
         }
     }

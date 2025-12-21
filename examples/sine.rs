@@ -5,14 +5,12 @@ use eidoplot::{data, ir, style};
 mod common;
 
 fn main() {
-    let title = "Sine wave".to_string().into();
-
     let x_axis = ir::Axis::new()
-        .with_title("x".to_string().into())
+        .with_title("x".into())
         .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into());
 
     let y_axis = ir::Axis::new()
-        .with_title("y".to_string().into())
+        .with_title("y".into())
         .with_ticks(Default::default())
         .with_grid(Default::default())
         .with_minor_ticks(Default::default())
@@ -20,10 +18,10 @@ fn main() {
 
     let series = ir::Series::Line(
         ir::series::Line::new(
-            ir::DataCol::SrcRef("x".to_string()),
-            ir::DataCol::SrcRef("y".to_string()),
+            ir::data_src_ref("x"),
+            ir::data_src_ref("y"),
         )
-        .with_name("y=sin(x)".to_string())
+        .with_name("y=sin(x)")
         .with_line(style::series::Line::default().with_width(4.0)),
     );
 
@@ -32,7 +30,7 @@ fn main() {
         .with_y_axis(y_axis)
         .with_legend(ir::plot::LegendPos::InTopRight.into());
 
-    let fig = ir::Figure::new(plot.into()).with_title(title);
+    let fig = ir::Figure::new(plot.into()).with_title("Sine wave".into());
 
     let x: Vec<f64> = (0..=360).map(|t| t as f64 * PI / 180.0).collect();
     let y = x.iter().map(|x| x.sin()).collect();

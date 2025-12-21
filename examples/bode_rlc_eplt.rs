@@ -56,16 +56,16 @@ fn main() {
         let plots = fig.plots_mut();
         plots.plot_mut(0, 0).unwrap().push_series(
             ir::series::Line::new(
-                ir::DataCol::SrcRef("freq".to_string()),
-                ir::DataCol::SrcRef(mag_col.to_string()),
+                ir::data_src_ref("freq"),
+                ir::data_src_ref(mag_col),
             )
-            .with_name(name.to_string())
+            .with_name(name)
             .into(),
         );
         plots.plot_mut(1, 0).unwrap().push_series(
             ir::series::Line::new(
-                ir::DataCol::SrcRef("freq".to_string()),
-                ir::DataCol::SrcRef(phase_col.to_string()),
+                ir::data_src_ref("freq"),
+                ir::data_src_ref(phase_col),
             )
             .into(),
         );

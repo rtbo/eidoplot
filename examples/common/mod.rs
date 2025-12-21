@@ -103,12 +103,12 @@ fn parse_args() -> Args {
             "catppuccin-macchiato" => args.theme = Theme::CatppuccinMacchiato,
             "catppuccin-mocha" => args.theme = Theme::CatppuccinMocha,
             _ if arg.starts_with("png=") => {
-                let filename = arg.trim_start_matches("png=").to_string();
-                args.png = Png::YesToFile(filename);
+                let filename = arg.trim_start_matches("png=");
+                args.png = Png::YesToFile(filename.to_string());
             }
             _ if arg.starts_with("svg=") => {
-                let filename = arg.trim_start_matches("svg=").to_string();
-                args.svg = Svg::YesToFile(filename);
+                let filename = arg.trim_start_matches("svg=");
+                args.svg = Svg::YesToFile(filename.to_string());
             }
             _ => {
                 eprintln!("Unknown argument: {}", arg);

@@ -514,7 +514,7 @@ fn parse_line(mut val: ast::Struct) -> Result<ir::series::Line, Error> {
     let mut line = ir::series::Line::new(x_data, y_data);
 
     if let Some(prop) = val.take_prop("name") {
-        line = line.with_name(expect_string_val(prop)?.1.into());
+        line = line.with_name(expect_string_val(prop)?.1);
     }
     if let Some(prop) = val.take_prop("x-axis") {
         line = line.with_x_axis(expect_axis_ref_val(prop)?);
@@ -533,7 +533,7 @@ fn parse_scatter(mut val: ast::Struct) -> Result<ir::series::Scatter, Error> {
     let mut series = ir::series::Scatter::new(x_data, y_data);
 
     if let Some(prop) = val.take_prop("name") {
-        series = series.with_name(expect_string_val(prop)?.1.into());
+        series = series.with_name(expect_string_val(prop)?.1);
     }
     if let Some(prop) = val.take_prop("x-axis") {
         series = series.with_x_axis(expect_axis_ref_val(prop)?);
@@ -551,7 +551,7 @@ fn parse_histogram(mut val: ast::Struct) -> Result<ir::series::Histogram, Error>
     let mut series = ir::series::Histogram::new(data);
 
     if let Some(prop) = val.take_prop("name") {
-        series = series.with_name(expect_string_val(prop)?.1.into());
+        series = series.with_name(expect_string_val(prop)?.1);
     }
     if let Some(prop) = val.take_prop("x-axis") {
         series = series.with_x_axis(expect_axis_ref_val(prop)?);
@@ -570,7 +570,7 @@ fn parse_bars(mut val: ast::Struct) -> Result<ir::series::Bars, Error> {
     let mut bars = ir::series::Bars::new(x_data, y_data);
 
     if let Some(prop) = val.take_prop("name") {
-        bars = bars.with_name(expect_string_val(prop)?.1.into());
+        bars = bars.with_name(expect_string_val(prop)?.1);
     }
 
     Ok(bars)

@@ -113,21 +113,21 @@ fn main() {
     data_source.add_column("height", &data.location);
     data_source.add_column("velocity", &data.velocity);
 
-    let title = "Tennis ball thrown from 1\u{02E2}\u{1D57} floor of Eiffel Tower".to_string();
+    let title = "Tennis ball thrown from 1\u{02E2}\u{1D57} floor of Eiffel Tower";
 
     let fig = ir::Figure::new(
         ir::Plot::new(vec![
             ir::series::Line::new(
-                ir::DataCol::SrcRef("time".to_string()),
-                ir::DataCol::SrcRef("height".to_string()),
+                ir::data_src_ref("time"),
+                ir::data_src_ref("height"),
             )
-            .with_name("Height (m)".to_string())
+            .with_name("Height (m)")
             .into(),
             ir::series::Line::new(
-                ir::DataCol::SrcRef("time".to_string()),
-                ir::DataCol::SrcRef("velocity".to_string()),
+                ir::data_src_ref("time"),
+                ir::data_src_ref("velocity"),
             )
-            .with_name("Velocity (m/s)".to_string())
+            .with_name("Velocity (m/s)")
             .into(),
         ])
         .with_x_axis(
@@ -140,7 +140,7 @@ fn main() {
                         )),
                 )
                 .with_grid(Default::default())
-                .with_title("Time".to_string().into()),
+                .with_title("Time".into()),
         )
         .with_y_axis(
             ir::Axis::new()

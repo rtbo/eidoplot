@@ -91,37 +91,37 @@ fn main() {
         &virginica_petal_length as &dyn data::Column,
     );
 
-    let title: ir::figure::Title = "Iris dataset".to_string().into();
+    let title: ir::figure::Title = "Iris dataset".into();
 
     let x_axis = ir::Axis::new()
-        .with_title("Sepal Length [cm]".to_string().into())
+        .with_title("Sepal Length [cm]".into())
         .with_ticks(Default::default())
         .with_grid(Default::default());
     let y_axis = ir::Axis::new()
-        .with_title("Petal Length [cm]".to_string().into())
+        .with_title("Petal Length [cm]".into())
         .with_ticks(Default::default())
         .with_grid(Default::default());
 
     let setosa = ir::Series::Scatter(
         ir::series::Scatter::new(
-            ir::DataCol::SrcRef("setosa_sepal_length".to_string()),
-            ir::DataCol::SrcRef("setosa_petal_length".to_string()),
+            ir::data_src_ref("setosa_sepal_length"),
+            ir::data_src_ref("setosa_petal_length"),
         )
-        .with_name("Setosa".into()),
+        .with_name("Setosa"),
     );
     let virginica = ir::Series::Scatter(
         ir::series::Scatter::new(
-            ir::DataCol::SrcRef("virginica_sepal_length".to_string()),
-            ir::DataCol::SrcRef("virginica_petal_length".to_string()),
+            ir::data_src_ref("virginica_sepal_length"),
+            ir::data_src_ref("virginica_petal_length"),
         )
-        .with_name("Virginica".into()),
+        .with_name("Virginica"),
     );
     let versicolor = ir::Series::Scatter(
         ir::series::Scatter::new(
-            ir::DataCol::SrcRef("versicolor_sepal_length".to_string()),
-            ir::DataCol::SrcRef("versicolor_petal_length".to_string()),
+            ir::data_src_ref("versicolor_sepal_length"),
+            ir::data_src_ref("versicolor_petal_length"),
         )
-        .with_name("Versicolor".into()),
+        .with_name("Versicolor"),
     );
 
     let plot = ir::Plot::new(vec![setosa, versicolor, virginica])

@@ -30,17 +30,17 @@ fn main() {
         format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA).into();
 
     let x_axis = ir::Axis::new()
-        .with_title("x".to_string().into())
+        .with_title("x".into())
         .with_ticks(Default::default());
     let y_axis = ir::Axis::new()
-        .with_title("y".to_string().into())
+        .with_title("y".into())
         .with_ticks(
             ir::axis::Ticks::new().with_formatter(Some(ir::axis::ticks::Formatter::Percent)),
         );
 
     let pop_series = ir::Series::Histogram(
-        ir::series::Histogram::new(ir::DataCol::SrcRef("pop".to_string()))
-            .with_name("population".into())
+        ir::series::Histogram::new(ir::data_src_ref("pop"))
+            .with_name("population")
             .with_fill(style::series::Fill::Solid {
                 color: style::series::Color::Auto,
                 opacity: Some(0.7),
@@ -51,7 +51,7 @@ fn main() {
 
     let dist_series = ir::Series::Line(
         ir::series::Line::new(x.into(), y.into())
-            .with_name("distribution".into())
+            .with_name("distribution")
             .with_line(style::series::Line {
                 width: 4.0,
                 ..style::Line::default()

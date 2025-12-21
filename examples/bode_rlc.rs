@@ -61,21 +61,21 @@ fn main() {
     // magnitude X axis scale is taken from the phase X axis
     // the reference uses the title given to the phase X axis
     let mag_freq_axis = ir::Axis::new()
-        .with_scale(ir::axis::Ref::Id("Frequency [Hz]".to_string()).into())
+        .with_scale(ir::axis::ref_id("Frequency [Hz]").into())
         .with_ticks(Default::default())
         .with_minor_ticks(Default::default());
     let mag_axis = ir::Axis::new()
-        .with_title("Magnitude [dB]".to_string().into())
+        .with_title("Magnitude [dB]".into())
         .with_ticks(Default::default())
         .with_grid(Default::default());
 
     let phase_freq_axis = ir::Axis::new()
-        .with_title("Frequency [Hz]".to_string().into())
+        .with_title("Frequency [Hz]".into())
         .with_scale(ir::axis::LogScale::default().into())
         .with_ticks(Default::default())
         .with_minor_ticks(Default::default());
     let phase_axis = ir::Axis::new()
-        .with_title("Phase [rad]".to_string().into())
+        .with_title("Phase [rad]".into())
         .with_ticks(
             ir::axis::Ticks::new().with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 9 }),
         )
@@ -97,16 +97,16 @@ fn main() {
         // name only on the magnitude to avoid double legend
         mag_series.push(
             ir::series::Line::new(
-                ir::DataCol::SrcRef("freq".to_string()),
-                ir::DataCol::SrcRef(mag_col.to_string()),
+                ir::data_src_ref("freq"),
+                ir::data_src_ref(mag_col),
             )
-            .with_name(name.to_string())
+            .with_name(name)
             .into(),
         );
         phase_series.push(
             ir::series::Line::new(
-                ir::DataCol::SrcRef("freq".to_string()),
-                ir::DataCol::SrcRef(phase_col.to_string()),
+                ir::data_src_ref("freq"),
+                ir::data_src_ref(phase_col),
             )
             .into(),
         );

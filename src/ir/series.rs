@@ -8,17 +8,10 @@ pub enum DataCol {
     SrcRef(String),
 }
 
-impl From<&str> for DataCol {
-    fn from(col: &str) -> Self {
-        DataCol::SrcRef(col.to_string())
-    }
+pub fn data_src_ref<S: Into<String>>(src: S) -> DataCol {
+    DataCol::SrcRef(src.into())
 }
 
-impl From<String> for DataCol {
-    fn from(col: String) -> Self {
-        DataCol::SrcRef(col)
-    }
-}
 
 impl From<data::VecColumn> for DataCol {
     fn from(col: data::VecColumn) -> Self {
@@ -118,9 +111,9 @@ impl Line {
         }
     }
 
-    pub fn with_name(self, name: String) -> Self {
+    pub fn with_name(self, name: impl Into<String>) -> Self {
         Self {
-            name: Some(name),
+            name: Some(name.into()),
             ..self
         }
     }
@@ -189,9 +182,9 @@ impl Scatter {
         }
     }
 
-    pub fn with_name(self, name: String) -> Self {
+    pub fn with_name(self, name: impl Into<String>) -> Self {
         Self {
-            name: Some(name),
+            name: Some(name.into()),
             ..self
         }
     }
@@ -264,9 +257,9 @@ impl Histogram {
         }
     }
 
-    pub fn with_name(self, name: String) -> Self {
+    pub fn with_name(self, name: impl Into<String>) -> Self {
         Self {
-            name: Some(name),
+            name: Some(name.into()),
             ..self
         }
     }
@@ -378,9 +371,9 @@ impl Bars {
         }
     }
 
-    pub fn with_name(self, name: String) -> Self {
+    pub fn with_name(self, name: impl Into<String>) -> Self {
         Self {
-            name: Some(name),
+            name: Some(name.into()),
             ..self
         }
     }
@@ -446,9 +439,9 @@ impl BarSeries {
         }
     }
 
-    pub fn with_name(self, name: String) -> Self {
+    pub fn with_name(self, name: impl Into<String>) -> Self {
         Self {
-            name: Some(name),
+            name: Some(name.into()),
             ..self
         }
     }

@@ -57,7 +57,7 @@ fn empty() {
 #[test]
 fn empty_title() {
     let plot = ir::Plot::new(vec![]);
-    let fig = fig_small(plot).with_title("Title".to_string().into());
+    let fig = fig_small(plot).with_title("Title".into());
 
     assert_fig_eq_ref!(&fig, "empty-title");
 }

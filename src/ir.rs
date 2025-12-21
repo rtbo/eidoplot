@@ -13,7 +13,7 @@ pub use axis::Axis;
 pub use figure::{FigLegend, Figure};
 pub use legend::Legend;
 pub use plot::{Plot, PlotLegend, PlotLine, Subplots};
-pub use series::{DataCol, Series};
+pub use series::{DataCol, Series, data_src_ref};
 
 // Structs defined with this macro use theme::Color for the generic color of rich properties
 // Caller must impl a specific Default for the $props_struct.
@@ -83,6 +83,16 @@ macro_rules! define_rich_text_structs {
             fn from(text: String) -> Self {
                 $text_struct {
                     text,
+                    props: $props_struct::default(),
+                    spans: Vec::new(),
+                }
+            }
+        }
+
+        impl From<&str> for $text_struct {
+            fn from(text: &str) -> Self {
+                $text_struct {
+                    text: text.to_string(),
                     props: $props_struct::default(),
                     spans: Vec::new(),
                 }

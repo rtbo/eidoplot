@@ -16,26 +16,24 @@ fn main() {
     data_source.add_column("x2", &x2 as &dyn data::Column);
     data_source.add_column("y2", &y2 as &dyn data::Column);
 
-    let title = "Subplots".to_string();
-
     let ax_x1 = ir::Axis::new()
         .with_grid(Default::default())
-        .with_scale(ir::axis::Ref::Id("x2".to_string()).into());
+        .with_scale(ir::axis::ref_id("x2").into());
     let ax_y1 = ir::Axis::new().with_ticks(Default::default());
     let ax_x2 = ir::Axis::new()
-        .with_id("x2".to_string())
+        .with_id("x2")
         .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into())
         .with_grid(Default::default());
     let ax_y2 = ir::Axis::new().with_ticks(Default::default());
 
     let series1 = ir::series::Line::new(
-        ir::DataCol::SrcRef("x1".to_string()),
-        ir::DataCol::SrcRef("y1".to_string()),
+        ir::data_src_ref("x1"),
+        ir::data_src_ref("y1"),
     )
     .into();
     let series2 = ir::series::Line::new(
-        ir::DataCol::SrcRef("x2".to_string()),
-        ir::DataCol::SrcRef("y2".to_string()),
+        ir::data_src_ref("x2"),
+        ir::data_src_ref("y2"),
     )
     .into();
 
@@ -51,7 +49,7 @@ fn main() {
         .with_plot(1, 0, plot2)
         .with_space(10.0);
 
-    let fig = ir::Figure::new(subplots.into()).with_title(title.into());
+    let fig = ir::Figure::new(subplots.into()).with_title("Subplots".into());
 
     common::save_figure(&fig, &data_source, "subplots");
 }

@@ -17,7 +17,7 @@ fn axes_default() {
 fn axes_x_title() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series])
-        .with_x_axis(ir::Axis::default().with_title("x axis".to_string().into()));
+        .with_x_axis(ir::Axis::default().with_title("x axis".into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/x-title");
@@ -27,7 +27,7 @@ fn axes_x_title() {
 fn axes_y_title() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series])
-        .with_y_axis(ir::Axis::default().with_title("y axis".to_string().into()));
+        .with_y_axis(ir::Axis::default().with_title("y axis".into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/y-title");
@@ -37,8 +37,8 @@ fn axes_y_title() {
 fn axes_titles() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series])
-        .with_x_axis(ir::Axis::new().with_title("x axis".to_string().into()))
-        .with_y_axis(ir::Axis::new().with_title("y axis".to_string().into()));
+        .with_x_axis(ir::Axis::new().with_title("x axis".into()))
+        .with_y_axis(ir::Axis::new().with_title("y axis".into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/titles");
@@ -80,7 +80,7 @@ fn axes_x_title_major_ticks() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series]).with_x_axis(
         ir::Axis::new()
-            .with_title("x axis".to_string().into())
+            .with_title("x axis".into())
             .with_ticks(Default::default()),
     );
     let fig = fig_small(plot);
@@ -93,7 +93,7 @@ fn axes_y_title_major_ticks() {
     let series = line().into();
     let plot = ir::Plot::new(vec![series]).with_y_axis(
         ir::Axis::new()
-            .with_title("y axis".to_string().into())
+            .with_title("y axis".into())
             .with_ticks(Default::default()),
     );
     let fig = fig_small(plot);
@@ -107,12 +107,12 @@ fn axes_titles_major_ticks() {
     let plot = ir::Plot::new(vec![series])
         .with_x_axis(
             ir::Axis::new()
-                .with_title("x axis".to_string().into())
+                .with_title("x axis".into())
                 .with_ticks(Default::default()),
         )
         .with_y_axis(
             ir::Axis::new()
-                .with_title("y axis".to_string().into())
+                .with_title("y axis".into())
                 .with_ticks(Default::default()),
         );
     let fig = fig_small(plot);
@@ -280,12 +280,12 @@ fn axes_multiple_bl() {
         .with_x_axis(
             ir::Axis::new()
                 .with_ticks(Default::default())
-                .with_id("x2".to_string().into()),
+                .with_id("x2"),
         )
         .with_y_axis(
             ir::Axis::new()
                 .with_ticks(Default::default())
-                .with_id("y2".to_string().into()),
+                .with_id("y2"),
         );
     let fig = fig_small(plot);
 
@@ -304,13 +304,13 @@ fn axes_multiple_trbl() {
         .with_x_axis(
             ir::Axis::new()
                 .with_ticks(Default::default())
-                .with_id("x2".to_string().into())
+                .with_id("x2")
                 .with_opposite_side(),
         )
         .with_y_axis(
             ir::Axis::new()
                 .with_ticks(Default::default())
-                .with_id("y2".to_string().into())
+                .with_id("y2")
                 .with_opposite_side(),
         );
     let fig = fig_small(plot);
@@ -328,23 +328,23 @@ fn axes_multiple_trbl_titles() {
         .with_x_axis(
             ir::Axis::new()
                 .with_ticks(Default::default())
-                .with_title("x1".to_string().into()),
+                .with_title("x1".into()),
         )
         .with_y_axis(
             ir::Axis::new()
                 .with_ticks(Default::default())
-                .with_title("y1".to_string().into()),
+                .with_title("y1".into()),
         )
         .with_x_axis(
             ir::Axis::new()
                 .with_ticks(Default::default())
-                .with_title("x2".to_string().into())
+                .with_title("x2".into())
                 .with_opposite_side(),
         )
         .with_y_axis(
             ir::Axis::new()
                 .with_ticks(Default::default())
-                .with_title("y2".to_string().into())
+                .with_title("y2".into())
                 .with_opposite_side(),
         );
     let fig = fig_mid(plot);

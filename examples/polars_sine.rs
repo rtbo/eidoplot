@@ -15,21 +15,21 @@ fn main() {
     )
     .unwrap();
 
-    let title = ir::figure::Title::from("Sine wave from polars".to_string());
+    let title = ir::figure::Title::from("Sine wave from polars");
 
     let x_axis = ir::Axis::new()
-        .with_title("x".to_string().into())
+        .with_title("x".into())
         .with_ticks(Default::default());
     let y_axis = ir::Axis::new()
-        .with_title("y".to_string().into())
+        .with_title("y".into())
         .with_ticks(Default::default());
 
     let series = ir::Series::Line(
         ir::series::Line::new(
-            ir::DataCol::SrcRef("x".to_string()),
-            ir::DataCol::SrcRef("y".to_string()),
+            ir::data_src_ref("x"),
+            ir::data_src_ref("y"),
         )
-        .with_name("y=sin(x)".to_string())
+        .with_name("y=sin(x)")
         .with_line(style::series::Line::default().with_width(4.0)),
     );
 
