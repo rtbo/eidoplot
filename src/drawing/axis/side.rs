@@ -87,24 +87,80 @@ impl Side {
         }
     }
 
-    pub fn spine_path(&self, rect: &geom::Rect) -> geom::Path {
+    pub fn spine_path(&self, rect: &geom::Rect, spine: &ir::plot::Border) -> geom::Path {
+        let overflow = match spine {
+            ir::plot::Border::Box(_) => 0.0,
+            ir::plot::Border::Axis(_) => 0.0,
+            ir::plot::Border::AxisArrow(arrow) => arrow.overflow,
+        };
+        let (origin, end) = match self {
+            Side::Bottom => (
+                geom::Point {
+                    x: rect.left(),
+                    y: rect.bottom(),
+                },
+                geom::Point {
+                    x: rect.right() + overflow,
+                    y: rect.bottom(),
+                },
+            ),
+            Side::Left => (
+                geom::Point {
+                    x: rect.left(),
+                    y: rect.bottom(),
+                },
+                geom::Point {
+                    x: rect.left(),
+                    y: rect.top() - overflow,
+                },
+            ),
+            Side::Top => (
+                geom::Point {
+                    x: rect.left(),
+                    y: rect.top(),
+                },
+                geom::Point {
+                    x: rect.right() + overflow,
+                    y: rect.top(),
+                },
+            ),
+            Side::Right => (
+                geom::Point {
+                    x: rect.right(),
+                    y: rect.bottom(),
+                },
+                geom::Point {
+                    x: rect.right(),
+                    y: rect.top() - overflow,
+                },
+            ),
+        };
         let mut builder = geom::PathBuilder::with_capacity(2, 2);
-        match self {
-            Side::Bottom => {
-                builder.move_to(rect.left(), rect.bottom());
-                builder.line_to(rect.right(), rect.bottom());
-            }
-            Side::Left => {
-                builder.move_to(rect.left(), rect.top());
-                builder.line_to(rect.left(), rect.bottom());
-            }
-            Side::Top => {
-                builder.move_to(rect.left(), rect.top());
-                builder.line_to(rect.right(), rect.top());
-            }
-            Side::Right => {
-                builder.move_to(rect.right(), rect.top());
-                builder.line_to(rect.right(), rect.bottom());
+        builder.move_to(origin.x, origin.y);
+        builder.line_to(end.x, end.y);
+        if let ir::plot::Border::AxisArrow(arrow) = spine {
+            let arrow_size = arrow.size;
+            match self {
+                Side::Bottom => {
+                    builder.line_to(end.x - arrow_size, end.y - arrow_size / 2.0);
+                    builder.move_to(end.x, end.y);
+                    builder.line_to(end.x - arrow_size, end.y + arrow_size / 2.0);
+                }
+                Side::Top => {
+                    builder.line_to(end.x - arrow_size, end.y + arrow_size / 2.0);
+                    builder.move_to(end.x, end.y);
+                    builder.line_to(end.x - arrow_size, end.y - arrow_size / 2.0);
+                }
+                Side::Left => {
+                    builder.line_to(end.x + arrow_size / 2.0, end.y + arrow_size);
+                    builder.move_to(end.x, end.y);
+                    builder.line_to(end.x - arrow_size / 2.0, end.y + arrow_size);
+                }
+                Side::Right => {
+                    builder.line_to(end.x - arrow_size / 2.0, end.y + arrow_size);
+                    builder.move_to(end.x, end.y);
+                    builder.line_to(end.x + arrow_size / 2.0, end.y + arrow_size);
+                }
             }
         }
         builder.finish().unwrap()

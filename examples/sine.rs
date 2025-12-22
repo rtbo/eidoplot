@@ -7,7 +7,8 @@ mod common;
 fn main() {
     let x_axis = ir::Axis::new()
         .with_title("x".into())
-        .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into());
+        .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into())
+        .with_grid(Default::default());
 
     let y_axis = ir::Axis::new()
         .with_title("y".into())
@@ -25,6 +26,7 @@ fn main() {
     let plot = ir::Plot::new(vec![series])
         .with_x_axis(x_axis)
         .with_y_axis(y_axis)
+        .with_border(ir::plot::AxisArrow::default().into())
         .with_legend(ir::plot::LegendPos::InTopRight.into());
 
     let fig = ir::Figure::new(plot.into()).with_title("Sine wave".into());

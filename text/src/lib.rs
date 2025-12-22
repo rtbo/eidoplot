@@ -25,7 +25,7 @@ pub use rich::{
     feature = "noto-mono"
 ))]
 /// Loads fonts that are bundled with eidoplot
-/// and returns an Arc to the database.
+/// and returns the database.
 pub fn bundled_font_db() -> fontdb::Database {
     let mut db = fontdb::Database::new();
 

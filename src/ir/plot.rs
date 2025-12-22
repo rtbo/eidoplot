@@ -2,6 +2,31 @@
 use crate::ir::{Axis, Legend, Series, axis};
 use crate::style::{self, defaults, theme};
 
+/// Arrow border style for the plot area
+#[derive(Debug, Clone)]
+pub struct AxisArrow {
+    /// Line style for the border and arrow
+    pub line: theme::Line,
+    /// Size of the arrow head
+    pub size: f32,
+    /// Extra length of the axis beyond the plot area
+    ///
+    /// This length is not accounted for in the layout, so you should leave
+    /// enough margin around the plot area to accommodate it.
+    /// Default overflow and default figure padding margin work well together.
+    pub overflow: f32,
+}
+
+impl Default for AxisArrow {
+    fn default() -> Self {
+        AxisArrow {
+            line: theme::Col::Foreground.into(),
+            size: defaults::PLOT_AXIS_ARROW_SIZE,
+            overflow: defaults::PLOT_AXIS_ARROW_OVERFLOW,
+        }
+    }
+}
+
 /// Border style for the plot area
 #[derive(Debug, Clone)]
 pub enum Border {
@@ -10,19 +35,35 @@ pub enum Border {
     /// Border only on the axes sides
     Axis(theme::Line),
     /// Arrow border on the axes sides
-    AxisArrow {
-        /// Line style for the border
-        stroke: theme::Line,
-        /// Size of the arrow head
-        size: f32,
-        /// Extra length of the axis beyond the
-        overflow: f32,
-    },
+    AxisArrow(AxisArrow),
+}
+
+impl Border {
+    /// Get the line style for the border if applicable
+    pub fn line(&self) -> &theme::Line {
+        match self {
+            Border::Box(line) => line,
+            Border::Axis(line) => line,
+            Border::AxisArrow(arrow) => &arrow.line,
+        }
+    }
 }
 
 impl Default for Border {
     fn default() -> Self {
         Border::Box(theme::Col::Foreground.into())
+    }
+}
+
+impl From<AxisArrow> for Border {
+    fn from(aa: AxisArrow) -> Self {
+        Border::AxisArrow(aa)
+    }
+}
+
+impl From<AxisArrow> for Option<Border> {
+    fn from(aa: AxisArrow) -> Self {
+        Some(Border::AxisArrow(aa))
     }
 }
 

@@ -248,7 +248,7 @@ impl CategoryTicks {
 #[derive(Debug, Clone)]
 struct DrawOpts {
     title: Option<Text>,
-    spine: Option<theme::Line>,
+    spine: Option<ir::plot::Border>,
     marks: Option<TickMark>,
     minor_marks: Option<TickMark>,
     ticks_labels: bool,
@@ -295,13 +295,13 @@ where
         size_along: f32,
         insets: &geom::Padding,
         shared_scale: Option<Arc<AxisScale>>,
-        off_plot_area: bool,
+        spine: Option<ir::plot::Border>,
     ) -> Result<Axis, Error> {
         let id = ir_axis.id().map(|s| s.to_string());
         let title_text = ir_axis.title().map(|t| t.text().to_string());
 
         let uses_shared = shared_scale.is_some();
-        let draw_opts = self.setup_axis_draw_opts(ir_axis, side, uses_shared, off_plot_area)?;
+        let draw_opts = self.setup_axis_draw_opts(ir_axis, side, uses_shared, spine)?;
 
         let scale = if let Some(scale) = shared_scale {
             scale
@@ -537,7 +537,7 @@ where
         ir_axis: &ir::Axis,
         side: Side,
         uses_shared: bool,
-        off_plot_area: bool,
+        spine: Option<ir::plot::Border>,
     ) -> Result<DrawOpts, Error> {
         let title = ir_axis
             .title()
@@ -545,14 +545,6 @@ where
             .transpose()?
             .map(|rich| Text::from_rich_text(&rich, &self.fontdb))
             .transpose()?;
-
-        let spine = if off_plot_area {
-            let spine = theme::Line::from(missing_params::AXIS_SPINE_COLOR)
-                .with_width(missing_params::AXIS_SPINE_WIDTH);
-            Some(spine)
-        } else {
-            None
-        };
 
         let ticks_labels = !uses_shared;
         let marks = ir_axis.ticks().map(|ticks| TickMark {
@@ -770,13 +762,13 @@ impl Axis {
         surface: &mut S,
         theme: &Theme,
         plot_rect: &geom::Rect,
-        spine: &theme::Line,
+        spine: &ir::plot::Border,
     ) -> Result<(), Error>
     where
         S: render::Surface,
     {
-        let stroke = spine.as_stroke(theme);
-        let path = self.side.spine_path(plot_rect);
+        let stroke = spine.line().as_stroke(theme);
+        let path = self.side.spine_path(plot_rect, spine);
         let rpath = render::Path {
             path: &path,
             fill: None,

@@ -565,6 +565,16 @@ where
                 let off_plot_area = *off_plot;
                 *off_plot = true;
 
+                // spine is drawn by axis:
+                //  - when it is off plot area
+                //  - when it is in plot area, but not a boxed plot
+                let spine = match (off_plot_area, ir_plot.border()) {
+                    (true, _) => ir_plot.border().cloned(),
+                    (false, Some(ir::plot::Border::Box(_))) => None,
+                    (false, Some(border)) => Some(border.clone()),
+                    (false, None) => None,
+                };
+
                 let ax = self.setup_axis(
                     ir_ax,
                     &bounds,
@@ -572,7 +582,7 @@ where
                     size_along,
                     &datas[plt_idx].as_ref().unwrap().insets,
                     None,
-                    off_plot_area,
+                    spine,
                 )?;
                 ax_infos[fig_ax_idx0 + ax_idx] = Some((bounds, ax.scale().clone()));
                 axes[ax_idx] = Some(ax);
@@ -615,6 +625,16 @@ where
                 let off_plot_area = *off_plot;
                 *off_plot = true;
 
+                // spine is drawn by axis:
+                //  - when it is off plot area
+                //  - when it is in plot area, but not a boxed plot
+                let spine = match (off_plot_area, ir_plot.border()) {
+                    (true, _) => ir_plot.border().cloned(),
+                    (false, Some(ir::plot::Border::Box(_))) => None,
+                    (false, Some(border)) => Some(border.clone()),
+                    (false, None) => None,
+                };
+
                 let axis = self.setup_axis(
                     ir_ax,
                     &info.0,
@@ -622,7 +642,7 @@ where
                     size_along,
                     &datas[plt_idx].as_ref().unwrap().insets,
                     Some(info.1.clone()),
-                    off_plot_area,
+                    spine,
                 )?;
                 axes.0[ax_idx] = Some(axis);
             }
@@ -773,7 +793,7 @@ impl Plot {
     {
         self.draw_background(surface, theme, ir_plot)?;
         let Some(axes) = &self.axes else {
-            self.draw_border(surface, theme, ir_plot.border())?;
+            self.draw_border_box(surface, theme, ir_plot.border())?;
             return Ok(());
         };
 
@@ -784,7 +804,7 @@ impl Plot {
         self.draw_lines(surface, theme, axes, ir_plot, true)?;
 
         axes.draw(surface, theme, &self.plot_rect)?;
-        self.draw_border(surface, theme, ir_plot.border())?;
+        self.draw_border_box(surface, theme, ir_plot.border())?;
 
         if let Some((top_left, leg)) = self.legend.as_ref() {
             leg.draw(surface, theme, top_left)?;
@@ -813,7 +833,7 @@ impl Plot {
         Ok(())
     }
 
-    fn draw_border<S>(
+    fn draw_border_box<S>(
         &self,
         surface: &mut S,
         theme: &Theme,
@@ -822,6 +842,8 @@ impl Plot {
     where
         S: render::Surface,
     {
+        // border is drawn by plot only when it is a box
+        // otherwise, axes draw the border as spines
         let rect = self.plot_rect;
         match border {
             None => Ok(()),
@@ -834,24 +856,7 @@ impl Plot {
                 })?;
                 Ok(())
             }
-            Some(ir::plot::Border::Axis(stroke)) => {
-                let mut path = geom::PathBuilder::with_capacity(4, 4);
-                path.move_to(rect.left(), rect.top());
-                path.line_to(rect.left(), rect.bottom());
-                path.line_to(rect.right(), rect.bottom());
-                let path = path.finish().expect("Should be a valid path");
-                let path = render::Path {
-                    path: &path,
-                    fill: None,
-                    stroke: Some(stroke.as_stroke(theme)),
-                    transform: None,
-                };
-                surface.draw_path(&path)?;
-                Ok(())
-            }
-            Some(ir::plot::Border::AxisArrow { .. }) => {
-                todo!("Draw axis arrow")
-            }
+            Some(_) => Ok(()),
         }
     }
 

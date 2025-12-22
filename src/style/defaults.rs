@@ -33,3 +33,5 @@ pub const PLOT_HOR_BARS_AUTO_INSETS: geom::Padding = geom::Padding::Custom {
     b: 20.0,
     l: 0.0,
 };
+pub const PLOT_AXIS_ARROW_SIZE: f32 = 10.0;
+pub const PLOT_AXIS_ARROW_OVERFLOW: f32 = 10.0;
