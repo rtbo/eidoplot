@@ -24,7 +24,7 @@ tinyvec = { version = "1.6.0", features = ["alloc"] }
 fontconfig-parser = { version = "0.5", optional = true, default-features = false }
 
 [features]
-default = ["std", "fs", "memmap", "fontconfig"]
+default = ["std", "fs", "memmap", "fontconfig", "noto-sans"]
 std = ["ttf-parser/std"]
 # Allows local filesystem interactions.
 fs = ["std"]
@@ -33,6 +33,11 @@ memmap = ["fs", "memmap2"]
 # Enables minimal fontconfig support on Linux.
 # Must be enabled for NixOS, otherwise no fonts will be loaded.
 fontconfig = ["fontconfig-parser", "fs"]
+noto-sans = []
+noto-sans-italic = []
+noto-serif = []
+noto-serif-italic = []
+noto-mono = []
 
 [[example]]
 name="text_line"

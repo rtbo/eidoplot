@@ -17,28 +17,36 @@ pub use rich::{
     parse_rich_text_with_classes, render_rich_text, render_rich_text_with,
 };
 
-fn resource_folder() -> std::path::PathBuf {
-    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .join("share")
-}
-
+#[cfg(any(
+    feature = "noto-sans",
+    feature = "noto-sans-italic",
+    feature = "noto-serif",
+    feature = "noto-serif-italic",
+    feature = "noto-mono"
+))]
 /// Loads fonts that are bundled with eidoplot
 /// and returns an Arc to the database.
 pub fn bundled_font_db() -> fontdb::Database {
-    const FONTDB_FAMILY_SANS: &str = "Noto Sans";
-    const FONTDB_FAMILY_SERIF: &str = "Noto Serif";
-    const FONTDB_FAMILY_MONO: &str = "Noto Mono";
-
-    let res_dir = crate::resource_folder();
-
     let mut db = fontdb::Database::new();
 
-    db.load_fonts_dir(&res_dir);
-    db.set_sans_serif_family(FONTDB_FAMILY_SANS);
-    db.set_serif_family(FONTDB_FAMILY_SERIF);
-    db.set_monospace_family(FONTDB_FAMILY_MONO);
+    #[cfg(feature = "noto-sans")]
+    db.load_font_data(include_bytes!("noto/NotoSans-VariableFont_wdth,wght.ttf").to_vec());
+    #[cfg(feature = "noto-sans-italic")]
+    db.load_font_data(include_bytes!("noto/NotoSans-Italic-VariableFont_wdth,wght.ttf").to_vec());
+    #[cfg(any(feature = "noto-sans", feature = "noto-sans-italic"))]
+    db.set_sans_serif_family("Noto Sans");
+
+    #[cfg(feature = "noto-serif")]
+    db.load_font_data(include_bytes!("noto/NotoSerif-VariableFont_wdth,wght.ttf").to_vec());
+    #[cfg(feature = "noto-serif-italic")]
+    db.load_font_data(include_bytes!("noto/NotoSerif-Italic-VariableFont_wdth,wght.ttf").to_vec());
+    #[cfg(any(feature = "noto-serif", feature = "noto-serif-italic"))]
+    db.set_serif_family("Noto Serif");
+
+    #[cfg(feature = "noto-mono")]
+    db.load_font_data(include_bytes!("noto/NotoSansMono-VariableFont_wdth,wght.ttf").to_vec());
+    #[cfg(feature = "noto-mono")]
+    db.set_monospace_family("Noto Sans Mono");
 
     db
 }

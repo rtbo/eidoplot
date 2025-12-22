@@ -32,6 +32,11 @@ data-csv = []
 data-polars = ["dep:polars"]
 dsl-diag = ["dep:miette", "eidoplot-dsl/diag"]
 utils = []
+noto-sans = ["eidoplot-text/noto-sans"]
+noto-sans-italic = ["eidoplot-text/noto-sans-italic"]
+noto-serif = ["eidoplot-text/noto-serif"]
+noto-serif-italic = ["eidoplot-text/noto-serif-italic"]
+noto-mono = ["eidoplot-text/noto-mono"]
 
 [[example]]
 name = "bars"
@@ -42,10 +47,11 @@ required-features = ["data-csv"]
 
 [[example]]
 name = "bode_rlc"
+required-features = ["noto-serif-italic"]
 
 [[example]]
 name = "bode_rlc_eplt"
-required-features = ["dsl-diag"]
+required-features = ["noto-serif-italic", "dsl-diag"]
 
 [[example]]
 name = "bouncing_ball"
@@ -67,10 +73,6 @@ name = "multiple_axes"
 [[example]]
 name = "multiple_axes_eplt"
 required-features = ["dsl-diag"]
-
-[[example]]
-name = "polars_iris"
-required-features = ["data-polars"]
 
 [[example]]
 name = "polars_sine"
