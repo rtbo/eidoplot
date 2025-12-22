@@ -75,6 +75,10 @@ name = "multiple_axes_eplt"
 required-features = ["dsl-diag"]
 
 [[example]]
+name = "polars_iris"
+required-features = ["data-polars"]
+
+[[example]]
 name = "polars_sine"
 required-features = ["data-polars"]
 
