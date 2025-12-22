@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::drawing::legend::{self, LegendBuilder};
 use crate::drawing::{Ctx, Error, plot};
 use crate::style::Theme;
@@ -35,15 +33,20 @@ impl Figure {
     /// So the same prepared figure can be drawn with different themes.
     pub fn prepare<D>(
         ir: ir::Figure,
-        fontdb: Option<Arc<font::Database>>,
+        fontdb: Option<&font::Database>,
         data_source: &D,
     ) -> Result<Self, Error>
     where
         D: data::Source,
     {
-        let fontdb = fontdb.unwrap_or_else(|| Arc::new(text::bundled_font_db()));
-        let ctx = Ctx::new(data_source, fontdb);
-        ctx.setup_figure(&ir)
+        if let Some(fontdb) = fontdb {
+            let ctx = Ctx::new(data_source, fontdb);
+            ctx.setup_figure(&ir)
+        } else {
+            let fontdb = text::bundled_font_db();
+            let ctx = Ctx::new(data_source, &fontdb);
+            ctx.setup_figure(&ir)
+        }
     }
 
     /// Update the data for all series in the figure from the given data source.
@@ -142,7 +145,7 @@ where
             legend.legend(),
             legend.pos().prefers_vertical(),
             rect.width(),
-            self.fontdb().clone(),
+            self.fontdb(),
         );
 
         let mut idx = 0;

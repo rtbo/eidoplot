@@ -372,7 +372,7 @@ where
             ir_leg.legend(),
             ir_leg.pos().prefers_vertical(),
             avail_width,
-            self.fontdb().clone(),
+            self.fontdb(),
         );
 
         let mut idx = 0;

@@ -1,6 +1,5 @@
 use std::env;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use eidoplot::drawing::FigureExt;
 use eidoplot::style::series::palettes;
@@ -129,8 +128,8 @@ where
 {
     let args = parse_args();
     let theme = args.theme.into();
-    let fontdb = Arc::new(text::bundled_font_db());
-    save_fig(fig, data_source, &theme, &args, default_name, fontdb);
+    let fontdb = text::bundled_font_db();
+    save_fig(fig, data_source, &theme, &args, default_name, &fontdb);
 }
 
 fn save_fig<D>(
@@ -139,7 +138,7 @@ fn save_fig<D>(
     theme: &style::Theme,
     args: &Args,
     default_name: &str,
-    fontdb: Arc<fontdb::Database>,
+    fontdb: &fontdb::Database,
 ) where
     D: data::Source,
 {
@@ -149,11 +148,11 @@ fn save_fig<D>(
             fig,
             data_source,
             theme,
-            fontdb.clone(),
+            fontdb,
             &format!("{}.png", default_name),
         ),
         Png::YesToFile(file_name) => {
-            save_fig_as_png(fig, data_source, theme, fontdb.clone(), &file_name)
+            save_fig_as_png(fig, data_source, theme, fontdb, &file_name)
         }
     }
 
@@ -174,7 +173,7 @@ fn save_fig_as_png<D>(
     fig: &ir::Figure,
     data_source: &D,
     theme: &style::Theme,
-    fontdb: Arc<fontdb::Database>,
+    fontdb: &fontdb::Database,
     file_name: &str,
 ) where
     D: data::Source,
@@ -191,7 +190,7 @@ fn save_fig_as_svg<D>(
     fig: &ir::Figure,
     data_source: &D,
     theme: &style::Theme,
-    fontdb: Arc<fontdb::Database>,
+    fontdb: &fontdb::Database,
     file_name: &str,
 ) where
     D: data::Source,

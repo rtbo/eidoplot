@@ -4,7 +4,6 @@
 //! for a given rendering surface.
 //! It is the bridge between the [`ir`] module and the [`render`] module.
 use std::fmt;
-use std::sync::Arc;
 
 use text::fontdb;
 
@@ -93,7 +92,7 @@ pub trait FigureExt {
         surface: &mut S,
         theme: &Theme,
         data_source: &D,
-        fontdb: Option<Arc<fontdb::Database>>,
+        fontdb: Option<&fontdb::Database>,
     ) -> Result<(), Error>
     where
         S: render::Surface,
@@ -106,7 +105,7 @@ impl FigureExt for ir::Figure {
         surface: &mut S,
         theme: &Theme,
         data_source: &D,
-        fontdb: Option<Arc<fontdb::Database>>,
+        fontdb: Option<&fontdb::Database>,
     ) -> Result<(), Error>
     where
         S: render::Surface,
@@ -120,11 +119,11 @@ impl FigureExt for ir::Figure {
 #[derive(Debug)]
 struct Ctx<'a, D> {
     data_source: &'a D,
-    fontdb: Arc<fontdb::Database>,
+    fontdb: &'a fontdb::Database,
 }
 
 impl<'a, D> Ctx<'a, D> {
-    pub fn new(data_source: &'a D, fontdb: Arc<fontdb::Database>) -> Ctx<'a, D> {
+    pub fn new(data_source: &'a D, fontdb: &'a fontdb::Database) -> Ctx<'a, D> {
         Ctx {
             data_source,
             fontdb,
@@ -135,7 +134,7 @@ impl<'a, D> Ctx<'a, D> {
         self.data_source
     }
 
-    pub fn fontdb(&self) -> &Arc<fontdb::Database> {
+    pub fn fontdb(&self) -> &fontdb::Database {
         &self.fontdb
     }
 }

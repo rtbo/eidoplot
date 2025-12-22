@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::drawing::Text;
 use crate::geom::{Padding, Size};
 use crate::style::{Theme, defaults, theme};
@@ -64,7 +62,7 @@ impl LegendEntry {
 }
 
 #[derive(Debug)]
-pub struct LegendBuilder {
+pub struct LegendBuilder<'a> {
     font: ir::legend::EntryFont,
     fill: Option<theme::Fill>,
     border: Option<theme::Line>,
@@ -73,7 +71,7 @@ pub struct LegendBuilder {
     padding: Padding,
 
     avail_width: f32,
-    fontdb: Arc<fontdb::Database>,
+    fontdb: &'a fontdb::Database,
     entries: Vec<LegendEntry>,
 }
 
@@ -86,13 +84,13 @@ pub struct Legend {
     size: geom::Size,
 }
 
-impl LegendBuilder {
+impl<'a> LegendBuilder<'a> {
     pub fn from_ir(
         legend: &ir::Legend,
         prefers_vertical: bool,
         avail_width: f32,
-        fontdb: Arc<fontdb::Database>,
-    ) -> LegendBuilder {
+        fontdb: &'a fontdb::Database,
+    ) -> LegendBuilder<'a> {
         let mut columns = legend.columns();
         if columns.is_none() && prefers_vertical {
             columns.replace(1);
