@@ -57,6 +57,16 @@ pub mod text {
     pub use eidoplot_text::*;
 }
 pub use text::fontdb;
+#[cfg(any(
+    feature = "noto-sans",
+    feature = "noto-sans-italic",
+    feature = "noto-serif",
+    feature = "noto-serif-italic",
+    feature = "noto-mono"
+))]
+/// Loads fonts that are bundled with eidoplot
+/// and returns the database.
+pub use text::bundled_font_db;
 
 #[cfg(feature = "utils")]
 pub mod utils {

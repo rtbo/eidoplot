@@ -1,0 +1,21 @@
+[package]
+name = "iced-oplot"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+eidoplot.workspace = true
+bytes.workspace = true
+iced.workspace = true
+
+[[example]]
+name = "scope"
+
+[dev-dependencies]
+cpal = "0.16.0"
+rustfft = "6.4.1"

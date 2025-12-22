@@ -15,7 +15,7 @@ eidoplot-text.workspace = true
 rustybuzz.workspace = true
 ttf-parser.workspace = true
 miette = { workspace = true, optional = true }
-polars = { version = "0.50.0", features = ["lazy"], optional = true }
+polars = { workspace = true, optional = true }
 
 [dev-dependencies]
 eidoplot-svg.workspace = true
@@ -27,7 +27,7 @@ rand_chacha = "0.9.0"
 ode_solvers = "0.6.1"
 
 [features]
-default = ["data-csv", "utils"]
+default = ["data-csv", "noto-sans", "utils"]
 data-csv = []
 data-polars = ["dep:polars"]
 dsl-diag = ["dep:miette", "eidoplot-dsl/diag"]
@@ -93,7 +93,7 @@ name = "subplots_eplt"
 required-features = ["dsl-diag"]
 
 [workspace]
-members = ["base", "dsl", "pxl", "svg", "text", "tests"]
+members = ["base", "dsl", "iced", "pxl", "svg", "text", "tests"]
 resolver = "3"
 
 [workspace.package]
@@ -112,12 +112,20 @@ eidoplot-dsl = { version = "0.1.0-dev", path = "dsl" }
 eidoplot-pxl = { version = "0.1.0-dev", path = "pxl" }
 eidoplot-svg = { version = "0.1.0-dev", path = "svg" }
 eidoplot-text = { version = "0.1.0-dev", path = "text" }
+bytes = "1.6"
+iced = { git = "https://github.com/iced-rs/iced.git", rev = "refs/pull/3148/head", features = [
+    "advanced",
+    "canvas",
+    "image",
+    "tokio",
+] }
 log = "0.4"
+miette = "7.6.0"
+polars = { version = "0.50.0", features = ["lazy"] }
 rustybuzz = "0.20.1"
 tiny-skia = "0.11.4"
 tiny-skia-path = "0.11.4"
 strict-num = "0.2.0"
-miette = "7.6.0"
 
 [workspace.dependencies.ttf-parser]
 version = "0.25.1"
