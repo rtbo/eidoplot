@@ -30,6 +30,11 @@ Eidoplot separates figure design from data and rendering surfaces.
   multiple plots etc. All will be laid-out in a consistent way, leaving enough space
   for axis ticks labels, legends etc. without a single line of code on the user side.
 
+- **GUI integration and real-time rendering**
+ - The package `iced-oplot` provides a [iced](https::/github.com/iced-rs/iced.git) `Figure` widget.
+Thanks to separation of data from design, redraws of the same figure with different data
+is very efficient and compatible with real-time rendering, up to hundreds of redraws per second.
+
 - **Declarative DSL:**
   - `.eplt` language for concise figure description.
 This DSL is fairly incomplete, but all examples in the repo are working.
@@ -51,6 +56,7 @@ cargo add eidoplot-svg # for SVG rendering
 - `data-polars`: Polars DataFrames support
 - `dsl-diag`: Diagnostics for `.eplt` DSL
 - `utils` (enabled by default): Utility functions (linspace, logspace, etc.)
+- `noto-sans` (enabled by default): Bundles the Noto-Sans font in the executable.
 
 ## Architecture
 
@@ -99,7 +105,8 @@ cargo run --example iris --features data-csv -- svg png
 - **`eidoplot-base`**: Base types (colors, geometry)
 - **`eidoplot-dsl`**: Parser for `.eplt` DSL
 - **`eidoplot-svg`**: SVG rendering backend
-- **`eidoplot-pxl`**: Pixel rendering backend
+- **`eidoplot-pxl`**: Pixel rendering backend (suitable for PNG exports)
+- **`iced-oplot`**: Figure widget for iced
 - **`eidoplot-text`**: Text and font management
 - **`eidoplot-tests`**: Integration tests
 
