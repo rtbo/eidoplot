@@ -116,7 +116,10 @@ fn parse_args() -> Args {
         }
     }
 
-    if matches!((&args.png, &args.svg, &args.show), (Png::No, Svg::No, false)) {
+    if matches!(
+        (&args.png, &args.svg, &args.show),
+        (Png::No, Svg::No, false)
+    ) {
         args.show = true;
     }
 
@@ -135,8 +138,12 @@ where
 }
 
 #[allow(dead_code)]
-pub fn save_figure_with_fontdb<D>(fig: &ir::Figure, data_source: &D, fontdb: &fontdb::Database, default_name: &str)
-where
+pub fn save_figure_with_fontdb<D>(
+    fig: &ir::Figure,
+    data_source: &D,
+    fontdb: &fontdb::Database,
+    default_name: &str,
+) where
     D: data::Source,
 {
     let args = parse_args();
@@ -178,7 +185,7 @@ fn save_fig<D>(
 
     if args.show {
         let fig = fig.prepare(data_source, Some(fontdb)).unwrap();
-        fig.show().unwrap();
+        fig.show(Some(theme.clone())).unwrap();
     }
 }
 
