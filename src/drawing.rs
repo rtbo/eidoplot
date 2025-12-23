@@ -91,7 +91,7 @@ pub trait FigureDraw {
     ///
     /// Panics if no font database is given and no bundled font feature is enabled.
     fn prepare<D>(
-        self,
+        &self,
         data_source: &D,
         fontdb: Option<&fontdb::Database>,
     ) -> Result<Figure, Error>
@@ -122,11 +122,11 @@ impl FigureDraw for ir::Figure {
     /// So the same prepared figure can be drawn with different themes.
     ///
     /// Panics: if `fontdb` is None and none of the bundled font features is enabled.
-    fn prepare<D>(self, data_source: &D, fontdb: Option<&fontdb::Database>) -> Result<Figure, Error>
+    fn prepare<D>(&self, data_source: &D, fontdb: Option<&fontdb::Database>) -> Result<Figure, Error>
     where
         D: data::Source,
     {
-        Figure::prepare(self, data_source, fontdb)
+        Figure::prepare(self.clone(), data_source, fontdb)
     }
 
     fn draw<S, D>(

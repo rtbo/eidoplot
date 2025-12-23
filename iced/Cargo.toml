@@ -19,9 +19,6 @@ name = "scope"
 [[example]]
 name = "audio_scope"
 
-[[example]]
-name = "show_fig"
-
 [dev-dependencies]
 cpal = "0.16.0"
 rustfft = "6.4.1"

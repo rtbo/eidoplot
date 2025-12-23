@@ -7,6 +7,7 @@ use eidoplot::style::{self};
 use eidoplot::{data, fontdb, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
+use iced_oplot::Show;
 use rand::SeedableRng;
 
 /// Get the path to a file in the examples folder
@@ -27,16 +28,14 @@ pub fn predictable_rng(seed: Option<u64>) -> impl rand::Rng {
 enum Png {
     #[default]
     No,
-    Yes,
-    YesToFile(String),
+    Yes(Option<PathBuf>),
 }
 
 #[derive(Debug, Clone, Default)]
 enum Svg {
     #[default]
     No,
-    Yes,
-    YesToFile(String),
+    Yes(Option<PathBuf>),
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -75,6 +74,7 @@ impl From<Theme> for style::Theme {
 struct Args {
     png: Png,
     svg: Svg,
+    show: bool,
     theme: Theme,
 }
 
@@ -83,8 +83,9 @@ fn parse_args() -> Args {
 
     for arg in env::args().skip(1) {
         match arg.as_str() {
-            "png" => args.png = Png::Yes,
-            "svg" => args.svg = Svg::Yes,
+            "png" => args.png = Png::Yes(None),
+            "svg" => args.svg = Svg::Yes(None),
+            "show" => args.show = true,
             "light" => args.theme = Theme::LightStandard,
             "light-standard" => args.theme = Theme::LightStandard,
             "light-pastel" => args.theme = Theme::LightPastel,
@@ -103,11 +104,11 @@ fn parse_args() -> Args {
             "catppuccin-mocha" => args.theme = Theme::CatppuccinMocha,
             _ if arg.starts_with("png=") => {
                 let filename = arg.trim_start_matches("png=");
-                args.png = Png::YesToFile(filename.to_string());
+                args.png = Png::Yes(Some(PathBuf::from(filename)));
             }
             _ if arg.starts_with("svg=") => {
                 let filename = arg.trim_start_matches("svg=");
-                args.svg = Svg::YesToFile(filename.to_string());
+                args.svg = Svg::Yes(Some(PathBuf::from(filename)));
             }
             _ => {
                 eprintln!("Unknown argument: {}", arg);
@@ -115,8 +116,8 @@ fn parse_args() -> Args {
         }
     }
 
-    if matches!((&args.png, &args.svg), (Png::No, Svg::No)) {
-        args.png = Png::Yes;
+    if matches!((&args.png, &args.svg, &args.show), (Png::No, Svg::No, false)) {
+        args.show = true;
     }
 
     args
@@ -155,28 +156,29 @@ fn save_fig<D>(
 {
     match &args.png {
         Png::No => (),
-        Png::Yes => save_fig_as_png(
-            fig,
-            data_source,
-            theme,
-            fontdb,
-            &format!("{}.png", default_name),
-        ),
-        Png::YesToFile(file_name) => {
-            save_fig_as_png(fig, data_source, theme, fontdb, &file_name)
+        Png::Yes(filename) => {
+            let file_name = match filename {
+                Some(path) => path.to_string_lossy().to_string(),
+                None => format!("{}.png", default_name),
+            };
+            save_fig_as_png(fig, data_source, theme, fontdb, &file_name);
         }
     }
 
     match &args.svg {
         Svg::No => (),
-        Svg::Yes => save_fig_as_svg(
-            fig,
-            data_source,
-            theme,
-            fontdb,
-            &format!("{}.svg", default_name),
-        ),
-        Svg::YesToFile(file_name) => save_fig_as_svg(fig, data_source, theme, fontdb, &file_name),
+        Svg::Yes(filename) => {
+            let file_name = match filename {
+                Some(path) => path.to_string_lossy().to_string(),
+                None => format!("{}.svg", default_name),
+            };
+            save_fig_as_svg(fig, data_source, theme, fontdb, &file_name);
+        }
+    }
+
+    if args.show {
+        let fig = fig.prepare(data_source, Some(fontdb)).unwrap();
+        fig.show().unwrap();
     }
 }
 

@@ -1228,6 +1228,7 @@ dependencies = [
  "eidoplot-pxl",
  "eidoplot-svg",
  "eidoplot-text",
+ "iced-oplot",
  "miette",
  "ode_solvers",
  "polars",

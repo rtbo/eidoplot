@@ -20,6 +20,7 @@ polars = { workspace = true, optional = true }
 [dev-dependencies]
 eidoplot-svg.workspace = true
 eidoplot-pxl.workspace = true
+iced-oplot.workspace = true
 miette = { workspace = true, features = ["fancy-no-backtrace"] }
 rand = "0.9.2"
 rand_distr = "0.5.1"
