@@ -1,7 +1,7 @@
 use std::env;
 use std::path::PathBuf;
 
-use eidoplot::drawing::FigureExt;
+use eidoplot::drawing::FigureDraw;
 use eidoplot::style::series::palettes;
 use eidoplot::style::{self};
 use eidoplot::{data, fontdb, ir};

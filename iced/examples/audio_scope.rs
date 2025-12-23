@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use eidoplot::data::Column;
+use eidoplot::drawing::FigureDraw;
 use eidoplot::{data, drawing, geom, ir};
 use iced::futures::channel::mpsc;
 use iced::futures::{SinkExt, Stream};
@@ -540,8 +541,7 @@ impl AudioScope {
                 if let Some(fig) = &mut self.fig {
                     fig.update_series_data(&self.rolling_buffer).unwrap();
                 } else {
-                    let fig = build_figure();
-                    let fig = drawing::Figure::prepare(fig, None, &self.rolling_buffer).unwrap();
+                    let fig = build_figure().prepare(&self.rolling_buffer, None).unwrap();
                     self.fig = Some(fig);
                 }
             }

@@ -112,6 +112,7 @@ eidoplot-dsl = { version = "0.1.0-dev", path = "dsl" }
 eidoplot-pxl = { version = "0.1.0-dev", path = "pxl" }
 eidoplot-svg = { version = "0.1.0-dev", path = "svg" }
 eidoplot-text = { version = "0.1.0-dev", path = "text" }
+iced-oplot = { version = "0.1.0-dev", path = "iced" }
 bytes = "1.6"
 iced = { git = "https://github.com/iced-rs/iced.git", rev = "refs/pull/3148/head", features = [
     "advanced",

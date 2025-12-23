@@ -2,6 +2,7 @@ use core::f32;
 use std::f64::consts::PI;
 use std::time::Instant;
 
+use eidoplot::drawing::FigureDraw;
 use eidoplot::style::theme;
 use iced::widget::{column, text};
 use iced::{Element, Subscription, Task, window};
@@ -63,9 +64,7 @@ impl Default for Scope {
         let mut data_src = data::NamedColumns::new();
         data_src.add_column("x", &x);
         data_src.add_column("y", &y);
-        let fig = build_figure();
-        let fig = drawing::Figure::prepare(fig, None, &data_src)
-            .unwrap();
+        let fig = build_figure().prepare(&data_src, None).unwrap();
         Self {
             t0: Instant::now(),
             fps: f32::NAN,

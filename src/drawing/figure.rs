@@ -11,7 +11,7 @@ use crate::{data, geom, ir, missing_params, render, text};
 /// Therefore, the fonts are no longer needed at draw time.
 ///
 /// The colors, strokes and fills will be resolved at draw time using the given theme.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Figure {
     fig: ir::Figure,
     title: Option<(geom::Transform, super::Text)>,
@@ -20,23 +20,10 @@ pub struct Figure {
 }
 
 impl Figure {
-    /// The size of the figure in figure units
-    pub fn size(&self) -> geom::Size {
-        self.fig.size()
-    }
-
-    /// Prepare a figure for drawing.
-    /// The resulting [`Figure`] can then be drawn multiple times on different rendering surfaces.
-    /// The texts are shaped, laid out and transformed to paths using the given font database.
-    ///
-    /// Theme and series colors are not applied at this stage, they will be resolved at draw time.
-    /// So the same prepared figure can be drawn with different themes.
-    ///
-    /// Panics: if `fontdb` is None and none of the bundled font features is enabled.
-    pub fn prepare<D>(
+    pub(super) fn prepare<D>(
         ir: ir::Figure,
-        fontdb: Option<&font::Database>,
         data_source: &D,
+        fontdb: Option<&font::Database>,
     ) -> Result<Self, Error>
     where
         D: data::Source,
@@ -71,6 +58,10 @@ impl Figure {
                 ));
             }
         }
+    }
+    /// The size of the figure in figure units
+    pub fn size(&self) -> geom::Size {
+        self.fig.size()
     }
 
     /// Update the data for all series in the figure from the given data source.

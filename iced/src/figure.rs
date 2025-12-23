@@ -39,6 +39,18 @@ where
         }
     }
 
+    /// Set the width of the [`Figure`]
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
+        self
+    }
+
+    /// Set the height of the [`Figure`]
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
+        self
+    }
+
     /// Set the scale of the [`Figure`]
     pub fn scale(mut self, scale: impl Into<f32>) -> Self {
         self.scale = scale.into();

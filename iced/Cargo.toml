@@ -19,6 +19,17 @@ name = "scope"
 [[example]]
 name = "audio_scope"
 
+[[example]]
+name = "show_fig"
+
 [dev-dependencies]
 cpal = "0.16.0"
 rustfft = "6.4.1"
+
+[features]
+default = ["noto-sans"]
+noto-sans = ["eidoplot/noto-sans"]
+noto-sans-italic = ["eidoplot/noto-sans-italic"]
+noto-serif = ["eidoplot/noto-serif"]
+noto-serif-italic = ["eidoplot/noto-serif-italic"]
+noto-mono = ["eidoplot/noto-mono"]

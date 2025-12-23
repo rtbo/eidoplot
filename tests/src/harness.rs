@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use eidoplot::drawing::FigureExt;
+use eidoplot::drawing::FigureDraw;
 use eidoplot::ir;
 use eidoplot::style::Theme;
 use eidoplot_pxl::PxlSurface;

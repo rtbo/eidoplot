@@ -84,9 +84,23 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-/// Extension trait to draw an IR figure directly
-pub trait FigureExt {
+/// Extension trait to prepare and draw an IR figure
+pub trait FigureDraw {
+    /// Prepare the figure for drawing using the given data source and optional font database
+    /// If no font database is given, bundled fonts will be used if available.
+    ///
+    /// Panics if no font database is given and no bundled font feature is enabled.
+    fn prepare<D>(
+        self,
+        data_source: &D,
+        fontdb: Option<&fontdb::Database>,
+    ) -> Result<Figure, Error>
+    where
+        D: data::Source;
+
     /// Draw the figure on the given rendering surface, using the given theme and data source
+    ///
+    /// Panics if no font database is given and no bundled font feature is enabled.
     fn draw<S, D>(
         &self,
         surface: &mut S,
@@ -99,7 +113,22 @@ pub trait FigureExt {
         D: data::Source;
 }
 
-impl FigureExt for ir::Figure {
+impl FigureDraw for ir::Figure {
+    /// Prepare a figure for drawing.
+    /// The resulting [`Figure`] can then be drawn multiple times on different rendering surfaces.
+    /// The texts are shaped, laid out and transformed to paths using the given font database.
+    ///
+    /// Theme and series colors are not applied at this stage, they will be resolved at draw time.
+    /// So the same prepared figure can be drawn with different themes.
+    ///
+    /// Panics: if `fontdb` is None and none of the bundled font features is enabled.
+    fn prepare<D>(self, data_source: &D, fontdb: Option<&fontdb::Database>) -> Result<Figure, Error>
+    where
+        D: data::Source,
+    {
+        Figure::prepare(self, data_source, fontdb)
+    }
+
     fn draw<S, D>(
         &self,
         surface: &mut S,
@@ -111,7 +140,7 @@ impl FigureExt for ir::Figure {
         S: render::Surface,
         D: data::Source,
     {
-        let figure = Figure::prepare(self.clone(), fontdb, data_source)?;
+        let figure = Figure::prepare(self.clone(), data_source, fontdb)?;
         figure.draw(surface, theme)
     }
 }
