@@ -1,7 +1,7 @@
 use crate::drawing::legend::{self, LegendBuilder};
 use crate::drawing::{Ctx, Error, plot};
-use crate::style::Theme;
-use crate::{data, geom, ir, missing_params, render, text};
+use crate::style::theme::Theme;
+use crate::{Style, data, geom, ir, missing_params, render, style, text};
 
 /// A figure that has been prepared for drawing. See [`Figure::prepare`].
 /// It contains all the necessary data and layout information.
@@ -153,25 +153,27 @@ where
 impl Figure {
     /// Draw the figure on the given rendering surface, using the given theme
     /// The surface content will be replaced by the figure drawing.
-    pub fn draw<S>(&self, surface: &mut S, theme: &Theme) -> Result<(), Error>
+    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
+        P: style::series::Palette,
     {
         surface.prepare(self.fig.size())?;
 
         if let Some(fill) = self.fig.fill() {
-            surface.fill(fill.as_paint(theme))?;
+            surface.fill(fill.as_paint(style))?;
         }
 
         if let Some((transform, title)) = &self.title {
-            title.draw(surface, theme, Some(transform))?;
+            title.draw(surface, style, Some(transform))?;
         }
 
         if let Some((pos, legend)) = &self.legend {
-            legend.draw(surface, theme, pos)?;
+            legend.draw(surface, style, pos)?;
         }
 
-        self.plots.draw(surface, theme, self.fig.plots())?;
+        self.plots.draw(surface, style, self.fig.plots())?;
 
         Ok(())
     }

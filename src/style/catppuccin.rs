@@ -1,37 +1,22 @@
 //! Catppuccin theme implementation
-use crate::{ColorU8, style};
+use crate::ColorU8;
+use crate::style::{self, series};
 
-/// Build the Catppuccin Latte theme
-pub fn latte() -> style::Theme {
-    Latte.into()
-}
-
-/// Build the Catppuccin Frappe theme
-pub fn frappe() -> style::Theme {
-    Frappe.into()
-}
-
-/// Build the Catppuccin Macchiato theme
-pub fn macchiato() -> style::Theme {
-    Macchiato.into()
-}
-
-/// Build the Catppuccin Mocha theme
-pub fn mocha() -> style::Theme {
-    Mocha.into()
-}
-
+/// Catppuccin Latte theme
 #[derive(Debug, Clone, Copy)]
-struct Latte;
+pub struct Latte;
 
+/// Catppuccin Frappe theme
 #[derive(Debug, Clone, Copy)]
-struct Frappe;
+pub struct Frappe;
 
+/// Catppuccin Macchiato theme
 #[derive(Debug, Clone, Copy)]
-struct Macchiato;
+pub struct Macchiato;
 
+/// Catppuccin Mocha theme
 #[derive(Debug, Clone, Copy)]
-struct Mocha;
+pub struct Mocha;
 
 trait Flavors {
     fn rosewater() -> ColorU8;
@@ -66,7 +51,7 @@ trait IsDark {
     fn is_dark() -> bool;
 }
 
-impl<F> style::theme::ThemeMap for F
+impl<F> style::theme::Theme for F
 where
     F: Flavors + IsDark,
 {
@@ -93,24 +78,34 @@ where
     fn legend_border(&self) -> ColorU8 {
         F::overlay2()
     }
+}
 
-    fn into_palette(self) -> style::Palette {
-        style::Palette::new(vec![
-            F::blue(),
-            F::peach(),
-            F::green(),
-            F::red(),
-            F::mauve(),
-            F::maroon(),
-            F::flamingo(),
-            F::pink(),
-            F::lavender(),
-            F::teal(),
-            F::sky(),
-            F::yellow(),
-            F::sapphire(),
-            F::rosewater(),
-        ])
+impl<F> series::Palette for F
+where
+    F: Flavors,
+{
+    fn len(&self) -> usize {
+        14
+    }
+
+    fn get(&self, color: series::IndexColor) -> ColorU8 {
+        match color.0 % self.len() {
+            0 => F::blue(),
+            1 => F::peach(),
+            2 => F::green(),
+            3 => F::red(),
+            4 => F::mauve(),
+            5 => F::maroon(),
+            6 => F::flamingo(),
+            7 => F::pink(),
+            8 => F::lavender(),
+            9 => F::teal(),
+            10 => F::sky(),
+            11 => F::yellow(),
+            12 => F::sapphire(),
+            13 => F::rosewater(),
+            _ => unreachable!(),
+        }
     }
 }
 

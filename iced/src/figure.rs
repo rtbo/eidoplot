@@ -1,3 +1,6 @@
+use eidoplot::style::series::Palette;
+use eidoplot::style::theme::Theme;
+use eidoplot::style::{CustomStyle, theme};
 use eidoplot::{drawing, style};
 use iced::advanced::graphics::geometry;
 use iced::advanced::{Layout, Widget, layout, mouse, renderer, widget};
@@ -58,7 +61,7 @@ where
 
     /// Sets the style of the [`Figure`].
     #[must_use]
-    pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
+    pub fn style(mut self, style: impl Fn(&Theme) -> CustomStyle + 'a) -> Self
     where
         Theme::Class<'a>: From<StyleFn<'a, Theme>>,
     {
@@ -105,29 +108,13 @@ where
         _viewport: &iced::Rectangle,
     ) {
         let style = theme.style(&self.class);
-        let theme = style.theme.unwrap_or_default();
         let bounds = layout.bounds();
         let frame = renderer.new_frame(bounds);
         let mut surface = surface::IcedSurface::new(frame, bounds);
-        if self.fig.draw(&mut surface, &theme).is_ok() {
+        if self.fig.draw(&mut surface, &style).is_ok() {
             let geometry = surface.into_geometry();
             renderer.draw_geometry(geometry);
         };
-    }
-}
-
-/// The appearance of the figure.
-#[derive(Debug, Clone, Default)]
-pub struct Style {
-    /// The [`Theme`](eidoplot::style::Theme) of the text.
-    ///
-    /// The default, `None`, means using the standard theme.
-    pub theme: Option<style::Theme>,
-}
-
-impl From<Option<style::Theme>> for Style {
-    fn from(theme: Option<style::Theme>) -> Self {
-        Style { theme }
     }
 }
 
@@ -140,41 +127,58 @@ pub trait Catalog: Sized {
     fn default<'a>() -> Self::Class<'a>;
 
     /// The [`Style`] of a class with the given status.
-    fn style(&self, item: &Self::Class<'_>) -> Style;
+    fn style(&self, item: &Self::Class<'_>) -> CustomStyle;
 }
 
-pub fn map_theme(theme: &iced::Theme) -> Option<style::Theme> {
+#[inline]
+fn from_iced_color(color: iced::Color) -> eidoplot::ColorU8 {
+    let [r, g, b, a] = color.into_rgba8();
+    eidoplot::ColorU8::from_rgba(r, g, b, a)
+}
+
+/// Map an `iced::Theme` to an eidoplot theme.
+pub fn map_theme(theme: &iced::Theme) -> theme::Custom {
+    let pal = theme.palette();
+    let back = from_iced_color(pal.background);
+    let fore = from_iced_color(pal.text);
+    style::theme::Custom::new_back_and_fore(back, fore)
+}
+
+/// Map an `iced::Theme` to an eidoplot style.
+pub fn map_style(theme: &iced::Theme) -> CustomStyle {
     match theme {
-        iced::Theme::Light => Some(style::theme::standard_light()),
-        iced::Theme::Dark => Some(style::theme::standard_dark()),
-        iced::Theme::CatppuccinLatte => Some(style::catppuccin::latte()),
-        iced::Theme::CatppuccinFrappe => Some(style::catppuccin::frappe()),
-        iced::Theme::CatppuccinMacchiato => Some(style::catppuccin::macchiato()),
-        iced::Theme::CatppuccinMocha => Some(style::catppuccin::mocha()),
-        iced::Theme::SolarizedDark => Some(style::theme::dark(style::series::palettes::pastel())),
-        iced::Theme::Dracula => Some(style::theme::standard_dark()),
-        iced::Theme::GruvboxDark => Some(style::theme::standard_dark()),
-        iced::Theme::TokyoNight => Some(style::theme::standard_dark()),
-        _ => None,
+        iced::Theme::CatppuccinMocha => style::Builtin::CatppuccinMocha.to_style().to_custom(),
+        iced::Theme::CatppuccinMacchiato => {
+            style::Builtin::CatppuccinMacchiato.to_style().to_custom()
+        }
+        iced::Theme::CatppuccinFrappe => style::Builtin::CatppuccinFrappe.to_style().to_custom(),
+        iced::Theme::CatppuccinLatte => style::Builtin::CatppuccinLatte.to_style().to_custom(),
+        _ => {
+            let theme = map_theme(theme);
+            let palette = if theme.is_dark() {
+                style::series::palette::Builtin::Pastel
+            } else {
+                style::series::palette::Builtin::Standard
+            }
+            .to_custom();
+            CustomStyle { theme, palette }
+        }
     }
 }
 
 /// A styling function for a [`Figure`].
 ///
 /// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
-pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> CustomStyle + 'a>;
 
 impl Catalog for iced::Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(|theme| {
-            let eplot_theme = map_theme(theme);
-            Style { theme: eplot_theme }
-        })
+        Box::new(|theme| map_style(theme))
     }
 
-    fn style(&self, class: &Self::Class<'_>) -> Style {
+    fn style(&self, class: &Self::Class<'_>) -> CustomStyle {
         class(self)
     }
 }

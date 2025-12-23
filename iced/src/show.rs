@@ -2,28 +2,28 @@
 //! Requires the `iced` feature to be enabled
 
 use eidoplot::drawing;
-use eidoplot::style::Theme;
+use eidoplot::style::CustomStyle;
 use iced::Length;
 
-use crate::figure::{self, figure};
+use crate::figure::figure;
 
 /// Trait to show figures in a window
 pub trait Show {
     /// Show the figure in a GUI window.
     /// This function will block the calling thread until the window is closed.
-    fn show(self, theme: Option<Theme>) -> iced::Result;
+    fn show(self, style: Option<CustomStyle>) -> iced::Result;
 }
 
 enum Message {}
 
 struct FigureWindow {
     figure: drawing::Figure,
-    theme: Option<Theme>,
+    style: Option<CustomStyle>,
 }
 
 impl FigureWindow {
-    fn new(figure: drawing::Figure, theme: Option<Theme>) -> Self {
-        Self { figure, theme }
+    fn new(figure: drawing::Figure, style: Option<CustomStyle>) -> Self {
+        Self { figure, style }
     }
 
     fn update(&mut self, _msg: Message) -> iced::Task<Message> {
@@ -31,23 +31,25 @@ impl FigureWindow {
     }
 
     fn view(&self) -> iced::Element<'_, Message> {
-        figure(&self.figure)
+        let fig = figure(&self.figure)
             .width(Length::Fill)
-            .height(Length::Fill)
-            .style(|_| figure::Style {
-                theme: self.theme.clone(),
-            })
-            .into()
+            .height(Length::Fill);
+        if let Some(style) = &self.style {
+            fig.style(|_| style.clone())
+        } else {
+            fig
+        }
+        .into()
     }
 }
 
 impl Show for drawing::Figure {
-    fn show(self, theme: Option<Theme>) -> iced::Result {
+    fn show(self, style: Option<CustomStyle>) -> iced::Result {
         iced::application(
             move || {
                 let fig = self.clone();
-                let theme = theme.clone();
-                (FigureWindow::new(fig, theme), iced::Task::none())
+                let style = style.clone();
+                (FigureWindow::new(fig, style), iced::Task::none())
             },
             FigureWindow::update,
             FigureWindow::view,

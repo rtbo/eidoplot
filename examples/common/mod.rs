@@ -1,7 +1,6 @@
 use std::env;
 use std::path::PathBuf;
 
-use eidoplot::style::series::palettes;
 use eidoplot::style::{self};
 use eidoplot::{Drawing, data, fontdb, ir};
 use eidoplot_pxl::PxlSurface;
@@ -37,44 +36,12 @@ enum Svg {
     Yes(Option<PathBuf>),
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-enum Theme {
-    #[default]
-    LightStandard,
-    LightPastel,
-    LightTolBright,
-    LightOkabeIto,
-    DarkPastel,
-    DarkStandard,
-    CatppuccinLatte,
-    CatppuccinFrappe,
-    CatppuccinMacchiato,
-    CatppuccinMocha,
-}
-
-impl From<Theme> for style::Theme {
-    fn from(value: Theme) -> Self {
-        match value {
-            Theme::LightStandard => style::theme::light(palettes::standard()),
-            Theme::LightPastel => style::theme::light(palettes::pastel()),
-            Theme::LightTolBright => style::theme::light(palettes::tol_bright()),
-            Theme::LightOkabeIto => style::theme::light(palettes::okabe_ito()),
-            Theme::DarkPastel => style::theme::dark(palettes::pastel()),
-            Theme::DarkStandard => style::theme::dark(palettes::standard()),
-            Theme::CatppuccinLatte => style::catppuccin::latte(),
-            Theme::CatppuccinFrappe => style::catppuccin::frappe(),
-            Theme::CatppuccinMacchiato => style::catppuccin::macchiato(),
-            Theme::CatppuccinMocha => style::catppuccin::mocha(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Default)]
 struct Args {
     png: Png,
     svg: Svg,
     show: bool,
-    theme: Theme,
+    style: Option<style::Builtin>,
 }
 
 fn parse_args() -> Args {
@@ -85,22 +52,18 @@ fn parse_args() -> Args {
             "png" => args.png = Png::Yes(None),
             "svg" => args.svg = Svg::Yes(None),
             "show" => args.show = true,
-            "light" => args.theme = Theme::LightStandard,
-            "light-standard" => args.theme = Theme::LightStandard,
-            "light-pastel" => args.theme = Theme::LightPastel,
-            "tol-bright" => args.theme = Theme::LightTolBright,
-            "okabe-ito" => args.theme = Theme::LightOkabeIto,
-            "dark" => args.theme = Theme::DarkPastel,
-            "dark-pastel" => args.theme = Theme::DarkPastel,
-            "dark-standard" => args.theme = Theme::DarkStandard,
-            "latte" => args.theme = Theme::CatppuccinLatte,
-            "frappe" => args.theme = Theme::CatppuccinFrappe,
-            "macchiato" => args.theme = Theme::CatppuccinMacchiato,
-            "mocha" => args.theme = Theme::CatppuccinMocha,
-            "catppuccin-latte" => args.theme = Theme::CatppuccinLatte,
-            "catppuccin-frappe" => args.theme = Theme::CatppuccinFrappe,
-            "catppuccin-macchiato" => args.theme = Theme::CatppuccinMacchiato,
-            "catppuccin-mocha" => args.theme = Theme::CatppuccinMocha,
+            "light" => args.style = Some(style::Builtin::Light),
+            "tol-bright" => args.style = Some(style::Builtin::TolBright),
+            "okabe-ito" => args.style = Some(style::Builtin::OkabeIto),
+            "dark" => args.style = Some(style::Builtin::Dark),
+            "latte" => args.style = Some(style::Builtin::CatppuccinLatte),
+            "frappe" => args.style = Some(style::Builtin::CatppuccinFrappe),
+            "macchiato" => args.style = Some(style::Builtin::CatppuccinMacchiato),
+            "mocha" => args.style = Some(style::Builtin::CatppuccinMocha),
+            "catppuccin-latte" => args.style = Some(style::Builtin::CatppuccinLatte),
+            "catppuccin-frappe" => args.style = Some(style::Builtin::CatppuccinFrappe),
+            "catppuccin-macchiato" => args.style = Some(style::Builtin::CatppuccinMacchiato),
+            "catppuccin-mocha" => args.style = Some(style::Builtin::CatppuccinMocha),
             _ if arg.starts_with("png=") => {
                 let filename = arg.trim_start_matches("png=");
                 args.png = Png::Yes(Some(PathBuf::from(filename)));
@@ -131,9 +94,8 @@ where
     D: data::Source,
 {
     let args = parse_args();
-    let theme = args.theme.into();
     let fontdb = eidoplot::bundled_font_db();
-    save_fig(fig, data_source, &theme, &args, default_name, &fontdb);
+    save_fig(fig, data_source, &args, default_name, &fontdb);
 }
 
 #[allow(dead_code)]
@@ -146,14 +108,12 @@ pub fn save_figure_with_fontdb<D>(
     D: data::Source,
 {
     let args = parse_args();
-    let theme = args.theme.into();
-    save_fig(fig, data_source, &theme, &args, default_name, &fontdb);
+    save_fig(fig, data_source, &args, default_name, &fontdb);
 }
 
 fn save_fig<D>(
     fig: &ir::Figure,
     data_source: &D,
-    theme: &style::Theme,
     args: &Args,
     default_name: &str,
     fontdb: &fontdb::Database,
@@ -167,7 +127,8 @@ fn save_fig<D>(
                 Some(path) => path.to_string_lossy().to_string(),
                 None => format!("{}.png", default_name),
             };
-            save_fig_as_png(fig, data_source, theme, fontdb, &file_name);
+            let style = args.style.clone().unwrap_or_default().to_style();
+            save_fig_as_png(fig, data_source, &style, fontdb, &file_name);
         }
     }
 
@@ -178,20 +139,22 @@ fn save_fig<D>(
                 Some(path) => path.to_string_lossy().to_string(),
                 None => format!("{}.svg", default_name),
             };
-            save_fig_as_svg(fig, data_source, theme, fontdb, &file_name);
+            let style = args.style.clone().unwrap_or_default().to_style();
+            save_fig_as_svg(fig, data_source, &style, fontdb, &file_name);
         }
     }
 
     if args.show {
         let fig = fig.prepare(data_source, Some(fontdb)).unwrap();
-        fig.show(Some(theme.clone())).unwrap();
+        let style = args.style.map(|s| s.to_style().to_custom());
+        fig.show(style).unwrap();
     }
 }
 
 fn save_fig_as_png<D>(
     fig: &ir::Figure,
     data_source: &D,
-    theme: &style::Theme,
+    style: &style::Style,
     fontdb: &fontdb::Database,
     file_name: &str,
 ) where
@@ -200,7 +163,7 @@ fn save_fig_as_png<D>(
     let width = (fig.size().width() * 2.0) as _;
     let height = (fig.size().height() * 2.0) as _;
     let mut pxl = PxlSurface::new(width, height).unwrap();
-    fig.draw(data_source, Some(fontdb), &mut pxl, theme)
+    fig.draw(data_source, Some(fontdb), &mut pxl, style)
         .unwrap();
     pxl.save_png(file_name).unwrap();
 }
@@ -208,7 +171,7 @@ fn save_fig_as_png<D>(
 fn save_fig_as_svg<D>(
     fig: &ir::Figure,
     data_source: &D,
-    theme: &style::Theme,
+    style: &style::Style,
     fontdb: &fontdb::Database,
     file_name: &str,
 ) where
@@ -217,7 +180,7 @@ fn save_fig_as_svg<D>(
     let width = fig.size().width() as _;
     let height = fig.size().height() as _;
     let mut svg = SvgSurface::new(width, height);
-    fig.draw(data_source, Some(fontdb), &mut svg, theme)
+    fig.draw(data_source, Some(fontdb), &mut svg, style)
         .unwrap();
     svg.save_svg(file_name).unwrap();
 }

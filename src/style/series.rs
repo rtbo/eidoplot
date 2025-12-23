@@ -4,30 +4,21 @@
 use crate::ColorU8;
 use crate::style::{self, defaults};
 
-/// A series color palette
-#[derive(Debug, Clone)]
-pub struct Palette(Vec<ColorU8>);
-
-impl Default for Palette {
-    fn default() -> Self {
-        palettes::standard()
-    }
-}
-
-impl Palette {
-    /// Build a new palette from a list of colors
-    pub fn new(colors: Vec<ColorU8>) -> Self {
-        Palette(colors)
-    }
-
-    /// Get the number of colors in the palette
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
+/// A trait for assigning colors to data series
+pub trait Palette {
+    /// Get the number of colors in the palette before repeating
+    fn len(&self) -> usize;
 
     /// Get a color from the palette by its index
-    pub fn get(&self, color: IndexColor) -> ColorU8 {
-        self.0[color.0 % self.len()]
+    fn get(&self, color: IndexColor) -> ColorU8;
+
+    /// Convert the palette into a `Custom` struct
+    fn to_custom(&self) -> palette::Custom {
+        let mut colors = Vec::with_capacity(self.len());
+        for i in 0..self.len() {
+            colors.push(self.get(IndexColor(i)));
+        }
+        palette::Custom(colors)
     }
 }
 
@@ -37,22 +28,9 @@ pub struct IndexColor(pub usize);
 
 impl style::Color for IndexColor {}
 
-impl style::ResolveColor<IndexColor> for Palette {
-    fn resolve_color(&self, color: &IndexColor) -> ColorU8 {
-        self.get(*color)
-    }
-}
-
 /// A series color that is automatically chosen from a palette based on the series index
 #[derive(Debug, Clone, Copy)]
 pub struct AutoColor;
-
-/// Resolve automatically series color using a palette and a series index
-impl style::ResolveColor<AutoColor> for (&Palette, usize) {
-    fn resolve_color(&self, _color: &AutoColor) -> ColorU8 {
-        self.0.get(IndexColor(self.1))
-    }
-}
 
 impl style::Color for AutoColor {}
 
@@ -87,17 +65,6 @@ impl From<ColorU8> for Color {
 }
 
 impl style::Color for Color {}
-
-/// Resolve a series color using a palette and a series index for automatic colors
-impl style::ResolveColor<Color> for (&Palette, usize) {
-    fn resolve_color(&self, _color: &Color) -> ColorU8 {
-        match _color {
-            Color::Index(c) => self.0.get(*c),
-            Color::Auto => self.0.get(IndexColor(self.1)),
-            Color::Fixed(c) => *c,
-        }
-    }
-}
 
 /// Line style for theme elements
 pub type Line = style::Line<Color>;
@@ -153,72 +120,122 @@ impl From<ColorU8> for Marker {
     }
 }
 
-/// Predefined color palettes
-pub mod palettes {
-    use super::Palette;
+/// Types for built-in and custom palettes
+pub mod palette {
+
     use crate::ColorU8;
+    use crate::style::catppuccin;
+    use crate::style::series::Palette;
 
-    /// A Palette for monochrome black plotting
-    /// Don't use with a dark theme.
-    pub fn black() -> Palette {
-        Palette(vec![ColorU8::from_html(b"#000000")])
+    /// Eidoplot built-in palettes
+    #[derive(Debug, Clone, Copy, Default)]
+    pub enum Builtin {
+        /// Black monochrome palette
+        Black,
+        #[default]
+        /// Standard eidoplot palette
+        Standard,
+        /// Pastel eidoplot palette
+        Pastel,
+        /// Paul Tol's bright colorblind-safe palette
+        TolBright,
+        /// Okabe & Ito colorblind-safe palette
+        OkabeIto,
+        /// Catppuccin Mocha palette
+        CatppuccinMocha,
+        /// Catppuccin Macchiato palette
+        CatppuccinMacchiato,
+        /// Catppuccin Frappe palette
+        CatppuccinFrappe,
+        /// Catppuccin Latte palette
+        CatppuccinLatte,
     }
 
-    /// The standard eidoplot color palette (10 colors)
-    pub fn standard() -> Palette {
-        Palette(vec![
-            ColorU8::from_html(b"#1f77b4"), // blue
-            ColorU8::from_html(b"#ff7f0e"), // orange
-            ColorU8::from_html(b"#2ca02c"), // green
-            ColorU8::from_html(b"#d62728"), // red
-            ColorU8::from_html(b"#9467bd"), // purple
-            ColorU8::from_html(b"#8c564b"), // brown
-            ColorU8::from_html(b"#e377c2"), // pink
-            ColorU8::from_html(b"#7f7f7f"), // gray
-            ColorU8::from_html(b"#bcbd22"), // olive
-            ColorU8::from_html(b"#17becf"), // cyan
-        ])
+    impl Palette for Builtin {
+        fn len(&self) -> usize {
+            match self {
+                Builtin::Black => BLACK.len(),
+                Builtin::Standard => STANDARD.len(),
+                Builtin::Pastel => PASTEL.len(),
+                Builtin::TolBright => TOL_BRIGHT.len(),
+                Builtin::OkabeIto => OKABE_ITO.len(),
+                Builtin::CatppuccinMocha => catppuccin::Mocha.len(),
+                Builtin::CatppuccinMacchiato => catppuccin::Macchiato.len(),
+                Builtin::CatppuccinFrappe => catppuccin::Frappe.len(),
+                Builtin::CatppuccinLatte => catppuccin::Latte.len(),
+            }
+        }
+
+        fn get(&self, color: super::IndexColor) -> ColorU8 {
+            match self {
+                Builtin::Black => BLACK[color.0 % BLACK.len()],
+                Builtin::Standard => STANDARD[color.0 % STANDARD.len()],
+                Builtin::Pastel => PASTEL[color.0 % PASTEL.len()],
+                Builtin::TolBright => TOL_BRIGHT[color.0 % TOL_BRIGHT.len()],
+                Builtin::OkabeIto => OKABE_ITO[color.0 % OKABE_ITO.len()],
+                Builtin::CatppuccinMocha => catppuccin::Mocha.get(color),
+                Builtin::CatppuccinMacchiato => catppuccin::Macchiato.get(color),
+                Builtin::CatppuccinFrappe => catppuccin::Frappe.get(color),
+                Builtin::CatppuccinLatte => catppuccin::Latte.get(color),
+            }
+        }
     }
 
-    /// The pastel eidoplot color palette (10 colors)
-    pub fn pastel() -> Palette {
-        Palette(vec![
-            ColorU8::from_html(b"#aec7e8"), // light blue
-            ColorU8::from_html(b"#ffbb78"), // light orange
-            ColorU8::from_html(b"#98df8a"), // light green
-            ColorU8::from_html(b"#ff9896"), // light red
-            ColorU8::from_html(b"#c5b0d5"), // light purple
-            ColorU8::from_html(b"#c49c94"), // light brown
-            ColorU8::from_html(b"#f7b6d2"), // light pink
-            ColorU8::from_html(b"#c7c7c7"), // light gray
-            ColorU8::from_html(b"#dbdb8d"), // light olive
-            ColorU8::from_html(b"#9edae5"), // light cyan
-        ])
+    /// A custom palette
+    #[derive(Debug, Clone)]
+    pub struct Custom(pub Vec<ColorU8>);
+
+    impl Palette for Custom {
+        fn len(&self) -> usize {
+            self.0.len()
+        }
+
+        fn get(&self, color: super::IndexColor) -> ColorU8 {
+            self.0[color.0 % self.len()]
+        }
     }
 
-    /// Paul Tol's 7-color colorblind-safe palette
-    pub fn tol_bright() -> Palette {
-        Palette(vec![
-            ColorU8::from_html(b"#4477AA"), // blue
-            ColorU8::from_html(b"#EE6677"), // red
-            ColorU8::from_html(b"#228833"), // green
-            ColorU8::from_html(b"#CCBB44"), // yellow
-            ColorU8::from_html(b"#66CCEE"), // cyan
-            ColorU8::from_html(b"#AA3377"), // purple
-            ColorU8::from_html(b"#BBBBBB"), // gray
-        ])
-    }
-
-    /// Okabe & Ito colorblind-safe palette (8 colors)
-    pub fn okabe_ito() -> Palette {
-        Palette(vec![
-            ColorU8::from_html(b"#E69F00"), // orange
-            ColorU8::from_html(b"#56B4E9"), // sky blue
-            ColorU8::from_html(b"#009E73"), // bluish green
-            ColorU8::from_html(b"#F0E442"), // yellow
-            ColorU8::from_html(b"#0072B2"), // blue
-            ColorU8::from_html(b"#D55E00"), // vermillion
-            ColorU8::from_html(b"#CC79A7"), // reddish purple
-        ])
-    }
+    const BLACK: &[ColorU8] = &[ColorU8::from_html(b"#000000")];
+    const STANDARD: &[ColorU8] = &[
+        ColorU8::from_html(b"#1f77b4"), // blue
+        ColorU8::from_html(b"#ff7f0e"), // orange
+        ColorU8::from_html(b"#2ca02c"), // green
+        ColorU8::from_html(b"#d62728"), // red
+        ColorU8::from_html(b"#9467bd"), // purple
+        ColorU8::from_html(b"#8c564b"), // brown
+        ColorU8::from_html(b"#e377c2"), // pink
+        ColorU8::from_html(b"#7f7f7f"), // gray
+        ColorU8::from_html(b"#bcbd22"), // olive
+        ColorU8::from_html(b"#17becf"), // cyan
+    ];
+    const PASTEL: &[ColorU8] = &[
+        ColorU8::from_html(b"#aec7e8"), // light blue
+        ColorU8::from_html(b"#ffbb78"), // light orange
+        ColorU8::from_html(b"#98df8a"), // light green
+        ColorU8::from_html(b"#ff9896"), // light red
+        ColorU8::from_html(b"#c5b0d5"), // light purple
+        ColorU8::from_html(b"#c49c94"), // light brown
+        ColorU8::from_html(b"#f7b6d2"), // light pink
+        ColorU8::from_html(b"#c7c7c7"), // light gray
+        ColorU8::from_html(b"#dbdb8d"), // light olive
+        ColorU8::from_html(b"#9edae5"), // light cyan
+    ];
+    const TOL_BRIGHT: &[ColorU8] = &[
+        ColorU8::from_html(b"#4477AA"), // blue
+        ColorU8::from_html(b"#EE6677"), // red
+        ColorU8::from_html(b"#228833"), // green
+        ColorU8::from_html(b"#CCBB44"), // yellow
+        ColorU8::from_html(b"#66CCEE"), // cyan
+        ColorU8::from_html(b"#AA3377"), // purple
+        ColorU8::from_html(b"#BBBBBB"), // gray
+    ];
+    const OKABE_ITO: &[ColorU8] = &[
+        ColorU8::from_html(b"#E69F00"), // orange
+        ColorU8::from_html(b"#56B4E9"), // sky blue
+        ColorU8::from_html(b"#009E73"), // bluish green
+        ColorU8::from_html(b"#F0E442"), // yellow
+        ColorU8::from_html(b"#0072B2"), // blue
+        ColorU8::from_html(b"#D55E00"), // vermillion
+        ColorU8::from_html(b"#CC79A7"), // reddish purple
+    ];
 }

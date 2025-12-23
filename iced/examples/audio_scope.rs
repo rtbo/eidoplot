@@ -7,7 +7,6 @@ use iced::futures::channel::mpsc;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{button, column, container, pick_list, row, space, text};
 use iced::{Alignment, Element, Length, Subscription, Task, event, stream, window};
-use iced_oplot::figure;
 use rustfft::FftPlanner;
 use rustfft::num_complex::Complex32;
 
@@ -638,10 +637,7 @@ impl AudioScope {
             column![host_row, device_row, bs_row, sr_row,],
         ];
         let plot: Element<'_, Message> = if let Some(fig) = &self.fig {
-            iced_oplot::Figure::new(&fig)
-                .scale(2.0)
-                .style(|theme| figure::map_theme(theme).into())
-                .into()
+            iced_oplot::Figure::new(&fig).scale(2.0).into()
         } else {
             text("No data")
                 .width(Length::Fill)

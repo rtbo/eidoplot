@@ -7,8 +7,9 @@ use std::fmt;
 
 use text::fontdb;
 
-use crate::style::{Theme, theme};
-use crate::{data, geom, ir, render, text};
+use crate::style::theme::Theme;
+use crate::style::{self, theme};
+use crate::{Style, data, geom, ir, render, text};
 
 mod axis;
 mod figure;
@@ -105,18 +106,20 @@ pub trait Drawing {
     /// Convenience method to prepare and draw a figure in one step.
     ///
     /// Panics if no font database is given and no bundled font feature is enabled.
-    fn draw<D, S>(
+    fn draw<D, S, T, P>(
         &self,
         data_source: &D,
         fontdb: Option<&fontdb::Database>,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
     ) -> Result<(), Error>
     where
         D: data::Source,
         S: render::Surface,
+        T: Theme,
+        P: style::series::Palette,
     {
-        self.prepare(data_source, fontdb)?.draw(surface, theme)
+        self.prepare(data_source, fontdb)?.draw(surface, style)
     }
 }
 
@@ -250,20 +253,21 @@ impl Text {
         })
     }
 
-    fn draw<S>(
+    fn draw<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         transform: Option<&geom::Transform>,
     ) -> Result<(), render::Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         for span in &self.spans {
             let rpath = render::Path {
                 path: &span.path,
-                fill: span.fill.as_ref().map(|f| f.as_paint(theme)),
-                stroke: span.stroke.as_ref().map(|s| s.as_stroke(theme)),
+                fill: span.fill.as_ref().map(|f| f.as_paint(style)),
+                stroke: span.stroke.as_ref().map(|s| s.as_stroke(style)),
                 transform,
             };
             surface.draw_path(&rpath)?;

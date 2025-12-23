@@ -1,8 +1,9 @@
 use crate::drawing::Text;
 use crate::geom::{Padding, Size};
-use crate::style::{Theme, defaults, theme};
+use crate::style::theme::Theme;
+use crate::style::{defaults, theme};
 use crate::text::{self, LineText, fontdb};
-use crate::{drawing, geom, ir, render, style};
+use crate::{Style, drawing, geom, ir, render, style};
 
 #[derive(Debug, Clone)]
 pub enum Shape {
@@ -205,27 +206,29 @@ impl Legend {
         self.size
     }
 
-    pub fn draw<S>(
+    pub fn draw<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         top_left: &geom::Point,
     ) -> Result<(), render::Error>
     where
         S: render::Surface,
+        T: Theme,
+        P: style::series::Palette,
     {
         let rect = geom::Rect::from_ps(*top_left, self.size);
         if self.fill.is_some() || self.border.is_some() {
             surface.draw_rect(&render::Rect {
                 rect,
-                fill: self.fill.map(|f| f.as_paint(theme)),
-                stroke: self.border.as_ref().map(|l| l.as_stroke(theme)),
+                fill: self.fill.map(|f| f.as_paint(style)),
+                stroke: self.border.as_ref().map(|l| l.as_stroke(style)),
                 transform: None,
             })?;
         }
 
         for entry in &self.entries {
-            entry.draw(surface, theme, &rect)?;
+            entry.draw(surface, style, &rect)?;
         }
 
         Ok(())
@@ -233,14 +236,16 @@ impl Legend {
 }
 
 impl LegendEntry {
-    fn draw<S>(
+    fn draw<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         rect: &geom::Rect,
     ) -> Result<(), render::Error>
     where
         S: render::Surface,
+        T: Theme,
+        P: style::series::Palette,
     {
         let rect = geom::Rect::from_xywh(
             rect.left() + self.x,
@@ -258,7 +263,7 @@ impl LegendEntry {
             shape_sz,
         );
 
-        let rc = (theme.palette(), self.index);
+        let rc = (style, self.index);
 
         match &self.shape {
             Shape::Line(line) => {
@@ -310,7 +315,7 @@ impl LegendEntry {
             rect.left() + shape_sz.width() + defaults::LEGEND_SHAPE_SPACING,
             rect.center_y(),
         );
-        self.text.draw(surface, theme, Some(&transform))?;
+        self.text.draw(surface, style, Some(&transform))?;
 
         Ok(())
     }

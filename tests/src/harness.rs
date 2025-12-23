@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use eidoplot::style::Theme;
-use eidoplot::{Drawing, ir};
+use eidoplot::style::series;
+use eidoplot::style::theme::Theme;
+use eidoplot::{Drawing, Style, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 
@@ -35,7 +36,10 @@ pub trait TestHarness {
         Path::new(tests_dir).join("failed").join(file_name)
     }
 
-    fn draw_fig(fig: &ir::Figure, theme: &Theme) -> Self::DrawnFig;
+    fn draw_fig<T, P>(fig: &ir::Figure, style: &Style<T, P>) -> Self::DrawnFig
+    where
+        T: Theme,
+        P: series::Palette;
 
     fn diff_fig(actual: &Self::DrawnFig, ref_: &Self::DrawnFig) -> Option<Self::DiffFig>;
 
@@ -45,12 +49,20 @@ pub trait TestHarness {
 
     fn regenerate_refs() -> bool;
 
-    fn check_fig_eq_ref(fig: &ir::Figure, ref_name: &str, theme: &Theme) -> Result<(), String> {
+    fn check_fig_eq_ref<T, P>(
+        fig: &ir::Figure,
+        ref_name: &str,
+        style: &Style<T, P>,
+    ) -> Result<(), String>
+    where
+        T: Theme,
+        P: series::Palette,
+    {
         let ref_file = Self::ref_file_path(&ref_name);
         let failed_file = Self::failed_file_path(&ref_name);
         let failed_diff_file = Self::failed_diff_file_path(&ref_name);
 
-        let actual_fig = Self::draw_fig(fig, theme);
+        let actual_fig = Self::draw_fig(fig, style);
 
         if Self::regenerate_refs() {
             std::fs::create_dir_all(ref_file.parent().unwrap()).unwrap();
@@ -122,10 +134,14 @@ impl TestHarness for PxlHarness {
         "-diff.png"
     }
 
-    fn draw_fig(fig: &ir::Figure, theme: &Theme) -> Self::DrawnFig {
+    fn draw_fig<T, P>(fig: &ir::Figure, style: &Style<T, P>) -> Self::DrawnFig
+    where
+        T: Theme,
+        P: series::Palette,
+    {
         let size = fig.size();
         let mut pxl = PxlSurface::new(size.width() as u32, size.height() as u32).unwrap();
-        fig.draw(&(), None, &mut pxl, theme).unwrap();
+        fig.draw(&(), None, &mut pxl, style).unwrap();
         pxl.into_pixmap()
     }
 
@@ -182,10 +198,14 @@ impl TestHarness for SvgHarness {
         ".svg.diff"
     }
 
-    fn draw_fig(fig: &ir::Figure, theme: &Theme) -> Self::DrawnFig {
+    fn draw_fig<T, P>(fig: &ir::Figure, style: &Style<T, P>) -> Self::DrawnFig
+    where
+        T: Theme,
+        P: series::Palette,
+    {
         let size = fig.size();
         let mut svg = SvgSurface::new(size.width() as u32, size.height() as u32);
-        fig.draw(&(), None, &mut svg, theme).unwrap();
+        fig.draw(&(), None, &mut svg, style).unwrap();
         let mut buf = Vec::new();
         svg.write(&mut buf).unwrap();
         String::from_utf8(buf).unwrap()

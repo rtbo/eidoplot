@@ -8,9 +8,9 @@ pub use side::Side;
 
 use crate::drawing::scale::{self, CoordMap};
 use crate::drawing::{Categories, Ctx, Error, Text, ticks};
-use crate::style::{Theme, theme};
+use crate::style::theme::{self, Theme};
 use crate::text::{self, font};
-use crate::{data, geom, ir, missing_params, render};
+use crate::{Style, data, geom, ir, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub struct Axis {
@@ -573,14 +573,15 @@ fn tick_loc_is_close(a: f64, b: f64) -> bool {
 }
 
 impl Axis {
-    pub fn draw_minor_grids<S>(
+    pub fn draw_minor_grids<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         plot_rect: &geom::Rect,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         let AxisScale::Num {
             cm, minor_ticks, ..
@@ -595,7 +596,7 @@ impl Axis {
                     2 * minor_ticks.locs.len(),
                     2 * minor_ticks.locs.len(),
                 );
-                let stroke = Some(grid.as_stroke(theme));
+                let stroke = Some(grid.as_stroke(style));
                 for t in minor_ticks.locs.iter().copied() {
                     let (p1, p2) = self.side.grid_line_points(t, &**cm, plot_rect);
                     pathb.move_to(p1.x, p1.y);
@@ -615,14 +616,15 @@ impl Axis {
         Ok(())
     }
 
-    pub fn draw_major_grids<S>(
+    pub fn draw_major_grids<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         plot_rect: &geom::Rect,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         let AxisScale::Num { cm, ticks, .. } = self.scale.as_ref() else {
             return Ok(());
@@ -631,7 +633,7 @@ impl Axis {
             if let Some(grid) = &self.draw_opts.grid {
                 let mut pathb =
                     geom::PathBuilder::with_capacity(2 * ticks.ticks.len(), 2 * ticks.ticks.len());
-                let stroke = Some(grid.as_stroke(theme));
+                let stroke = Some(grid.as_stroke(style));
                 for t in ticks.ticks.iter() {
                     let (p1, p2) = self.side.grid_line_points(t.loc, &**cm, plot_rect);
                     pathb.move_to(p1.x, p1.y);
@@ -651,17 +653,18 @@ impl Axis {
         Ok(())
     }
 
-    pub fn draw<S>(
+    pub fn draw<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         plot_rect: &geom::Rect,
     ) -> Result<f32, Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         if let Some(spine) = self.draw_opts.spine.as_ref() {
-            self.draw_spine(surface, theme, plot_rect, spine)?;
+            self.draw_spine(surface, style, plot_rect, spine)?;
         }
 
         let mut shift_across = match self.scale.as_ref() {
@@ -674,7 +677,7 @@ impl Axis {
                 if let Some(minor_ticks) = minor_ticks.as_ref() {
                     shift = shift.max(self.draw_minor_ticks(
                         surface,
-                        theme,
+                        style,
                         &**cm,
                         minor_ticks,
                         plot_rect,
@@ -682,13 +685,13 @@ impl Axis {
                 }
                 if let Some(ticks) = ticks {
                     shift =
-                        shift.max(self.draw_major_ticks(surface, theme, &**cm, ticks, plot_rect)?);
+                        shift.max(self.draw_major_ticks(surface, style, &**cm, ticks, plot_rect)?);
                 }
                 shift
             }
             AxisScale::Cat { bins, ticks, .. } => {
                 if let Some(ticks) = ticks {
-                    self.draw_category_ticks(surface, theme, bins, ticks, plot_rect)?
+                    self.draw_category_ticks(surface, style, bins, ticks, plot_rect)?
                 } else {
                     0.0
                 }
@@ -698,30 +701,31 @@ impl Axis {
         if let Some(title) = self.draw_opts.title.as_ref() {
             shift_across += missing_params::AXIS_TITLE_MARGIN;
             let transform = self.side.title_transform(shift_across, plot_rect);
-            title.draw(surface, theme, Some(&transform))?;
+            title.draw(surface, style, Some(&transform))?;
             // vertical titles are rotated, so it is always the height that is relevant here.
             shift_across += title.bbox.height();
         }
         Ok(shift_across)
     }
 
-    fn draw_major_ticks<S>(
+    fn draw_major_ticks<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         cm: &dyn CoordMap,
         ticks: &NumTicks,
         plot_rect: &geom::Rect,
     ) -> Result<f32, Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         let mut shift_across = 0.0;
 
         if let Some(mark) = self.draw_opts.marks.as_ref() {
             let transform = self.side.ticks_marks_transform(plot_rect);
             let ticks = ticks.ticks.iter().map(|t| cm.map_coord_num(t.loc));
-            shift_across += self.draw_ticks_marks(surface, theme, ticks, mark, &transform)?
+            shift_across += self.draw_ticks_marks(surface, style, ticks, mark, &transform)?
         }
 
         if !self.draw_opts.ticks_labels {
@@ -739,29 +743,30 @@ impl Axis {
             let transform = self
                 .side
                 .tick_label_transform(pos_along, shift_across, plot_rect);
-            t.lbl.draw(surface, theme, Some(&transform))?;
+            t.lbl.draw(surface, style, Some(&transform))?;
         }
 
         shift_across += max_lbl_size;
 
         if let Some(annot) = ticks.annot.as_ref() {
             let transform = self.side.annot_transform(shift_across, plot_rect);
-            annot.draw(surface, theme, Some(&transform))?;
+            annot.draw(surface, style, Some(&transform))?;
         }
         Ok(shift_across)
     }
 
-    fn draw_spine<S>(
+    fn draw_spine<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         plot_rect: &geom::Rect,
         spine: &ir::plot::Border,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
     {
-        let stroke = spine.line().as_stroke(theme);
+        let stroke = spine.line().as_stroke(style);
         let path = self.side.spine_path(plot_rect, spine);
         let rpath = render::Path {
             path: &path,
@@ -773,16 +778,17 @@ impl Axis {
         Ok(())
     }
 
-    fn draw_minor_ticks<S>(
+    fn draw_minor_ticks<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         cm: &dyn CoordMap,
         minor_ticks: &MinorTicks,
         plot_rect: &geom::Rect,
     ) -> Result<f32, Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         let Some(mark) = self.draw_opts.minor_marks.as_ref() else {
             return Ok(0.0);
@@ -793,24 +799,25 @@ impl Axis {
             .iter()
             .copied()
             .map(|t| cm.map_coord_num(t));
-        self.draw_ticks_marks(surface, theme, ticks, mark, &transform)
+        self.draw_ticks_marks(surface, style, ticks, mark, &transform)
     }
 
-    fn draw_category_ticks<S>(
+    fn draw_category_ticks<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         bins: &CategoryBins,
         ticks: &CategoryTicks,
         plot_rect: &geom::Rect,
     ) -> Result<f32, Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         if let Some(sep) = ticks.sep.as_ref() {
             let locs = (0..bins.len() + 1).map(|i| bins.sep_location(i));
             let transform = self.side.ticks_marks_transform(plot_rect);
-            self.draw_ticks_marks(surface, theme, locs, sep, &transform)?;
+            self.draw_ticks_marks(surface, style, locs, sep, &transform)?;
         }
         // tick marks are separators, so not counted in shift_across, because not supposed to overlap
         let shift_across = missing_params::TICK_LABEL_MARGIN;
@@ -825,17 +832,17 @@ impl Axis {
             let transform = self
                 .side
                 .tick_label_transform(pos_along, shift_across, plot_rect);
-            lbl.draw(surface, theme, Some(&transform))?;
+            lbl.draw(surface, style, Some(&transform))?;
         }
 
         Ok(shift_across + max_lbl_size)
     }
 
     // return shift across axis (distance to get away from axis to avoid collision)
-    fn draw_ticks_marks<S, I>(
+    fn draw_ticks_marks<S, I, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         ticks: I,
         mark: &TickMark,
         transform: &geom::Transform,
@@ -843,6 +850,7 @@ impl Axis {
     where
         S: render::Surface,
         I: Iterator<Item = f32>,
+        T: Theme,
     {
         let mut pb = geom::PathBuilder::new();
         for t in ticks {
@@ -853,7 +861,7 @@ impl Axis {
         let rpath = render::Path {
             path: &path,
             fill: None,
-            stroke: Some(mark.line.as_stroke(theme)),
+            stroke: Some(mark.line.as_stroke(style)),
             transform: Some(transform),
         };
         surface.draw_path(&rpath)?;

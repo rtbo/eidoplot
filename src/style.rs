@@ -4,10 +4,171 @@ pub(crate) mod defaults;
 pub mod series;
 pub mod theme;
 
-pub use series::Palette;
-pub use theme::Theme;
+use crate::style::theme::Theme;
+use crate::{Color, ColorU8, ResolveColor, render};
 
-use crate::{Color, ResolveColor, render};
+/// Overall style definition for figures
+///
+/// The style gathers together two main components:
+/// - The theme, which defines colors for the figure background, foreground, grid lines, and legend.
+/// - The palette, which defines colors for data series.
+#[derive(Debug, Clone)]
+pub struct Style<T = theme::Builtin, P = series::palette::Builtin> {
+    /// Theme used for the figure
+    pub theme: T,
+    /// Palette used for series colors
+    pub palette: P,
+}
+
+/// Type alias for a style with built-in theme and palette
+pub type BuiltinStyle = Style<theme::Builtin, series::palette::Builtin>;
+/// Type alias for a style with custom theme and palette
+pub type CustomStyle = Style<theme::Custom, series::palette::Custom>;
+
+impl<T, P> Style<T, P> {
+    /// Create a new style from the given theme and palette
+    pub fn new(theme: T, palette: P) -> Self {
+        Style { theme, palette }
+    }
+
+    /// Create a built-in style
+    pub fn builtin(builtin: Builtin) -> BuiltinStyle {
+        builtin.to_style()
+    }
+
+    /// Create a custom style
+    pub fn custom(theme: theme::Custom, palette: series::palette::Custom) -> CustomStyle {
+        Style { theme, palette }
+    }
+
+    /// Convert this style into a custom style
+    pub fn to_custom(&self) -> CustomStyle
+    where
+        T: theme::Theme,
+        P: series::Palette,
+    {
+        CustomStyle {
+            theme: self.theme.to_custom(),
+            palette: self.palette.to_custom(),
+        }
+    }
+}
+
+impl<T, P> ResolveColor<theme::Color> for Style<T, P>
+where
+    T: Theme,
+{
+    fn resolve_color(&self, col: &theme::Color) -> ColorU8 {
+        match col {
+            theme::Color::Theme(theme::Col::Background) => self.theme.background(),
+            theme::Color::Theme(theme::Col::Foreground) => self.theme.foreground(),
+            theme::Color::Theme(theme::Col::Grid) => self.theme.grid(),
+            theme::Color::Theme(theme::Col::LegendFill) => self.theme.legend_fill(),
+            theme::Color::Theme(theme::Col::LegendBorder) => self.theme.legend_border(),
+            theme::Color::Fixed(c) => *c,
+        }
+    }
+}
+
+impl<T, P> ResolveColor<series::IndexColor> for Style<T, P>
+where
+    P: series::Palette,
+{
+    fn resolve_color(&self, col: &series::IndexColor) -> ColorU8 {
+        self.palette.get(*col)
+    }
+}
+
+impl<T, P> ResolveColor<series::AutoColor> for (&Style<T, P>, usize)
+where
+    P: series::Palette,
+{
+    fn resolve_color(&self, _col: &series::AutoColor) -> ColorU8 {
+        self.0.palette.get(series::IndexColor(self.1))
+    }
+}
+
+impl<T, P> ResolveColor<series::Color> for (&Style<T, P>, usize)
+where
+    P: series::Palette,
+{
+    fn resolve_color(&self, col: &series::Color) -> ColorU8 {
+        match col {
+            series::Color::Auto => self.0.palette.get(series::IndexColor(self.1)),
+            series::Color::Index(idx) => self.0.palette.get(*idx),
+            series::Color::Fixed(c) => *c,
+        }
+    }
+}
+
+/// Symbolic constants for Built-in styles available in Eidoplot
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum Builtin {
+    /// Black and white monochrome style
+    /// If you use this with multiple series, consider styling the series lines with different patterns to distinguish them
+    BlackWhite,
+    #[default]
+    /// Light style
+    Light,
+    /// Dark style
+    Dark,
+    /// Okabe & Ito colorblind-safe style
+    OkabeIto,
+    /// Paul Tol's bright colorblind-safe style
+    TolBright,
+    /// Catppuccin Mocha style
+    CatppuccinMocha,
+    /// Catppuccin Macchiato style
+    CatppuccinMacchiato,
+    /// Catppuccin Frappe style
+    CatppuccinFrappe,
+    /// Catppuccin Latte style
+    CatppuccinLatte,
+}
+
+impl Builtin {
+    /// Generate a style from the built-in style enum
+    pub fn to_style(self) -> BuiltinStyle {
+        match self {
+            Builtin::BlackWhite => Style {
+                theme: theme::Builtin::Light,
+                palette: series::palette::Builtin::Black,
+            },
+            Builtin::Light => Style {
+                theme: theme::Builtin::Light,
+                palette: series::palette::Builtin::Standard,
+            },
+            Builtin::Dark => Style {
+                theme: theme::Builtin::Dark,
+                palette: series::palette::Builtin::Pastel,
+            },
+            Builtin::OkabeIto => Style {
+                theme: theme::Builtin::Light,
+                palette: series::palette::Builtin::OkabeIto,
+            },
+            Builtin::TolBright => Style {
+                theme: theme::Builtin::Light,
+                palette: series::palette::Builtin::TolBright,
+            },
+            Builtin::CatppuccinMocha => Style {
+                theme: theme::Builtin::CatppuccinMocha,
+                palette: series::palette::Builtin::CatppuccinMocha,
+            },
+            Builtin::CatppuccinMacchiato => Style {
+                theme: theme::Builtin::CatppuccinMacchiato,
+                palette: series::palette::Builtin::CatppuccinMacchiato,
+            },
+            Builtin::CatppuccinFrappe => Style {
+                theme: theme::Builtin::CatppuccinFrappe,
+                palette: series::palette::Builtin::CatppuccinFrappe,
+            },
+            Builtin::CatppuccinLatte => Style {
+                theme: theme::Builtin::CatppuccinLatte,
+                palette: series::palette::Builtin::CatppuccinLatte,
+            },
+        }
+    }
+}
 
 /// Dash pattern for dashed lines
 /// A dash pattern is a sequence of lengths that specify the lengths of
@@ -288,18 +449,18 @@ mod tests {
 
     #[test]
     fn test_color_resolve() {
-        let theme = theme::light(series::palettes::standard());
+        let style = Builtin::Light.to_style();
 
         let theme_line: theme::Line = (theme::Color::Theme(theme::Col::LegendBorder), 2.0).into();
-        let stroke = theme_line.as_stroke(&theme);
+        let stroke = theme_line.as_stroke(&style);
         assert_eq!(stroke.color, ColorU8::from_html(b"#000000"));
 
         let series_line: Line<series::IndexColor> = (series::IndexColor(2), 2.0).into();
-        let stroke = series_line.as_stroke(theme.palette());
+        let stroke = series_line.as_stroke(&style);
         assert_eq!(stroke.color, ColorU8::from_html(b"#2ca02c"));
 
         let series_line: Line<series::AutoColor> = (series::AutoColor, 2.0).into();
-        let stroke = series_line.as_stroke(&(theme.palette(), 2));
+        let stroke = series_line.as_stroke(&(&style, 2));
         assert_eq!(stroke.color, ColorU8::from_html(b"#2ca02c"));
 
         let fixed_color: Line<ColorU8> = (ColorU8::from_html(b"#123456"), 2.0).into();

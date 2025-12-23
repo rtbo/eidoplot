@@ -1,23 +1,24 @@
 //! Theme definitions and implementations
+
 use crate::color::{self, ColorU8};
-use crate::style::series::{Palette, palettes};
+use crate::style::catppuccin;
 use crate::{style, text};
 
-/// A trait for mapping theme elements to colors
-pub trait ThemeMap {
+/// A trait for theming figures
+pub trait Theme {
     /// Return true if the theme is dark
     fn is_dark(&self) -> bool {
         self.background().luminance() < 0.5
     }
 
-    /// Get the background color
+    /// Get the theme background color
     fn background(&self) -> ColorU8;
 
-    /// Get the foreground color.
+    /// Get the theme foreground color
     /// That is, the main text and line color.
     fn foreground(&self) -> ColorU8;
 
-    /// Get the grid line color
+    /// Get the theme grid line color
     fn grid(&self) -> ColorU8;
 
     /// Get the legend background fill color
@@ -30,91 +31,152 @@ pub trait ThemeMap {
         self.foreground()
     }
 
-    /// Convert the theme map into a palette
-    fn into_palette(self) -> Palette;
-}
-
-/// A complete theme definition
-#[derive(Debug, Clone)]
-pub struct Theme {
-    background: ColorU8,
-    foreground: ColorU8,
-    grid: ColorU8,
-    legend_fill: ColorU8,
-    legend_border: ColorU8,
-
-    is_dark: bool,
-    palette: Palette,
-}
-
-impl Default for Theme {
-    fn default() -> Self {
-        light(Palette::default())
+    /// Convert the theme into a Custom theme
+    fn to_custom(&self) -> Custom {
+        Custom {
+            background: self.background(),
+            foreground: self.foreground(),
+            grid: self.grid(),
+            legend_fill: self.legend_fill(),
+            legend_border: self.legend_border(),
+        }
     }
 }
 
-impl<M> From<M> for Theme
-where
-    M: ThemeMap,
-{
-    fn from(map: M) -> Self {
+/// Eidoplot built-in themes
+#[derive(Debug, Clone, Copy, Default)]
+pub enum Builtin {
+    #[default]
+    /// Light theme
+    Light,
+    /// Dark theme
+    Dark,
+    /// Catppuccin Mocha theme
+    CatppuccinMocha,
+    /// Catppuccin Macchiato theme
+    CatppuccinMacchiato,
+    /// Catppuccin Frappe theme
+    CatppuccinFrappe,
+    /// Catppuccin Latte theme
+    CatppuccinLatte,
+}
+
+impl Theme for Builtin {
+    fn background(&self) -> ColorU8 {
+        match self {
+            Builtin::Light => Light.background(),
+            Builtin::Dark => Dark.background(),
+            Builtin::CatppuccinMocha => catppuccin::Mocha.background(),
+            Builtin::CatppuccinMacchiato => catppuccin::Macchiato.background(),
+            Builtin::CatppuccinFrappe => catppuccin::Frappe.background(),
+            Builtin::CatppuccinLatte => catppuccin::Latte.background(),
+        }
+    }
+
+    fn foreground(&self) -> ColorU8 {
+        match self {
+            Builtin::Light => Light.foreground(),
+            Builtin::Dark => Dark.foreground(),
+            Builtin::CatppuccinMocha => catppuccin::Mocha.foreground(),
+            Builtin::CatppuccinMacchiato => catppuccin::Macchiato.foreground(),
+            Builtin::CatppuccinFrappe => catppuccin::Frappe.foreground(),
+            Builtin::CatppuccinLatte => catppuccin::Latte.foreground(),
+        }
+    }
+
+    fn grid(&self) -> ColorU8 {
+        match self {
+            Builtin::Light => Light.grid(),
+            Builtin::Dark => Dark.grid(),
+            Builtin::CatppuccinMocha => catppuccin::Mocha.grid(),
+            Builtin::CatppuccinMacchiato => catppuccin::Macchiato.grid(),
+            Builtin::CatppuccinFrappe => catppuccin::Frappe.grid(),
+            Builtin::CatppuccinLatte => catppuccin::Latte.grid(),
+        }
+    }
+
+    fn legend_fill(&self) -> ColorU8 {
+        match self {
+            Builtin::Light => Light.legend_fill(),
+            Builtin::Dark => Dark.legend_fill(),
+            Builtin::CatppuccinMocha => catppuccin::Mocha.legend_fill(),
+            Builtin::CatppuccinMacchiato => catppuccin::Macchiato.legend_fill(),
+            Builtin::CatppuccinFrappe => catppuccin::Frappe.legend_fill(),
+            Builtin::CatppuccinLatte => catppuccin::Latte.legend_fill(),
+        }
+    }
+
+    fn legend_border(&self) -> ColorU8 {
+        match self {
+            Builtin::Light => Light.legend_border(),
+            Builtin::Dark => Dark.legend_border(),
+            Builtin::CatppuccinMocha => catppuccin::Mocha.legend_border(),
+            Builtin::CatppuccinMacchiato => catppuccin::Macchiato.legend_border(),
+            Builtin::CatppuccinFrappe => catppuccin::Frappe.legend_border(),
+            Builtin::CatppuccinLatte => catppuccin::Latte.legend_border(),
+        }
+    }
+}
+
+/// A custom theme definition
+#[derive(Debug, Clone, Copy)]
+pub struct Custom {
+    /// Background color
+    pub background: ColorU8,
+    /// Foreground color
+    pub foreground: ColorU8,
+    /// Grid line color
+    pub grid: ColorU8,
+    /// Legend background fill color
+    pub legend_fill: ColorU8,
+    /// Legend border color
+    pub legend_border: ColorU8,
+}
+
+impl Custom {
+    /// Create a new custom theme from background and foreground colors
+    /// The grid, legend fill and legend border colors are derived automatically.
+    pub fn new_back_and_fore(background: ColorU8, foreground: ColorU8) -> Self {
+        let grid = if background.luminance() < 0.5 {
+            // Dark background
+            ColorU8::from_rgb(192, 192, 192).with_opacity(0.6)
+        } else {
+            // Light background
+            ColorU8::from_rgb(128, 128, 128).with_opacity(0.6)
+        };
+
+        let legend_fill = background.with_opacity(0.5);
+        let legend_border = foreground;
+
         Self {
-            background: map.background(),
-            foreground: map.foreground(),
-            grid: map.grid(),
-            legend_fill: map.legend_fill(),
-            legend_border: map.legend_border(),
-            is_dark: map.is_dark(),
-            palette: map.into_palette(),
+            background,
+            foreground,
+            grid,
+            legend_fill,
+            legend_border,
         }
     }
 }
 
-impl Theme {
-    /// Check if the theme is dark
-    pub fn is_dark(&self) -> bool {
-        self.is_dark
-    }
-
-    /// Get the color for a given theme element
-    pub fn get(&self, col: Col) -> ColorU8 {
-        match col {
-            Col::Background => self.background(),
-            Col::Foreground => self.foreground(),
-            Col::Grid => self.grid(),
-            Col::LegendFill => self.legend_fill(),
-            Col::LegendBorder => self.legend_border(),
-        }
-    }
-
-    /// Get the palette associated with the theme
-    pub fn background(&self) -> ColorU8 {
+impl Theme for Custom {
+    fn background(&self) -> ColorU8 {
         self.background
     }
 
-    /// Get the foreground color
-    pub fn foreground(&self) -> ColorU8 {
+    fn foreground(&self) -> ColorU8 {
         self.foreground
     }
 
-    /// Get the grid line color
-    pub fn grid(&self) -> ColorU8 {
+    fn grid(&self) -> ColorU8 {
         self.grid
     }
 
-    /// Get the legend fill color
-    pub fn legend_fill(&self) -> ColorU8 {
+    fn legend_fill(&self) -> ColorU8 {
         self.legend_fill
     }
 
-    /// Get the legend border color
-    pub fn legend_border(&self) -> ColorU8 {
+    fn legend_border(&self) -> ColorU8 {
         self.legend_border
-    }
-
-    /// Get the palette associated with the theme
-    pub fn palette(&self) -> &Palette {
-        &self.palette
     }
 }
 
@@ -134,12 +196,6 @@ pub enum Col {
 }
 
 impl super::Color for Col {}
-
-impl super::ResolveColor<Col> for Theme {
-    fn resolve_color(&self, color: &Col) -> ColorU8 {
-        self.get(*color)
-    }
-}
 
 impl std::str::FromStr for Col {
     type Err = ();
@@ -197,15 +253,6 @@ impl text::rich::Foreground for Color {
     }
 }
 
-impl super::ResolveColor<Color> for Theme {
-    fn resolve_color(&self, color: &Color) -> ColorU8 {
-        match color {
-            Color::Theme(col) => self.get(*col),
-            Color::Fixed(c) => *c,
-        }
-    }
-}
-
 /// Line style for theme elements
 pub type Line = style::Line<Color>;
 
@@ -236,35 +283,10 @@ impl From<Col> for Fill {
     }
 }
 
-/// Build the black on white thelme
-pub fn black_white() -> Theme {
-    Light(palettes::black()).into()
-}
-
-/// Build the default light theme
-pub fn standard_light() -> Theme {
-    Light(palettes::standard()).into()
-}
-
-/// Build a light theme with the given palette
-pub fn light(palette: Palette) -> Theme {
-    Light(palette).into()
-}
-
-/// Build the default dark theme
-pub fn standard_dark() -> Theme {
-    Dark(palettes::pastel()).into()
-}
-
-/// Build a dark theme with the given palette
-pub fn dark(palette: Palette) -> Theme {
-    Dark(palette).into()
-}
-
 #[derive(Debug, Clone)]
-struct Light(Palette);
+struct Light;
 
-impl ThemeMap for Light {
+impl Theme for Light {
     fn is_dark(&self) -> bool {
         false
     }
@@ -288,16 +310,12 @@ impl ThemeMap for Light {
     fn legend_border(&self) -> ColorU8 {
         ColorU8::from_rgb(0, 0, 0)
     }
-
-    fn into_palette(self) -> Palette {
-        self.0
-    }
 }
 
 #[derive(Debug, Clone)]
-struct Dark(Palette);
+struct Dark;
 
-impl ThemeMap for Dark {
+impl Theme for Dark {
     fn is_dark(&self) -> bool {
         true
     }
@@ -320,9 +338,5 @@ impl ThemeMap for Dark {
 
     fn legend_border(&self) -> ColorU8 {
         ColorU8::from_rgb(255, 255, 255)
-    }
-
-    fn into_palette(self) -> Palette {
-        self.0
     }
 }

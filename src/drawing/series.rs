@@ -3,8 +3,8 @@ use scale::{CoordMap, CoordMapXy};
 
 use crate::drawing::plot::Orientation;
 use crate::drawing::{Categories, ColumnExt, Error, F64ColumnExt, axis, legend, marker, scale};
-use crate::style::Theme;
-use crate::{data, geom, ir, render};
+use crate::style::series::Palette;
+use crate::{Style, data, geom, ir, render};
 
 /// trait implemented by series, or any other item that
 /// has to populate the legend
@@ -256,23 +256,24 @@ impl Series {
 }
 
 impl Series {
-    pub fn draw<S>(
+    pub fn draw<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         ir_series: &ir::Series,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        P: Palette,
     {
         match (&self.0, &ir_series) {
-            (SeriesPlot::Line(xy), ir::Series::Line(ir)) => xy.draw(surface, theme, ir),
-            (SeriesPlot::Scatter(sc), ir::Series::Scatter(ir)) => sc.draw(surface, theme, ir),
+            (SeriesPlot::Line(xy), ir::Series::Line(ir)) => xy.draw(surface, style, ir),
+            (SeriesPlot::Scatter(sc), ir::Series::Scatter(ir)) => sc.draw(surface, style, ir),
             (SeriesPlot::Histogram(hist), ir::Series::Histogram(ir)) => {
-                hist.draw(surface, theme, ir)
+                hist.draw(surface, style, ir)
             }
-            (SeriesPlot::Bars(bars), ir::Series::Bars(ir)) => bars.draw(surface, theme, ir),
-            (SeriesPlot::BarsGroup(bg), ir::Series::BarsGroup(ir)) => bg.draw(surface, theme, ir),
+            (SeriesPlot::Bars(bars), ir::Series::Bars(ir)) => bars.draw(surface, style, ir),
+            (SeriesPlot::BarsGroup(bg), ir::Series::BarsGroup(ir)) => bg.draw(surface, style, ir),
             _ => unreachable!("Should be the same plot type"),
         }
     }
@@ -339,11 +340,17 @@ impl Line {
         self.path = Some(pb.finish().expect("Should be a valid path"));
     }
 
-    fn draw<S>(&self, surface: &mut S, theme: &Theme, ir: &ir::series::Line) -> Result<(), Error>
+    fn draw<S, T, P>(
+        &self,
+        surface: &mut S,
+        style: &Style<T, P>,
+        ir: &ir::series::Line,
+    ) -> Result<(), Error>
     where
         S: render::Surface,
+        P: Palette,
     {
-        let rc = (theme.palette(), self.index);
+        let rc = (style, self.index);
 
         let path = render::Path {
             path: self.path.as_ref().unwrap(),
@@ -408,11 +415,17 @@ impl Scatter {
         self.points = points;
     }
 
-    fn draw<S>(&self, surface: &mut S, theme: &Theme, ir: &ir::series::Scatter) -> Result<(), Error>
+    fn draw<S, T, P>(
+        &self,
+        surface: &mut S,
+        style: &Style<T, P>,
+        ir: &ir::series::Scatter,
+    ) -> Result<(), Error>
     where
         S: render::Surface,
+        P: Palette,
     {
-        let rc = (theme.palette(), self.index);
+        let rc = (style, self.index);
 
         for p in &self.points {
             let transform = geom::Transform::from_translate(p.x, p.y);
@@ -519,16 +532,17 @@ impl Histogram {
         self.path = Some(path);
     }
 
-    fn draw<S>(
+    fn draw<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         ir: &ir::series::Histogram,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        P: Palette,
     {
-        let rc = (theme.palette(), self.index);
+        let rc = (style, self.index);
 
         let path = render::Path {
             path: self.path.as_ref().unwrap(),
@@ -652,11 +666,17 @@ impl Bars {
         self.path = Some(path);
     }
 
-    fn draw<S>(&self, surface: &mut S, theme: &Theme, ir: &ir::series::Bars) -> Result<(), Error>
+    fn draw<S, T, P>(
+        &self,
+        surface: &mut S,
+        style: &Style<T, P>,
+        ir: &ir::series::Bars,
+    ) -> Result<(), Error>
     where
         S: render::Surface,
+        P: Palette,
     {
-        let rc = (theme.palette(), self.index);
+        let rc = (style, self.index);
 
         let path = render::Path {
             path: self.path.as_ref().unwrap(),
@@ -866,19 +886,20 @@ impl BarsGroup {
         paths
     }
 
-    fn draw<S>(
+    fn draw<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         ir: &ir::series::BarsGroup,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        P: Palette,
     {
         let mut col_idx = self.fst_index;
 
         for (series, path) in ir.series().iter().zip(self.series_paths.iter()) {
-            let rc = (theme.palette(), col_idx);
+            let rc = (style, col_idx);
             col_idx += 1;
 
             let rpath = render::Path {

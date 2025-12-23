@@ -6,8 +6,10 @@ use crate::drawing::scale::CoordMapXy;
 use crate::drawing::series::{self, Series, SeriesExt};
 use crate::drawing::{Ctx, Error};
 use crate::ir::plot::PlotLine;
-use crate::style::{Theme, defaults};
-use crate::{data, geom, ir, missing_params, render};
+use crate::style::defaults;
+use crate::style::series::Palette;
+use crate::style::theme::Theme;
+use crate::{Style, data, geom, ir, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub struct Plots {
@@ -743,18 +745,20 @@ impl Plots {
         Ok(())
     }
 
-    pub fn draw<S>(
+    pub fn draw<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         ir_plots: &ir::figure::Plots,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
+        P: Palette,
     {
         for (plot, ir_plot) in self.plots.iter().zip(ir_plots.plots()) {
             if let (Some(plot), Some(ir_plot)) = (plot.as_ref(), ir_plot) {
-                plot.draw(surface, theme, ir_plot)?;
+                plot.draw(surface, style, ir_plot)?;
             }
         }
         Ok(())
@@ -787,45 +791,53 @@ impl Plot {
         Ok(())
     }
 
-    fn draw<S>(&self, surface: &mut S, theme: &Theme, ir_plot: &ir::Plot) -> Result<(), Error>
+    fn draw<S, T, P>(
+        &self,
+        surface: &mut S,
+        style: &Style<T, P>,
+        ir_plot: &ir::Plot,
+    ) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
+        P: Palette,
     {
-        self.draw_background(surface, theme, ir_plot)?;
+        self.draw_background(surface, style, ir_plot)?;
         let Some(axes) = &self.axes else {
-            self.draw_border_box(surface, theme, ir_plot.border())?;
+            self.draw_border_box(surface, style, ir_plot.border())?;
             return Ok(());
         };
 
-        axes.draw_grids(surface, theme, &self.plot_rect)?;
+        axes.draw_grids(surface, style, &self.plot_rect)?;
 
-        self.draw_lines(surface, theme, axes, ir_plot, false)?;
-        self.draw_series(surface, theme, ir_plot.series())?;
-        self.draw_lines(surface, theme, axes, ir_plot, true)?;
+        self.draw_lines(surface, style, axes, ir_plot, false)?;
+        self.draw_series(surface, style, ir_plot.series())?;
+        self.draw_lines(surface, style, axes, ir_plot, true)?;
 
-        axes.draw(surface, theme, &self.plot_rect)?;
-        self.draw_border_box(surface, theme, ir_plot.border())?;
+        axes.draw(surface, style, &self.plot_rect)?;
+        self.draw_border_box(surface, style, ir_plot.border())?;
 
         if let Some((top_left, leg)) = self.legend.as_ref() {
-            leg.draw(surface, theme, top_left)?;
+            leg.draw(surface, style, top_left)?;
         }
 
         Ok(())
     }
 
-    fn draw_background<S>(
+    fn draw_background<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         ir_plot: &ir::Plot,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         if let Some(fill) = ir_plot.fill() {
             surface.draw_rect(&render::Rect {
                 rect: self.plot_rect,
-                fill: Some(fill.as_paint(theme)),
+                fill: Some(fill.as_paint(style)),
                 stroke: None,
                 transform: None,
             })?;
@@ -833,14 +845,15 @@ impl Plot {
         Ok(())
     }
 
-    fn draw_border_box<S>(
+    fn draw_border_box<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         border: Option<&ir::plot::Border>,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         // border is drawn by plot only when it is a box
         // otherwise, axes draw the border as spines
@@ -851,7 +864,7 @@ impl Plot {
                 surface.draw_rect(&render::Rect {
                     rect,
                     fill: None,
-                    stroke: Some(stroke.as_stroke(theme)),
+                    stroke: Some(stroke.as_stroke(style)),
                     transform: None,
                 })?;
                 Ok(())
@@ -860,14 +873,15 @@ impl Plot {
         }
     }
 
-    fn draw_series<S>(
+    fn draw_series<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         ir_series: &[ir::Series],
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        P: Palette,
     {
         let rect = self.plot_rect;
         let series = &self.series;
@@ -879,22 +893,23 @@ impl Plot {
         surface.push_clip(&clip)?;
 
         for (series, ir_series) in series.iter().zip(ir_series.iter()) {
-            series.draw(surface, theme, ir_series)?;
+            series.draw(surface, style, ir_series)?;
         }
         surface.pop_clip()?;
         Ok(())
     }
 
-    fn draw_lines<S>(
+    fn draw_lines<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         axes: &Axes,
         ir_plot: &ir::Plot,
         above: bool,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         for line in ir_plot.lines() {
             if line.above == above {
@@ -905,16 +920,16 @@ impl Plot {
                     .or_find(Orientation::Y, line.y_axis.as_ref())?
                     .ok_or_else(|| Error::UnknownAxisRef(line.y_axis.as_ref().unwrap().clone()))?;
 
-                self.draw_line(surface, theme, line, x_axis, y_axis, &self.plot_rect)?;
+                self.draw_line(surface, style, line, x_axis, y_axis, &self.plot_rect)?;
             }
         }
         Ok(())
     }
 
-    fn draw_line<S>(
+    fn draw_line<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
         line: &PlotLine,
         x_axis: &Axis,
         y_axis: &Axis,
@@ -922,6 +937,7 @@ impl Plot {
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         let (x, y) = (line.x, line.y);
         let (p1, p2) = match line.direction {
@@ -988,7 +1004,7 @@ impl Plot {
             let path = render::Path {
                 path: &path,
                 fill: None,
-                stroke: Some(line.line.as_stroke(theme)),
+                stroke: Some(line.line.as_stroke(style)),
                 transform: None,
             };
             surface.draw_path(&path)?;
@@ -999,51 +1015,64 @@ impl Plot {
 }
 
 impl Axes {
-    fn draw_grids<S>(&self, surface: &mut S, theme: &Theme, rect: &geom::Rect) -> Result<(), Error>
-    where
-        S: render::Surface,
-    {
-        for axis in self.x.iter() {
-            axis.draw_minor_grids(surface, theme, rect)?;
-        }
-        for axis in self.y.iter() {
-            axis.draw_minor_grids(surface, theme, rect)?;
-        }
-        for axis in self.x.iter() {
-            axis.draw_major_grids(surface, theme, rect)?;
-        }
-        for axis in self.y.iter() {
-            axis.draw_major_grids(surface, theme, rect)?;
-        }
-        Ok(())
-    }
-
-    fn draw<S>(&self, surface: &mut S, theme: &Theme, plot_rect: &geom::Rect) -> Result<(), Error>
-    where
-        S: render::Surface,
-    {
-        self.draw_side(surface, theme, &self.x, Side::Top, plot_rect)?;
-        self.draw_side(surface, theme, &self.y, Side::Right, plot_rect)?;
-        self.draw_side(surface, theme, &self.x, Side::Bottom, plot_rect)?;
-        self.draw_side(surface, theme, &self.y, Side::Left, plot_rect)?;
-        Ok(())
-    }
-
-    fn draw_side<S>(
+    fn draw_grids<S, T, P>(
         &self,
         surface: &mut S,
-        theme: &Theme,
+        style: &Style<T, P>,
+        rect: &geom::Rect,
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+        T: Theme,
+    {
+        for axis in self.x.iter() {
+            axis.draw_minor_grids(surface, style, rect)?;
+        }
+        for axis in self.y.iter() {
+            axis.draw_minor_grids(surface, style, rect)?;
+        }
+        for axis in self.x.iter() {
+            axis.draw_major_grids(surface, style, rect)?;
+        }
+        for axis in self.y.iter() {
+            axis.draw_major_grids(surface, style, rect)?;
+        }
+        Ok(())
+    }
+
+    fn draw<S, T, P>(
+        &self,
+        surface: &mut S,
+        style: &Style<T, P>,
+        plot_rect: &geom::Rect,
+    ) -> Result<(), Error>
+    where
+        S: render::Surface,
+        T: Theme,
+    {
+        self.draw_side(surface, style, &self.x, Side::Top, plot_rect)?;
+        self.draw_side(surface, style, &self.y, Side::Right, plot_rect)?;
+        self.draw_side(surface, style, &self.x, Side::Bottom, plot_rect)?;
+        self.draw_side(surface, style, &self.y, Side::Left, plot_rect)?;
+        Ok(())
+    }
+
+    fn draw_side<S, T, P>(
+        &self,
+        surface: &mut S,
+        style: &Style<T, P>,
         axes: &[Axis],
         side: Side,
         plot_rect: &geom::Rect,
     ) -> Result<(), Error>
     where
         S: render::Surface,
+        T: Theme,
     {
         let mut rect = *plot_rect;
         for axis in axes.iter() {
             if axis.side() == side {
-                let shift = axis.draw(surface, theme, &rect)?
+                let shift = axis.draw(surface, style, &rect)?
                     + missing_params::AXIS_MARGIN
                     + missing_params::AXIS_SPINE_WIDTH;
                 rect = match side {

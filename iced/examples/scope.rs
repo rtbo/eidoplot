@@ -6,7 +6,7 @@ use eidoplot::style::theme;
 use eidoplot::{Drawing, data, drawing, ir, style, utils};
 use iced::widget::{column, text};
 use iced::{Element, Subscription, Task, window};
-use iced_oplot::figure::{self, figure};
+use iced_oplot::figure::figure;
 
 #[derive(Debug, Clone)]
 enum Message {
@@ -109,16 +109,7 @@ impl Scope {
         }
         .size(16);
 
-        let fig = figure(&self.fig).scale(1.5).style(|theme: &iced::Theme| {
-            let is_dark = theme.palette().background.relative_luminance() < 0.5;
-
-            let theme = if is_dark {
-                eidoplot::style::catppuccin::macchiato()
-            } else {
-                eidoplot::style::theme::standard_light()
-            };
-            figure::Style { theme: Some(theme) }
-        });
+        let fig = figure(&self.fig).scale(1.5);
 
         column![fps_text, fig].into()
     }
