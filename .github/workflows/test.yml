@@ -8,6 +8,10 @@ jobs:
     name: cargo test
     runs-on: ubuntu-latest
     steps:
+      - uses: awalsh128/cache-apt-pkgs-action@v1.6.0
+        with:
+          packages: libasound2-dev
+          version: 1.0
       - uses: actions/checkout@v5
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - run: cargo test --workspace --all-features
