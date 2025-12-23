@@ -57,6 +57,7 @@ pub mod text {
     pub use eidoplot_text::*;
 }
 pub use text::fontdb;
+
 #[cfg(any(
     feature = "noto-sans",
     feature = "noto-sans-italic",

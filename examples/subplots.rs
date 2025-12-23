@@ -1,4 +1,4 @@
-use eidoplot::{data, ir, utils};
+use eidoplot::{data, ir, text, utils};
 
 mod common;
 
@@ -43,5 +43,8 @@ fn main() {
 
     let fig = ir::Figure::new(subplots.into()).with_title("Subplots".into());
 
-    common::save_figure(&fig, &data_source, "subplots");
+    let mut fontdb = text::fontdb::Database::new();
+    fontdb.load_system_fonts();
+
+    common::save_figure_with_fontdb(&fig, &data_source, &fontdb, "subplots");
 }

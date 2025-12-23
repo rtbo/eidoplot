@@ -31,6 +31,8 @@ impl Figure {
     ///
     /// Theme and series colors are not applied at this stage, they will be resolved at draw time.
     /// So the same prepared figure can be drawn with different themes.
+    ///
+    /// Panics: if `fontdb` is None and none of the bundled font features is enabled.
     pub fn prepare<D>(
         ir: ir::Figure,
         fontdb: Option<&font::Database>,
@@ -43,9 +45,31 @@ impl Figure {
             let ctx = Ctx::new(data_source, fontdb);
             ctx.setup_figure(&ir)
         } else {
-            let fontdb = text::bundled_font_db();
-            let ctx = Ctx::new(data_source, &fontdb);
-            ctx.setup_figure(&ir)
+            #[cfg(any(
+                feature = "noto-sans",
+                feature = "noto-sans-italic",
+                feature = "noto-serif",
+                feature = "noto-serif-italic",
+                feature = "noto-mono"
+            ))]
+            {
+                let fontdb = crate::bundled_font_db();
+                let ctx = Ctx::new(data_source, &fontdb);
+                ctx.setup_figure(&ir)
+            }
+            #[cfg(not(any(
+                feature = "noto-sans",
+                feature = "noto-sans-italic",
+                feature = "noto-serif",
+                feature = "noto-serif-italic",
+                feature = "noto-mono"
+            )))]
+            {
+                panic!(concat!(
+                    "No font database provided and no bundled font feature enabled. ",
+                    "Enable at least one of the bundled font features or provide a font database."
+                ));
+            }
         }
     }
 

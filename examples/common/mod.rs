@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use eidoplot::drawing::FigureExt;
 use eidoplot::style::series::palettes;
 use eidoplot::style::{self};
-use eidoplot::{data, fontdb, ir, text};
+use eidoplot::{data, fontdb, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 use rand::SeedableRng;
@@ -122,13 +122,24 @@ fn parse_args() -> Args {
     args
 }
 
+#[allow(dead_code)]
 pub fn save_figure<D>(fig: &ir::Figure, data_source: &D, default_name: &str)
 where
     D: data::Source,
 {
     let args = parse_args();
     let theme = args.theme.into();
-    let fontdb = text::bundled_font_db();
+    let fontdb = eidoplot::bundled_font_db();
+    save_fig(fig, data_source, &theme, &args, default_name, &fontdb);
+}
+
+#[allow(dead_code)]
+pub fn save_figure_with_fontdb<D>(fig: &ir::Figure, data_source: &D, fontdb: &fontdb::Database, default_name: &str)
+where
+    D: data::Source,
+{
+    let args = parse_args();
+    let theme = args.theme.into();
     save_fig(fig, data_source, &theme, &args, default_name, &fontdb);
 }
 
