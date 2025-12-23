@@ -2,7 +2,7 @@ use core::f32;
 use std::f64::consts::PI;
 use std::time::Instant;
 
-use eidoplot::drawing::FigureDraw;
+use eidoplot::Drawing;
 use eidoplot::style::theme;
 use iced::widget::{column, text};
 use iced::{Element, Subscription, Task, window};

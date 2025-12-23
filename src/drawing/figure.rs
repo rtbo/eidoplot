@@ -1,7 +1,6 @@
 use crate::drawing::legend::{self, LegendBuilder};
 use crate::drawing::{Ctx, Error, plot};
 use crate::style::Theme;
-use crate::text::font;
 use crate::{data, geom, ir, missing_params, render, text};
 
 /// A figure that has been prepared for drawing. See [`Figure::prepare`].
@@ -20,45 +19,6 @@ pub struct Figure {
 }
 
 impl Figure {
-    pub(super) fn prepare<D>(
-        ir: ir::Figure,
-        data_source: &D,
-        fontdb: Option<&font::Database>,
-    ) -> Result<Self, Error>
-    where
-        D: data::Source,
-    {
-        if let Some(fontdb) = fontdb {
-            let ctx = Ctx::new(data_source, fontdb);
-            ctx.setup_figure(&ir)
-        } else {
-            #[cfg(any(
-                feature = "noto-sans",
-                feature = "noto-sans-italic",
-                feature = "noto-serif",
-                feature = "noto-serif-italic",
-                feature = "noto-mono"
-            ))]
-            {
-                let fontdb = crate::bundled_font_db();
-                let ctx = Ctx::new(data_source, &fontdb);
-                ctx.setup_figure(&ir)
-            }
-            #[cfg(not(any(
-                feature = "noto-sans",
-                feature = "noto-sans-italic",
-                feature = "noto-serif",
-                feature = "noto-serif-italic",
-                feature = "noto-mono"
-            )))]
-            {
-                panic!(concat!(
-                    "No font database provided and no bundled font feature enabled. ",
-                    "Enable at least one of the bundled font features or provide a font database."
-                ));
-            }
-        }
-    }
     /// The size of the figure in figure units
     pub fn size(&self) -> geom::Size {
         self.fig.size()
@@ -77,38 +37,13 @@ impl Figure {
             .update_series_data(self.fig.plots(), data_source)?;
         Ok(())
     }
-
-    /// Draw the figure on the given rendering surface, using the given theme
-    /// The surface content will be replaced by the figure drawing.
-    pub fn draw<S>(&self, surface: &mut S, theme: &Theme) -> Result<(), Error>
-    where
-        S: render::Surface,
-    {
-        surface.prepare(self.fig.size())?;
-
-        if let Some(fill) = self.fig.fill() {
-            surface.fill(fill.as_paint(theme))?;
-        }
-
-        if let Some((transform, title)) = &self.title {
-            title.draw(surface, theme, Some(transform))?;
-        }
-
-        if let Some((pos, legend)) = &self.legend {
-            legend.draw(surface, theme, pos)?;
-        }
-
-        self.plots.draw(surface, theme, self.fig.plots())?;
-
-        Ok(())
-    }
 }
 
 impl<D> Ctx<'_, D>
 where
     D: data::Source,
 {
-    fn setup_figure(&self, fig: &ir::Figure) -> Result<Figure, Error> {
+    pub fn setup_figure(&self, fig: &ir::Figure) -> Result<Figure, Error> {
         let mut rect =
             geom::Rect::from_ps(geom::Point { x: 0.0, y: 0.0 }, fig.size()).pad(fig.padding());
 
@@ -212,5 +147,32 @@ where
             }
         };
         Ok(Some((top_left, leg)))
+    }
+}
+
+impl Figure {
+    /// Draw the figure on the given rendering surface, using the given theme
+    /// The surface content will be replaced by the figure drawing.
+    pub fn draw<S>(&self, surface: &mut S, theme: &Theme) -> Result<(), Error>
+    where
+        S: render::Surface,
+    {
+        surface.prepare(self.fig.size())?;
+
+        if let Some(fill) = self.fig.fill() {
+            surface.fill(fill.as_paint(theme))?;
+        }
+
+        if let Some((transform, title)) = &self.title {
+            title.draw(surface, theme, Some(transform))?;
+        }
+
+        if let Some((pos, legend)) = &self.legend {
+            legend.draw(surface, theme, pos)?;
+        }
+
+        self.plots.draw(surface, theme, self.fig.plots())?;
+
+        Ok(())
     }
 }

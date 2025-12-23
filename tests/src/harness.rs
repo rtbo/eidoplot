@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use eidoplot::drawing::FigureDraw;
+use eidoplot::Drawing;
 use eidoplot::ir;
 use eidoplot::style::Theme;
 use eidoplot_pxl::PxlSurface;
@@ -126,7 +126,7 @@ impl TestHarness for PxlHarness {
     fn draw_fig(fig: &ir::Figure, theme: &Theme) -> Self::DrawnFig {
         let size = fig.size();
         let mut pxl = PxlSurface::new(size.width() as u32, size.height() as u32).unwrap();
-        fig.draw(&mut pxl, theme, &(), None).unwrap();
+        fig.draw(&(), None, &mut pxl, theme).unwrap();
         pxl.into_pixmap()
     }
 
@@ -186,7 +186,7 @@ impl TestHarness for SvgHarness {
     fn draw_fig(fig: &ir::Figure, theme: &Theme) -> Self::DrawnFig {
         let size = fig.size();
         let mut svg = SvgSurface::new(size.width() as u32, size.height() as u32);
-        fig.draw(&mut svg, theme, &(), None).unwrap();
+        fig.draw(&(), None, &mut svg, theme).unwrap();
         let mut buf = Vec::new();
         svg.write(&mut buf).unwrap();
         String::from_utf8(buf).unwrap()

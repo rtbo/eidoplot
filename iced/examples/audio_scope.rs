@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use eidoplot::data::Column;
-use eidoplot::drawing::FigureDraw;
+use eidoplot::Drawing;
 use eidoplot::{data, drawing, geom, ir};
 use iced::futures::channel::mpsc;
 use iced::futures::{SinkExt, Stream};

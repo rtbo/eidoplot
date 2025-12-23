@@ -36,6 +36,8 @@ pub mod render;
 pub mod style;
 pub mod time;
 
+pub use drawing::Drawing;
+
 /// Rexports of [`eidoplot_base::color`]` items
 pub mod color {
     pub use eidoplot_base::color::*;

@@ -84,12 +84,16 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-/// Extension trait to prepare and draw an IR figure
-pub trait FigureDraw {
-    /// Prepare the figure for drawing using the given data source and optional font database
-    /// If no font database is given, bundled fonts will be used if available.
+/// Extension trait to prepare an IR figure for drawing
+pub trait Drawing {
+    /// Prepare a figure for drawing.
+    /// The resulting [`Figure`] can then be drawn multiple times on different rendering surfaces.
+    /// The texts are shaped, laid out and transformed to paths using the given font database.
     ///
-    /// Panics if no font database is given and no bundled font feature is enabled.
+    /// Theme and series colors are not used at this stage, they will be resolved at draw time.
+    /// So the same prepared figure can be drawn with different themes and palettes.
+    ///
+    /// Panics: if `fontdb` is None and none of the bundled font features is enabled.
     fn prepare<D>(
         &self,
         data_source: &D,
@@ -98,50 +102,63 @@ pub trait FigureDraw {
     where
         D: data::Source;
 
-    /// Draw the figure on the given rendering surface, using the given theme and data source
+    /// Convenience method to prepare and draw a figure in one step.
     ///
     /// Panics if no font database is given and no bundled font feature is enabled.
-    fn draw<S, D>(
+    fn draw<D, S>(
         &self,
-        surface: &mut S,
-        theme: &Theme,
         data_source: &D,
         fontdb: Option<&fontdb::Database>,
+        surface: &mut S,
+        theme: &Theme,
     ) -> Result<(), Error>
     where
+        D: data::Source,
         S: render::Surface,
-        D: data::Source;
+    {
+        self.prepare(data_source, fontdb)?.draw(surface, theme)
+    }
 }
 
-impl FigureDraw for ir::Figure {
-    /// Prepare a figure for drawing.
-    /// The resulting [`Figure`] can then be drawn multiple times on different rendering surfaces.
-    /// The texts are shaped, laid out and transformed to paths using the given font database.
-    ///
-    /// Theme and series colors are not applied at this stage, they will be resolved at draw time.
-    /// So the same prepared figure can be drawn with different themes.
-    ///
-    /// Panics: if `fontdb` is None and none of the bundled font features is enabled.
-    fn prepare<D>(&self, data_source: &D, fontdb: Option<&fontdb::Database>) -> Result<Figure, Error>
-    where
-        D: data::Source,
-    {
-        Figure::prepare(self.clone(), data_source, fontdb)
-    }
-
-    fn draw<S, D>(
+impl Drawing for ir::Figure {
+    fn prepare<D>(
         &self,
-        surface: &mut S,
-        theme: &Theme,
         data_source: &D,
         fontdb: Option<&fontdb::Database>,
-    ) -> Result<(), Error>
+    ) -> Result<Figure, Error>
     where
-        S: render::Surface,
         D: data::Source,
     {
-        let figure = Figure::prepare(self.clone(), data_source, fontdb)?;
-        figure.draw(surface, theme)
+        if let Some(fontdb) = fontdb {
+            let ctx = Ctx::new(data_source, fontdb);
+            ctx.setup_figure(self)
+        } else {
+            #[cfg(any(
+                feature = "noto-sans",
+                feature = "noto-sans-italic",
+                feature = "noto-serif",
+                feature = "noto-serif-italic",
+                feature = "noto-mono"
+            ))]
+            {
+                let fontdb = crate::bundled_font_db();
+                let ctx = Ctx::new(data_source, &fontdb);
+                ctx.setup_figure(self)
+            }
+            #[cfg(not(any(
+                feature = "noto-sans",
+                feature = "noto-sans-italic",
+                feature = "noto-serif",
+                feature = "noto-serif-italic",
+                feature = "noto-mono"
+            )))]
+            {
+                panic!(concat!(
+                    "No font database provided and no bundled font feature enabled. ",
+                    "Enable at least one of the bundled font features or provide a font database."
+                ));
+            }
+        }
     }
 }
 
