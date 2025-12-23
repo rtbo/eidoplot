@@ -6,7 +6,8 @@ use crate::{BBox, font, fontdb};
 
 #[derive(Debug)]
 pub enum RichPrimitive<'a, C = ColorU8>
-where C: Clone
+where
+    C: Clone,
 {
     Fill(&'a geom::Path, C),
     Stroke(&'a geom::Path, C, f32),

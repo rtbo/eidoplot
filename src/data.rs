@@ -13,7 +13,7 @@ use crate::time::{DateTime, TimeDelta};
 #[cfg(feature = "data-csv")]
 mod csv;
 #[cfg(feature = "data-csv")]
-pub use csv::{CsvParser, CsvParseError, CsvColSpec};
+pub use csv::{CsvColSpec, CsvParseError, CsvParser};
 
 #[cfg(feature = "data-polars")]
 pub mod polars;

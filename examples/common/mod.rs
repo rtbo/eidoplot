@@ -1,10 +1,9 @@
 use std::env;
 use std::path::PathBuf;
 
-use eidoplot::Drawing;
 use eidoplot::style::series::palettes;
 use eidoplot::style::{self};
-use eidoplot::{data, fontdb, ir};
+use eidoplot::{Drawing, data, fontdb, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 use iced_oplot::Show;

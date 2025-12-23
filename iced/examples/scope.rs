@@ -2,12 +2,10 @@ use core::f32;
 use std::f64::consts::PI;
 use std::time::Instant;
 
-use eidoplot::Drawing;
 use eidoplot::style::theme;
+use eidoplot::{Drawing, data, drawing, ir, style, utils};
 use iced::widget::{column, text};
 use iced::{Element, Subscription, Task, window};
-
-use eidoplot::{data, drawing, ir, style, utils};
 use iced_oplot::figure::{self, figure};
 
 #[derive(Debug, Clone)]
@@ -111,18 +109,16 @@ impl Scope {
         }
         .size(16);
 
-        let fig = figure(&self.fig)
-            .scale(1.5)
-            .style(|theme: &iced::Theme| {
-                let is_dark = theme.palette().background.relative_luminance() < 0.5;
+        let fig = figure(&self.fig).scale(1.5).style(|theme: &iced::Theme| {
+            let is_dark = theme.palette().background.relative_luminance() < 0.5;
 
-                let theme = if is_dark {
-                    eidoplot::style::catppuccin::macchiato()
-                } else {
-                    eidoplot::style::theme::standard_light()
-                };
-                figure::Style { theme: Some(theme) }
-            });
+            let theme = if is_dark {
+                eidoplot::style::catppuccin::macchiato()
+            } else {
+                eidoplot::style::theme::standard_light()
+            };
+            figure::Style { theme: Some(theme) }
+        });
 
         column![fps_text, fig].into()
     }

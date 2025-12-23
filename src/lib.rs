@@ -58,8 +58,6 @@ pub mod geom {
 pub mod text {
     pub use eidoplot_text::*;
 }
-pub use text::fontdb;
-
 #[cfg(any(
     feature = "noto-sans",
     feature = "noto-sans-italic",
@@ -70,6 +68,7 @@ pub use text::fontdb;
 /// Loads fonts that are bundled with eidoplot
 /// and returns the database.
 pub use text::bundled_font_db;
+pub use text::fontdb;
 
 #[cfg(feature = "utils")]
 pub mod utils {

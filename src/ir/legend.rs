@@ -97,26 +97,17 @@ impl Legend {
 
     /// Set the font configuration for legend entries and return self for chaining
     pub fn with_font(self, font: EntryFont) -> Self {
-        Self {
-            font,
-            ..self
-        }
+        Self { font, ..self }
     }
 
     /// Set the fill style for the legend background and return self for chaining
     pub fn with_fill(self, fill: Option<theme::Fill>) -> Self {
-        Self {
-            fill,
-            ..self
-        }
+        Self { fill, ..self }
     }
 
     /// Set the border style for the legend box and return self for chaining
     pub fn with_border(self, border: Option<theme::Line>) -> Self {
-        Self {
-            border,
-            ..self
-        }
+        Self { border, ..self }
     }
 
     /// Set the number of columns for the legend entries and return self for chaining
@@ -129,17 +120,11 @@ impl Legend {
 
     /// Set the padding inside the legend box and return self for chaining
     pub fn with_padding(self, padding: Padding) -> Self {
-        Self {
-            padding,
-            ..self
-        }
+        Self { padding, ..self }
     }
 
     /// Set the spacing between legend entries and return self for chaining
     pub fn with_spacing(self, spacing: Size) -> Self {
-        Self {
-            spacing,
-            ..self
-        }
+        Self { spacing, ..self }
     }
 }

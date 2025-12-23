@@ -153,8 +153,10 @@ macro_rules! define_rich_text_structs {
                 &self,
                 layout: $crate::text::rich::Layout,
                 db: &$crate::text::fontdb::Database,
-            ) -> std::result::Result<$crate::text::RichText<$crate::style::theme::Color>, $crate::text::Error>
-            {
+            ) -> std::result::Result<
+                $crate::text::RichText<$crate::style::theme::Color>,
+                $crate::text::Error,
+            > {
                 let mut builder =
                     $crate::text::RichTextBuilder::new(self.text.clone(), self.props.0.clone())
                         .with_layout(layout);

@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use eidoplot::Drawing;
-use eidoplot::ir;
 use eidoplot::style::Theme;
+use eidoplot::{Drawing, ir};
 use eidoplot_pxl::PxlSurface;
 use eidoplot_svg::SvgSurface;
 

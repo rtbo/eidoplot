@@ -1,7 +1,6 @@
 use std::fmt;
 
 use eidoplot_base::geom;
-
 use ttf_parser as ttf;
 
 mod bidi;

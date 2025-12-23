@@ -140,10 +140,7 @@ fn to_iced_stroke<'a>(stroke: &'a render::Stroke) -> geometry::Stroke<'a> {
 }
 
 #[inline]
-fn to_iced_point(
-    mut point: geom::Point,
-    transform: &geom::Transform,
-) -> iced::Point {
+fn to_iced_point(mut point: geom::Point, transform: &geom::Transform) -> iced::Point {
     transform.map_point(&mut point);
     iced::Point {
         x: point.x,

@@ -1,8 +1,6 @@
 pub mod figure;
-mod surface;
 mod show;
+mod surface;
 
+pub use figure::{Figure, figure};
 pub use show::Show;
-
-pub use figure::{figure, Figure};
-

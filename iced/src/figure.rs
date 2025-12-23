@@ -1,5 +1,4 @@
-use eidoplot::drawing;
-use eidoplot::style;
+use eidoplot::{drawing, style};
 use iced::advanced::graphics::geometry;
 use iced::advanced::{Layout, Widget, layout, mouse, renderer, widget};
 use iced::{Element, Length, Size};

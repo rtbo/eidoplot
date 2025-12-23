@@ -1,7 +1,8 @@
 //! Module that provides the "show" functionality using the `iced` GUI library
 //! Requires the `iced` feature to be enabled
 
-use eidoplot::{drawing, style::Theme};
+use eidoplot::drawing;
+use eidoplot::style::Theme;
 use iced::Length;
 
 use crate::figure::{self, figure};
@@ -33,7 +34,9 @@ impl FigureWindow {
         figure(&self.figure)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(|_| figure::Style { theme: self.theme.clone() })
+            .style(|_| figure::Style {
+                theme: self.theme.clone(),
+            })
             .into()
     }
 }

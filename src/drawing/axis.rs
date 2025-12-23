@@ -419,10 +419,7 @@ where
             .map(|lbl| Text::from_line_text(&lbl, db, major_ticks.color()))
             .transpose()?;
 
-        Ok(NumTicks {
-            ticks,
-            annot,
-        })
+        Ok(NumTicks { ticks, annot })
     }
 
     fn setup_minor_ticks(
@@ -489,10 +486,7 @@ where
             .map(|lbl| Text::from_line_text(&lbl, db, major_ticks.color()))
             .transpose()?;
 
-        Ok(NumTicks {
-            ticks,
-            annot,
-        })
+        Ok(NumTicks { ticks, annot })
     }
 
     fn setup_cat_ticks(

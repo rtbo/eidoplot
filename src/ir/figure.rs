@@ -124,7 +124,7 @@ impl Figure {
         }
     }
 
-        /// Set the size and return self for chaining
+    /// Set the size and return self for chaining
     pub fn with_size(self, size: geom::Size) -> Self {
         Figure { size: size, ..self }
     }

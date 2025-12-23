@@ -37,11 +37,7 @@ impl<'a> PxlSurfaceRef<'a> {
         Self { pixmap, state }
     }
 
-    pub fn from_bytes(
-        bytes: &'a mut [u8],
-        width: u32,
-        height: u32,
-    ) -> Option<Self> {
+    pub fn from_bytes(bytes: &'a mut [u8], width: u32, height: u32) -> Option<Self> {
         let pixmap = PixmapMut::from_bytes(bytes, width, height)?;
         let state = State::new(pixmap.width(), pixmap.height());
         Some(Self { pixmap, state })

@@ -2,13 +2,11 @@ use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use eidoplot::data::Column;
-use eidoplot::Drawing;
-use eidoplot::{data, drawing, geom, ir};
+use eidoplot::{Drawing, data, drawing, geom, ir};
 use iced::futures::channel::mpsc;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{button, column, container, pick_list, row, space, text};
-use iced::{Alignment, Element, Subscription, Task, event, window};
-use iced::{Length, stream};
+use iced::{Alignment, Element, Length, Subscription, Task, event, stream, window};
 use iced_oplot::figure;
 use rustfft::FftPlanner;
 use rustfft::num_complex::Complex32;

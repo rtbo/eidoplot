@@ -716,9 +716,8 @@ where
 mod tests {
     use eidoplot_base::ColorU8;
 
-    use crate::bundled_font_db;
-
     use super::*;
+    use crate::bundled_font_db;
 
     #[test]
     fn underline_span() {
