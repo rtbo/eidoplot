@@ -1,12 +1,10 @@
 use eidoplot::{geom, render};
-use iced::Rectangle;
 use iced::advanced::graphics::geometry::{self, frame};
 
 #[derive(Debug)]
 pub struct IcedSurface<Frame> {
     frame: Frame,
     clip_stack: Vec<Frame>,
-    bounds: Rectangle,
     transform: geom::Transform,
 }
 
@@ -14,12 +12,11 @@ impl<Frame> IcedSurface<Frame>
 where
     Frame: frame::Backend,
 {
-    pub fn new(frame: Frame, bounds: Rectangle) -> Self {
+    pub fn new(frame: Frame, transform: geom::Transform) -> Self {
         Self {
             frame,
             clip_stack: vec![],
-            bounds,
-            transform: geom::Transform::identity(),
+            transform,
         }
     }
 
@@ -39,19 +36,7 @@ impl<Frame> eidoplot::render::Surface for IcedSurface<Frame>
 where
     Frame: frame::Backend,
 {
-    fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
-        // scale up or down to fit the size into bounds, preserving aspect ratio and centering
-        let tx = self.bounds.x;
-        let ty = self.bounds.y;
-        let sx = self.bounds.width / size.width();
-        let sy = self.bounds.height / size.height();
-        let s = sx.min(sy);
-        let w = size.width() * s;
-        let h = size.height() * s;
-        let tx = tx + (self.bounds.width - w) / 2.0;
-        let ty = ty + (self.bounds.height - h) / 2.0;
-        self.transform =
-            geom::Transform::from_translate(tx, ty).pre_concat(geom::Transform::from_scale(s, s));
+    fn prepare(&mut self, _size: geom::Size) -> Result<(), render::Error> {
         Ok(())
     }
 
@@ -61,9 +46,8 @@ where
                 iced::Color::from_rgba8(c.red(), c.green(), c.blue(), c.alpha() as f32 / 255.0)
             }
         };
-        let bounds = self.bounds;
         self.frame
-            .fill_rectangle(bounds.position(), bounds.size(), color);
+            .fill_rectangle(iced::Point::ORIGIN, self.frame.size(), color);
         Ok(())
     }
 

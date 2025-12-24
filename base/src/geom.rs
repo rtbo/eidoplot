@@ -355,6 +355,14 @@ impl Rect {
         Rect::from_xywh(x, y, width, height)
     }
 
+    /// Test if the rectangle contains a point
+    pub fn contains_point(&self, point: &Point) -> bool {
+        point.x >= self.left()
+            && point.x <= self.right()
+            && point.y >= self.top()
+            && point.y <= self.bottom()
+    }
+
     /// Build a path from the rectangle
     pub fn to_path(&self) -> Path {
         PathBuilder::from_rect(

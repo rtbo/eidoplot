@@ -16,8 +16,10 @@ pub trait Show {
     fn show(self, style: Option<CustomStyle>) -> iced::Result;
 }
 
+#[derive(Debug, Clone)]
 enum Message {
     Toolbar(toolbar::Message),
+    PlotHover(Option<drawing::PlotHit>),
 }
 
 struct ShowWindow {
@@ -49,6 +51,14 @@ impl ShowWindow {
                     }
                 }
             }
+            Message::PlotHover(hit) => {
+                if let Some(hit) = hit {
+                    let status = format!("X = {} | Y = {}", &hit.x_coords, &hit.y_coords);
+                    self.toolbar.set_status(Some(status));
+                } else {
+                    self.toolbar.set_status(None);
+                }
+            }
         }
         iced::Task::none()
     }
@@ -56,7 +66,8 @@ impl ShowWindow {
     fn view(&self) -> iced::Element<'_, Message> {
         let fig = figure(&self.figure)
             .width(Length::Fill)
-            .height(Length::Fill);
+            .height(Length::Fill)
+            .on_hover_hit(Message::PlotHover);
 
         let fig = if let Some(style) = &self.style {
             fig.style(|_| style.clone())

@@ -52,7 +52,7 @@ impl Axis {
         };
         if let Some(title) = self.draw_opts.title.as_ref() {
             // vertical axis rotate the title, therefore we take the height in all cases.
-            size += title.bbox.height() + missing_params::AXIS_TITLE_MARGIN;
+            size += title.height() + missing_params::AXIS_TITLE_MARGIN;
         }
         size
     }
@@ -61,6 +61,23 @@ impl Axis {
         match self.scale.as_ref() {
             AxisScale::Num { cm, .. } => &**cm,
             AxisScale::Cat { bins, .. } => bins,
+        }
+    }
+
+    pub fn format_sample(&self, sample: data::Sample) -> String {
+        match self.scale.as_ref() {
+            AxisScale::Num { ticks: Some(ticks), .. } => {
+                ticks.lbl_formatter.format_label(sample)
+            },
+            AxisScale::Num { .. } => match sample {
+                data::Sample::Num(n) => n.to_string(),
+                data::Sample::Time(t) => t.to_string(),
+                _ => "".to_string(),
+            },
+            AxisScale::Cat { .. } => match sample {
+                data::Sample::Cat(c) => c.to_string(),
+                _ => "".to_string(),
+            },
         }
     }
 }
@@ -90,6 +107,8 @@ pub struct NumTicks {
     ticks: Vec<NumTick>,
     /// Annotation of the axis (e.g. a multiplication factor)
     annot: Option<Text>,
+    /// The formatter to produce labels
+    lbl_formatter: Arc<dyn ticks::LabelFormatter>,
 }
 
 impl NumTicks {
@@ -111,7 +130,7 @@ impl NumTicks {
                 let max_h = self
                     .ticks
                     .iter()
-                    .map(|t| t.lbl.bbox.height())
+                    .map(|t| t.lbl.height())
                     .max_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap_or(0.0);
                 size += max_h;
@@ -120,7 +139,7 @@ impl NumTicks {
                 let max_w = self
                     .ticks
                     .iter()
-                    .map(|t| t.lbl.bbox.width())
+                    .map(|t| t.lbl.width())
                     .max_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap_or(0.0);
                 size += max_w;
@@ -192,6 +211,15 @@ impl CoordMap for CategoryBins {
         self.cat_location(cat_idx)
     }
 
+    fn unmap_coord(&self, pos: f32) -> Option<data::Sample<'_>> {
+        if pos < self.inset.0 || pos > (self.inset.0 + self.bin_size * self.categories.len() as f32)
+        {
+            return None;
+        }
+        let cat_idx = ((pos - self.inset.0) / self.bin_size).floor() as usize;
+        self.categories.get(cat_idx).map(|c| data::Sample::Cat(c))
+    }
+
     fn axis_bounds(&self) -> BoundsRef<'_> {
         (&self.categories).into()
     }
@@ -232,7 +260,7 @@ impl CategoryTicks {
                 let max_w = self
                     .lbls
                     .iter()
-                    .map(|t| t.bbox.width())
+                    .map(|t| t.width())
                     .max_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap_or(0.0);
                 size += max_w;
@@ -419,7 +447,7 @@ where
             .map(|lbl| Text::from_line_text(&lbl, db, major_ticks.color()))
             .transpose()?;
 
-        Ok(NumTicks { ticks, annot })
+        Ok(NumTicks { ticks, annot, lbl_formatter })
     }
 
     fn setup_minor_ticks(
@@ -486,7 +514,7 @@ where
             .map(|lbl| Text::from_line_text(&lbl, db, major_ticks.color()))
             .transpose()?;
 
-        Ok(NumTicks { ticks, annot })
+        Ok(NumTicks { ticks, annot, lbl_formatter })
     }
 
     fn setup_cat_ticks(
@@ -703,7 +731,7 @@ impl Axis {
             let transform = self.side.title_transform(shift_across, plot_rect);
             title.draw(surface, style, Some(&transform))?;
             // vertical titles are rotated, so it is always the height that is relevant here.
-            shift_across += title.bbox.height();
+            shift_across += title.height();
         }
         Ok(shift_across)
     }
@@ -736,7 +764,7 @@ impl Axis {
         let mut max_lbl_size: f32 = 0.0;
 
         for t in ticks.ticks.iter() {
-            let lbl_size = geom::Size::new(t.lbl.bbox.width(), t.lbl.bbox.height());
+            let lbl_size = geom::Size::new(t.lbl.width(), t.lbl.height());
             max_lbl_size = max_lbl_size.max(self.side.size_across(&lbl_size));
 
             let pos_along = cm.map_coord_num(t.loc);
@@ -825,7 +853,7 @@ impl Axis {
         let mut max_lbl_size: f32 = 0.0;
 
         for (i, lbl) in ticks.lbls.iter().enumerate() {
-            let txt_size = geom::Size::new(lbl.bbox.width(), lbl.bbox.height());
+            let txt_size = geom::Size::new(lbl.width(), lbl.height());
             max_lbl_size = max_lbl_size.max(self.side.size_across(&txt_size));
 
             let pos_along = bins.cat_location(i);

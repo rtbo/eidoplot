@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::sync::Arc;
 
 use crate::data;
 use crate::drawing::{Categories, Error, axis};
@@ -483,16 +484,16 @@ pub fn num_label_formatter(
     ticks: &Ticks,
     ab: axis::NumBounds,
     scale: &Scale,
-) -> Box<dyn LabelFormatter> {
+) -> Arc<dyn LabelFormatter> {
     match ticks.formatter() {
-        Some(Formatter::Auto) if scale.is_shared() => Box::new(NullFormat),
+        Some(Formatter::Auto) if scale.is_shared() => Arc::new(NullFormat),
         Some(Formatter::Auto | Formatter::SharedAuto) => {
             auto_label_formatter(ticks.locator(), ab, scale)
         }
-        Some(Formatter::Prec(prec)) => Box::new(PrecLabelFormat(*prec)),
-        Some(Formatter::Percent) => Box::new(PercentLabelFormat),
+        Some(Formatter::Prec(prec)) => Arc::new(PrecLabelFormat(*prec)),
+        Some(Formatter::Percent) => Arc::new(PercentLabelFormat),
         Some(Formatter::TimeDelta(tdfmt)) => timedelta_label_formatter(ab, tdfmt),
-        None => Box::new(NullFormat),
+        None => Arc::new(NullFormat),
         _ => todo!(),
     }
 }
@@ -501,22 +502,22 @@ fn auto_label_formatter(
     locator: &Locator,
     ab: axis::NumBounds,
     scale: &Scale,
-) -> Box<dyn LabelFormatter> {
+) -> Arc<dyn LabelFormatter> {
     match (locator, scale) {
-        (Locator::PiMultiple { .. }, _) => Box::new(PiMultipleLabelFormat { prec: 2 }),
+        (Locator::PiMultiple { .. }, _) => Arc::new(PiMultipleLabelFormat { prec: 2 }),
         (Locator::Auto, Scale::Log(LogScale { base, .. })) if *base == 10.0 => {
-            Box::new(SciLabelFormat)
+            Arc::new(SciLabelFormat)
         }
         (Locator::Auto, _) => {
             let max = ab.start().abs().max(ab.end().abs());
             if max >= 10000.0 || max < 0.01 {
-                Box::new(SciLabelFormat)
+                Arc::new(SciLabelFormat)
             } else if max >= 100.0 {
-                Box::new(PrecLabelFormat(0))
+                Arc::new(PrecLabelFormat(0))
             } else if max >= 10.0 {
-                Box::new(PrecLabelFormat(1))
+                Arc::new(PrecLabelFormat(1))
             } else {
-                Box::new(PrecLabelFormat(2))
+                Arc::new(PrecLabelFormat(2))
             }
         }
         _ => todo!(),
@@ -527,31 +528,31 @@ pub fn datetime_label_formatter(
     ticks: &Ticks,
     tb: axis::TimeBounds,
     scale: &Scale,
-) -> Result<Box<dyn LabelFormatter>, Error> {
+) -> Result<Arc<dyn LabelFormatter>, Error> {
     match ticks.formatter() {
-        Some(Formatter::Auto) if scale.is_shared() => Ok(Box::new(NullFormat)),
+        Some(Formatter::Auto) if scale.is_shared() => Ok(Arc::new(NullFormat)),
         Some(Formatter::Auto | Formatter::SharedAuto) => auto_datetime_label_formatter(tb),
         Some(Formatter::DateTime(DateTimeFormatter::Auto)) => auto_datetime_label_formatter(tb),
         Some(Formatter::DateTime(DateTimeFormatter::DateTime)) => {
-            Ok(Box::new(DateTimeLabelFormat {
+            Ok(Arc::new(DateTimeLabelFormat {
                 fmt: "%Y-%m-%d %H:%M:%S".to_string(),
             }))
         }
-        Some(Formatter::DateTime(DateTimeFormatter::Date)) => Ok(Box::new(DateTimeLabelFormat {
+        Some(Formatter::DateTime(DateTimeFormatter::Date)) => Ok(Arc::new(DateTimeLabelFormat {
             fmt: "%Y-%m-%d".to_string(),
         })),
-        Some(Formatter::DateTime(DateTimeFormatter::Time)) => Ok(Box::new(DateTimeLabelFormat {
+        Some(Formatter::DateTime(DateTimeFormatter::Time)) => Ok(Arc::new(DateTimeLabelFormat {
             fmt: "%H:%M:%S".to_string(),
         })),
         Some(Formatter::DateTime(DateTimeFormatter::Custom(fmt))) => {
-            Ok(Box::new(DateTimeLabelFormat { fmt: fmt.clone() }))
+            Ok(Arc::new(DateTimeLabelFormat { fmt: fmt.clone() }))
         }
-        None => Ok(Box::new(NullFormat)),
+        None => Ok(Arc::new(NullFormat)),
         _ => todo!(),
     }
 }
 
-fn auto_datetime_label_formatter(tb: axis::TimeBounds) -> Result<Box<dyn LabelFormatter>, Error> {
+fn auto_datetime_label_formatter(tb: axis::TimeBounds) -> Result<Arc<dyn LabelFormatter>, Error> {
     let start_date = tb.start().to_date();
     let end_date = tb.end().to_date();
     let span = tb.span();
@@ -572,7 +573,7 @@ fn auto_datetime_label_formatter(tb: axis::TimeBounds) -> Result<Box<dyn LabelFo
         "%Y-%m"
     };
 
-    Ok(Box::new(DateTimeLabelFormat {
+    Ok(Arc::new(DateTimeLabelFormat {
         fmt: fmt.to_string(),
     }))
 }
@@ -580,7 +581,7 @@ fn auto_datetime_label_formatter(tb: axis::TimeBounds) -> Result<Box<dyn LabelFo
 pub fn timedelta_label_formatter(
     nb: axis::NumBounds,
     tdfmt: &TimeDeltaFormatter,
-) -> Box<dyn LabelFormatter> {
+) -> Arc<dyn LabelFormatter> {
     match tdfmt {
         TimeDeltaFormatter::Auto => {
             let fmt = if nb.span() >= 86400.0 {
@@ -588,13 +589,13 @@ pub fn timedelta_label_formatter(
             } else {
                 "%H:%M:%S".to_string()
             };
-            Box::new(TimeDeltaLabelFormat { fmt })
+            Arc::new(TimeDeltaLabelFormat { fmt })
         }
-        TimeDeltaFormatter::Custom(fmt) => Box::new(TimeDeltaLabelFormat { fmt: fmt.clone() }),
+        TimeDeltaFormatter::Custom(fmt) => Arc::new(TimeDeltaLabelFormat { fmt: fmt.clone() }),
     }
 }
 
-pub trait LabelFormatter {
+pub trait LabelFormatter: std::fmt::Debug {
     fn axis_annotation(&self) -> Option<&str> {
         None
     }
@@ -611,6 +612,7 @@ impl LabelFormatter for Categories {
     }
 }
 
+#[derive(Debug, Clone)]
 struct PrecLabelFormat(usize);
 
 impl LabelFormatter for PrecLabelFormat {
@@ -620,6 +622,7 @@ impl LabelFormatter for PrecLabelFormat {
     }
 }
 
+#[derive(Debug)]
 struct SciLabelFormat;
 
 impl LabelFormatter for SciLabelFormat {
@@ -629,6 +632,7 @@ impl LabelFormatter for SciLabelFormat {
     }
 }
 
+#[derive(Debug)]
 struct PiMultipleLabelFormat {
     prec: usize,
 }
@@ -644,6 +648,7 @@ impl LabelFormatter for PiMultipleLabelFormat {
     }
 }
 
+#[derive(Debug)]
 struct PercentLabelFormat;
 
 impl LabelFormatter for PercentLabelFormat {
@@ -653,6 +658,7 @@ impl LabelFormatter for PercentLabelFormat {
     }
 }
 
+#[derive(Debug)]
 struct DateTimeLabelFormat {
     fmt: String,
 }
@@ -664,6 +670,7 @@ impl LabelFormatter for DateTimeLabelFormat {
     }
 }
 
+#[derive(Debug)]
 struct TimeDeltaLabelFormat {
     fmt: String,
 }
@@ -681,6 +688,7 @@ impl LabelFormatter for TimeDeltaLabelFormat {
     }
 }
 
+#[derive(Debug)]
 struct NullFormat;
 
 impl LabelFormatter for NullFormat {

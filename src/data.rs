@@ -235,6 +235,12 @@ impl OwnedSample {
     }
 }
 
+impl<'a> From<Sample<'a>> for OwnedSample {
+    fn from(sample: Sample<'a>) -> Self {
+        sample.to_owned()
+    }
+}
+
 impl std::cmp::Eq for OwnedSample {}
 
 impl From<f64> for OwnedSample {

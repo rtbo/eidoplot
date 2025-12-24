@@ -13,6 +13,7 @@ use crate::{Style, data, geom, ir, render, text};
 
 mod axis;
 mod figure;
+mod hit_test;
 mod legend;
 mod marker;
 mod plot;
@@ -21,6 +22,7 @@ mod series;
 mod ticks;
 
 pub use figure::Figure;
+pub use hit_test::PlotHit;
 
 /// Errors that can occur during figure drawing
 #[derive(Debug)]
@@ -191,7 +193,7 @@ impl<'a, D> Ctx<'a, D> {
 #[derive(Debug, Clone)]
 struct Text {
     spans: Vec<TextSpan>,
-    bbox: geom::Rect,
+    bbox: Option<geom::Rect>,
 }
 
 #[derive(Debug, Clone)]
@@ -217,7 +219,7 @@ impl Text {
         });
         Ok(Text {
             spans,
-            bbox: text.bbox().cloned().unwrap_or_else(|| geom::Rect::null()),
+            bbox: text.bbox().cloned(),
         })
     }
 
@@ -249,8 +251,26 @@ impl Text {
         })?;
         Ok(Text {
             spans,
-            bbox: text.bbox().cloned().unwrap_or_else(|| geom::Rect::null()),
+            bbox: text.bbox().cloned(),
         })
+    }
+
+    fn width(&self) -> f32 {
+        self.bbox.map_or(0.0, |r| r.width())
+    }
+
+    fn height(&self) -> f32 {
+        self.bbox.map_or(0.0, |r| r.height())
+    }
+
+    fn _visual_bbox(&self) -> Option<geom::Rect> {
+        let mut bbox: Option<geom::Rect> = None;
+        for s in self.spans.iter() {
+            let r = s.path.bounds();
+            let r = geom::Rect::from_trbl(r.top(), r.right(), r.bottom(), r.left());
+            bbox = geom::Rect::unite_opt(Some(&r), bbox.as_ref());
+        }
+        bbox
     }
 
     fn draw<S, T, P>(
@@ -327,7 +347,7 @@ impl Categories {
         self.cats.iter().map(|c| c.0.as_str())
     }
 
-    fn _get(&self, idx: usize) -> Option<&str> {
+    fn get(&self, idx: usize) -> Option<&str> {
         self.cats.get(idx).map(|c| c.0.as_str())
     }
 

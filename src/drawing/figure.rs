@@ -12,17 +12,29 @@ use crate::{Style, data, geom, ir, missing_params, render, style, text};
 /// The colors, strokes and fills will be resolved at draw time using the given theme.
 #[derive(Debug, Clone)]
 pub struct Figure {
-    size: geom::Size,
-    fill: Option<theme::Fill>,
-    title: Option<(geom::Transform, super::Text)>,
-    legend: Option<(geom::Point, legend::Legend)>,
-    plots: plot::Plots,
+    pub(super) size: geom::Size,
+    pub(super) fill: Option<theme::Fill>,
+    pub(super) title: Option<(geom::Transform, super::Text)>,
+    pub(super) legend: Option<(geom::Point, legend::Legend)>,
+    pub(super) plots: plot::Plots,
 }
 
 impl Figure {
     /// The size of the figure in figure units
     pub fn size(&self) -> geom::Size {
         self.size
+    }
+
+    pub(super) fn _title_area(&self) -> Option<geom::Rect> {
+        self.title.as_ref().and_then(|(transform, text)| {
+            text.bbox.as_ref().map(|bbox| bbox.transform(transform))
+        })
+    }
+
+    pub(super) fn _legend_area(&self) -> Option<geom::Rect> {
+        self.legend.as_ref().map(|(pos, legend)| {
+            geom::Rect::from_ps(*pos, legend.size())
+        })
     }
 
     /// Update the data for all series in the figure from the given data source.

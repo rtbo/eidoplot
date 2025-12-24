@@ -10,6 +10,7 @@ pub trait CoordMap: std::fmt::Debug {
         match sample {
             data::Sample::Num(n) => Some(self.map_coord_num(n)),
             data::Sample::Time(n) => Some(self.map_coord_num(n.timestamp())),
+            data::Sample::TimeDelta(n) => Some(self.map_coord_num(n.seconds())),
             data::Sample::Cat(c) => Some(self.map_coord_cat(c)),
             _ => None,
         }
@@ -22,6 +23,8 @@ pub trait CoordMap: std::fmt::Debug {
     fn map_coord_cat(&self, _cat: &str) -> f32 {
         unimplemented!("Only for categorical scales");
     }
+
+    fn unmap_coord(&self, pos: f32) -> Option<data::Sample<'_>>;
 
     /// Get the size of a category bin (width for horizontal axes, height for vertical axes)
     fn cat_bin_size(&self) -> f32 {
@@ -112,6 +115,15 @@ impl CoordMap for LinCoordMap {
         ratio as f32 * self.plot_size
     }
 
+    fn unmap_coord(&self, pos: f32) -> Option<data::Sample<'_>> {
+        if pos < 0.0 || pos > self.plot_size {
+            return None;
+        }
+        let ratio = pos as f64 / self.plot_size as f64;
+        let value = self.ab.start() + ratio * self.ab.span();
+        Some(data::Sample::Num(value))
+    }
+
     fn axis_bounds(&self) -> axis::BoundsRef<'_> {
         self.ab.into()
     }
@@ -157,6 +169,18 @@ impl CoordMap for LogCoordMap {
         let x = x.log(self.base);
         let ratio = (x - start) / (end - start);
         ratio as f32 * self.plot_size
+    }
+
+    fn unmap_coord(&self, pos: f32) -> Option<data::Sample<'_>> {
+        if pos < 0.0 || pos > self.plot_size {
+            return None;
+        }
+        let start = self.ab.start().log(self.base);
+        let end = self.ab.end().log(self.base);
+        let ratio = pos as f64 / self.plot_size as f64;
+        let log_value = start + ratio * (end - start);
+        let value = self.base.powf(log_value);
+        Some(data::Sample::Num(value))
     }
 
     fn axis_bounds(&self) -> axis::BoundsRef<'_> {
