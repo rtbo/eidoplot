@@ -8,7 +8,7 @@ use crate::drawing::{Ctx, Error};
 use crate::ir::plot::PlotLine;
 use crate::style::defaults;
 use crate::style::series::Palette;
-use crate::style::theme::Theme;
+use crate::style::theme::{self, Theme};
 use crate::{Style, data, geom, ir, missing_params, render};
 
 #[derive(Debug, Clone)]
@@ -18,11 +18,14 @@ pub struct Plots {
 
 #[derive(Debug, Clone)]
 struct Plot {
-    plot_rect: geom::Rect,
+    rect: geom::Rect,
+    fill: Option<theme::Fill>,
+    border: Option<ir::plot::Border>,
     // None when there is no series (empty plot)
     axes: Option<Axes>,
     series: Vec<Series>,
     legend: Option<(geom::Point, Legend)>,
+    lines: Vec<PlotLine>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -311,10 +314,13 @@ where
 
                     let plt_idx = row * ir_plots.cols() + col;
                     let plot = Plot {
-                        plot_rect,
+                        rect: plot_rect,
+                        fill: ir_plot.fill().cloned(),
+                        border: ir_plot.border().cloned(),
                         axes,
                         series,
                         legend,
+                        lines: ir_plot.lines().to_vec(),
                     };
                     plots[plt_idx as usize] = Some(plot);
                 }
@@ -326,7 +332,7 @@ where
 
         let mut plots = Plots { plots };
 
-        plots.update_series_data(ir_plots, self.data_source())?;
+        plots.update_series_data(self.data_source())?;
 
         Ok(plots)
     }
@@ -357,7 +363,7 @@ where
         plot.series()
             .iter()
             .enumerate()
-            .map(|(index, s)| Series::from_ir(index, s, self.data_source()))
+            .map(|(index, s)| Series::prepare(index, s, self.data_source()))
             .collect()
     }
 
@@ -731,15 +737,14 @@ fn y_side_matches_out_legend_pos(side: ir::axis::Side, legend_pos: ir::plot::Leg
 impl Plots {
     pub fn update_series_data<D>(
         &mut self,
-        ir_plots: &ir::figure::Plots,
         data_source: &D,
     ) -> Result<(), Error>
     where
         D: data::Source,
     {
-        for (plot, ir_plot) in self.plots.iter_mut().zip(ir_plots.plots()) {
-            if let (Some(plot), Some(ir_plot)) = (plot.as_mut(), ir_plot) {
-                plot.update_series_data(ir_plot, data_source)?;
+        for plot in self.plots.iter_mut() {
+            if let Some(plot) = plot.as_mut() {
+                plot.update_series_data(data_source)?;
             }
         }
         Ok(())
@@ -749,16 +754,15 @@ impl Plots {
         &self,
         surface: &mut S,
         style: &Style<T, P>,
-        ir_plots: &ir::figure::Plots,
     ) -> Result<(), Error>
     where
         S: render::Surface,
         T: Theme,
         P: Palette,
     {
-        for (plot, ir_plot) in self.plots.iter().zip(ir_plots.plots()) {
-            if let (Some(plot), Some(ir_plot)) = (plot.as_ref(), ir_plot) {
-                plot.draw(surface, style, ir_plot)?;
+        for plot in self.plots.iter() {
+            if let Some(plot) = plot {
+                plot.draw(surface, style)?;
             }
         }
         Ok(())
@@ -766,7 +770,7 @@ impl Plots {
 }
 
 impl Plot {
-    fn update_series_data<D>(&mut self, ir_plot: &ir::Plot, data_source: &D) -> Result<(), Error>
+    fn update_series_data<D>(&mut self, data_source: &D) -> Result<(), Error>
     where
         D: data::Source,
     {
@@ -774,8 +778,8 @@ impl Plot {
             return Ok(());
         };
 
-        for (series, ir_series) in self.series.iter_mut().zip(ir_plot.series()) {
-            let (x_ax_ref, y_ax_ref) = ir_series.axes();
+        for series in self.series.iter_mut() {
+            let (x_ax_ref, y_ax_ref) = series.axes();
             let x = axes.or_find(Orientation::X, x_ax_ref)?;
             let y = axes.or_find(Orientation::Y, y_ax_ref)?;
             let (Some(x), Some(y)) = (x, y) else {
@@ -786,7 +790,7 @@ impl Plot {
                 y: y.coord_map(),
             };
 
-            series.update_data(ir_series, data_source, &self.plot_rect, &cm)?;
+            series.update_data(data_source, &self.rect, &cm)?;
         }
         Ok(())
     }
@@ -795,27 +799,26 @@ impl Plot {
         &self,
         surface: &mut S,
         style: &Style<T, P>,
-        ir_plot: &ir::Plot,
     ) -> Result<(), Error>
     where
         S: render::Surface,
         T: Theme,
         P: Palette,
     {
-        self.draw_background(surface, style, ir_plot)?;
+        self.draw_background(surface, style)?;
         let Some(axes) = &self.axes else {
-            self.draw_border_box(surface, style, ir_plot.border())?;
+            self.draw_border_box(surface, style)?;
             return Ok(());
         };
 
-        axes.draw_grids(surface, style, &self.plot_rect)?;
+        axes.draw_grids(surface, style, &self.rect)?;
 
-        self.draw_lines(surface, style, axes, ir_plot, false)?;
-        self.draw_series(surface, style, ir_plot.series())?;
-        self.draw_lines(surface, style, axes, ir_plot, true)?;
+        self.draw_lines(surface, style, axes, false)?;
+        self.draw_series(surface, style)?;
+        self.draw_lines(surface, style, axes, true)?;
 
-        axes.draw(surface, style, &self.plot_rect)?;
-        self.draw_border_box(surface, style, ir_plot.border())?;
+        axes.draw(surface, style, &self.rect)?;
+        self.draw_border_box(surface, style)?;
 
         if let Some((top_left, leg)) = self.legend.as_ref() {
             leg.draw(surface, style, top_left)?;
@@ -828,15 +831,14 @@ impl Plot {
         &self,
         surface: &mut S,
         style: &Style<T, P>,
-        ir_plot: &ir::Plot,
     ) -> Result<(), Error>
     where
         S: render::Surface,
         T: Theme,
     {
-        if let Some(fill) = ir_plot.fill() {
+        if let Some(fill) = &self.fill {
             surface.draw_rect(&render::Rect {
-                rect: self.plot_rect,
+                rect: self.rect,
                 fill: Some(fill.as_paint(style)),
                 stroke: None,
                 transform: None,
@@ -849,7 +851,6 @@ impl Plot {
         &self,
         surface: &mut S,
         style: &Style<T, P>,
-        border: Option<&ir::plot::Border>,
     ) -> Result<(), Error>
     where
         S: render::Surface,
@@ -857,8 +858,8 @@ impl Plot {
     {
         // border is drawn by plot only when it is a box
         // otherwise, axes draw the border as spines
-        let rect = self.plot_rect;
-        match border {
+        let rect = self.rect;
+        match self.border.as_ref() {
             None => Ok(()),
             Some(ir::plot::Border::Box(stroke)) => {
                 surface.draw_rect(&render::Rect {
@@ -877,13 +878,12 @@ impl Plot {
         &self,
         surface: &mut S,
         style: &Style<T, P>,
-        ir_series: &[ir::Series],
     ) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
     {
-        let rect = self.plot_rect;
+        let rect = self.rect;
         let series = &self.series;
 
         let clip = render::Clip {
@@ -892,8 +892,8 @@ impl Plot {
         };
         surface.push_clip(&clip)?;
 
-        for (series, ir_series) in series.iter().zip(ir_series.iter()) {
-            series.draw(surface, style, ir_series)?;
+        for series in series.iter(){
+            series.draw(surface, style)?;
         }
         surface.pop_clip()?;
         Ok(())
@@ -904,14 +904,13 @@ impl Plot {
         surface: &mut S,
         style: &Style<T, P>,
         axes: &Axes,
-        ir_plot: &ir::Plot,
         above: bool,
     ) -> Result<(), Error>
     where
         S: render::Surface,
         T: Theme,
     {
-        for line in ir_plot.lines() {
+        for line in self.lines.iter() {
             if line.above == above {
                 let x_axis = axes
                     .or_find(Orientation::X, line.x_axis.as_ref())?
@@ -920,7 +919,7 @@ impl Plot {
                     .or_find(Orientation::Y, line.y_axis.as_ref())?
                     .ok_or_else(|| Error::UnknownAxisRef(line.y_axis.as_ref().unwrap().clone()))?;
 
-                self.draw_line(surface, style, line, x_axis, y_axis, &self.plot_rect)?;
+                self.draw_line(surface, style, line, x_axis, y_axis, &self.rect)?;
             }
         }
         Ok(())

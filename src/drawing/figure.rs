@@ -1,6 +1,6 @@
 use crate::drawing::legend::{self, LegendBuilder};
 use crate::drawing::{Ctx, Error, plot};
-use crate::style::theme::Theme;
+use crate::style::theme::{self, Theme};
 use crate::{Style, data, geom, ir, missing_params, render, style, text};
 
 /// A figure that has been prepared for drawing. See [`Figure::prepare`].
@@ -12,7 +12,8 @@ use crate::{Style, data, geom, ir, missing_params, render, style, text};
 /// The colors, strokes and fills will be resolved at draw time using the given theme.
 #[derive(Debug, Clone)]
 pub struct Figure {
-    fig: ir::Figure,
+    size: geom::Size,
+    fill: Option<theme::Fill>,
     title: Option<(geom::Transform, super::Text)>,
     legend: Option<(geom::Point, legend::Legend)>,
     plots: plot::Plots,
@@ -21,7 +22,7 @@ pub struct Figure {
 impl Figure {
     /// The size of the figure in figure units
     pub fn size(&self) -> geom::Size {
-        self.fig.size()
+        self.size
     }
 
     /// Update the data for all series in the figure from the given data source.
@@ -34,7 +35,7 @@ impl Figure {
         D: data::Source,
     {
         self.plots
-            .update_series_data(self.fig.plots(), data_source)?;
+            .update_series_data(data_source)?;
         Ok(())
     }
 }
@@ -78,7 +79,8 @@ where
         let plots = self.setup_plots(fig.plots(), &rect)?;
 
         Ok(Figure {
-            fig: fig.clone(),
+            size: fig.size(),
+            fill: fig.fill().clone(),
             title,
             legend,
             plots,
@@ -159,9 +161,9 @@ impl Figure {
         T: Theme,
         P: style::series::Palette,
     {
-        surface.prepare(self.fig.size())?;
+        surface.prepare(self.size)?;
 
-        if let Some(fill) = self.fig.fill() {
+        if let Some(fill) = &self.fill {
             surface.fill(fill.as_paint(style))?;
         }
 
@@ -173,7 +175,7 @@ impl Figure {
             legend.draw(surface, style, pos)?;
         }
 
-        self.plots.draw(surface, style, self.fig.plots())?;
+        self.plots.draw(surface, style)?;
 
         Ok(())
     }
