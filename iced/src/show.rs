@@ -4,8 +4,10 @@
 use eidoplot::drawing;
 use eidoplot::style::CustomStyle;
 use iced::Length;
+use iced::widget::column;
 
 use crate::figure::figure;
+use crate::toolbar::{self, Toolbar};
 
 /// Trait to show figures in a window
 pub trait Show {
@@ -14,19 +16,40 @@ pub trait Show {
     fn show(self, style: Option<CustomStyle>) -> iced::Result;
 }
 
-enum Message {}
-
-struct FigureWindow {
-    figure: drawing::Figure,
-    style: Option<CustomStyle>,
+enum Message {
+    Toolbar(toolbar::Message),
 }
 
-impl FigureWindow {
+struct ShowWindow {
+    figure: drawing::Figure,
+    style: Option<CustomStyle>,
+    toolbar: Toolbar,
+}
+
+impl ShowWindow {
     fn new(figure: drawing::Figure, style: Option<CustomStyle>) -> Self {
-        Self { figure, style }
+        Self {
+            figure,
+            style,
+            toolbar: Toolbar::default(),
+        }
     }
 
-    fn update(&mut self, _msg: Message) -> iced::Task<Message> {
+    fn update(&mut self, msg: Message) -> iced::Task<Message> {
+        match msg {
+            Message::Toolbar(msg) => {
+                match msg {
+                    toolbar::Message::Home => {
+                        // TODO: Reset the figure view to home
+                        self.toolbar.set_at_home(true);
+                    }
+                    toolbar::Message::ZoomIn | toolbar::Message::ZoomOut => {
+                        // TODO: Apply zoom to the figure view
+                        self.toolbar.set_at_home(false);
+                    }
+                }
+            }
+        }
         iced::Task::none()
     }
 
@@ -34,12 +57,16 @@ impl FigureWindow {
         let fig = figure(&self.figure)
             .width(Length::Fill)
             .height(Length::Fill);
-        if let Some(style) = &self.style {
+
+        let fig = if let Some(style) = &self.style {
             fig.style(|_| style.clone())
         } else {
             fig
-        }
-        .into()
+        };
+
+        let toolbar = self.toolbar.view().map(Message::Toolbar);
+
+        column![fig, toolbar].into()
     }
 }
 
@@ -49,10 +76,10 @@ impl Show for drawing::Figure {
             move || {
                 let fig = self.clone();
                 let style = style.clone();
-                (FigureWindow::new(fig, style), iced::Task::none())
+                (ShowWindow::new(fig, style), iced::Task::none())
             },
-            FigureWindow::update,
-            FigureWindow::view,
+            ShowWindow::update,
+            ShowWindow::view,
         )
         .run()
     }
