@@ -7,7 +7,7 @@ use super::{
 };
 use crate::bidi::BidiAlgo;
 use crate::font::{self, DatabaseExt};
-use crate::{BBox, fontdb, line};
+use crate::{fontdb, line};
 
 #[derive(Debug)]
 struct BuilderCtx<C>
@@ -300,7 +300,7 @@ where
             end,
             shapes,
             main_dir,
-            bbox: BBox::EMPTY,
+            bbox: None,
         })
     }
 
@@ -334,7 +334,7 @@ where
                 start: span_start,
                 end: span_end,
                 props: ctx.resolver.resolved(),
-                bbox: BBox::EMPTY,
+                bbox: None,
             });
             for span in self.spans.iter() {
                 if span.end == span_end {
@@ -409,7 +409,7 @@ where
             glyphs,
             metrics,
             y_baseline: f32::NAN,
-            bbox: BBox::EMPTY,
+            bbox: None,
         };
         Ok(shape)
     }
@@ -434,7 +434,7 @@ where
         let bbox = lines
             .iter()
             .map(|l| l.bbox)
-            .reduce(|a, b| BBox::unite(&a, &b));
+            .reduce(|a, b| geom::Rect::unite_opt(a.as_ref(), b.as_ref()));
         let bbox = bbox.unwrap_or_default();
 
         Ok(RichText {
@@ -554,32 +554,22 @@ where
                 y_cursor -= glyph.y_advance;
                 for s in shape.spans.iter_mut() {
                     if s.start <= glyph.cluster && glyph.cluster < s.end {
-                        s.bbox = BBox::unite(
-                            &s.bbox,
-                            &BBox {
-                                top,
-                                right: x_cursor,
-                                bottom,
-                                left: glyph_start,
-                            },
+                        s.bbox = geom::Rect::unite_opt(
+                            s.bbox.as_ref(),
+                            Some(&geom::Rect::from_trbl(top, x_cursor, bottom, glyph_start)),
                         );
                     }
                 }
             }
             shape.y_baseline = y_baseline;
-            shape.bbox = BBox {
-                top,
-                right: x_cursor,
-                bottom,
-                left: shape_start,
-            };
+            shape.bbox = Some(geom::Rect::from_trbl(top, x_cursor, bottom, shape_start));
         }
-        line.bbox = BBox {
-            top: y_baseline - line.ascent(),
-            right: x_cursor,
-            bottom: y_baseline - line.descent(),
-            left: x_start,
-        };
+        line.bbox = Some(geom::Rect::from_trbl(
+            y_baseline - line.ascent(),
+            x_cursor,
+            y_baseline - line.descent(),
+            x_start,
+        ));
     }
 
     fn build_vertical_layout(&self, cols: &mut Vec<LineSpan<C>>) -> Result<VerProgression, Error> {
@@ -686,14 +676,9 @@ where
                 x_cursor += glyph.x_advance;
                 for s in shape.spans.iter_mut() {
                     if s.start <= glyph.cluster && glyph.cluster < s.end {
-                        s.bbox = BBox::unite(
-                            &s.bbox,
-                            &BBox {
-                                top: glyph_start,
-                                right,
-                                bottom: x_cursor,
-                                left,
-                            },
+                        s.bbox = geom::Rect::unite_opt(
+                            s.bbox.as_ref(),
+                            Some(&geom::Rect::from_trbl(glyph_start, right, x_cursor, left)),
                         );
                     }
                 }
@@ -701,13 +686,8 @@ where
             // y_baseline is only used for underline and strikeout
             // vertical underline is not supported, vertical strikeout doesn't use y_baseline
             shape.y_baseline = f32::NAN;
-            shape.bbox = BBox {
-                top: shape_start,
-                right,
-                bottom: x_cursor,
-                left,
-            };
-            col.bbox = BBox::unite(&col.bbox, &shape.bbox);
+            shape.bbox = Some(geom::Rect::from_trbl(shape_start, right, x_cursor, left));
+            col.bbox = geom::Rect::unite_opt(col.bbox.as_ref(), shape.bbox.as_ref());
         }
     }
 }

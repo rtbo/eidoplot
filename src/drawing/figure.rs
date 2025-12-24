@@ -34,8 +34,7 @@ impl Figure {
     where
         D: data::Source,
     {
-        self.plots
-            .update_series_data(data_source)?;
+        self.plots.update_series_data(data_source)?;
         Ok(())
     }
 }
@@ -62,8 +61,10 @@ where
             let anchor_y = rect.top();
             let transform = geom::Transform::from_translate(anchor_x, anchor_y);
 
-            rect = rect
-                .shifted_top_side(rich.visual_bbox().height() + missing_params::FIG_TITLE_MARGIN);
+            rect = rect.shifted_top_side(
+                rich.visual_bbox().map_or(0.0, |bbox| bbox.height())
+                    + missing_params::FIG_TITLE_MARGIN,
+            );
 
             title = Some((transform, paths));
         }

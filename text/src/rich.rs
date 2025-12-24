@@ -1,7 +1,7 @@
 use eidoplot_base::{Color, ColorU8, color, geom};
 use ttf_parser as ttf;
 
-use crate::{BBox, Error, font, fontdb, line};
+use crate::{Error, font, fontdb, line};
 
 mod boundaries;
 mod builder;
@@ -205,7 +205,7 @@ where
     text: String,
     layout: Layout,
     lines: Vec<LineSpan<C>>,
-    bbox: BBox,
+    bbox: Option<geom::Rect>,
 }
 
 impl<C> RichText<C>
@@ -224,27 +224,27 @@ where
         &self.lines
     }
 
-    pub fn bbox(&self) -> BBox {
-        self.bbox
+    pub fn bbox(&self) -> Option<&geom::Rect> {
+        self.bbox.as_ref()
     }
 
     #[inline]
     pub fn width(&self) -> f32 {
-        self.bbox.width()
+        self.bbox.map_or(0.0, |bbox| bbox.width())
     }
 
     #[inline]
     pub fn height(&self) -> f32 {
-        self.bbox.height()
+        self.bbox.map_or(0.0, |bbox| bbox.height())
     }
 
-    pub fn visual_bbox(&self) -> BBox {
+    pub fn visual_bbox(&self) -> Option<geom::Rect> {
         if self.lines.is_empty() {
-            return BBox::NULL;
+            return None;
         }
-        let mut bbox = BBox::EMPTY;
+        let mut bbox = None;
         for l in &self.lines {
-            bbox = BBox::unite(&bbox, &l.visual_bbox());
+            bbox = geom::Rect::unite_opt(bbox.as_ref(), l.visual_bbox().as_ref());
         }
         bbox
     }
@@ -272,7 +272,7 @@ where
             text: String::new(),
             layout: Layout::default(),
             lines: Vec::new(),
-            bbox: BBox::EMPTY,
+            bbox: None,
         }
     }
 
@@ -509,7 +509,7 @@ where
     end: usize,
     shapes: Vec<ShapeSpan<C>>,
     main_dir: rustybuzz::Direction,
-    bbox: BBox,
+    bbox: Option<geom::Rect>,
 }
 
 impl<C> LineSpan<C>
@@ -556,7 +556,7 @@ where
     }
 
     /// Bounding box of the line
-    pub fn bbox(&self) -> BBox {
+    pub fn bbox(&self) -> Option<geom::Rect> {
         self.bbox
     }
 
@@ -620,13 +620,13 @@ where
     }
 
     /// Visual bounding box of the line
-    pub fn visual_bbox(&self) -> BBox {
+    pub fn visual_bbox(&self) -> Option<geom::Rect> {
         if self.shapes.is_empty() {
-            return BBox::NULL;
+            return None;
         }
-        let mut bbox = BBox::EMPTY;
+        let mut bbox = None;
         for s in &self.shapes {
-            bbox = BBox::unite(&bbox, &s.visual_bbox());
+            bbox = geom::Rect::unite_opt(bbox.as_ref(), Some(&s.visual_bbox()));
         }
         bbox
     }
@@ -660,7 +660,7 @@ where
     glyphs: Vec<Glyph>,
     metrics: font::ScaledMetrics,
     y_baseline: f32,
-    bbox: BBox,
+    bbox: Option<geom::Rect>,
 }
 
 impl<C> ShapeSpan<C>
@@ -720,20 +720,28 @@ where
     }
 
     /// The bounding box of this shape
-    pub fn bbox(&self) -> BBox {
-        self.bbox
+    pub fn bbox(&self) -> geom::Rect {
+        // no empty shapes are built
+        self.bbox.unwrap()
     }
 
     /// The visual bounding box of this shape
-    pub fn visual_bbox(&self) -> BBox {
-        if self.glyphs.is_empty() {
-            return BBox::NULL;
-        }
-        let mut bbox = BBox::EMPTY;
+    pub fn visual_bbox(&self) -> geom::Rect {
+        // no empty shapes are built
+        assert!(!self.glyphs.is_empty());
+
+        let mut bbox = None;
         for g in &self.glyphs {
-            bbox = BBox::unite(&bbox, &g.visual_bbox());
+            match bbox {
+                Some(ref mut b) => {
+                    *b = geom::Rect::unite(b, &g.visual_bbox());
+                }
+                None => {
+                    bbox = Some(g.visual_bbox());
+                }
+            }
         }
-        bbox
+        bbox.unwrap()
     }
 
     #[cfg(debug_assertions)]
@@ -756,7 +764,7 @@ where
     start: usize,
     end: usize,
     props: TextProps<C>,
-    bbox: BBox,
+    bbox: Option<geom::Rect>,
 }
 
 impl<C> PropsSpan<C>
@@ -793,8 +801,9 @@ where
     }
 
     /// Bounding box of the span
-    pub fn bbox(&self) -> BBox {
-        self.bbox
+    pub fn bbox(&self) -> geom::Rect {
+        // no empty spans are built
+        self.bbox.unwrap()
     }
 }
 
@@ -811,7 +820,7 @@ struct Glyph {
 }
 
 impl Glyph {
-    fn visual_bbox(&self) -> BBox {
+    fn visual_bbox(&self) -> geom::Rect {
         let mut tl_br = [
             geom::Point {
                 x: self.rect.x_min as f32,
@@ -823,11 +832,6 @@ impl Glyph {
             },
         ];
         self.ts.map_points(&mut tl_br);
-        BBox {
-            top: tl_br[0].y,
-            right: tl_br[1].x,
-            bottom: tl_br[1].y,
-            left: tl_br[0].x,
-        }
+        geom::Rect::from_trbl(tl_br[0].y, tl_br[1].x, tl_br[1].y, tl_br[0].x)
     }
 }

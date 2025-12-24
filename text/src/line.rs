@@ -5,7 +5,7 @@ use ttf_parser as ttf;
 
 use crate::bidi::{self, BidiAlgo};
 use crate::font::{self, DatabaseExt};
-use crate::{BBox, Error, Font, ScriptDir, fontdb};
+use crate::{Error, Font, ScriptDir, fontdb};
 
 /// Horizontal alignment
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -46,7 +46,7 @@ pub struct LineText {
     align: (Align, VerAlign),
     font_size: f32,
     font: Font,
-    bbox: BBox,
+    bbox: Option<geom::Rect>,
     main_dir: ScriptDir,
     metrics: font::ScaledMetrics,
     pub(crate) shapes: Vec<Shape>,
@@ -69,18 +69,18 @@ impl LineText {
         &self.font
     }
 
-    pub fn bbox(&self) -> &BBox {
-        &self.bbox
+    pub fn bbox(&self) -> Option<&geom::Rect> {
+        self.bbox.as_ref()
     }
 
     #[inline]
     pub fn width(&self) -> f32 {
-        self.bbox.width()
+        self.bbox.map_or(0.0, |bbox| bbox.width())
     }
 
     #[inline]
     pub fn height(&self) -> f32 {
-        self.bbox.height()
+        self.bbox.map_or(0.0, |bbox| bbox.height())
     }
 
     pub fn main_dir(&self) -> ScriptDir {
@@ -97,7 +97,7 @@ impl LineText {
             align: (Default::default(), Default::default()),
             font_size: 1.0,
             font,
-            bbox: BBox::EMPTY,
+            bbox: None,
             main_dir: ScriptDir::LeftToRight,
             metrics: font::ScaledMetrics::null(),
             shapes: Vec::new(),
@@ -192,12 +192,7 @@ impl LineText {
             align: (align, ver_align),
             font_size,
             font: font.clone(),
-            bbox: BBox {
-                top,
-                right: x_cursor,
-                bottom,
-                left: x_start,
-            },
+            bbox: Some(geom::Rect::from_trbl(top, x_cursor, bottom, x_start)),
             main_dir,
             metrics,
             shapes,

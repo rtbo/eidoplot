@@ -2,7 +2,7 @@ use eidoplot_base::{ColorU8, geom};
 use ttf_parser as ttf;
 
 use super::RichText;
-use crate::{BBox, font, fontdb};
+use crate::{font, fontdb};
 
 #[derive(Debug)]
 pub enum RichPrimitive<'a, C = ColorU8>
@@ -57,13 +57,13 @@ where
 
                         if span.props.underline {
                             let line = shape.metrics.uline;
-                            let path = line_path(span.bbox, shape.y_baseline, line, glyph_builder);
+                            let path = line_path(span.bbox(), shape.y_baseline, line, glyph_builder);
                             span_builder.push_path(&path);
                             glyph_builder = path.clear();
                         }
                         if span.props.strikeout {
                             let line = shape.metrics.strikeout;
-                            let path = line_path(span.bbox, shape.y_baseline, line, glyph_builder);
+                            let path = line_path(span.bbox(), shape.y_baseline, line, glyph_builder);
                             span_builder.push_path(&path);
                             glyph_builder = path.clear();
                         }
@@ -117,16 +117,16 @@ pub fn render_rich_text(
 }
 
 fn line_path(
-    bbox: BBox,
+    rect: geom::Rect,
     y_baseline: f32,
     line: font::ScaledLineMetrics,
     mut builder: geom::PathBuilder,
 ) -> geom::Path {
     // there is no y-flip transform on this one
-    builder.move_to(bbox.left, y_baseline - line.position);
-    builder.line_to(bbox.right, y_baseline - line.position);
-    builder.line_to(bbox.right, y_baseline - line.position + line.thickness);
-    builder.line_to(bbox.left, y_baseline - line.position + line.thickness);
+    builder.move_to(rect.left(), y_baseline - line.position);
+    builder.line_to(rect.right(), y_baseline - line.position);
+    builder.line_to(rect.right(), y_baseline - line.position + line.thickness);
+    builder.line_to(rect.left(), y_baseline - line.position + line.thickness);
     builder.close();
     builder.finish().unwrap()
 }

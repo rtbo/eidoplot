@@ -1,5 +1,5 @@
 use eidoplot_base::geom;
-use eidoplot_text::{BBox, bundled_font_db, font, line};
+use eidoplot_text::{bundled_font_db, font, line};
 use line::LineText;
 
 fn main() {
@@ -52,7 +52,7 @@ fn main() {
 fn draw_line_bbox(line: &line::LineText, (tx, ty): (f32, f32), pm_mut: &mut tiny_skia::PixmapMut) {
     let tr = tiny_skia::Transform::from_translate(tx, ty);
     draw_bbox(
-        line.bbox().transform(&tr),
+        line.bbox().unwrap().transform(&tr),
         tiny_skia::Color::from_rgba8(128, 50, 50, 255),
         2.0,
         false,
@@ -60,24 +60,14 @@ fn draw_line_bbox(line: &line::LineText, (tx, ty): (f32, f32), pm_mut: &mut tiny
     );
 }
 
-fn bbox_rect_path(bbox: BBox) -> geom::Path {
-    let mut pb = geom::PathBuilder::new();
-    pb.move_to(bbox.left, bbox.top);
-    pb.line_to(bbox.right, bbox.top);
-    pb.line_to(bbox.right, bbox.bottom);
-    pb.line_to(bbox.left, bbox.bottom);
-    pb.line_to(bbox.left, bbox.top);
-    pb.finish().unwrap()
-}
-
 fn draw_bbox(
-    bbox: BBox,
+    rect: geom::Rect,
     color: tiny_skia::Color,
     width: f32,
     dash: bool,
     pm_mut: &mut tiny_skia::PixmapMut,
 ) {
-    let path = bbox_rect_path(bbox);
+    let path = rect.to_path();
     draw_path_stroke(&path, color, width, dash, pm_mut);
 }
 

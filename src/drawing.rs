@@ -191,7 +191,7 @@ impl<'a, D> Ctx<'a, D> {
 #[derive(Debug, Clone)]
 struct Text {
     spans: Vec<TextSpan>,
-    bbox: text::BBox,
+    bbox: geom::Rect,
 }
 
 #[derive(Debug, Clone)]
@@ -217,7 +217,7 @@ impl Text {
         });
         Ok(Text {
             spans,
-            bbox: *text.bbox(),
+            bbox: text.bbox().cloned().unwrap_or_else(|| geom::Rect::null()),
         })
     }
 
@@ -249,7 +249,7 @@ impl Text {
         })?;
         Ok(Text {
             spans,
-            bbox: text.bbox(),
+            bbox: text.bbox().cloned().unwrap_or_else(|| geom::Rect::null()),
         })
     }
 

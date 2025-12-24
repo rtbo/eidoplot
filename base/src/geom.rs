@@ -51,6 +51,15 @@ pub struct Rect {
 }
 
 impl Rect {
+    pub fn null() -> Self {
+        Rect {
+            x: FiniteF32::new(0.0).unwrap(),
+            y: FiniteF32::new(0.0).unwrap(),
+            w: PositiveF32::new(0.0).unwrap(),
+            h: PositiveF32::new(0.0).unwrap(),
+        }
+    }
+
     /// Build a rectangle from x, y, width and height
     pub fn from_xywh(x: f32, y: f32, w: f32, h: f32) -> Self {
         Rect {
@@ -302,6 +311,48 @@ impl Rect {
             w: PositiveF32::new(new_w).unwrap(),
             ..self
         }
+    }
+
+    /// Unite two rectangles into one that contains both
+    pub fn unite(r1: &Rect, r2: &Rect) -> Rect {
+        let left = r1.left().min(r2.left());
+        let top = r1.top().min(r2.top());
+        let right = r1.right().max(r2.right());
+        let bottom = r1.bottom().max(r2.bottom());
+        Rect::from_trbl(top, right, bottom, left)
+    }
+
+    /// Unite two optional rectangles into one that contains both
+    pub fn unite_opt(r1: Option<&Rect>, r2: Option<&Rect>) -> Option<Rect> {
+        match (r1, r2) {
+            (Some(r1), Some(r2)) => Some(Rect::unite(r1, r2)),
+            (Some(r1), None) => Some(*r1),
+            (None, Some(r2)) => Some(*r2),
+            (None, None) => None,
+        }
+    }
+
+    /// Transform the rectangle with a transform
+    pub fn transform(self, transform: &Transform) -> Rect {
+        let mut tlbr = [
+            Point {
+                x: self.left(),
+                y: self.top(),
+            },
+            Point {
+                x: self.right(),
+                y: self.bottom(),
+            },
+        ];
+        transform.map_points(&mut tlbr);
+
+        let [p1, p2] = tlbr;
+        let x = p1.x.min(p2.x);
+        let y = p1.y.min(p2.y);
+        let width = (p2.x - p1.x).abs();
+        let height = (p2.y - p1.y).abs();
+
+        Rect::from_xywh(x, y, width, height)
     }
 
     /// Build a path from the rectangle
