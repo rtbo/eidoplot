@@ -14,16 +14,16 @@ use crate::{Style, data, geom, ir, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub(super) struct Plots {
-    _rows_cols: (u32, u32),
+    _size: (u32, u32),
     plots: Vec<Option<Plot>>,
 }
 
 impl Plots {
     pub(super) fn _rows(&self) -> u32 {
-        self._rows_cols.0
+        self._size.0
     }
     pub(super) fn _cols(&self) -> u32 {
-        self._rows_cols.1
+        self._size.1
     }
     pub(super) fn plots(&self) -> &[Option<Plot>] {
         &self.plots
@@ -32,7 +32,7 @@ impl Plots {
 
 #[derive(Debug, Clone)]
 pub(super) struct Plot {
-    row_col: (u32, u32),
+    idx: PlotIdx,
     rect: geom::Rect,
     // None when there is no series (empty plot)
     axes: Option<Axes>,
@@ -45,8 +45,8 @@ pub(super) struct Plot {
 }
 
 impl Plot {
-    pub(super) fn row_col(&self) -> (u32, u32) {
-        self.row_col
+    pub(super) fn idx(&self) -> PlotIdx {
+        self.idx
     }
 
     pub(super) fn rect(&self) -> &geom::Rect {
@@ -353,7 +353,7 @@ where
 
                     let plt_idx = row * ir_plots.cols() + col;
                     let plot = Plot {
-                        row_col: (row, col),
+                        idx: (row, col).into(),
                         rect: plot_rect,
                         fill: ir_plot.fill().cloned(),
                         border: ir_plot.border().cloned(),
@@ -372,7 +372,7 @@ where
 
         let mut plots = Plots {
             plots,
-            _rows_cols: (ir_plots.rows(), ir_plots.cols()),
+            _size: (ir_plots.rows(), ir_plots.cols()),
         };
 
         plots.update_series_data(self.data_source())?;

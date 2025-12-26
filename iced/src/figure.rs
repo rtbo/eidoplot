@@ -1,3 +1,4 @@
+use eidoplot::render::Surface;
 use eidoplot::style::series::Palette;
 use eidoplot::style::theme::Theme;
 use eidoplot::style::{CustomStyle, theme};
@@ -25,7 +26,10 @@ where
     height: Length,
     scale: f32,
     class: Theme::Class<'a>,
-    on_hover_hit: Option<Box<dyn Fn(Option<drawing::PlotHit>) -> Message + 'a>>,
+    on_mouse_press: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
+    on_mouse_move: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
+    on_mouse_release: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
+    zoom_rect: Option<(geom::Point, geom::Point)>,
 }
 
 impl<'a, Theme> std::fmt::Debug for Figure<'a, Theme>
@@ -38,14 +42,6 @@ where
             .field("width", &self.width)
             .field("height", &self.height)
             .field("scale", &self.scale)
-            .field(
-                "on_hover_hit",
-                if self.on_hover_hit.is_some() {
-                    &"Some"
-                } else {
-                    &"None"
-                },
-            )
             .finish()
     }
 }
@@ -61,7 +57,10 @@ where
             height: Length::Shrink,
             scale: 1.0,
             class: Theme::default(),
-            on_hover_hit: None,
+            on_mouse_press: None,
+            on_mouse_move: None,
+            on_mouse_release: None,
+            zoom_rect: None,
         }
     }
 
@@ -93,20 +92,40 @@ where
         self
     }
 
-    /// Sets the on hover hit test callback of the [`Figure`].
+    /// Sets the on mouse press callback of the [`Figure`].
     #[must_use]
-    pub fn on_hover_hit(
-        mut self,
-        callback: impl Fn(Option<drawing::PlotHit>) -> Message + 'a,
-    ) -> Self {
-        self.on_hover_hit = Some(Box::new(callback));
+    pub fn on_mouse_press(mut self, callback: impl Fn(geom::Point) -> Message + 'a) -> Self {
+        self.on_mouse_press = Some(Box::new(callback));
+        self
+    }
+
+    /// Sets the on mouse move callback of the [`Figure`].
+    #[must_use]
+    pub fn on_mouse_move(mut self, callback: impl Fn(geom::Point) -> Message + 'a) -> Self {
+        self.on_mouse_move = Some(Box::new(callback));
+        self
+    }
+
+    /// Sets the on mouse release callback of the [`Figure`].
+    #[must_use]
+    pub fn on_mouse_release(mut self, callback: impl Fn(geom::Point) -> Message + 'a) -> Self {
+        self.on_mouse_release = Some(Box::new(callback));
+        self
+    }
+
+    /// Sets the zoom rectangle of the [`Figure`].
+    #[must_use]
+    pub fn zoom_rect(mut self, start: geom::Point, end: geom::Point) -> Self {
+        self.zoom_rect = Some((start, end));
         self
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 struct State {
     over_plot: bool,
+    dragging: bool,
+    mouse_pos: Option<geom::Point>,
 }
 
 fn fit_to_bounds(size: geom::Size, bounds: Rectangle) -> geom::Transform {
@@ -172,31 +191,56 @@ where
         if shell.is_event_captured() {
             return;
         }
+        let state = tree.state.downcast_mut::<State>();
 
         let bounds = layout.bounds();
-        if !cursor.is_over(bounds) {
+        if !cursor.is_over(bounds) && !state.dragging {
+            state.over_plot = false;
+            state.mouse_pos = None;
             return;
         }
 
         match event {
-            iced::Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                let state = tree.state.downcast_mut::<State>();
-
-                if let Some(callback) = &self.on_hover_hit {
-                    let transform = fit_to_bounds(self.fig.size(), layout.bounds())
-                        .invert()
-                        .expect("transform without skew should be invertible");
-                    let mut point = geom::Point {
-                        x: position.x,
-                        y: position.y,
-                    };
-                    transform.map_point(&mut point);
-                    let plot_hit = self.fig.hit_test(point);
-                    state.over_plot = plot_hit.is_some();
-                    let msg = callback(plot_hit);
-                    shell.publish(msg);
-                } else {
-                    state.over_plot = false;
+            iced::Event::Mouse(mouse_ev) => {
+                match mouse_ev {
+                    mouse::Event::CursorMoved { position } => {
+                        let transform = fit_to_bounds(self.fig.size(), layout.bounds())
+                            .invert()
+                            .expect("transform without skew should be invertible");
+                        let mut point = geom::Point {
+                            x: position.x,
+                            y: position.y,
+                        };
+                        transform.map_point(&mut point);
+                        state.over_plot = self.fig.hit_test_idx(point).is_some();
+                        state.mouse_pos = Some(point);
+                        if let Some(callback) = &self.on_mouse_move {
+                            let msg = callback(point);
+                            shell.publish(msg);
+                        }
+                        shell.capture_event();
+                    }
+                    mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                        state.dragging = true;
+                        if let Some(pos) = state.mouse_pos {
+                            if let Some(callback) = &self.on_mouse_press {
+                                let msg = callback(pos);
+                                shell.publish(msg);
+                            }
+                        }
+                        shell.capture_event();
+                    }
+                    mouse::Event::ButtonReleased(mouse::Button::Left) => {
+                        state.dragging = false;
+                        if let Some(pos) = state.mouse_pos {
+                            if let Some(callback) = &self.on_mouse_release {
+                                let msg = callback(pos);
+                                shell.publish(msg);
+                            }
+                        }
+                        shell.capture_event();
+                    }
+                    _ => {}
                 }
             }
             _ => {}
@@ -214,14 +258,33 @@ where
         _viewport: &iced::Rectangle,
     ) {
         let style = theme.style(&self.class);
+
         let bounds = layout.bounds();
         let transform = fit_to_bounds(self.fig.size(), bounds);
+
         let frame = renderer.new_frame(bounds);
         let mut surface = surface::IcedSurface::new(frame, transform);
-        if self.fig.draw(&mut surface, &style).is_ok() {
-            let geometry = surface.into_geometry();
-            renderer.draw_geometry(geometry);
-        };
+
+        if let Err(err) = self.fig.draw(&mut surface, &style) {
+            eprintln!("Failed to draw figure: {}", err);
+            return;
+        }
+
+        if let Some((start, end)) = self.zoom_rect {
+            let rect = geom::Rect::from_corners(start, end);
+            let line = theme::Line::from(theme::Col::Foreground)
+                .with_pattern(style::Dash::default().into());
+            let stroke = line.as_stroke(&style);
+            let _ = surface.draw_rect(&eidoplot::render::Rect {
+                rect,
+                stroke: Some(stroke),
+                fill: None,
+                transform: None,
+            });
+        }
+
+        let geometry = surface.into_geometry();
+        renderer.draw_geometry(geometry);
     }
 
     fn mouse_interaction(

@@ -1,13 +1,14 @@
 //! Module that provides the "show" functionality using the `iced` GUI library
 //! Requires the `iced` feature to be enabled
 
-use eidoplot::drawing;
+use eidoplot::ir::PlotIdx;
 use eidoplot::style::CustomStyle;
+use eidoplot::{drawing, geom};
 use iced::Length;
 use iced::widget::column;
 
 use crate::figure::figure;
-use crate::toolbar::{self, Toolbar};
+use crate::toolbar;
 
 /// Trait to show figures in a window
 pub trait Show {
@@ -19,13 +20,31 @@ pub trait Show {
 #[derive(Debug, Clone)]
 enum Message {
     Toolbar(toolbar::Message),
-    PlotHover(Option<drawing::PlotHit>),
+
+    FigureMousePress(geom::Point),
+    FigureMouseMove(geom::Point),
+    FigureMouseRelease(geom::Point),
+
+    Event(iced::event::Event),
+}
+
+#[derive(Debug, Clone, Default)]
+enum Interaction {
+    #[default]
+    None,
+    ZoomEnabled,
+    ZoomDragging {
+        plot: PlotIdx,
+        start: geom::Point,
+        end: geom::Point,
+    },
 }
 
 struct ShowWindow {
     figure: drawing::Figure,
     style: Option<CustomStyle>,
-    toolbar: Toolbar,
+    tb_state: toolbar::State,
+    interaction: Interaction,
 }
 
 impl ShowWindow {
@@ -33,32 +52,88 @@ impl ShowWindow {
         Self {
             figure,
             style,
-            toolbar: Toolbar::default(),
+            tb_state: Default::default(),
+            interaction: Interaction::None,
         }
     }
 
     fn update(&mut self, msg: Message) -> iced::Task<Message> {
         match msg {
-            Message::Toolbar(msg) => {
-                match msg {
-                    toolbar::Message::Home => {
-                        // TODO: Reset the figure view to home
-                        self.toolbar.set_at_home(true);
+            Message::Toolbar(msg) => match msg {
+                toolbar::Message::Home => {
+                    self.tb_state.at_home = true;
+                    self.interaction = Interaction::None;
+                }
+                toolbar::Message::ZoomIn | toolbar::Message::ZoomOut => {
+                    self.tb_state.at_home = false;
+                    self.interaction = Interaction::ZoomEnabled;
+                }
+            },
+            Message::FigureMouseMove(point) => {
+                let hit = self.figure.hit_test(point);
+
+                let status = hit
+                    .as_ref()
+                    .map(|h| format!("X = {} | Y = {}", h.x_coords, h.y_coords));
+                self.tb_state.status = status;
+
+                match (&mut self.interaction, &hit) {
+                    (Interaction::ZoomDragging { plot, end, .. }, Some(hit)) => {
+                        if *plot == hit.idx {
+                            *end = point;
+                        }
                     }
-                    toolbar::Message::ZoomIn | toolbar::Message::ZoomOut => {
-                        // TODO: Apply zoom to the figure view
-                        self.toolbar.set_at_home(false);
+                    _ => {}
+                }
+            }
+            Message::FigureMousePress(point) => {
+                let hit = self.figure.hit_test_idx(point);
+                match (&self.interaction, hit) {
+                    (Interaction::ZoomEnabled, Some(plot)) => {
+                        self.interaction = Interaction::ZoomDragging {
+                            plot,
+                            start: point,
+                            end: point,
+                        };
+                    }
+                    _ => {}
+                }
+            }
+            Message::FigureMouseRelease(point) => {
+                match &self.interaction {
+                    Interaction::ZoomDragging { plot, .. } => {
+                        let hit = self.figure.hit_test_idx(point);
+                        if let Some(hit_plot) = hit {
+                            if *plot == hit_plot {
+                                // validate zoom here
+                            }
+                        }
+                        self.interaction = Interaction::ZoomEnabled;
+                    }
+                    _ => {
+                        self.interaction = Interaction::None;
                     }
                 }
             }
-            Message::PlotHover(hit) => {
-                if let Some(hit) = hit {
-                    let status = format!("X = {} | Y = {}", &hit.x_coords, &hit.y_coords);
-                    self.toolbar.set_status(Some(status));
-                } else {
-                    self.toolbar.set_status(None);
+            Message::Event(iced::event::Event::Mouse(ev)) => match ev {
+                iced::mouse::Event::CursorLeft => {
+                    self.tb_state.status = None;
+                }
+                _ => {}
+            },
+            Message::Event(iced::event::Event::Keyboard(ev)) => {
+                use iced::keyboard::{self, key};
+                match ev {
+                    keyboard::Event::KeyPressed {
+                        key: keyboard::Key::Named(key::Named::Escape),
+                        ..
+                    } => {
+                        self.interaction = Interaction::None;
+                    }
+                    _ => {}
                 }
             }
+            _ => {}
         }
         iced::Task::none()
     }
@@ -67,7 +142,9 @@ impl ShowWindow {
         let fig = figure(&self.figure)
             .width(Length::Fill)
             .height(Length::Fill)
-            .on_hover_hit(Message::PlotHover);
+            .on_mouse_move(Message::FigureMouseMove)
+            .on_mouse_press(Message::FigureMousePress)
+            .on_mouse_release(Message::FigureMouseRelease);
 
         let fig = if let Some(style) = &self.style {
             fig.style(|_| style.clone())
@@ -75,9 +152,18 @@ impl ShowWindow {
             fig
         };
 
-        let toolbar = self.toolbar.view().map(Message::Toolbar);
+        let fig = match &self.interaction {
+            Interaction::ZoomDragging { start, end, .. } => fig.zoom_rect(*start, *end),
+            _ => fig,
+        };
+
+        let toolbar = toolbar::view(&self.tb_state).map(Message::Toolbar);
 
         column![fig, toolbar].into()
+    }
+
+    fn subscription(&self) -> iced::Subscription<Message> {
+        iced::event::listen().map(Message::Event)
     }
 }
 
@@ -92,6 +178,8 @@ impl Show for drawing::Figure {
             ShowWindow::update,
             ShowWindow::view,
         )
+        // subscribe to key events
+        .subscription(ShowWindow::subscription)
         .run()
     }
 }

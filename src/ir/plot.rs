@@ -313,7 +313,7 @@ impl PlotLine {
 }
 
 /// Index of a plot in a subplot grid
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PlotIdx {
     /// Row index of the plot (0-based)
     pub row: u32,

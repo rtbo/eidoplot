@@ -1,4 +1,4 @@
-use crate::{data, geom};
+use crate::{data, geom, ir::PlotIdx};
 
 #[derive(Debug, Clone)]
 pub struct HitCoord<'a>(data::Sample<'a>, &'a str);
@@ -20,7 +20,10 @@ impl HitCoord<'_> {
 // An empty plot will have None and empty Vec.
 // There can't be Some and non-empty Vec at the same time.
 #[derive(Debug, Clone, Default)]
-pub struct PlotCoords(Option<(data::OwnedSample, String)>, Vec<(data::OwnedSample, String)>);
+pub struct PlotCoords(
+    Option<(data::OwnedSample, String)>,
+    Vec<(data::OwnedSample, String)>,
+);
 
 impl PlotCoords {
     pub fn len(&self) -> usize {
@@ -39,7 +42,9 @@ impl PlotCoords {
                 return None;
             }
         }
-        self.1.get(index).map(|pc| HitCoord(pc.0.as_sample(), pc.1.as_str()))
+        self.1
+            .get(index)
+            .map(|pc| HitCoord(pc.0.as_sample(), pc.1.as_str()))
     }
 
     fn push(&mut self, sample: (data::OwnedSample, String)) {
@@ -74,10 +79,8 @@ impl std::fmt::Display for PlotCoords {
 /// Result of a hit test on a figure
 #[derive(Debug, Clone)]
 pub struct PlotHit {
-    /// Row of the plot that was hit
-    pub row: u32,
-    /// Column of the plot that was hit
-    pub col: u32,
+    /// Index of the plot that was hit
+    pub idx: PlotIdx,
     /// Coordinates on the x axes of the plot
     pub x_coords: PlotCoords,
     /// Coordinates on the y axes of the plot
@@ -87,16 +90,9 @@ pub struct PlotHit {
 impl super::Figure {
     /// Perform a hit test on the figure for the given point in figure coordinates.
     pub fn hit_test(&self, point: geom::Point) -> Option<PlotHit> {
-        self.plots.hit_test(point)
-    }
-}
-
-impl super::plot::Plots {
-    pub(super) fn hit_test(&self, point: geom::Point) -> Option<PlotHit> {
-        for p in self.plots().iter().filter_map(Option::as_ref) {
+        for p in self.plots.plots().iter().filter_map(Option::as_ref) {
             let rect = p.rect();
             if rect.contains_point(&point) {
-                let (row, col) = p.row_col();
                 let point = geom::Point {
                     x: point.x - rect.x(),
                     y: rect.bottom() - point.y,
@@ -105,8 +101,7 @@ impl super::plot::Plots {
                     let x_coords = axes_coords(&axes.x(), point.x);
                     let y_coords = axes_coords(&axes.y(), point.y);
                     return Some(PlotHit {
-                        row,
-                        col,
+                        idx: p.idx(),
                         x_coords,
                         y_coords,
                     });
@@ -114,6 +109,16 @@ impl super::plot::Plots {
             }
         }
         None
+    }
+
+    /// Perform a hit test on the figure for the given point in figure coordinates.
+    /// Only checks if a plot is hit, and returns its index.
+    pub fn hit_test_idx(&self, point: geom::Point) -> Option<PlotIdx> {
+        self.plots
+            .plots()
+            .iter()
+            .filter_map(Option::as_ref)
+            .find_map(|p| p.rect().contains_point(&point).then_some(p.idx()))
     }
 }
 

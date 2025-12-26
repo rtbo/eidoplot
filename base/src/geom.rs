@@ -85,6 +85,16 @@ impl Rect {
         Rect::from_xywh(top_left.x, top_left.y, size.w, size.h)
     }
 
+    /// Build a rectangle from two corner points
+    pub fn from_corners(p1: Point, p2: Point) -> Self {
+        Rect::from_trbl(
+            p1.y.min(p2.y),
+            p1.x.max(p2.x),
+            p1.y.max(p2.y),
+            p1.x.min(p2.x),
+        )
+    }
+
     /// Pad the rectangle, removing padding from 4 sides
     pub fn pad(&self, padding: &Padding) -> Self {
         Rect {
