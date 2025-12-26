@@ -37,8 +37,8 @@ fn main() {
         .with_y_axis(ax_y2);
 
     let subplots = ir::Subplots::new(2, 1)
-        .with_plot(0, 0, plot1)
-        .with_plot(1, 0, plot2)
+        .with_plot((0, 0), plot1)
+        .with_plot((1, 0), plot2)
         .with_space(10.0);
 
     let fig = ir::Figure::new(subplots.into()).with_title("Subplots".into());

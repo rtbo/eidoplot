@@ -2,7 +2,7 @@
 use std::iter::FusedIterator;
 
 use crate::geom;
-use crate::ir::{Legend, Plot, Subplots};
+use crate::ir::{Legend, Plot, PlotIdx, Subplots};
 use crate::style::{defaults, theme};
 
 super::define_rich_text_structs!(Title, TitleProps, TitleOptProps);
@@ -231,20 +231,22 @@ impl Plots {
     }
 
     /// Get a reference to a plot at the given row and column
-    pub fn plot(&self, row: u32, col: u32) -> Option<&Plot> {
+    pub fn plot(&self, idx: impl Into<PlotIdx>) -> Option<&Plot> {
+        let idx = idx.into();
         match self {
-            Plots::Plot(plot) if row == 0 && col == 0 => Some(plot),
+            Plots::Plot(plot) if idx.row == 0 && idx.col == 0 => Some(plot),
             Plots::Plot(..) => None,
-            Plots::Subplots(subplots) => subplots.plot(row, col),
+            Plots::Subplots(subplots) => subplots.plot(idx),
         }
     }
 
     /// Get a mutable reference to a plot at the given row and column
-    pub fn plot_mut(&mut self, row: u32, col: u32) -> Option<&mut Plot> {
+    pub fn plot_mut(&mut self, idx: impl Into<PlotIdx>) -> Option<&mut Plot> {
+        let idx = idx.into();
         match self {
-            Plots::Plot(plot) if row == 0 && col == 0 => Some(plot),
+            Plots::Plot(plot) if idx.row == 0 && idx.col == 0 => Some(plot),
             Plots::Plot(..) => None,
-            Plots::Subplots(subplots) => subplots.plot_mut(row, col),
+            Plots::Subplots(subplots) => subplots.plot_mut(idx),
         }
     }
 
@@ -253,8 +255,7 @@ impl Plots {
     pub fn iter(&self) -> PlotIter<'_> {
         PlotIter {
             plots: self,
-            row: 0,
-            col: 0,
+            idx: (0, 0).into(),
         }
     }
 
@@ -271,8 +272,7 @@ impl Plots {
 #[derive(Debug, Clone)]
 pub struct PlotIter<'a> {
     plots: &'a Plots,
-    row: u32,
-    col: u32,
+    idx: PlotIdx,
 }
 
 impl<'a> Iterator for PlotIter<'a> {
@@ -281,21 +281,17 @@ impl<'a> Iterator for PlotIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.plots {
             Plots::Plot(plot) => {
-                if self.row == 0 && self.col == 0 {
-                    self.col += 1;
+                if self.idx.is_first() {
+                    self.idx = self.idx.next(1);
                     Some(Some(plot))
                 } else {
                     None
                 }
             }
             Plots::Subplots(subplots) => {
-                if self.row < subplots.rows() {
-                    let plot = subplots.plot(self.row, self.col);
-                    self.col += 1;
-                    if self.col == subplots.cols() {
-                        self.col = 0;
-                        self.row += 1;
-                    }
+                if self.idx.row < subplots.rows() {
+                    let plot = subplots.plot(self.idx);
+                    self.idx = self.idx.next(subplots.cols());
                     Some(plot)
                 } else {
                     None

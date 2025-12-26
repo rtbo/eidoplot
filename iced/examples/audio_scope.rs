@@ -353,8 +353,7 @@ fn build_figure() -> ir::Figure {
     ir::Figure::new(
         ir::Subplots::new(2, 1)
             .with_plot(
-                0,
-                0,
+                (0, 0),
                 ir::Plot::new(vec![
                     ir::series::Line::new(
                         ir::DataCol::SrcRef("time".to_string()),
@@ -377,8 +376,7 @@ fn build_figure() -> ir::Figure {
                 ),
             )
             .with_plot(
-                1,
-                0,
+                (1, 0),
                 ir::Plot::new(vec![
                     ir::series::Line::new(
                         ir::DataCol::SrcRef("freq".to_string()),

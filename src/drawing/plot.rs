@@ -5,6 +5,7 @@ use crate::drawing::legend::{Legend, LegendBuilder};
 use crate::drawing::scale::CoordMapXy;
 use crate::drawing::series::{self, Series, SeriesExt};
 use crate::drawing::{Ctx, Error};
+use crate::ir::PlotIdx;
 use crate::ir::plot::PlotLine;
 use crate::style::defaults;
 use crate::style::series::Palette;
@@ -105,13 +106,14 @@ impl IrPlotExt for ir::Plot {
 
 trait IrPlotsExt {
     fn cols(&self) -> u32;
-    fn plot(&self, row: u32, col: u32) -> Option<&ir::Plot>;
+    fn plot(&self, idx: PlotIdx) -> Option<&ir::Plot>;
     fn plots(&self) -> impl Iterator<Item = Option<&ir::Plot>> + '_;
 
     /// get the plot and its index at once
-    fn idx_plt(&self, row: u32, col: u32) -> Option<(usize, &ir::Plot)> {
-        self.plot(row, col)
-            .map(|p| ((row * self.cols() + col) as usize, p))
+    fn idx_plt(&self, idx: impl Into<PlotIdx>) -> Option<(usize, &ir::Plot)> {
+        let idx = idx.into();
+        self.plot(idx)
+            .map(|p| (idx.index(self.cols()) as usize, p))
     }
 
     fn or_axes_len(&self, or: Orientation) -> usize {
@@ -160,8 +162,8 @@ impl IrPlotsExt for ir::figure::Plots {
     fn cols(&self) -> u32 {
         self.cols()
     }
-    fn plot(&self, row: u32, col: u32) -> Option<&ir::Plot> {
-        self.plot(row, col)
+    fn plot(&self, idx: PlotIdx) -> Option<&ir::Plot> {
+        self.plot(idx)
     }
     fn plots(&self) -> impl Iterator<Item = Option<&ir::Plot>> + '_ {
         self.iter()
@@ -274,7 +276,7 @@ where
                 let x_axes = x_axes.next().unwrap();
                 let y_axes = y_axes.next().unwrap();
 
-                if let Some(ir_plot) = ir_plots.plot(row, col) {
+                if let Some(ir_plot) = ir_plots.plot((row, col)) {
                     let outer_rect = geom::Rect::from_xywh(x, y, width, height);
                     let plot_rect = geom::Rect::from_xywh(
                         x + left_widths[col as usize],
@@ -405,7 +407,7 @@ where
         for row in 0..ir_plots.rows() {
             let mut max_height: f32 = 0.0;
             for col in 0..ir_plots.cols() {
-                if let Some((plt_idx, ir_plot)) = ir_plots.idx_plt(row, col) {
+                if let Some((plt_idx, ir_plot)) = ir_plots.idx_plt((row, col)) {
                     let data = datas[plt_idx].as_ref().unwrap();
 
                     let mut height = x_plot_padding(side);
@@ -435,7 +437,7 @@ where
         for row in 0..ir_plots.rows() {
             let mut max_height = f32::NAN;
             for col in 0..ir_plots.cols() {
-                let Some((index, ir_plot)) = ir_plots.idx_plt(row, col) else {
+                let Some((index, ir_plot)) = ir_plots.idx_plt((row, col)) else {
                     continue;
                 };
 
@@ -471,7 +473,7 @@ where
         for col in 0..ir_plots.cols() {
             let mut max_width = f32::NAN;
             for row in 0..ir_plots.rows() {
-                if let Some((index, ir_plot)) = ir_plots.idx_plt(row, col) {
+                if let Some((index, ir_plot)) = ir_plots.idx_plt((row, col)) {
                     let data = datas[index].as_ref().unwrap();
                     let y_axis = y_axes[index].as_ref().unwrap();
 

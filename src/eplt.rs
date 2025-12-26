@@ -287,7 +287,7 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
                 Some((r, c)) => (r - 1, c - 1),
                 None => (row, col),
             };
-            subplots = subplots.with_plot(r, c, plot);
+            subplots = subplots.with_plot((r, c), plot);
             row += 1;
             if row >= rows {
                 row = 0;

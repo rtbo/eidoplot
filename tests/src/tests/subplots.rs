@@ -8,8 +8,8 @@ fn subplots_default() {
     let plot1 = ir::Plot::new(vec![line().into()]);
     let plot2 = ir::Plot::new(vec![line().into()]);
     let subplots = ir::Subplots::new(2, 1)
-        .with_plot(0, 0, plot1)
-        .with_plot(1, 0, plot2);
+        .with_plot((0, 0), plot1)
+        .with_plot((1, 0), plot2);
 
     let fig = fig_high(subplots);
     assert_fig_eq_ref!(&fig, "subplots/default");
@@ -20,8 +20,8 @@ fn subplots_space10() {
     let plot1 = ir::Plot::new(vec![line().into()]);
     let plot2 = ir::Plot::new(vec![line().into()]);
     let subplots = ir::Subplots::new(2, 1)
-        .with_plot(0, 0, plot1)
-        .with_plot(1, 0, plot2)
+        .with_plot((0, 0), plot1)
+        .with_plot((1, 0), plot2)
         .with_space(10.0);
 
     let fig = fig_high(subplots);
@@ -42,8 +42,8 @@ fn subplots_sharedx() {
     );
 
     let subplots = ir::Subplots::new(2, 1)
-        .with_plot(0, 0, plot1)
-        .with_plot(1, 0, plot2);
+        .with_plot((0, 0), plot1)
+        .with_plot((1, 0), plot2);
 
     let fig = fig_high(subplots);
     assert_fig_eq_ref!(&fig, "subplots/sharedx");
@@ -62,8 +62,8 @@ fn subplots_sharedy() {
             .with_scale(ir::axis::Ref::Id("y".to_string()).into()),
     );
     let subplots = ir::Subplots::new(1, 2)
-        .with_plot(0, 0, plot1)
-        .with_plot(0, 1, plot2);
+        .with_plot((0, 0), plot1)
+        .with_plot((0, 1), plot2);
 
     let fig = fig_wide(subplots);
     assert_fig_eq_ref!(&fig, "subplots/sharedy");

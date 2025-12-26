@@ -54,12 +54,12 @@ fn main() {
         source.add_column(phase_col, Box::new(phase));
 
         let plots = fig.plots_mut();
-        plots.plot_mut(0, 0).unwrap().push_series(
+        plots.plot_mut((0, 0)).unwrap().push_series(
             ir::series::Line::new(ir::data_src_ref("freq"), ir::data_src_ref(mag_col))
                 .with_name(name)
                 .into(),
         );
-        plots.plot_mut(1, 0).unwrap().push_series(
+        plots.plot_mut((1, 0)).unwrap().push_series(
             ir::series::Line::new(ir::data_src_ref("freq"), ir::data_src_ref(phase_col)).into(),
         );
     }

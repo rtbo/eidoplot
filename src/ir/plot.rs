@@ -312,6 +312,47 @@ impl PlotLine {
     }
 }
 
+/// Index of a plot in a subplot grid
+#[derive(Debug, Clone, Copy)]
+pub struct PlotIdx {
+    /// Row index of the plot (0-based)
+    pub row: u32,
+    /// Column index of the plot (0-based)
+    pub col: u32,
+}
+
+impl PlotIdx {
+    /// Create a new PlotIdx from row and column indices
+    pub fn new(row: u32, col: u32) -> Self {
+        PlotIdx { row, col }
+    }
+
+    pub(crate) fn index(&self, cols: u32) -> usize {
+        (self.row * cols + self.col) as usize
+    }
+
+    pub(crate) fn is_first(&self) -> bool {
+        self.row == 0 && self.col == 0
+    }
+
+    pub(crate) fn next(&self, cols: u32) -> Self {
+        let mut row = self.row;
+        let mut col = self.col + 1;
+        if col >= cols {
+            col = 0;
+            row += 1;
+        }
+        PlotIdx { row, col }
+    }
+}
+
+/// Convert a (row, col) tuple into a PlotIdx
+impl From<(u32, u32)> for PlotIdx {
+    fn from((row, col): (u32, u32)) -> Self {
+        PlotIdx { row, col }
+    }
+}
+
 /// A plot, containing series, axes, title, legend, and styles
 #[derive(Debug, Clone)]
 pub struct Plot {
@@ -488,8 +529,8 @@ impl Subplots {
     }
 
     /// Set a plot at the given row and column and return self for chaining
-    pub fn with_plot(mut self, row: u32, col: u32, plot: Plot) -> Self {
-        let index = self.index(row, col);
+    pub fn with_plot(mut self, idx: impl Into<PlotIdx>, plot: Plot) -> Self {
+        let index = idx.into().index(self.cols);
         self.plots[index] = Some(plot);
         self
     }
@@ -500,13 +541,14 @@ impl Subplots {
     }
 
     /// Get a reference to a plot at the given row and column
-    pub fn plot(&self, row: u32, col: u32) -> Option<&Plot> {
-        self.plots[self.index(row, col)].as_ref()
+    pub fn plot(&self, idx: impl Into<PlotIdx>) -> Option<&Plot> {
+        let index = idx.into().index(self.cols);
+        self.plots[index].as_ref()
     }
 
     /// Get a mutable reference to a plot at the given row and column
-    pub fn plot_mut(&mut self, row: u32, col: u32) -> Option<&mut Plot> {
-        let index = self.index(row, col);
+    pub fn plot_mut(&mut self, idx: impl Into<PlotIdx>) -> Option<&mut Plot> {
+        let index = idx.into().index(self.cols);
         self.plots[index].as_mut()
     }
 
@@ -528,9 +570,5 @@ impl Subplots {
     /// The space between plots in the subplot grid
     pub fn space(&self) -> f32 {
         self.space
-    }
-
-    fn index(&self, row: u32, col: u32) -> usize {
-        (row * self.cols + col) as usize
     }
 }
