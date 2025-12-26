@@ -332,7 +332,7 @@ impl Line {
         let mut in_a_line = false;
 
         let mut pb = geom::PathBuilder::with_capacity(x_col.len() + 1, x_col.len());
-        for (x, y) in x_col.iter().zip(y_col.iter()) {
+        for (x, y) in x_col.sample_iter().zip(y_col.sample_iter()) {
             if x.is_null() || y.is_null() {
                 in_a_line = false;
                 continue;
@@ -419,7 +419,7 @@ impl Scatter {
 
         let mut points = Vec::with_capacity(x_col.len());
 
-        for (x, y) in x_col.iter().zip(y_col.iter()) {
+        for (x, y) in x_col.sample_iter().zip(y_col.sample_iter()) {
             if x.is_null() || y.is_null() {
                 continue;
             }
@@ -508,7 +508,7 @@ impl Histogram {
             1.0
         };
 
-        for x in col.iter() {
+        for x in col.f64_iter() {
             if let Some(x) = x {
                 let idx = (((x - x_bounds.start()) / width).floor() as usize).min(bins.len() - 1);
                 bins[idx].value += samp_add;
@@ -652,7 +652,7 @@ impl Bars {
                 let cat_bin_width = cm.x.cat_bin_size();
                 let y_start = rect.bottom() - cm.y.map_coord_num(0.0);
 
-                for (x, y) in x_col.iter().zip(y_col.iter()) {
+                for (x, y) in x_col.sample_iter().zip(y_col.sample_iter()) {
                     if x.is_null() || y.is_null() {
                         continue;
                     }
@@ -671,7 +671,7 @@ impl Bars {
                 let cat_bin_height = cm.y.cat_bin_size();
                 let x_start = rect.left() + cm.x.map_coord_num(0.0);
 
-                for (x, y) in x_col.iter().zip(y_col.iter()) {
+                for (x, y) in x_col.sample_iter().zip(y_col.sample_iter()) {
                     if x.is_null() || y.is_null() {
                         continue;
                     }
@@ -751,7 +751,7 @@ impl BarsGroup {
                 "BarsGroup data must be numeric".to_string(),
             ))?;
 
-            for (v, bounds) in data_col.iter().zip(bounds_per_cat.iter_mut()) {
+            for (v, bounds) in data_col.f64_iter().zip(bounds_per_cat.iter_mut()) {
                 if let Some(v) = v {
                     match ir.arrangement() {
                         ir::series::BarsArrangement::Aside(..) => {
@@ -849,7 +849,7 @@ impl BarsGroup {
 
             let mut pb = geom::PathBuilder::new();
 
-            for (cat, val) in categories.iter().zip(data_col.iter()) {
+            for (cat, val) in categories.iter().zip(data_col.f64_iter()) {
                 let Some(val) = val else { continue };
 
                 let val_start = 0.0;
@@ -890,7 +890,7 @@ impl BarsGroup {
 
             let mut pb = geom::PathBuilder::new();
 
-            for (idx, (cat, val)) in categories.iter().zip(data_col.iter()).enumerate() {
+            for (idx, (cat, val)) in categories.iter().zip(data_col.f64_iter()).enumerate() {
                 let Some(val) = val else { continue };
 
                 let val_start = cat_values[idx];

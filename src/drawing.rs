@@ -366,7 +366,7 @@ impl Categories {
 impl From<&dyn data::StrColumn> for Categories {
     fn from(col: &dyn data::StrColumn) -> Self {
         let mut cats = Categories::new();
-        for s in col.iter() {
+        for s in col.str_iter() {
             if let Some(s) = s {
                 cats.push_if_not_present(s);
             }

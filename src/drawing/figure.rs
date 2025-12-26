@@ -10,13 +10,25 @@ use crate::{Style, data, geom, ir, missing_params, render, style, text};
 /// Therefore, the fonts are no longer needed at draw time.
 ///
 /// The colors, strokes and fills will be resolved at draw time using the given theme.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Figure {
     pub(super) size: geom::Size,
     pub(super) fill: Option<theme::Fill>,
     pub(super) title: Option<(geom::Transform, super::Text)>,
     pub(super) legend: Option<(geom::Point, legend::Legend)>,
     pub(super) plots: plot::Plots,
+}
+
+impl Clone for Figure {
+    fn clone(&self) -> Self {
+        Self {
+            size: self.size,
+            fill: self.fill.clone(),
+            title: self.title.clone(),
+            legend: self.legend.clone(),
+            plots: self.plots.clone(),
+        }
+    }
 }
 
 impl Figure {

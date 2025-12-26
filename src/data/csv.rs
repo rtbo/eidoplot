@@ -341,7 +341,7 @@ mod tests {
             .column("Int")
             .and_then(|c| c.f64())
             .unwrap()
-            .iter()
+            .f64_iter()
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
@@ -349,7 +349,7 @@ mod tests {
             .column("Float")
             .and_then(|c| c.f64())
             .unwrap()
-            .iter()
+            .f64_iter()
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
@@ -357,7 +357,7 @@ mod tests {
             .column("Str")
             .and_then(|c| c.str())
             .unwrap()
-            .iter()
+            .str_iter()
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
@@ -377,7 +377,7 @@ mod tests {
             .column("Int")
             .and_then(|c| c.f64())
             .unwrap()
-            .iter()
+            .f64_iter()
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
@@ -385,14 +385,14 @@ mod tests {
             .column("Float")
             .and_then(|c| c.f64())
             .unwrap()
-            .iter()
+            .f64_iter()
             .collect::<Vec<_>>();
 
         let str_col = src
             .column("Str")
             .and_then(|c| c.str())
             .unwrap()
-            .iter()
+            .str_iter()
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
@@ -412,7 +412,7 @@ mod tests {
             .column("Int")
             .and_then(|c| c.f64())
             .unwrap()
-            .iter()
+            .f64_iter()
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
@@ -420,14 +420,14 @@ mod tests {
             .column("Float")
             .and_then(|c| c.f64())
             .unwrap()
-            .iter()
+            .f64_iter()
             .collect::<Vec<_>>();
 
         let str_col = src
             .column("Str")
             .and_then(|c| c.str())
             .unwrap()
-            .iter()
+            .str_iter()
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
@@ -447,7 +447,7 @@ mod tests {
             .column("Date")
             .and_then(|c| c.time())
             .unwrap()
-            .iter()
+            .time_iter()
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
@@ -455,7 +455,7 @@ mod tests {
             .column("Float")
             .and_then(|c| c.f64())
             .unwrap()
-            .iter()
+            .f64_iter()
             .map(|v| v.unwrap())
             .collect::<Vec<_>>();
 
