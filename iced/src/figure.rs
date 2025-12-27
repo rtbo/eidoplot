@@ -123,7 +123,6 @@ where
 
 #[derive(Debug, Clone, Copy, Default)]
 struct State {
-    over_plot: bool,
     dragging: bool,
     mouse_pos: Option<geom::Point>,
 }
@@ -195,7 +194,6 @@ where
 
         let bounds = layout.bounds();
         if !cursor.is_over(bounds) && !state.dragging {
-            state.over_plot = false;
             state.mouse_pos = None;
             return;
         }
@@ -211,7 +209,6 @@ where
                         y: position.y,
                     };
                     transform.map_point(&mut point);
-                    state.over_plot = self.fig.hit_test_idx(point).is_some();
                     state.mouse_pos = Some(point);
                     if let Some(callback) = &self.on_mouse_move {
                         let msg = callback(point);
@@ -283,22 +280,6 @@ where
 
         let geometry = surface.into_geometry();
         renderer.draw_geometry(geometry);
-    }
-
-    fn mouse_interaction(
-        &self,
-        tree: &widget::Tree,
-        _layout: Layout<'_>,
-        _cursor: mouse::Cursor,
-        _viewport: &iced::Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        let state = tree.state.downcast_ref::<State>();
-        if state.over_plot {
-            mouse::Interaction::Crosshair
-        } else {
-            mouse::Interaction::default()
-        }
     }
 }
 

@@ -6,7 +6,7 @@ use std::sync::Arc;
 use eidoplot::drawing::zoom;
 use eidoplot::style::CustomStyle;
 use eidoplot::{Drawing, data, drawing, fontdb, geom, ir};
-use iced::widget::{button, column, row, space};
+use iced::widget::{button, column, mouse_area, row, space};
 use iced::{Alignment, Length};
 
 use crate::figure::figure;
@@ -84,13 +84,14 @@ enum Interaction {
 
 struct ShowWindow<D: ?Sized> {
     figure: drawing::Figure,
-    style: Option<CustomStyle>,
-    at_home: bool,
-    tb_status: Option<String>,
-    interaction: Interaction,
     home_view: zoom::FigureView,
     data_source: Arc<D>,
     fontdb: Arc<fontdb::Database>,
+    style: Option<CustomStyle>,
+    at_home: bool,
+    over_plot: bool,
+    tb_status: Option<String>,
+    interaction: Interaction,
 }
 
 impl<D> ShowWindow<D>
@@ -106,13 +107,14 @@ where
         let home_view = figure.view();
         Self {
             figure,
-            style,
-            at_home: true,
-            tb_status: None,
-            interaction: Interaction::None,
             home_view,
             data_source,
             fontdb,
+            style,
+            at_home: true,
+            over_plot: false,
+            tb_status: None,
+            interaction: Interaction::None,
         }
     }
 
@@ -138,6 +140,7 @@ where
             }
             Message::FigureMouseMove(point) => {
                 let hit = self.figure.hit_test(point);
+                self.over_plot = hit.is_some();
 
                 let status = hit
                     .as_ref()
@@ -228,7 +231,16 @@ where
             fig = fig.zoom_rect(*start, *end);
         }
 
-        fig.into()
+        // Wrap with mouse_area to control cursor
+        let interaction = if self.over_plot {
+            iced::mouse::Interaction::Crosshair
+        } else {
+            iced::mouse::Interaction::default()
+        };
+
+        mouse_area(fig)
+            .interaction(interaction)
+            .into()
     }
 
     fn toolbar_view(&self) -> iced::Element<'_, Message> {
