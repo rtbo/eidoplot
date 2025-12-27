@@ -67,7 +67,7 @@ fn get_column<'a, D>(
     data_source: &'a D,
 ) -> Result<&'a dyn data::Column, Error>
 where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     match col {
         ir::series::DataCol::Inline(col) => Ok(col),
@@ -83,7 +83,7 @@ fn calc_xy_bounds<D>(
     y_data: &ir::series::DataCol,
 ) -> Result<(axis::Bounds, axis::Bounds), Error>
 where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     let x_col = get_column(x_data, data_source)?;
     let y_col = get_column(y_data, data_source)?;
@@ -142,7 +142,7 @@ enum SeriesPlot {
 impl Series {
     pub fn prepare<D>(index: usize, series: &ir::Series, data_source: &D) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let plot = match &series {
             ir::Series::Line(ir) => SeriesPlot::Line(Line::prepare(index, ir, data_source)?),
@@ -245,7 +245,7 @@ impl Series {
         cm: &CoordMapXy,
     ) -> Result<(), Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         match &mut self.plot {
             SeriesPlot::Line(xy) => {
@@ -293,7 +293,7 @@ struct Line {
 impl Line {
     fn prepare<D>(index: usize, ir: &ir::series::Line, data_source: &D) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let cols = (ir.x_data().clone(), ir.y_data().clone());
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &cols.0, &cols.1)?;
@@ -309,7 +309,7 @@ impl Line {
 
     fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         // unwraping here as data is checked during setup phase
         let x_col = get_column(&self.cols.0, data_source).unwrap();
@@ -373,7 +373,7 @@ struct Scatter {
 impl Scatter {
     fn prepare<D>(index: usize, ir: &ir::series::Scatter, data_source: &D) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let cols = (ir.x_data().clone(), ir.y_data().clone());
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &cols.0, &cols.1)?;
@@ -391,7 +391,7 @@ impl Scatter {
 
     fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let x_col = get_column(&self.cols.0, data_source).unwrap();
         let y_col = get_column(&self.cols.1, data_source).unwrap();
@@ -458,7 +458,7 @@ impl Histogram {
         data_source: &D,
     ) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let mut bins = Vec::with_capacity(hist.bins() as usize);
 
@@ -565,7 +565,7 @@ struct Bars {
 impl Bars {
     fn prepare<D>(index: usize, ir: &ir::series::Bars, data_source: &D) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let cols = (ir.x_data().clone(), ir.y_data().clone());
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &cols.0, &cols.1)?;
@@ -606,7 +606,7 @@ impl Bars {
 
     fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         // unwraping here as data is checked during setup phase
         let x_col = get_column(&self.cols.0, data_source).unwrap();
@@ -691,7 +691,7 @@ pub struct BarsGroup {
 impl BarsGroup {
     fn prepare<D>(index: usize, ir: &ir::series::BarsGroup, data_source: &D) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let cat_col = get_column(ir.categories(), data_source)?;
         let categories: Categories = cat_col
@@ -759,7 +759,7 @@ impl BarsGroup {
 
     fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let categories = match self.orientation {
             ir::series::BarsOrientation::Vertical => self.bounds.0.as_cat().unwrap(),
@@ -786,7 +786,7 @@ impl BarsGroup {
         cm: &CoordMapXy,
     ) -> Vec<geom::Path>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let num_series = self.series.len();
         if num_series == 0 {
@@ -838,7 +838,7 @@ impl BarsGroup {
         cm: &CoordMapXy,
     ) -> Vec<geom::Path>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let mut cat_values = vec![0.0; categories.len()];
 

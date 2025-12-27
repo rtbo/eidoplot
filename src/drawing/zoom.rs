@@ -161,7 +161,7 @@ impl super::Figure {
         fontdb: Option<&fontdb::Database>,
     ) -> Result<(), super::Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         for view in &view.plot_views {
             if let Some(plot_view) = view {
@@ -185,7 +185,7 @@ impl super::Figure {
         fontdb: Option<&fontdb::Database>,
     ) -> Result<(), super::Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let idx = view.idx();
 
@@ -238,7 +238,7 @@ impl super::Figure {
         fontdb: Option<&fontdb::Database>,
     ) -> Result<(), super::Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let mut plot_view = self.plot_view(idx).expect("Invalid plot index for zoom");
         plot_view = plot_view.apply_zoom(zoom);

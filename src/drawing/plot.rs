@@ -262,7 +262,7 @@ impl PlotAxes {
 
 impl<D> Ctx<'_, D>
 where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     /// Setup a collection of plots, given an IR representation of the plots
     /// and a bounding rectangle.
@@ -806,7 +806,7 @@ fn y_side_matches_out_legend_pos(side: ir::axis::Side, legend_pos: ir::plot::Leg
 impl Plots {
     pub fn update_series_data<D>(&mut self, data_source: &D) -> Result<(), Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         for plot in self.plots.iter_mut() {
             if let Some(plot) = plot.as_mut() {
@@ -834,7 +834,7 @@ impl Plots {
 impl Plot {
     fn update_series_data<D>(&mut self, data_source: &D) -> Result<(), Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let Some(axes) = &self.axes else {
             return Ok(());

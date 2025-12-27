@@ -23,7 +23,7 @@ pub trait Show {
         style: Option<CustomStyle>,
     ) -> iced::Result
     where
-        D: data::Source + 'static;
+        D: data::Source + ?Sized + 'static;
 }
 
 impl Show for ir::Figure {
@@ -34,7 +34,7 @@ impl Show for ir::Figure {
         style: Option<CustomStyle>,
     ) -> iced::Result
     where
-        D: data::Source + 'static,
+        D: data::Source + ?Sized + 'static,
     {
         let ir_fig = self.clone();
         iced::application(
@@ -82,7 +82,7 @@ enum Interaction {
     },
 }
 
-struct ShowWindow<D> {
+struct ShowWindow<D : ?Sized> {
     figure: drawing::Figure,
     style: Option<CustomStyle>,
     tb_state: toolbar::State,
@@ -94,7 +94,7 @@ struct ShowWindow<D> {
 
 impl<D> ShowWindow<D>
 where
-    D: data::Source + 'static,
+    D: data::Source + ?Sized + 'static,
 {
     fn new(
         figure: drawing::Figure,

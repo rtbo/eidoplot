@@ -61,7 +61,7 @@ impl Figure {
     /// within the same axes bounds.
     pub fn update_series_data<D>(&mut self, data_source: &D) -> Result<(), Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         self.plots.update_series_data(data_source)?;
         Ok(())
@@ -70,7 +70,7 @@ impl Figure {
 
 impl<D> Ctx<'_, D>
 where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     pub fn setup_figure(&self, fig: &ir::Figure) -> Result<Figure, Error> {
         let mut rect =

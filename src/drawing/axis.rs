@@ -305,7 +305,7 @@ struct DrawOpts {
 
 impl<D> Ctx<'_, D>
 where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     /// Estimate the height taken by a horizontal axis.
     /// It includes ticks marks, ticks labels and axis title.

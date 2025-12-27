@@ -114,7 +114,7 @@ pub trait Drawing {
         fontdb: Option<&fontdb::Database>,
     ) -> Result<Figure, Error>
     where
-        D: data::Source;
+        D: data::Source + ?Sized;
 
     /// Convenience method to prepare and draw a figure in one step.
     ///
@@ -127,7 +127,7 @@ pub trait Drawing {
         style: &Style<T, P>,
     ) -> Result<(), Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
         S: render::Surface,
         T: Theme,
         P: style::series::Palette,
@@ -143,21 +143,21 @@ impl Drawing for ir::Figure {
         fontdb: Option<&fontdb::Database>,
     ) -> Result<Figure, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         with_ctx(data_source, fontdb, |ctx| ctx.setup_figure(self))
     }
 }
 
 #[derive(Debug)]
-struct Ctx<'a, D> {
+struct Ctx<'a, D : ?Sized> {
     data_source: &'a D,
     fontdb: &'a fontdb::Database,
 }
 
 fn with_ctx<D, F, R>(data_source: &D, fontdb: Option<&fontdb::Database>, f: F) -> R
 where
-    D: data::Source,
+    D: data::Source + ?Sized,
     F: FnOnce(&Ctx<'_, D>) -> R,
 {
     if let Some(fontdb) = fontdb {
@@ -198,7 +198,7 @@ where
     }
 }
 
-impl<'a, D> Ctx<'a, D> {
+impl<'a, D : ?Sized> Ctx<'a, D> {
     fn data_source(&self) -> &D {
         self.data_source
     }
