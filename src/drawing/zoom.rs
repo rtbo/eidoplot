@@ -90,6 +90,11 @@ impl PlotView {
         self.idx
     }
 
+    /// Get the rectangle of the plot in figure units.
+    pub fn rect(&self) -> geom::Rect {
+        self.rect
+    }
+
     /// Apply a zoom operation to this plot view, returning a new plot view.
     pub fn apply_zoom(&self, zoom: &Zoom) -> PlotView {
         let x_infos = self

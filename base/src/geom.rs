@@ -365,6 +365,16 @@ impl Rect {
         Rect::from_xywh(x, y, width, height)
     }
 
+    /// Translate the rectangle by dx and dy
+    pub fn translate(&self, dx: f32, dy: f32) -> Rect {
+        Rect {
+            x: FiniteF32::new(self.x.get() + dx).unwrap(),
+            y: FiniteF32::new(self.y.get() + dy).unwrap(),
+            w: self.w,
+            h: self.h,
+        }
+    }
+
     /// Test if the rectangle contains a point
     pub fn contains_point(&self, point: &Point) -> bool {
         point.x >= self.left()

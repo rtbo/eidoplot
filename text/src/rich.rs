@@ -25,7 +25,7 @@ pub enum Align {
     /// The end of the text is aligned with the reference point.
     End,
     /// Text is left aligned.
-    /// For vertical layout, this is the same as [`Start`].
+    /// For vertical layout, this is the same as [Start](Self::Start).
     Left,
     /// Text is right aligned.
     /// For vertical layout, this is the same as [`End`].

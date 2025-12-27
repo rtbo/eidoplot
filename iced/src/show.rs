@@ -62,6 +62,7 @@ impl Show for ir::Figure {
 enum Message {
     GoHome,
     EnableZoom,
+    EnablePan,
 
     FigureMousePress(geom::Point),
     FigureMouseMove(geom::Point),
@@ -79,6 +80,11 @@ enum Interaction {
         idx: ir::PlotIdx,
         start: geom::Point,
         end: geom::Point,
+    },
+    PanEnabled,
+    PanDragging {
+        idx: ir::PlotIdx,
+        last: geom::Point,
     },
 }
 
@@ -118,6 +124,10 @@ where
         }
     }
 
+    fn subscription(&self) -> iced::Subscription<Message> {
+        iced::event::listen().map(Message::Event)
+    }
+
     fn update(&mut self, msg: Message) -> iced::Task<Message> {
         match msg {
             Message::GoHome => {
@@ -138,6 +148,17 @@ where
                     }
                 };
             }
+            Message::EnablePan => {
+                // Toggle pan interaction
+                match &self.interaction {
+                    Interaction::PanEnabled | Interaction::PanDragging { .. } => {
+                        self.interaction = Interaction::None;
+                    }
+                    _ => {
+                        self.interaction = Interaction::PanEnabled;
+                    }
+                };
+            }
             Message::FigureMouseMove(point) => {
                 let hit = self.figure.hit_test(point);
                 self.over_plot = hit.is_some();
@@ -153,6 +174,19 @@ where
                             *end = point;
                         }
                     }
+                    // match any hit because panning can go outside plot area
+                    (Interaction::PanDragging { idx, last }, _) => {
+                        let delta_x = point.x - last.x;
+                        let delta_y = point.y - last.y;
+                        *last = point;
+                        let view = self.figure.plot_view(*idx).expect("Plot index invalid");
+                        let rect = view.rect().translate(-delta_x, -delta_y);
+                        let zoom = zoom::Zoom::new(rect);
+                        self.figure
+                            .apply_zoom(*idx, &zoom, &*self.data_source, Some(&*self.fontdb))
+                            .expect("Failed to apply pan");
+                        self.at_home = false;
+                    }
                     _ => {}
                 }
             }
@@ -164,6 +198,12 @@ where
                             idx: plot,
                             start: point,
                             end: point,
+                        };
+                    }
+                    (Interaction::PanEnabled, Some(plot)) => {
+                        self.interaction = Interaction::PanDragging {
+                            idx: plot,
+                            last: point,
                         };
                     }
                     _ => {}
@@ -183,6 +223,9 @@ where
                         }
                     }
                     self.interaction = Interaction::ZoomEnabled;
+                }
+                Interaction::PanDragging { .. } => {
+                    self.interaction = Interaction::PanEnabled;
                 }
                 _ => {
                     self.interaction = Interaction::None;
@@ -232,15 +275,19 @@ where
         }
 
         // Wrap with mouse_area to control cursor
-        let interaction = if self.over_plot {
-            iced::mouse::Interaction::Crosshair
-        } else {
-            iced::mouse::Interaction::default()
+        let interaction = match self.interaction {
+            Interaction::PanEnabled if self.over_plot => iced::mouse::Interaction::Grabbing,
+            Interaction::PanDragging { .. } => iced::mouse::Interaction::Grabbing,
+            _ => {
+                if self.over_plot {
+                    iced::mouse::Interaction::Crosshair
+                } else {
+                    iced::mouse::Interaction::default()
+                }
+            }
         };
 
-        mouse_area(fig)
-            .interaction(interaction)
-            .into()
+        mouse_area(fig).interaction(interaction).into()
     }
 
     fn toolbar_view(&self) -> iced::Element<'_, Message> {
@@ -248,13 +295,23 @@ where
             self.interaction,
             Interaction::ZoomEnabled | Interaction::ZoomDragging { .. }
         );
+        let panning = matches!(
+            self.interaction,
+            Interaction::PanEnabled | Interaction::PanDragging { .. }
+        );
 
         let home_button = button("Home").on_press_maybe((!self.at_home).then_some(Message::GoHome));
-        let zoom_in_button = button("Zoom").on_press(Message::EnableZoom);
-        let zoom_in_button = if zooming {
-            zoom_in_button.style(button::secondary)
+        let zoom_button = button("Zoom").on_press(Message::EnableZoom);
+        let zoom_button = if zooming {
+            zoom_button.style(button::secondary)
         } else {
-            zoom_in_button.style(button::primary)
+            zoom_button.style(button::primary)
+        };
+        let pan_button = button("Pan").on_press(Message::EnablePan);
+        let pan_button = if panning {
+            pan_button.style(button::secondary)
+        } else {
+            pan_button.style(button::primary)
         };
 
         let status_txt = self.tb_status.as_deref().unwrap_or("");
@@ -262,15 +319,17 @@ where
             .height(Length::Fill)
             .align_y(Alignment::Center);
 
-        row![home_button, zoom_in_button, space::horizontal(), status_txt]
-            .width(Length::Fill)
-            .height(Length::Shrink)
-            .spacing(10)
-            .padding(5)
-            .into()
-    }
-
-    fn subscription(&self) -> iced::Subscription<Message> {
-        iced::event::listen().map(Message::Event)
+        row![
+            home_button,
+            zoom_button,
+            pan_button,
+            space::horizontal(),
+            status_txt
+        ]
+        .width(Length::Fill)
+        .height(Length::Shrink)
+        .spacing(10)
+        .padding(5)
+        .into()
     }
 }
