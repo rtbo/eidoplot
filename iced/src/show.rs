@@ -125,8 +125,7 @@ where
                     self.figure
                         .apply_view(&self.home_view, &*self.data_source, Some(&*self.fontdb))
                         .expect("Failed to apply home view");
-                    self.tb_state.at_home = true;
-                    self.interaction = Interaction::None;
+                    self.tb_state = toolbar::State::default();
                 }
                 toolbar::Message::Zoom => {
                     // Toggle zoom interaction
