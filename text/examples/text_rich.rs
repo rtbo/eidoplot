@@ -2,7 +2,11 @@ use eidoplot_text::{self as text, Font, RichTextBuilder, font, rich};
 use tiny_skia::Transform;
 
 fn main() {
-    let db = text::bundled_font_db();
+    let mut db = text::bundled_font_db();
+    db.load_system_fonts();
+    // load_system_fonts resets the default families, so we set them again
+    db.set_sans_serif_family("Noto Sans");
+    db.set_serif_family("Noto Serif");
 
     const PM_SIZE: (u32, u32) = (600, 500);
 

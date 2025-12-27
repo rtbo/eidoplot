@@ -678,7 +678,7 @@ where
                     if s.start <= glyph.cluster && glyph.cluster < s.end {
                         s.bbox = geom::Rect::unite_opt(
                             s.bbox.as_ref(),
-                            Some(&geom::Rect::from_trbl(glyph_start, right, x_cursor, left)),
+                            Some(&geom::Rect::from_trbl(glyph_start, right, y_cursor, left)),
                         );
                     }
                 }
