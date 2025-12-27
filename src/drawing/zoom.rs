@@ -1,0 +1,249 @@
+use std::sync::Arc;
+
+use crate::{
+    data,
+    drawing::{axis::Axis, fig_x_to_plot_x, fig_y_to_plot_y, scale::CoordMap},
+    fontdb, geom,
+    ir::PlotIdx,
+};
+
+/// A mask to indicate which axes are affected by a zoom operation.
+#[derive(Debug, Clone, Copy)]
+pub struct AxisMask(u32);
+
+impl Default for AxisMask {
+    fn default() -> Self {
+        AxisMask(0xffff_ffff)
+    }
+}
+
+impl AxisMask {
+    pub fn none() -> Self {
+        AxisMask(0)
+    }
+
+    pub fn all() -> Self {
+        AxisMask(0xffff_ffff)
+    }
+
+    pub fn contains(&self, axis_idx: u32) -> bool {
+        (self.0 & (1 << axis_idx)) != 0
+    }
+
+    pub fn insert(&mut self, axis_idx: u32) {
+        self.0 |= 1 << axis_idx;
+    }
+
+    pub fn remove(&mut self, axis_idx: u32) {
+        self.0 &= !(1 << axis_idx);
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Zoom {
+    rect: geom::Rect,
+    x_axis_mask: AxisMask,
+    y_axis_mask: AxisMask,
+}
+
+impl Zoom {
+    pub fn new(rect: geom::Rect) -> Self {
+        Zoom {
+            rect,
+            x_axis_mask: AxisMask::default(),
+            y_axis_mask: AxisMask::default(),
+        }
+    }
+    pub fn x_axis_mask(mut self, mask: AxisMask) -> Self {
+        self.x_axis_mask = mask;
+        self
+    }
+    pub fn y_axis_mask(mut self, mask: AxisMask) -> Self {
+        self.y_axis_mask = mask;
+        self
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PlotView {
+    idx: PlotIdx,
+    rect: geom::Rect,
+    x_infos: Vec<Arc<dyn CoordMap>>,
+    y_infos: Vec<Arc<dyn CoordMap>>,
+}
+
+impl PlotView {
+    pub fn idx(&self) -> PlotIdx {
+        self.idx
+    }
+
+    pub fn apply_zoom(&self, zoom: &Zoom) -> PlotView {
+        let x_infos = self
+            .x_infos
+            .iter()
+            .enumerate()
+            .map(|(i, info)| {
+                if zoom.x_axis_mask.contains(i as u32) {
+                    info.create_view(
+                        fig_x_to_plot_x(&self.rect, zoom.rect.left()),
+                        fig_x_to_plot_x(&self.rect, zoom.rect.right()),
+                    )
+                } else {
+                    info.clone()
+                }
+            })
+            .collect();
+
+        let y_infos = self
+            .y_infos
+            .iter()
+            .enumerate()
+            .map(|(i, info)| {
+                if zoom.y_axis_mask.contains(i as u32) {
+                    info.create_view(
+                        fig_y_to_plot_y(&self.rect, zoom.rect.bottom()),
+                        fig_y_to_plot_y(&self.rect, zoom.rect.top()),
+                    )
+                } else {
+                    info.clone()
+                }
+            })
+            .collect();
+
+        PlotView {
+            idx: self.idx,
+            rect: self.rect,
+            x_infos,
+            y_infos,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FigureView {
+    plot_views: Vec<Option<PlotView>>,
+}
+
+impl super::Figure {
+    pub fn view(&self) -> FigureView {
+        let mut plot_views = Vec::with_capacity(self.plots.len());
+
+        for idx in self.plots.iter_indices() {
+            plot_views.push(self.plot_view(idx));
+        }
+
+        FigureView { plot_views }
+    }
+
+    /// Get the current view of a given plot in the figure.
+    pub fn plot_view(&self, idx: PlotIdx) -> Option<PlotView> {
+        let Some(plot) = self.plots.plot(idx) else {
+            return None;
+        };
+        let Some(axes) = plot.axes() else {
+            return None;
+        };
+
+        let x_infos = axes.x().iter().map(|axis| axis.coord_map_arc()).collect();
+        let y_infos = axes.y().iter().map(|axis| axis.coord_map_arc()).collect();
+
+        Some(PlotView {
+            idx,
+            rect: *plot.rect(),
+            x_infos,
+            y_infos,
+        })
+    }
+
+    pub fn apply_view<D>(
+        &mut self,
+        view: &FigureView,
+        data_source: &D,
+        fontdb: Option<&fontdb::Database>,
+    ) -> Result<(), super::Error>
+    where
+        D: data::Source,
+    {
+        for view in &view.plot_views {
+            if let Some(plot_view) = view {
+                self.apply_plot_view(plot_view.clone(), data_source, fontdb)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Apply a plot view to a given plot in the figure.
+    /// This will reconstruct the axis scales and the series accordingly.
+    ///
+    /// Panics if the plot index is invalid or if the number of axes
+    /// in the view does not match the number of axes in the plot.
+    /// Also panics if the font database is not provided when needed
+    /// and no bundled font feature is enabled.
+    pub fn apply_plot_view<D>(
+        &mut self,
+        view: PlotView,
+        data_source: &D,
+        fontdb: Option<&fontdb::Database>,
+    ) -> Result<(), super::Error>
+    where
+        D: data::Source,
+    {
+        let idx = view.idx();
+
+        let Some(plot) = self.plots.plot_mut(idx) else {
+            panic!("Invalid plot index: {:?}", idx);
+        };
+        let Some(axes) = plot.axes_mut() else {
+            assert!(view.x_infos.is_empty() && view.y_infos.is_empty());
+            return Ok(());
+        };
+
+        assert!(
+            axes.x().len() == view.x_infos.len() && axes.y().len() == view.y_infos.len(),
+            "Number of axes in view does not match number of axes in plot"
+        );
+
+        super::with_ctx(data_source, fontdb, |ctx| {
+            let new_x: Vec<Axis> = axes
+                .x()
+                .iter()
+                .zip(view.x_infos.iter())
+                .map(|(ax, info)| ctx.copy_axis_with_coord_map(ax, info.clone()))
+                .collect::<Result<_, _>>()?;
+
+            let new_y: Vec<Axis> = axes
+                .y()
+                .iter()
+                .zip(view.y_infos.iter())
+                .map(|(ax, info)| ctx.copy_axis_with_coord_map(ax, info.clone()))
+                .collect::<Result<_, _>>()?;
+
+            axes.replace(new_x, new_y);
+
+            Ok::<(), super::Error>(())
+        })?;
+
+        self.update_series_data(data_source)?;
+
+        Ok(())
+    }
+
+    /// Convenience method to apply a zoom to a given plot in the figure.
+    /// This method will retrieve the current plot view, apply the zoom to it,
+    /// and then apply the updated plot view back to the figure.
+    pub fn apply_zoom<D>(
+        &mut self,
+        idx: PlotIdx,
+        zoom: &Zoom,
+        data_source: &D,
+        fontdb: Option<&fontdb::Database>,
+    ) -> Result<(), super::Error>
+    where
+        D: data::Source,
+    {
+        let mut plot_view = self.plot_view(idx).expect("Invalid plot index for zoom");
+        plot_view = plot_view.apply_zoom(zoom);
+        self.apply_plot_view(plot_view, data_source, fontdb)?;
+        Ok(())
+    }
+}

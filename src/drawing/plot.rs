@@ -14,19 +14,37 @@ use crate::{Style, data, geom, ir, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub(super) struct Plots {
-    _size: (u32, u32),
+    size: (u32, u32),
     plots: Vec<Option<Plot>>,
 }
 
 impl Plots {
-    pub(super) fn _rows(&self) -> u32 {
-        self._size.0
+    pub(super) fn rows(&self) -> u32 {
+        self.size.0
     }
-    pub(super) fn _cols(&self) -> u32 {
-        self._size.1
+    pub(super) fn cols(&self) -> u32 {
+        self.size.1
     }
+
+    pub(super) fn len(&self) -> usize {
+        self.plots.len()
+    }
+
+    pub(super) fn iter_indices(&self) -> impl Iterator<Item = PlotIdx> + '_ {
+        ir::PlotIdxIter::new(self.rows(), self.cols())
+    }
+
     pub(super) fn plots(&self) -> &[Option<Plot>] {
         &self.plots
+    }
+    pub(super) fn plot(&self, idx: PlotIdx) -> Option<&Plot> {
+        self.plots
+            .get(idx.index(self.cols()))
+            .and_then(|p| p.as_ref())
+    }
+    pub(super) fn plot_mut(&mut self, idx: PlotIdx) -> Option<&mut Plot> {
+        let cols = self.cols();
+        self.plots.get_mut(idx.index(cols)).and_then(|p| p.as_mut())
     }
 }
 
@@ -56,6 +74,10 @@ impl Plot {
     pub(super) fn axes(&self) -> Option<&Axes> {
         self.axes.as_ref()
     }
+
+    pub(super) fn axes_mut(&mut self) -> Option<&mut Axes> {
+        self.axes.as_mut()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -71,6 +93,11 @@ pub(super) struct Axes {
 }
 
 impl Axes {
+    pub(super) fn replace(&mut self, x: Vec<Axis>, y: Vec<Axis>) {
+        self.x = x;
+        self.y = y;
+    }
+
     fn or_find(
         &self,
         or: Orientation,
@@ -149,8 +176,7 @@ trait IrPlotsExt {
     /// get the plot and its index at once
     fn idx_plt(&self, idx: impl Into<PlotIdx>) -> Option<(usize, &ir::Plot)> {
         let idx = idx.into();
-        self.plot(idx)
-            .map(|p| (idx.index(self.cols()) as usize, p))
+        self.plot(idx).map(|p| (idx.index(self.cols()) as usize, p))
     }
 
     fn or_axes_len(&self, or: Orientation) -> usize {
@@ -372,7 +398,7 @@ where
 
         let mut plots = Plots {
             plots,
-            _size: (ir_plots.rows(), ir_plots.cols()),
+            size: (ir_plots.rows(), ir_plots.cols()),
         };
 
         plots.update_series_data(self.data_source())?;

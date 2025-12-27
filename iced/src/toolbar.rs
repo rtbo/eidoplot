@@ -5,13 +5,13 @@ use iced::{
 #[derive(Debug, Clone)]
 pub enum Message {
     Home,
-    ZoomIn,
-    ZoomOut,
+    Zoom,
 }
 
 #[derive(Debug, Clone)]
 pub struct State {
     pub at_home: bool,
+    pub zooming: bool,
     pub status: Option<String>,
 }
 
@@ -19,6 +19,7 @@ impl Default for State {
     fn default() -> Self {
         Self {
             at_home: true,
+            zooming: false,
             status: None,
         }
     }
@@ -26,9 +27,12 @@ impl Default for State {
 
 pub fn view(state: &State) -> iced::Element<'_, Message> {
     let home_button = button("Home").on_press_maybe((!state.at_home).then_some(Message::Home));
-    let zoom_in_button = button("Zoom In").on_press(Message::ZoomIn);
-    let zoom_out_button =
-        button("Zoom Out").on_press_maybe((!state.at_home).then_some(Message::ZoomOut));
+    let zoom_in_button = button("Zoom").on_press(Message::Zoom);
+    let zoom_in_button = if state.zooming {
+        zoom_in_button.style(button::secondary)
+    } else {
+        zoom_in_button.style(button::primary)
+    };
 
     let status_txt = state.status.as_deref().unwrap_or("");
     let status_txt = iced::widget::text(status_txt)
@@ -38,7 +42,6 @@ pub fn view(state: &State) -> iced::Element<'_, Message> {
     row![
         home_button,
         zoom_in_button,
-        zoom_out_button,
         space::horizontal(),
         status_txt
     ]

@@ -64,11 +64,18 @@ impl Axis {
         }
     }
 
+    pub fn coord_map_arc(&self) -> Arc<dyn CoordMap> {
+        match self.scale.as_ref() {
+            AxisScale::Num { cm, .. } => Arc::clone(cm),
+            AxisScale::Cat { bins, .. } => Arc::new(bins.clone()),
+        }
+    }
+
     pub fn format_sample(&self, sample: data::Sample) -> String {
         match self.scale.as_ref() {
-            AxisScale::Num { ticks: Some(ticks), .. } => {
-                ticks.lbl_formatter.format_label(sample)
-            },
+            AxisScale::Num {
+                ticks: Some(ticks), ..
+            } => ticks.lbl_formatter.format_label(sample),
             AxisScale::Num { .. } => match sample {
                 data::Sample::Num(n) => n.to_string(),
                 data::Sample::Time(t) => t.to_string(),
@@ -87,8 +94,10 @@ impl Axis {
 pub enum AxisScale {
     /// Numerical axis
     Num {
+        /// IR definition of the scale
+        ir_scale: ir::axis::Scale,
         /// The coordinate mapper
-        cm: Box<dyn CoordMap>,
+        cm: Arc<dyn CoordMap>,
         /// The ticks and labels for the axis
         ticks: Option<NumTicks>,
         /// The minor ticks locations
@@ -103,6 +112,8 @@ pub enum AxisScale {
 
 #[derive(Debug, Clone)]
 pub struct NumTicks {
+    /// IR definition of the ticks
+    ir_ticks: ir::axis::Ticks,
     /// The list of ticks
     ticks: Vec<NumTick>,
     /// Annotation of the axis (e.g. a multiplication factor)
@@ -165,6 +176,7 @@ struct TickMark {
 
 #[derive(Debug, Clone)]
 pub struct MinorTicks {
+    ir_ticks: ir::axis::MinorTicks,
     locs: Vec<f64>,
 }
 
@@ -211,13 +223,16 @@ impl CoordMap for CategoryBins {
         self.cat_location(cat_idx)
     }
 
-    fn unmap_coord(&self, pos: f32) -> Option<data::Sample<'_>> {
+    fn unmap_coord(&self, pos: f32) -> data::Sample<'_> {
         if pos < self.inset.0 || pos > (self.inset.0 + self.bin_size * self.categories.len() as f32)
         {
-            return None;
+            return data::Sample::Null;
         }
         let cat_idx = ((pos - self.inset.0) / self.bin_size).floor() as usize;
-        self.categories.get(cat_idx).map(|c| data::Sample::Cat(c))
+        self.categories
+            .get(cat_idx)
+            .map(|c| data::Sample::Cat(c))
+            .unwrap_or(data::Sample::Null)
     }
 
     fn axis_bounds(&self) -> BoundsRef<'_> {
@@ -226,6 +241,10 @@ impl CoordMap for CategoryBins {
 
     fn cat_bin_size(&self) -> f32 {
         self.bin_size
+    }
+
+    fn create_view(&self, _start: f32, _end: f32) -> Arc<dyn CoordMap> {
+        todo!("Zoom not implemented yet for categorical axes")
     }
 }
 
@@ -362,7 +381,9 @@ where
 
                 let ticks = ir_axis
                     .ticks()
-                    .map(|major_ticks| self.setup_num_ticks(major_ticks, nb, ir_axis.scale(), side))
+                    .map(|major_ticks| {
+                        self.setup_num_ticks(major_ticks, nb, ir_axis.scale(), side, None)
+                    })
                     .transpose()?;
 
                 let minor_ticks = if let Some(mt) = ir_axis.minor_ticks() {
@@ -375,6 +396,7 @@ where
                     cm,
                     ticks,
                     minor_ticks,
+                    ir_scale: ir_axis.scale().clone(),
                 })
             }
             Bounds::Time(tb) => {
@@ -400,6 +422,7 @@ where
                     cm,
                     ticks,
                     minor_ticks: None,
+                    ir_scale: ir_axis.scale().clone(),
                 })
             }
             Bounds::Cat(cats) => {
@@ -419,6 +442,7 @@ where
         nb: NumBounds,
         scale: &ir::axis::Scale,
         side: Side,
+        copy_from: Option<&NumTicks>,
     ) -> Result<NumTicks, Error> {
         let db: &font::Database = self.fontdb();
         let font = major_ticks.font();
@@ -438,16 +462,31 @@ where
             ticks.push(NumTick { loc, lbl });
         }
 
-        let annot = lbl_formatter
-            .axis_annotation()
-            .map(|l| {
-                text::LineText::new(l.to_string(), annot_align, font.size, font.font.clone(), db)
-            })
-            .transpose()?
-            .map(|lbl| Text::from_line_text(&lbl, db, major_ticks.color()))
-            .transpose()?;
+        let annot = if let Some(cf) = copy_from {
+            cf.annot.clone()
+        } else {
+            lbl_formatter
+                .axis_annotation()
+                .map(|l| {
+                    text::LineText::new(
+                        l.to_string(),
+                        annot_align,
+                        font.size,
+                        font.font.clone(),
+                        db,
+                    )
+                })
+                .transpose()?
+                .map(|lbl| Text::from_line_text(&lbl, db, major_ticks.color()))
+                .transpose()?
+        };
 
-        Ok(NumTicks { ticks, annot, lbl_formatter })
+        Ok(NumTicks {
+            ticks,
+            annot,
+            lbl_formatter,
+            ir_ticks: major_ticks.clone(),
+        })
     }
 
     fn setup_minor_ticks(
@@ -468,7 +507,10 @@ where
                     .is_none()
         });
 
-        Ok(MinorTicks { locs })
+        Ok(MinorTicks {
+            locs,
+            ir_ticks: minor_ticks.clone(),
+        })
     }
 
     fn setup_time_ticks(
@@ -514,7 +556,12 @@ where
             .map(|lbl| Text::from_line_text(&lbl, db, major_ticks.color()))
             .transpose()?;
 
-        Ok(NumTicks { ticks, annot, lbl_formatter })
+        Ok(NumTicks {
+            ticks,
+            annot,
+            lbl_formatter,
+            ir_ticks: major_ticks.clone(),
+        })
     }
 
     fn setup_cat_ticks(
@@ -592,6 +639,97 @@ where
             grid,
             minor_grid,
         })
+    }
+
+    pub fn copy_axis_with_coord_map(
+        &self,
+        axis: &Axis,
+        coord_map: Arc<dyn CoordMap>,
+    ) -> Result<Axis, Error> {
+        let scale = match axis.scale.as_ref() {
+            AxisScale::Num {
+                ir_scale, ticks, minor_ticks, ..
+            } => {
+                let bounds = coord_map.axis_bounds().as_num().unwrap();
+                let ir_scale = adapt_ir_scale(ir_scale, &bounds);
+                let ticks = ticks
+                    .as_ref()
+                    .map(|t| {
+                        self.setup_num_ticks(
+                            &t.ir_ticks,
+                            bounds,
+                            &ir_scale,
+                            axis.side,
+                            Some(t),
+                        )
+                    })
+                    .transpose()?;
+
+                let minor_ticks = minor_ticks
+                    .as_ref()
+                    .map(|mt| {
+                        self.setup_minor_ticks(
+                            &mt.ir_ticks,
+                            ticks.as_ref(),
+                            &ir_scale,
+                            bounds,
+                        )
+                    })
+                    .transpose()?;
+
+                AxisScale::Num {
+                    ir_scale,
+                    cm: coord_map,
+                    ticks,
+                    minor_ticks,
+                }
+            }
+            AxisScale::Cat { .. } => todo!("not implemented yet for categorical axes"),
+        };
+
+        Ok(Axis {
+            id: axis.id.clone(),
+            title_text: axis.title_text.clone(),
+            side: axis.side,
+            draw_opts: axis.draw_opts.clone(),
+            scale: Arc::new(scale),
+        })
+    }
+}
+
+fn adapt_ir_scale(
+    ir_scale: &ir::axis::Scale,
+    axis_bounds: &NumBounds,
+) -> ir::axis::Scale {
+    match ir_scale {
+        ir::axis::Scale::Linear(range) => {
+            ir::axis::Scale::Linear(adapt_ir_range(range, axis_bounds))
+        }
+        ir::axis::Scale::Log(ir::axis::LogScale { base, range}) => {
+            ir::axis::Scale::Log(ir::axis::LogScale {
+                base: *base,
+                range: adapt_ir_range(range, axis_bounds),
+            })
+        }
+        _ => ir_scale.clone(),
+    }
+}
+
+fn adapt_ir_range(
+    ir_range: &ir::axis::Range,
+    axis_bounds: &NumBounds,
+) -> ir::axis::Range {
+    match ir_range {
+        ir::axis::Range::Auto => ir::axis::Range::Auto,
+        ir::axis::Range::MinAuto(..) => {
+            ir::axis::Range::MinAuto(axis_bounds.start())
+        }
+        ir::axis::Range::AutoMax(..) => {
+            ir::axis::Range::AutoMax(axis_bounds.end())
+        }
+        ir::axis::Range::MinMax(..) => {
+            ir::axis::Range::MinMax(axis_bounds.start(), axis_bounds.end())
+        },
     }
 }
 
@@ -700,6 +838,7 @@ impl Axis {
                 cm,
                 ticks,
                 minor_ticks,
+                ..
             } => {
                 let mut shift: f32 = 0.0;
                 if let Some(minor_ticks) = minor_ticks.as_ref() {

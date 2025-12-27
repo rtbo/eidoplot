@@ -1,7 +1,13 @@
 //! Module that provides the "show" functionality using the `iced` GUI library
 //! Requires the `iced` feature to be enabled
 
-use eidoplot::ir::PlotIdx;
+use std::sync::Arc;
+
+use eidoplot::Drawing;
+use eidoplot::data;
+use eidoplot::drawing::zoom;
+use eidoplot::fontdb;
+use eidoplot::ir;
 use eidoplot::style::CustomStyle;
 use eidoplot::{drawing, geom};
 use iced::Length;
@@ -14,7 +20,47 @@ use crate::toolbar;
 pub trait Show {
     /// Show the figure in a GUI window.
     /// This function will block the calling thread until the window is closed.
-    fn show(self, style: Option<CustomStyle>) -> iced::Result;
+    fn show<D>(
+        &self,
+        data_source: Arc<D>,
+        fontdb: Arc<fontdb::Database>,
+        style: Option<CustomStyle>,
+    ) -> iced::Result
+    where
+        D: data::Source + 'static;
+}
+
+impl Show for ir::Figure {
+    fn show<D>(
+        &self,
+        data_source: Arc<D>,
+        fontdb: Arc<fontdb::Database>,
+        style: Option<CustomStyle>,
+    ) -> iced::Result
+    where
+        D: data::Source + 'static,
+    {
+        let ir_fig = self.clone();
+        iced::application(
+            move || {
+                let data_source = data_source.clone();
+                let fontdb = fontdb.clone();
+                let style = style.clone();
+                let fig = ir_fig
+                    .prepare(&*data_source, Some(&*fontdb))
+                    .expect("Failed to prepare figure");
+                (
+                    ShowWindow::new(fig, data_source, fontdb, style),
+                    iced::Task::none(),
+                )
+            },
+            ShowWindow::update,
+            ShowWindow::view,
+        )
+        // subscribe to key events
+        .subscription(ShowWindow::subscription)
+        .run()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -34,26 +80,41 @@ enum Interaction {
     None,
     ZoomEnabled,
     ZoomDragging {
-        plot: PlotIdx,
+        idx: ir::PlotIdx,
         start: geom::Point,
         end: geom::Point,
     },
 }
 
-struct ShowWindow {
+struct ShowWindow<D> {
     figure: drawing::Figure,
     style: Option<CustomStyle>,
     tb_state: toolbar::State,
     interaction: Interaction,
+    home_view: zoom::FigureView,
+    data_source: Arc<D>,
+    fontdb: Arc<fontdb::Database>,
 }
 
-impl ShowWindow {
-    fn new(figure: drawing::Figure, style: Option<CustomStyle>) -> Self {
+impl<D> ShowWindow<D>
+where
+    D: data::Source + 'static,
+{
+    fn new(
+        figure: drawing::Figure,
+        data_source: Arc<D>,
+        fontdb: Arc<fontdb::Database>,
+        style: Option<CustomStyle>,
+    ) -> Self {
+        let home_view = figure.view();
         Self {
             figure,
             style,
             tb_state: Default::default(),
             interaction: Interaction::None,
+            home_view,
+            data_source,
+            fontdb,
         }
     }
 
@@ -61,12 +122,24 @@ impl ShowWindow {
         match msg {
             Message::Toolbar(msg) => match msg {
                 toolbar::Message::Home => {
+                    self.figure
+                        .apply_view(&self.home_view, &*self.data_source, Some(&*self.fontdb))
+                        .expect("Failed to apply home view");
                     self.tb_state.at_home = true;
                     self.interaction = Interaction::None;
                 }
-                toolbar::Message::ZoomIn | toolbar::Message::ZoomOut => {
-                    self.tb_state.at_home = false;
-                    self.interaction = Interaction::ZoomEnabled;
+                toolbar::Message::Zoom => {
+                    // Toggle zoom interaction
+                    match &self.interaction {
+                        Interaction::ZoomEnabled | Interaction::ZoomDragging { .. } => {
+                            self.interaction = Interaction::None;
+                            self.tb_state.zooming = false;
+                        }
+                        _ => {
+                            self.interaction = Interaction::ZoomEnabled;
+                            self.tb_state.zooming = true;
+                        }
+                    };
                 }
             },
             Message::FigureMouseMove(point) => {
@@ -78,7 +151,7 @@ impl ShowWindow {
                 self.tb_state.status = status;
 
                 match (&mut self.interaction, &hit) {
-                    (Interaction::ZoomDragging { plot, end, .. }, Some(hit)) => {
+                    (Interaction::ZoomDragging { idx: plot, end, .. }, Some(hit)) => {
                         if *plot == hit.idx {
                             *end = point;
                         }
@@ -91,7 +164,7 @@ impl ShowWindow {
                 match (&self.interaction, hit) {
                     (Interaction::ZoomEnabled, Some(plot)) => {
                         self.interaction = Interaction::ZoomDragging {
-                            plot,
+                            idx: plot,
                             start: point,
                             end: point,
                         };
@@ -99,22 +172,26 @@ impl ShowWindow {
                     _ => {}
                 }
             }
-            Message::FigureMouseRelease(point) => {
-                match &self.interaction {
-                    Interaction::ZoomDragging { plot, .. } => {
-                        let hit = self.figure.hit_test_idx(point);
-                        if let Some(hit_plot) = hit {
-                            if *plot == hit_plot {
-                                // validate zoom here
-                            }
+            Message::FigureMouseRelease(point) => match &self.interaction {
+                Interaction::ZoomDragging { idx, start, end } => {
+                    let hit = self.figure.hit_test_idx(point);
+                    if let Some(hit_plot_idx) = hit {
+                        let rect = geom::Rect::from_corners(*start, *end);
+                        if *idx == hit_plot_idx {
+                            let zoom = zoom::Zoom::new(rect);
+                            self.figure
+                                .apply_zoom(*idx, &zoom, &*self.data_source, Some(&*self.fontdb))
+                                .expect("Failed to apply zoom");
+                            self.tb_state.at_home = false;
                         }
-                        self.interaction = Interaction::ZoomEnabled;
                     }
-                    _ => {
-                        self.interaction = Interaction::None;
-                    }
+                    self.interaction = Interaction::ZoomEnabled;
                 }
-            }
+                _ => {
+                    self.interaction = Interaction::None;
+                    self.tb_state.zooming = false;
+                }
+            },
             Message::Event(iced::event::Event::Mouse(ev)) => match ev {
                 iced::mouse::Event::CursorLeft => {
                     self.tb_state.status = None;
@@ -129,6 +206,7 @@ impl ShowWindow {
                         ..
                     } => {
                         self.interaction = Interaction::None;
+                        self.tb_state.zooming = false;
                     }
                     _ => {}
                 }
@@ -164,22 +242,5 @@ impl ShowWindow {
 
     fn subscription(&self) -> iced::Subscription<Message> {
         iced::event::listen().map(Message::Event)
-    }
-}
-
-impl Show for drawing::Figure {
-    fn show(self, style: Option<CustomStyle>) -> iced::Result {
-        iced::application(
-            move || {
-                let fig = self.clone();
-                let style = style.clone();
-                (ShowWindow::new(fig, style), iced::Task::none())
-            },
-            ShowWindow::update,
-            ShowWindow::view,
-        )
-        // subscribe to key events
-        .subscription(ShowWindow::subscription)
-        .run()
     }
 }

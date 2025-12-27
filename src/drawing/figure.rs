@@ -37,6 +37,11 @@ impl Figure {
         self.size
     }
 
+    ///
+    pub fn plot_indices(&self) -> impl Iterator<Item = ir::PlotIdx> + '_ {
+        self.plots.iter_indices()
+    }
+
     pub(super) fn _title_area(&self) -> Option<geom::Rect> {
         self.title.as_ref().and_then(|(transform, text)| {
             text.bbox.as_ref().map(|bbox| bbox.transform(transform))

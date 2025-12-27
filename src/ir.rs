@@ -12,8 +12,92 @@ pub mod series;
 pub use axis::Axis;
 pub use figure::{FigLegend, Figure};
 pub use legend::Legend;
-pub use plot::{Plot, PlotIdx, PlotLegend, PlotLine, Subplots};
+pub use plot::{Plot, PlotLegend, PlotLine, Subplots};
 pub use series::{DataCol, Series, data_src_ref};
+
+/// Index of a plot in a subplot grid
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PlotIdx {
+    /// Row index of the plot (0-based)
+    pub row: u32,
+    /// Column index of the plot (0-based)
+    pub col: u32,
+}
+
+impl PlotIdx {
+    /// Create a new PlotIdx from row and column indices
+    pub fn new(row: u32, col: u32) -> Self {
+        PlotIdx { row, col }
+    }
+
+    pub(crate) fn index(&self, cols: u32) -> usize {
+        (self.row * cols + self.col) as usize
+    }
+
+    pub(crate) fn is_first(&self) -> bool {
+        self.row == 0 && self.col == 0
+    }
+
+    pub(crate) fn next(&self, cols: u32) -> Self {
+        let mut row = self.row;
+        let mut col = self.col + 1;
+        if col >= cols {
+            col = 0;
+            row += 1;
+        }
+        PlotIdx { row, col }
+    }
+}
+
+/// Convert a (row, col) tuple into a PlotIdx
+impl From<(u32, u32)> for PlotIdx {
+    fn from((row, col): (u32, u32)) -> Self {
+        PlotIdx { row, col }
+    }
+}
+
+/// Iterator over all PlotIdx in a subplot grid
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct PlotIdxIter {
+    rows: u32,
+    cols: u32,
+    current: PlotIdx,
+    done: bool,
+}
+
+impl PlotIdxIter {
+    pub(crate) fn new(rows: u32, cols: u32) -> Self {
+        PlotIdxIter {
+            rows,
+            cols,
+            current: PlotIdx { row: 0, col: 0 },
+            done: rows == 0 || cols == 0,
+        }
+    }
+}
+
+impl Iterator for PlotIdxIter {
+    type Item = PlotIdx;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.done {
+            return None;
+        }
+        let result = self.current;
+        if self.current.col + 1 >= self.cols {
+            self.current.col = 0;
+            self.current.row += 1;
+            if self.current.row >= self.rows {
+                self.done = true;
+            }
+        } else {
+            self.current.col += 1;
+        }
+        Some(result)
+    }
+}
+
+impl std::iter::FusedIterator for PlotIdxIter {}
 
 // Structs defined with this macro use theme::Color for the generic color of rich properties
 // Caller must impl a specific Default for the $props_struct.

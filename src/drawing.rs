@@ -20,6 +20,7 @@ mod plot;
 mod scale;
 mod series;
 mod ticks;
+pub mod zoom;
 
 pub use figure::Figure;
 pub use hit_test::PlotHit;
@@ -87,6 +88,16 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+#[inline]
+fn fig_x_to_plot_x(plot_rect: &geom::Rect, fig_x: f32) -> f32 {
+    fig_x - plot_rect.x()
+}
+
+#[inline]
+fn fig_y_to_plot_y(plot_rect: &geom::Rect, fig_y: f32) -> f32 {
+    plot_rect.bottom() - fig_y
+}
+
 /// Extension trait to prepare an IR figure for drawing
 pub trait Drawing {
     /// Prepare a figure for drawing.
@@ -134,36 +145,7 @@ impl Drawing for ir::Figure {
     where
         D: data::Source,
     {
-        if let Some(fontdb) = fontdb {
-            let ctx = Ctx::new(data_source, fontdb);
-            ctx.setup_figure(self)
-        } else {
-            #[cfg(any(
-                feature = "noto-sans",
-                feature = "noto-sans-italic",
-                feature = "noto-serif",
-                feature = "noto-serif-italic",
-                feature = "noto-mono"
-            ))]
-            {
-                let fontdb = crate::bundled_font_db();
-                let ctx = Ctx::new(data_source, &fontdb);
-                ctx.setup_figure(self)
-            }
-            #[cfg(not(any(
-                feature = "noto-sans",
-                feature = "noto-sans-italic",
-                feature = "noto-serif",
-                feature = "noto-serif-italic",
-                feature = "noto-mono"
-            )))]
-            {
-                panic!(concat!(
-                    "No font database provided and no bundled font feature enabled. ",
-                    "Enable at least one of the bundled font features or provide a font database."
-                ));
-            }
-        }
+        with_ctx(data_source, fontdb, |ctx| ctx.setup_figure(self))
     }
 }
 
@@ -173,19 +155,55 @@ struct Ctx<'a, D> {
     fontdb: &'a fontdb::Database,
 }
 
-impl<'a, D> Ctx<'a, D> {
-    pub fn new(data_source: &'a D, fontdb: &'a fontdb::Database) -> Ctx<'a, D> {
-        Ctx {
+fn with_ctx<D, F, R>(data_source: &D, fontdb: Option<&fontdb::Database>, f: F) -> R
+where
+    D: data::Source,
+    F: FnOnce(&Ctx<'_, D>) -> R,
+{
+    if let Some(fontdb) = fontdb {
+        let ctx = Ctx {
             data_source,
             fontdb,
+        };
+        f(&ctx)
+    } else {
+        #[cfg(any(
+            feature = "noto-sans",
+            feature = "noto-sans-italic",
+            feature = "noto-serif",
+            feature = "noto-serif-italic",
+            feature = "noto-mono"
+        ))]
+        {
+            let fontdb = crate::bundled_font_db();
+            let ctx = Ctx {
+                data_source,
+                fontdb: &fontdb,
+            };
+            f(&ctx)
+        }
+        #[cfg(not(any(
+            feature = "noto-sans",
+            feature = "noto-sans-italic",
+            feature = "noto-serif",
+            feature = "noto-serif-italic",
+            feature = "noto-mono"
+        )))]
+        {
+            panic!(concat!(
+                "No font database provided and no bundled font feature enabled. ",
+                "Enable at least one of the bundled font features or provide a font database."
+            ));
         }
     }
+}
 
-    pub fn data_source(&self) -> &D {
+impl<'a, D> Ctx<'a, D> {
+    fn data_source(&self) -> &D {
         self.data_source
     }
 
-    pub fn fontdb(&self) -> &fontdb::Database {
+    fn fontdb(&self) -> &fontdb::Database {
         &self.fontdb
     }
 }

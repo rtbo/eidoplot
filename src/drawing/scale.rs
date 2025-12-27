@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::drawing::axis;
 use crate::{data, ir};
 
@@ -6,6 +8,8 @@ use crate::{data, ir};
 /// Typically, only one of the two map_coord_num or map_coord_cat should be implemented,
 /// depending on whether the scale is numerical or categorical.
 pub trait CoordMap: std::fmt::Debug {
+    fn axis_bounds(&self) -> axis::BoundsRef<'_>;
+
     fn map_coord(&self, sample: data::Sample) -> Option<f32> {
         match sample {
             data::Sample::Num(n) => Some(self.map_coord_num(n)),
@@ -24,14 +28,14 @@ pub trait CoordMap: std::fmt::Debug {
         unimplemented!("Only for categorical scales");
     }
 
-    fn unmap_coord(&self, pos: f32) -> Option<data::Sample<'_>>;
-
     /// Get the size of a category bin (width for horizontal axes, height for vertical axes)
     fn cat_bin_size(&self) -> f32 {
         unimplemented!("Only for categorical scales");
     }
 
-    fn axis_bounds(&self) -> axis::BoundsRef<'_>;
+    fn unmap_coord(&self, pos: f32) -> data::Sample<'_>;
+
+    fn create_view(&self, start: f32, end: f32) -> Arc<dyn CoordMap>;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -53,18 +57,18 @@ pub fn map_scale_coord_num(
     plot_size: f32,
     axis_bounds: &axis::NumBounds,
     insets: (f32, f32),
-) -> Box<dyn CoordMap> {
+) -> Arc<dyn CoordMap> {
     match scale {
         ir::axis::Scale::Auto | ir::axis::Scale::Linear(ir::axis::Range::Auto) => {
-            Box::new(LinCoordMap::new(plot_size, insets, *axis_bounds))
+            Arc::new(LinCoordMap::new(plot_size, insets, *axis_bounds))
         }
         ir::axis::Scale::Linear(range) => {
             let (adj_nb, adj_insets) = adjusted_nb_insets(*range, axis_bounds, insets);
-            Box::new(LinCoordMap::new(plot_size, adj_insets, adj_nb))
+            Arc::new(LinCoordMap::new(plot_size, adj_insets, adj_nb))
         }
         ir::axis::Scale::Log(ir::axis::LogScale { base, range }) => {
             let (adj_nb, adj_insets) = adjusted_nb_insets(*range, axis_bounds, insets);
-            Box::new(LogCoordMap::new(*base, plot_size, adj_insets, adj_nb))
+            Arc::new(LogCoordMap::new(*base, plot_size, adj_insets, adj_nb))
         }
         ir::axis::Scale::Shared(..) => unreachable!("shared scale to be handled upfront"),
     }
@@ -115,17 +119,24 @@ impl CoordMap for LinCoordMap {
         ratio as f32 * self.plot_size
     }
 
-    fn unmap_coord(&self, pos: f32) -> Option<data::Sample<'_>> {
-        if pos < 0.0 || pos > self.plot_size {
-            return None;
-        }
+    fn unmap_coord(&self, pos: f32) -> data::Sample<'_> {
         let ratio = pos as f64 / self.plot_size as f64;
         let value = self.ab.start() + ratio * self.ab.span();
-        Some(data::Sample::Num(value))
+        data::Sample::Num(value)
     }
 
     fn axis_bounds(&self) -> axis::BoundsRef<'_> {
         self.ab.into()
+    }
+
+    fn create_view(&self, start: f32, end: f32) -> Arc<dyn CoordMap> {
+        let data_start = self.unmap_coord(start).as_num().expect("numerical coord map");
+        let data_end = self.unmap_coord(end).as_num().expect("numerical coord map");
+        let new_bounds: axis::NumBounds = (data_start, data_end).into();
+        Arc::new(LinCoordMap {
+            plot_size: self.plot_size,
+            ab: new_bounds,
+        })
     }
 }
 
@@ -171,20 +182,28 @@ impl CoordMap for LogCoordMap {
         ratio as f32 * self.plot_size
     }
 
-    fn unmap_coord(&self, pos: f32) -> Option<data::Sample<'_>> {
-        if pos < 0.0 || pos > self.plot_size {
-            return None;
-        }
+    fn unmap_coord(&self, pos: f32) -> data::Sample<'_> {
         let start = self.ab.start().log(self.base);
         let end = self.ab.end().log(self.base);
         let ratio = pos as f64 / self.plot_size as f64;
         let log_value = start + ratio * (end - start);
         let value = self.base.powf(log_value);
-        Some(data::Sample::Num(value))
+        data::Sample::Num(value)
     }
 
     fn axis_bounds(&self) -> axis::BoundsRef<'_> {
         self.ab.into()
+    }
+
+    fn create_view(&self, start: f32, end: f32) -> Arc<dyn CoordMap> {
+        let data_start = self.unmap_coord(start).as_num().expect("numerical coord map");
+        let data_end = self.unmap_coord(end).as_num().expect("numerical coord map");
+        let new_bounds: axis::NumBounds = (data_start, data_end).into();
+        Arc::new(LogCoordMap {
+            base: self.base,
+            plot_size: self.plot_size,
+            ab: new_bounds,
+        })
     }
 }
 
