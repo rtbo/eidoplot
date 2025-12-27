@@ -219,7 +219,7 @@ fn axes_pi_locator() {
     let series = ir::series::Line::new(x.into(), y.into());
 
     let plot = ir::Plot::new(vec![series.into()]).with_x_axis(ir::Axis::new().with_ticks(
-        ir::axis::Ticks::new().with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 5 }),
+        ir::axis::Ticks::new().with_locator(ir::axis::ticks::PiMultipleLocator { bins: 5 }.into()),
     ));
     let fig = fig_small(plot);
 
@@ -237,11 +237,11 @@ fn axes_pi_locator_minor() {
         ir::Axis::new()
             .with_ticks(
                 ir::axis::Ticks::new()
-                    .with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 5 }),
+                    .with_locator(ir::axis::ticks::PiMultipleLocator { bins: 5 }.into()),
             )
             .with_minor_ticks(
                 ir::axis::MinorTicks::new()
-                    .with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 30 }),
+                    .with_locator(ir::axis::ticks::PiMultipleLocator { bins: 30 }.into()),
             ),
     );
     let fig = fig_small(plot);

@@ -22,7 +22,10 @@ fn main() {
     let ax_y1 = ir::Axis::new().with_ticks(Default::default());
     let ax_x2 = ir::Axis::new()
         .with_id("x2")
-        .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into())
+        .with_ticks(
+            ir::axis::Ticks::new()
+                .with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
+        )
         .with_grid(Default::default());
     let ax_y2 = ir::Axis::new().with_ticks(Default::default());
 

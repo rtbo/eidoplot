@@ -119,7 +119,10 @@ fn build_figure() -> ir::Figure {
     let x_axis = ir::Axis::new()
         .with_scale(ir::axis::Range::MinMax(0.0, 2.0 * PI).into())
         .with_title("x".to_string().into())
-        .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 5 }.into());
+        .with_ticks(
+            ir::axis::Ticks::default()
+                .with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
+        );
     let y_axis = ir::Axis::new()
         .with_title("y".to_string().into())
         .with_ticks(Default::default())

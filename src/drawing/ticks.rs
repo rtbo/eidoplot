@@ -20,17 +20,17 @@ pub fn locate_num(
         (Locator::Auto, Scale::Log(LogScale { base, .. })) => {
             Ok(LogLocator::new_major(*base).ticks(nb))
         }
-        (Locator::MaxN { bins, steps }, Scale::Auto | Scale::Linear { .. }) => {
-            let ticker = MaxN::new(*bins, steps.as_slice());
+        (Locator::MaxN(locator), Scale::Auto | Scale::Linear { .. }) => {
+            let ticker = MaxN::new(locator.bins, locator.steps.as_slice());
             Ok(ticker.ticks(nb))
         }
-        (Locator::PiMultiple { bins }, Scale::Auto | Scale::Linear { .. }) => {
-            let ticker = MaxN::new_pi(*bins);
+        (Locator::PiMultiple(locator), Scale::Auto | Scale::Linear { .. }) => {
+            let ticker = MaxN::new_pi(locator.bins);
             Ok(ticker.ticks(nb))
         }
-        (Locator::Log { base, .. }, Scale::Auto) => Ok(LogLocator::new_major(*base).ticks(nb)),
-        (Locator::Log { base: loc_base, .. }, Scale::Log(LogScale { base, .. }))
-            if loc_base == base =>
+        (Locator::Log (locator), Scale::Auto) => Ok(LogLocator::new_major(locator.base).ticks(nb)),
+        (Locator::Log (locator), Scale::Log(LogScale { base, .. }))
+            if locator.base == *base =>
         {
             Ok(LogLocator::new_major(*base).ticks(nb))
         }
@@ -54,17 +54,17 @@ pub fn locate_minor(
         (Locator::Auto, Scale::Log(LogScale { base, .. })) => {
             Ok(LogLocator::new_minor(*base).ticks(nb))
         }
-        (Locator::MaxN { bins, steps }, Scale::Auto | Scale::Linear { .. }) => {
-            let ticker = MaxN::new(*bins, steps.as_slice());
+        (Locator::MaxN(locator), Scale::Auto | Scale::Linear { .. }) => {
+            let ticker = MaxN::new(locator.bins, locator.steps.as_slice());
             Ok(ticker.ticks(nb))
         }
-        (Locator::PiMultiple { bins }, Scale::Auto | Scale::Linear { .. }) => {
-            let ticker = MaxN::new_pi(*bins);
+        (Locator::PiMultiple(locator), Scale::Auto | Scale::Linear { .. }) => {
+            let ticker = MaxN::new_pi(locator.bins);
             Ok(ticker.ticks(nb))
         }
-        (Locator::Log { base, .. }, Scale::Auto) => Ok(LogLocator::new_minor(*base).ticks(nb)),
-        (Locator::Log { base: loc_base, .. }, Scale::Log(LogScale { base, .. }))
-            if loc_base == base =>
+        (Locator::Log(locator), Scale::Auto) => Ok(LogLocator::new_minor(locator.base).ticks(nb)),
+        (Locator::Log(locator), Scale::Log(LogScale { base, .. }))
+            if locator.base == *base =>
         {
             Ok(LogLocator::new_minor(*base).ticks(nb))
         }

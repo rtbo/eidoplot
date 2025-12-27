@@ -346,26 +346,12 @@ pub mod ticks {
         #[default]
         Auto,
         /// Places ticks automatically, using the specified number of bins and steps
-        MaxN {
-            /// Number of bins (that is number of ticks - 1)
-            bins: u32,
-            /// List of steps multiple to the scale
-            /// The locator will pick one of the steps, multiplying it by a power of 10 scale
-            steps: Vec<f64>,
-        },
+        MaxN(MaxNLocator),
         /// Places the ticks automatically, using the specified number of bins and multiples of PI.
         /// The axis will be annotated with `× π`
-        PiMultiple {
-            /// Number of bins (that is number of ticks - 1)
-            bins: u32,
-        },
+        PiMultiple(PiMultipleLocator),
         /// Places ticks on a logarithmic scale, using the specified base and max number of bins
-        Log {
-            /// Logarithm base
-            base: f64,
-            /// Number of bins (that is number of ticks - 1)
-            bins: u32,
-        },
+        Log(LogLocator),
         /// Places ticks on a time scale
         /// The series data must be DateTime, otherwise an error is returned.
         DateTime(DateTimeLocator),
@@ -373,6 +359,72 @@ pub mod ticks {
         /// The series data can be either numeric or TimeDelta.
         /// In the case of numeric data, seconds are assumed.
         TimeDelta(TimeDeltaLocator),
+    }
+
+    /// A locator that places ticks automatically, using the specified number of bins and steps
+    #[derive(Debug, Clone)]
+    pub struct MaxNLocator {
+        /// Number of bins (that is number of ticks - 1)
+        pub bins: u32,
+        /// List of steps multiple to the scale
+        /// The locator will pick one of the steps, multiplying it by a power of 10 scale
+        pub steps: Vec<f64>,
+    }
+
+    impl Default for MaxNLocator {
+        fn default() -> Self {
+            MaxNLocator {
+                bins: 9,
+                steps: vec![1.0, 2.0, 2.5, 5.0],
+            }
+        }
+    }
+
+    impl From<MaxNLocator> for Locator {
+        fn from(locator: MaxNLocator) -> Self {
+            Locator::MaxN(locator)
+        }
+    }
+
+    /// A locator that places ticks at multiples of π
+    /// The axis will be annotated with `× π`
+    #[derive(Debug, Clone, Copy)]
+    pub struct PiMultipleLocator {
+        /// Number of bins (that is number of ticks - 1)
+        pub bins: u32,
+    }
+
+    impl Default for PiMultipleLocator {
+        fn default() -> Self {
+            PiMultipleLocator { bins: 9 }
+        }
+    }
+
+    impl From<PiMultipleLocator> for Locator {
+        fn from(locator: PiMultipleLocator) -> Self {
+            Locator::PiMultiple(locator)
+        }
+    }
+
+    /// A locator that places ticks on a logarithmic scale
+    #[derive(Debug, Clone, Copy)]
+    pub struct LogLocator {
+        /// Logarithm base
+        pub base: f64,
+    }
+
+    impl Default for LogLocator {
+        fn default() -> Self {
+            LogLocator {
+                base: 10.0,
+            }
+        }
+    }
+
+    impl From<LogLocator> for Locator {
+        fn from(locator: LogLocator) -> Self {
+            Locator::Log(locator)
+        }
     }
 
     /// Describes how to locate the ticks of a DateTime axis

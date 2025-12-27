@@ -631,7 +631,7 @@ fn axis_set_enum_field(
         "Ticks" => Ok(axis.with_ticks(Default::default())),
         "PiMultipleTicks" => Ok(axis.with_ticks(
             ir::axis::Ticks::default()
-                .with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 9 }),
+                .with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
         )),
         "MinorTicks" => Ok(axis.with_minor_ticks(Default::default())),
         "Grid" => Ok(axis.with_grid(Default::default())),
@@ -869,7 +869,9 @@ fn ticks_set_enum_field(
 ) -> Result<ir::axis::Ticks, Error> {
     match ident {
         "Locator" => Ok(ticks.with_locator(ir::axis::ticks::Locator::default())),
-        "PiMultiple" => Ok(ticks.with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 9 })),
+        "PiMultiple" => {
+            Ok(ticks.with_locator(ir::axis::ticks::PiMultipleLocator::default().into()))
+        }
         _ => Err(Error::Parse {
             span,
             reason: format!("unknown ticks property enum: {}", ident),

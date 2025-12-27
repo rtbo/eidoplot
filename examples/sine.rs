@@ -7,7 +7,10 @@ mod common;
 fn main() {
     let x_axis = ir::Axis::new()
         .with_title("x".into())
-        .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into())
+        .with_ticks(
+            ir::axis::Ticks::new()
+                .with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
+        )
         .with_grid(Default::default());
 
     let y_axis = ir::Axis::new()

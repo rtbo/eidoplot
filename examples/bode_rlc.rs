@@ -77,7 +77,8 @@ fn main() {
     let phase_axis = ir::Axis::new()
         .with_title("Phase [rad]".into())
         .with_ticks(
-            ir::axis::Ticks::new().with_locator(ir::axis::ticks::Locator::PiMultiple { bins: 9 }),
+            ir::axis::Ticks::new()
+                .with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
         )
         .with_grid(Default::default());
 

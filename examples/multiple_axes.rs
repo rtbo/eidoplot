@@ -14,9 +14,9 @@ fn main() {
     data_src.add_column("sin(x)", &sin_x as &dyn data::Column);
     data_src.add_column("exp(x)", &exp_x as &dyn data::Column);
 
-    let x_axis = ir::Axis::new()
-        .with_title("x".into())
-        .with_ticks(ir::axis::ticks::Locator::PiMultiple { bins: 9 }.into());
+    let x_axis = ir::Axis::new().with_title("x".into()).with_ticks(
+        ir::axis::Ticks::new().with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
+    );
     let y1_axis = ir::Axis::new()
         .with_title("sin(x)".into())
         .with_ticks(Default::default());
