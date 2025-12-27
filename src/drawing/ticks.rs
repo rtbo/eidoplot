@@ -491,7 +491,10 @@ pub fn num_label_formatter(
             auto_label_formatter(ticks.locator(), ab, scale)
         }
         Some(Formatter::Prec(prec)) => Arc::new(PrecLabelFormat(*prec)),
-        Some(Formatter::Percent) => Arc::new(PercentLabelFormat),
+        Some(Formatter::Percent(fmt)) => {
+            let prec = fmt.decimal_places.unwrap_or_else(|| percent_auto_precision(ab));
+            Arc::new(PercentLabelFormat(prec))
+        }
         Some(Formatter::TimeDelta(tdfmt)) => timedelta_label_formatter(ab, tdfmt),
         None => Arc::new(NullFormat),
         _ => todo!(),
@@ -521,6 +524,19 @@ fn auto_label_formatter(
             }
         }
         _ => todo!(),
+    }
+}
+
+fn percent_auto_precision(ab: axis::NumBounds) -> usize {
+    let span = ab.span();
+    if span >= 1.0 {
+        0
+    } else if span >= 0.1 {
+        1
+    } else if span >= 0.01 {
+        2
+    } else {
+        3
     }
 }
 
@@ -649,12 +665,12 @@ impl LabelFormatter for PiMultipleLabelFormat {
 }
 
 #[derive(Debug)]
-struct PercentLabelFormat;
+struct PercentLabelFormat(usize);
 
 impl LabelFormatter for PercentLabelFormat {
     fn format_label(&self, data: data::Sample) -> String {
         let data = data.as_num().unwrap();
-        format!("{:.0}%", data * 100.0)
+        format!("{:.*}%", self.0, data * 100.0)
     }
 }
 
