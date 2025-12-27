@@ -3,13 +3,9 @@
 
 use std::sync::Arc;
 
-use eidoplot::Drawing;
-use eidoplot::data;
 use eidoplot::drawing::zoom;
-use eidoplot::fontdb;
-use eidoplot::ir;
 use eidoplot::style::CustomStyle;
-use eidoplot::{drawing, geom};
+use eidoplot::{Drawing, data, drawing, fontdb, geom, ir};
 use iced::Length;
 use iced::widget::column;
 

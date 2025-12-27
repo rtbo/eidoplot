@@ -492,7 +492,9 @@ pub fn num_label_formatter(
         }
         Some(Formatter::Prec(prec)) => Arc::new(PrecLabelFormat(*prec)),
         Some(Formatter::Percent(fmt)) => {
-            let prec = fmt.decimal_places.unwrap_or_else(|| percent_auto_precision(ab));
+            let prec = fmt
+                .decimal_places
+                .unwrap_or_else(|| percent_auto_precision(ab));
             Arc::new(PercentLabelFormat(prec))
         }
         Some(Formatter::TimeDelta(tdfmt)) => timedelta_label_formatter(ab, tdfmt),

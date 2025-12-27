@@ -1,4 +1,5 @@
-use crate::{data, geom, ir::PlotIdx};
+use crate::ir::PlotIdx;
+use crate::{data, geom};
 
 #[derive(Debug, Clone)]
 pub struct HitCoord<'a>(data::Sample<'a>, &'a str);

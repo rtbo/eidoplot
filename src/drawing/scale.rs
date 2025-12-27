@@ -130,7 +130,10 @@ impl CoordMap for LinCoordMap {
     }
 
     fn create_view(&self, start: f32, end: f32) -> Arc<dyn CoordMap> {
-        let data_start = self.unmap_coord(start).as_num().expect("numerical coord map");
+        let data_start = self
+            .unmap_coord(start)
+            .as_num()
+            .expect("numerical coord map");
         let data_end = self.unmap_coord(end).as_num().expect("numerical coord map");
         let new_bounds: axis::NumBounds = (data_start, data_end).into();
         Arc::new(LinCoordMap {
@@ -196,7 +199,10 @@ impl CoordMap for LogCoordMap {
     }
 
     fn create_view(&self, start: f32, end: f32) -> Arc<dyn CoordMap> {
-        let data_start = self.unmap_coord(start).as_num().expect("numerical coord map");
+        let data_start = self
+            .unmap_coord(start)
+            .as_num()
+            .expect("numerical coord map");
         let data_end = self.unmap_coord(end).as_num().expect("numerical coord map");
         let new_bounds: axis::NumBounds = (data_start, data_end).into();
         Arc::new(LogCoordMap {

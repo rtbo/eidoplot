@@ -201,48 +201,46 @@ where
         }
 
         match event {
-            iced::Event::Mouse(mouse_ev) => {
-                match mouse_ev {
-                    mouse::Event::CursorMoved { position } => {
-                        let transform = fit_to_bounds(self.fig.size(), layout.bounds())
-                            .invert()
-                            .expect("transform without skew should be invertible");
-                        let mut point = geom::Point {
-                            x: position.x,
-                            y: position.y,
-                        };
-                        transform.map_point(&mut point);
-                        state.over_plot = self.fig.hit_test_idx(point).is_some();
-                        state.mouse_pos = Some(point);
-                        if let Some(callback) = &self.on_mouse_move {
-                            let msg = callback(point);
+            iced::Event::Mouse(mouse_ev) => match mouse_ev {
+                mouse::Event::CursorMoved { position } => {
+                    let transform = fit_to_bounds(self.fig.size(), layout.bounds())
+                        .invert()
+                        .expect("transform without skew should be invertible");
+                    let mut point = geom::Point {
+                        x: position.x,
+                        y: position.y,
+                    };
+                    transform.map_point(&mut point);
+                    state.over_plot = self.fig.hit_test_idx(point).is_some();
+                    state.mouse_pos = Some(point);
+                    if let Some(callback) = &self.on_mouse_move {
+                        let msg = callback(point);
+                        shell.publish(msg);
+                    }
+                    shell.capture_event();
+                }
+                mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                    state.dragging = true;
+                    if let Some(pos) = state.mouse_pos {
+                        if let Some(callback) = &self.on_mouse_press {
+                            let msg = callback(pos);
                             shell.publish(msg);
                         }
-                        shell.capture_event();
                     }
-                    mouse::Event::ButtonPressed(mouse::Button::Left) => {
-                        state.dragging = true;
-                        if let Some(pos) = state.mouse_pos {
-                            if let Some(callback) = &self.on_mouse_press {
-                                let msg = callback(pos);
-                                shell.publish(msg);
-                            }
-                        }
-                        shell.capture_event();
-                    }
-                    mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                        state.dragging = false;
-                        if let Some(pos) = state.mouse_pos {
-                            if let Some(callback) = &self.on_mouse_release {
-                                let msg = callback(pos);
-                                shell.publish(msg);
-                            }
-                        }
-                        shell.capture_event();
-                    }
-                    _ => {}
+                    shell.capture_event();
                 }
-            }
+                mouse::Event::ButtonReleased(mouse::Button::Left) => {
+                    state.dragging = false;
+                    if let Some(pos) = state.mouse_pos {
+                        if let Some(callback) = &self.on_mouse_release {
+                            let msg = callback(pos);
+                            shell.publish(msg);
+                        }
+                    }
+                    shell.capture_event();
+                }
+                _ => {}
+            },
             _ => {}
         }
     }

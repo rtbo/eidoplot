@@ -1,6 +1,5 @@
-use iced::{
-    Alignment, Length, widget::{button, row, space}
-};
+use iced::widget::{button, row, space};
+use iced::{Alignment, Length};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -39,15 +38,10 @@ pub fn view(state: &State) -> iced::Element<'_, Message> {
         .height(Length::Fill)
         .align_y(Alignment::Center);
 
-    row![
-        home_button,
-        zoom_in_button,
-        space::horizontal(),
-        status_txt
-    ]
-    .width(Length::Fill)
-    .height(Length::Shrink)
-    .spacing(10)
-    .padding(5)
-    .into()
+    row![home_button, zoom_in_button, space::horizontal(), status_txt]
+        .width(Length::Fill)
+        .height(Length::Shrink)
+        .spacing(10)
+        .padding(5)
+        .into()
 }

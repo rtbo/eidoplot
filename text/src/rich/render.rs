@@ -57,13 +57,15 @@ where
 
                         if span.props.underline {
                             let line = shape.metrics.uline;
-                            let path = line_path(span.bbox(), shape.y_baseline, line, glyph_builder);
+                            let path =
+                                line_path(span.bbox(), shape.y_baseline, line, glyph_builder);
                             span_builder.push_path(&path);
                             glyph_builder = path.clear();
                         }
                         if span.props.strikeout {
                             let line = shape.metrics.strikeout;
-                            let path = line_path(span.bbox(), shape.y_baseline, line, glyph_builder);
+                            let path =
+                                line_path(span.bbox(), shape.y_baseline, line, glyph_builder);
                             span_builder.push_path(&path);
                             glyph_builder = path.clear();
                         }

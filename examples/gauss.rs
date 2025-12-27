@@ -33,7 +33,8 @@ fn main() {
         .with_title("x".into())
         .with_ticks(Default::default());
     let y_axis = ir::Axis::new().with_title("y".into()).with_ticks(
-        ir::axis::Ticks::new().with_formatter(Some(ir::axis::ticks::PercentFormatter::default().into())),
+        ir::axis::Ticks::new()
+            .with_formatter(Some(ir::axis::ticks::PercentFormatter::default().into())),
     );
 
     let pop_series = ir::Series::Histogram(

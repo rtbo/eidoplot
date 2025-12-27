@@ -17,7 +17,11 @@ fn category_mask<C>(column: &C, category: &str) -> Option<Vec<bool>>
 where
     C: data::Column + ?Sized,
 {
-    let mask = column.str()?.str_iter().map(|v| v == Some(category)).collect();
+    let mask = column
+        .str()?
+        .str_iter()
+        .map(|v| v == Some(category))
+        .collect();
     Some(mask)
 }
 

@@ -93,7 +93,6 @@ impl From<ScriptDir> for rustybuzz::Direction {
     }
 }
 
-
 fn script_is_rtl(text: &str) -> Option<bool> {
     use unicode_bidi::{BidiClass, bidi_class};
     let mut in_doublt_rtl = false;

@@ -251,29 +251,21 @@ impl Series {
             SeriesPlot::Line(xy) => {
                 xy.update_data(data_source, rect, cm);
             }
-            SeriesPlot::Scatter(sc) => {
-                sc.update_data(data_source, rect, cm)
-            }
+            SeriesPlot::Scatter(sc) => sc.update_data(data_source, rect, cm),
             SeriesPlot::Histogram(hist) => {
                 hist.update_data(rect, cm);
             }
             SeriesPlot::Bars(bars) => {
                 bars.update_data(data_source, rect, cm);
             }
-            SeriesPlot::BarsGroup(bg)  => {
-                bg.update_data(data_source, rect, cm)
-            }
+            SeriesPlot::BarsGroup(bg) => bg.update_data(data_source, rect, cm),
         }
         Ok(())
     }
 }
 
 impl Series {
-    pub fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -315,12 +307,8 @@ impl Line {
         })
     }
 
-    fn update_data<D>(
-        &mut self,
-        data_source: &D,
-        rect: &geom::Rect,
-        cm: &CoordMapXy,
-    ) where
+    fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
+    where
         D: data::Source,
     {
         // unwraping here as data is checked during setup phase
@@ -353,11 +341,7 @@ impl Line {
         self.path = Some(pb.finish().expect("Should be a valid path"));
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -405,12 +389,8 @@ impl Scatter {
         })
     }
 
-    fn update_data<D>(
-        &mut self,
-        data_source: &D,
-        rect: &geom::Rect,
-        cm: &CoordMapXy,
-    ) where
+    fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
+    where
         D: data::Source,
     {
         let x_col = get_column(&self.cols.0, data_source).unwrap();
@@ -431,11 +411,7 @@ impl Scatter {
         self.points = points;
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -551,11 +527,7 @@ impl Histogram {
         self.path = Some(path);
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -632,12 +604,8 @@ impl Bars {
         }
     }
 
-    fn update_data<D>(
-        &mut self,
-        data_source: &D,
-        rect: &geom::Rect,
-        cm: &CoordMapXy,
-    ) where
+    fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
+    where
         D: data::Source,
     {
         // unwraping here as data is checked during setup phase
@@ -692,11 +660,7 @@ impl Bars {
         self.path = Some(path);
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -793,12 +757,8 @@ impl BarsGroup {
         })
     }
 
-    fn update_data<D>(
-        &mut self,
-        data_source: &D,
-        rect: &geom::Rect,
-        cm: &CoordMapXy,
-    ) where
+    fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
+    where
         D: data::Source,
     {
         let categories = match self.orientation {
@@ -916,11 +876,7 @@ impl BarsGroup {
         paths
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,

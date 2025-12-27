@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
-use crate::{
-    data,
-    drawing::{axis::Axis, fig_x_to_plot_x, fig_y_to_plot_y, scale::CoordMap},
-    fontdb, geom,
-    ir::PlotIdx,
-};
+use crate::drawing::axis::Axis;
+use crate::drawing::scale::CoordMap;
+use crate::drawing::{fig_x_to_plot_x, fig_y_to_plot_y};
+use crate::ir::PlotIdx;
+use crate::{data, fontdb, geom};
 
 /// A mask to indicate which axes are affected by a zoom operation.
 #[derive(Debug, Clone, Copy)]

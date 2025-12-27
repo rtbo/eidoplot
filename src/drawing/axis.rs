@@ -648,32 +648,24 @@ where
     ) -> Result<Axis, Error> {
         let scale = match axis.scale.as_ref() {
             AxisScale::Num {
-                ir_scale, ticks, minor_ticks, ..
+                ir_scale,
+                ticks,
+                minor_ticks,
+                ..
             } => {
                 let bounds = coord_map.axis_bounds().as_num().unwrap();
                 let ir_scale = adapt_ir_scale(ir_scale, &bounds);
                 let ticks = ticks
                     .as_ref()
                     .map(|t| {
-                        self.setup_num_ticks(
-                            &t.ir_ticks,
-                            bounds,
-                            &ir_scale,
-                            axis.side,
-                            Some(t),
-                        )
+                        self.setup_num_ticks(&t.ir_ticks, bounds, &ir_scale, axis.side, Some(t))
                     })
                     .transpose()?;
 
                 let minor_ticks = minor_ticks
                     .as_ref()
                     .map(|mt| {
-                        self.setup_minor_ticks(
-                            &mt.ir_ticks,
-                            ticks.as_ref(),
-                            &ir_scale,
-                            bounds,
-                        )
+                        self.setup_minor_ticks(&mt.ir_ticks, ticks.as_ref(), &ir_scale, bounds)
                     })
                     .transpose()?;
 
@@ -697,15 +689,12 @@ where
     }
 }
 
-fn adapt_ir_scale(
-    ir_scale: &ir::axis::Scale,
-    axis_bounds: &NumBounds,
-) -> ir::axis::Scale {
+fn adapt_ir_scale(ir_scale: &ir::axis::Scale, axis_bounds: &NumBounds) -> ir::axis::Scale {
     match ir_scale {
         ir::axis::Scale::Linear(range) => {
             ir::axis::Scale::Linear(adapt_ir_range(range, axis_bounds))
         }
-        ir::axis::Scale::Log(ir::axis::LogScale { base, range}) => {
+        ir::axis::Scale::Log(ir::axis::LogScale { base, range }) => {
             ir::axis::Scale::Log(ir::axis::LogScale {
                 base: *base,
                 range: adapt_ir_range(range, axis_bounds),
@@ -715,21 +704,14 @@ fn adapt_ir_scale(
     }
 }
 
-fn adapt_ir_range(
-    ir_range: &ir::axis::Range,
-    axis_bounds: &NumBounds,
-) -> ir::axis::Range {
+fn adapt_ir_range(ir_range: &ir::axis::Range, axis_bounds: &NumBounds) -> ir::axis::Range {
     match ir_range {
         ir::axis::Range::Auto => ir::axis::Range::Auto,
-        ir::axis::Range::MinAuto(..) => {
-            ir::axis::Range::MinAuto(axis_bounds.start())
-        }
-        ir::axis::Range::AutoMax(..) => {
-            ir::axis::Range::AutoMax(axis_bounds.end())
-        }
+        ir::axis::Range::MinAuto(..) => ir::axis::Range::MinAuto(axis_bounds.start()),
+        ir::axis::Range::AutoMax(..) => ir::axis::Range::AutoMax(axis_bounds.end()),
         ir::axis::Range::MinMax(..) => {
             ir::axis::Range::MinMax(axis_bounds.start(), axis_bounds.end())
-        },
+        }
     }
 }
 

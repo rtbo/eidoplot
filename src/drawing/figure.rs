@@ -43,15 +43,15 @@ impl Figure {
     }
 
     pub(super) fn _title_area(&self) -> Option<geom::Rect> {
-        self.title.as_ref().and_then(|(transform, text)| {
-            text.bbox.as_ref().map(|bbox| bbox.transform(transform))
-        })
+        self.title
+            .as_ref()
+            .and_then(|(transform, text)| text.bbox.as_ref().map(|bbox| bbox.transform(transform)))
     }
 
     pub(super) fn _legend_area(&self) -> Option<geom::Rect> {
-        self.legend.as_ref().map(|(pos, legend)| {
-            geom::Rect::from_ps(*pos, legend.size())
-        })
+        self.legend
+            .as_ref()
+            .map(|(pos, legend)| geom::Rect::from_ps(*pos, legend.size()))
     }
 
     /// Update the data for all series in the figure from the given data source.

@@ -312,7 +312,6 @@ impl PlotLine {
     }
 }
 
-
 /// A plot, containing series, axes, title, legend, and styles
 #[derive(Debug, Clone)]
 pub struct Plot {
