@@ -61,7 +61,7 @@ impl AudioBuffer {
 }
 
 /// A one second rolling buffer for audio samples.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct AudioScopeDataSrc {
     time_col: TimeColumn,
     time_y_col: RollingAudioBuffer,
@@ -101,7 +101,7 @@ fn hanning(i: usize, n: usize) -> f32 {
     0.5 * (1.0 - (2.0 * std::f32::consts::PI * i as f32 / (n - 1) as f32).cos())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct TimeColumn {
     sample_rate: f32,
     len: usize,
@@ -122,7 +122,7 @@ impl data::F64Column for TimeColumn {
         self.len
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new((0..self.len).map(move |i| Some(i as f64 / self.sample_rate as f64)))
     }
 }
@@ -141,7 +141,7 @@ impl data::Column for TimeColumn {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct RollingAudioBuffer {
     samples: Vec<f32>,
     cursor: usize,
@@ -200,7 +200,7 @@ impl data::F64Column for RollingAudioBuffer {
         self.samples.len()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         let len = self.samples.len();
         let cursor = self.cursor;
         Box::new((0..len).map(move |i| {
@@ -210,7 +210,7 @@ impl data::F64Column for RollingAudioBuffer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct FreqColumn {
     sample_rate: f32,
     len: usize,
@@ -231,7 +231,7 @@ impl data::F64Column for FreqColumn {
         self.len / 2
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(
             (0..self.len / 2)
                 .map(move |i| Some(i as f64 * self.sample_rate as f64 / self.len as f64)),
@@ -253,6 +253,7 @@ impl Column for FreqColumn {
     }
 }
 
+#[derive(Clone)]
 struct FftColumn {
     plan: Arc<dyn rustfft::Fft<f32> + Send + Sync>,
     data: Vec<Complex32>,
@@ -311,6 +312,9 @@ impl data::Column for FftColumn {
     fn len_some(&self) -> usize {
         self.data.len() / 2
     }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
+    }
 }
 
 impl data::F64Column for FftColumn {
@@ -322,7 +326,7 @@ impl data::F64Column for FftColumn {
         self.data.len() / 2
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         let len = self.data.len();
         // Scale: amplitude -> dBFS (reference 1.0), normalized by N and window gain.
         // rustfft does not normalize: raw magnitude grows with N.
@@ -338,6 +342,9 @@ impl data::F64Column for FftColumn {
 }
 
 impl data::Source for AudioScopeDataSrc {
+    fn names(&self) -> Vec<&str> {
+        vec!["time", "time_y", "freq", "freq_y"]
+    }
     fn column(&self, name: &str) -> Option<&dyn data::Column> {
         match name {
             "time" => Some(&self.time_col),
@@ -346,6 +353,9 @@ impl data::Source for AudioScopeDataSrc {
             "freq_y" => Some(&self.freq_y_col),
             _ => None,
         }
+    }
+    fn copy(&self) -> Arc<dyn data::Source> {
+        Arc::new(self.clone())
     }
 }
 

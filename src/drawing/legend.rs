@@ -49,16 +49,11 @@ struct LegendEntry {
 
 impl LegendEntry {
     fn width(&self) -> f32 {
-        self.text.bbox.width()
-            + defaults::LEGEND_SHAPE_SPACING
-            + defaults::LEGEND_SHAPE_SIZE.width()
+        self.text.width() + defaults::LEGEND_SHAPE_SPACING + defaults::LEGEND_SHAPE_SIZE.width()
     }
 
     fn height(&self) -> f32 {
-        self.text
-            .bbox
-            .height()
-            .max(defaults::LEGEND_SHAPE_SIZE.height())
+        self.text.height().max(defaults::LEGEND_SHAPE_SIZE.height())
     }
 }
 

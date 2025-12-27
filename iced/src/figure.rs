@@ -1,22 +1,23 @@
+use eidoplot::render::Surface;
 use eidoplot::style::series::Palette;
 use eidoplot::style::theme::Theme;
 use eidoplot::style::{CustomStyle, theme};
-use eidoplot::{drawing, style};
+use eidoplot::{drawing, geom, style};
 use iced::advanced::graphics::geometry;
+use iced::advanced::widget::tree;
 use iced::advanced::{Layout, Widget, layout, mouse, renderer, widget};
-use iced::{Element, Length, Size};
+use iced::{Element, Length, Rectangle, Size};
 
 use crate::surface;
 
-pub fn figure<'a, Theme>(fig: &'a drawing::Figure) -> Figure<'a, Theme>
+pub fn figure<'a, Message, Theme>(fig: &'a drawing::Figure) -> Figure<'a, Message, Theme>
 where
     Theme: Catalog,
 {
     Figure::new(fig)
 }
 
-#[derive(Debug)]
-pub struct Figure<'a, Theme = iced::Theme>
+pub struct Figure<'a, Message, Theme = iced::Theme>
 where
     Theme: Catalog,
 {
@@ -25,9 +26,27 @@ where
     height: Length,
     scale: f32,
     class: Theme::Class<'a>,
+    on_mouse_press: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
+    on_mouse_move: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
+    on_mouse_release: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
+    zoom_rect: Option<(geom::Point, geom::Point)>,
 }
 
-impl<'a, Theme> Figure<'a, Theme>
+impl<'a, Theme> std::fmt::Debug for Figure<'a, Theme>
+where
+    Theme: Catalog,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Figure")
+            .field("fig", &self.fig)
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .field("scale", &self.scale)
+            .finish()
+    }
+}
+
+impl<'a, Message, Theme> Figure<'a, Message, Theme>
 where
     Theme: Catalog,
 {
@@ -38,6 +57,10 @@ where
             height: Length::Shrink,
             scale: 1.0,
             class: Theme::default(),
+            on_mouse_press: None,
+            on_mouse_move: None,
+            on_mouse_release: None,
+            zoom_rect: None,
         }
     }
 
@@ -68,13 +91,70 @@ where
         self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
         self
     }
+
+    /// Sets the on mouse press callback of the [`Figure`].
+    #[must_use]
+    pub fn on_mouse_press(mut self, callback: impl Fn(geom::Point) -> Message + 'a) -> Self {
+        self.on_mouse_press = Some(Box::new(callback));
+        self
+    }
+
+    /// Sets the on mouse move callback of the [`Figure`].
+    #[must_use]
+    pub fn on_mouse_move(mut self, callback: impl Fn(geom::Point) -> Message + 'a) -> Self {
+        self.on_mouse_move = Some(Box::new(callback));
+        self
+    }
+
+    /// Sets the on mouse release callback of the [`Figure`].
+    #[must_use]
+    pub fn on_mouse_release(mut self, callback: impl Fn(geom::Point) -> Message + 'a) -> Self {
+        self.on_mouse_release = Some(Box::new(callback));
+        self
+    }
+
+    /// Sets the zoom rectangle of the [`Figure`].
+    #[must_use]
+    pub fn zoom_rect(mut self, start: geom::Point, end: geom::Point) -> Self {
+        self.zoom_rect = Some((start, end));
+        self
+    }
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Figure<'a, Theme>
+#[derive(Debug, Clone, Copy, Default)]
+struct State {
+    over_plot: bool,
+    dragging: bool,
+    mouse_pos: Option<geom::Point>,
+}
+
+fn fit_to_bounds(size: geom::Size, bounds: Rectangle) -> geom::Transform {
+    // scale up or down to fit the size into bounds, preserving aspect ratio and centering
+    let tx = bounds.x;
+    let ty = bounds.y;
+    let sx = bounds.width / size.width();
+    let sy = bounds.height / size.height();
+    let s = sx.min(sy);
+    let w = size.width() * s;
+    let h = size.height() * s;
+    let tx = tx + (bounds.width - w) / 2.0;
+    let ty = ty + (bounds.height - h) / 2.0;
+    geom::Transform::from_translate(tx, ty).pre_concat(geom::Transform::from_scale(s, s))
+}
+
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Figure<'a, Message, Theme>
 where
     Renderer: iced::advanced::graphics::geometry::Renderer,
     Theme: Catalog,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::default())
+    }
+
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
@@ -97,6 +177,74 @@ where
         layout::Node::new(size)
     }
 
+    fn update(
+        &mut self,
+        tree: &mut widget::Tree,
+        event: &iced::Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        _renderer: &Renderer,
+        _clipboard: &mut dyn iced::advanced::Clipboard,
+        shell: &mut iced::advanced::Shell<'_, Message>,
+        _viewport: &iced::Rectangle,
+    ) {
+        if shell.is_event_captured() {
+            return;
+        }
+        let state = tree.state.downcast_mut::<State>();
+
+        let bounds = layout.bounds();
+        if !cursor.is_over(bounds) && !state.dragging {
+            state.over_plot = false;
+            state.mouse_pos = None;
+            return;
+        }
+
+        match event {
+            iced::Event::Mouse(mouse_ev) => match mouse_ev {
+                mouse::Event::CursorMoved { position } => {
+                    let transform = fit_to_bounds(self.fig.size(), layout.bounds())
+                        .invert()
+                        .expect("transform without skew should be invertible");
+                    let mut point = geom::Point {
+                        x: position.x,
+                        y: position.y,
+                    };
+                    transform.map_point(&mut point);
+                    state.over_plot = self.fig.hit_test_idx(point).is_some();
+                    state.mouse_pos = Some(point);
+                    if let Some(callback) = &self.on_mouse_move {
+                        let msg = callback(point);
+                        shell.publish(msg);
+                    }
+                    shell.capture_event();
+                }
+                mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                    state.dragging = true;
+                    if let Some(pos) = state.mouse_pos {
+                        if let Some(callback) = &self.on_mouse_press {
+                            let msg = callback(pos);
+                            shell.publish(msg);
+                        }
+                    }
+                    shell.capture_event();
+                }
+                mouse::Event::ButtonReleased(mouse::Button::Left) => {
+                    state.dragging = false;
+                    if let Some(pos) = state.mouse_pos {
+                        if let Some(callback) = &self.on_mouse_release {
+                            let msg = callback(pos);
+                            shell.publish(msg);
+                        }
+                    }
+                    shell.capture_event();
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+
     fn draw(
         &self,
         _tree: &widget::Tree,
@@ -108,13 +256,49 @@ where
         _viewport: &iced::Rectangle,
     ) {
         let style = theme.style(&self.class);
+
         let bounds = layout.bounds();
+        let transform = fit_to_bounds(self.fig.size(), bounds);
+
         let frame = renderer.new_frame(bounds);
-        let mut surface = surface::IcedSurface::new(frame, bounds);
-        if self.fig.draw(&mut surface, &style).is_ok() {
-            let geometry = surface.into_geometry();
-            renderer.draw_geometry(geometry);
-        };
+        let mut surface = surface::IcedSurface::new(frame, transform);
+
+        if let Err(err) = self.fig.draw(&mut surface, &style) {
+            eprintln!("Failed to draw figure: {}", err);
+            return;
+        }
+
+        if let Some((start, end)) = self.zoom_rect {
+            let rect = geom::Rect::from_corners(start, end);
+            let line = theme::Line::from(theme::Col::Foreground)
+                .with_pattern(style::Dash::default().into());
+            let stroke = line.as_stroke(&style);
+            let _ = surface.draw_rect(&eidoplot::render::Rect {
+                rect,
+                stroke: Some(stroke),
+                fill: None,
+                transform: None,
+            });
+        }
+
+        let geometry = surface.into_geometry();
+        renderer.draw_geometry(geometry);
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &widget::Tree,
+        _layout: Layout<'_>,
+        _cursor: mouse::Cursor,
+        _viewport: &iced::Rectangle,
+        _renderer: &Renderer,
+    ) -> mouse::Interaction {
+        let state = tree.state.downcast_ref::<State>();
+        if state.over_plot {
+            mouse::Interaction::Crosshair
+        } else {
+            mouse::Interaction::default()
+        }
     }
 }
 
@@ -183,12 +367,14 @@ impl Catalog for iced::Theme {
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Figure<'a, Theme>> for Element<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Figure<'a, Message, Theme>>
+    for Element<'a, Message, Theme, Renderer>
 where
+    Message: Clone + 'a,
     Theme: Catalog + 'a,
     Renderer: geometry::Renderer,
 {
-    fn from(figure: Figure<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(figure: Figure<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(figure)
     }
 }

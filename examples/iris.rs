@@ -17,7 +17,11 @@ fn category_mask<C>(column: &C, category: &str) -> Option<Vec<bool>>
 where
     C: data::Column + ?Sized,
 {
-    let mask = column.str()?.iter().map(|v| v == Some(category)).collect();
+    let mask = column
+        .str()?
+        .str_iter()
+        .map(|v| v == Some(category))
+        .collect();
     Some(mask)
 }
 
@@ -31,7 +35,7 @@ where
 
     let vec: Vec<f64> = num_col
         .f64()?
-        .iter()
+        .f64_iter()
         .zip(mask.iter())
         .filter_map(|(v, &m)| if m { Some(v) } else { None })
         .map(|v| v.unwrap_or(f64::NAN))

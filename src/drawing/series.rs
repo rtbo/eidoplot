@@ -67,7 +67,7 @@ fn get_column<'a, D>(
     data_source: &'a D,
 ) -> Result<&'a dyn data::Column, Error>
 where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     match col {
         ir::series::DataCol::Inline(col) => Ok(col),
@@ -83,7 +83,7 @@ fn calc_xy_bounds<D>(
     y_data: &ir::series::DataCol,
 ) -> Result<(axis::Bounds, axis::Bounds), Error>
 where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     let x_col = get_column(x_data, data_source)?;
     let y_col = get_column(y_data, data_source)?;
@@ -142,7 +142,7 @@ enum SeriesPlot {
 impl Series {
     pub fn prepare<D>(index: usize, series: &ir::Series, data_source: &D) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let plot = match &series {
             ir::Series::Line(ir) => SeriesPlot::Line(Line::prepare(index, ir, data_source)?),
@@ -245,35 +245,27 @@ impl Series {
         cm: &CoordMapXy,
     ) -> Result<(), Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         match &mut self.plot {
             SeriesPlot::Line(xy) => {
                 xy.update_data(data_source, rect, cm);
             }
-            SeriesPlot::Scatter(sc) => {
-                sc.update_data(data_source, rect, cm)
-            }
+            SeriesPlot::Scatter(sc) => sc.update_data(data_source, rect, cm),
             SeriesPlot::Histogram(hist) => {
                 hist.update_data(rect, cm);
             }
             SeriesPlot::Bars(bars) => {
                 bars.update_data(data_source, rect, cm);
             }
-            SeriesPlot::BarsGroup(bg)  => {
-                bg.update_data(data_source, rect, cm)
-            }
+            SeriesPlot::BarsGroup(bg) => bg.update_data(data_source, rect, cm),
         }
         Ok(())
     }
 }
 
 impl Series {
-    pub fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -301,7 +293,7 @@ struct Line {
 impl Line {
     fn prepare<D>(index: usize, ir: &ir::series::Line, data_source: &D) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let cols = (ir.x_data().clone(), ir.y_data().clone());
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &cols.0, &cols.1)?;
@@ -315,13 +307,9 @@ impl Line {
         })
     }
 
-    fn update_data<D>(
-        &mut self,
-        data_source: &D,
-        rect: &geom::Rect,
-        cm: &CoordMapXy,
-    ) where
-        D: data::Source,
+    fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
+    where
+        D: data::Source + ?Sized,
     {
         // unwraping here as data is checked during setup phase
         let x_col = get_column(&self.cols.0, data_source).unwrap();
@@ -332,7 +320,7 @@ impl Line {
         let mut in_a_line = false;
 
         let mut pb = geom::PathBuilder::with_capacity(x_col.len() + 1, x_col.len());
-        for (x, y) in x_col.iter().zip(y_col.iter()) {
+        for (x, y) in x_col.sample_iter().zip(y_col.sample_iter()) {
             if x.is_null() || y.is_null() {
                 in_a_line = false;
                 continue;
@@ -353,11 +341,7 @@ impl Line {
         self.path = Some(pb.finish().expect("Should be a valid path"));
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -389,7 +373,7 @@ struct Scatter {
 impl Scatter {
     fn prepare<D>(index: usize, ir: &ir::series::Scatter, data_source: &D) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let cols = (ir.x_data().clone(), ir.y_data().clone());
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &cols.0, &cols.1)?;
@@ -405,13 +389,9 @@ impl Scatter {
         })
     }
 
-    fn update_data<D>(
-        &mut self,
-        data_source: &D,
-        rect: &geom::Rect,
-        cm: &CoordMapXy,
-    ) where
-        D: data::Source,
+    fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
+    where
+        D: data::Source + ?Sized,
     {
         let x_col = get_column(&self.cols.0, data_source).unwrap();
         let y_col = get_column(&self.cols.1, data_source).unwrap();
@@ -419,7 +399,7 @@ impl Scatter {
 
         let mut points = Vec::with_capacity(x_col.len());
 
-        for (x, y) in x_col.iter().zip(y_col.iter()) {
+        for (x, y) in x_col.sample_iter().zip(y_col.sample_iter()) {
             if x.is_null() || y.is_null() {
                 continue;
             }
@@ -431,11 +411,7 @@ impl Scatter {
         self.points = points;
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -482,7 +458,7 @@ impl Histogram {
         data_source: &D,
     ) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let mut bins = Vec::with_capacity(hist.bins() as usize);
 
@@ -508,7 +484,7 @@ impl Histogram {
             1.0
         };
 
-        for x in col.iter() {
+        for x in col.f64_iter() {
             if let Some(x) = x {
                 let idx = (((x - x_bounds.start()) / width).floor() as usize).min(bins.len() - 1);
                 bins[idx].value += samp_add;
@@ -551,11 +527,7 @@ impl Histogram {
         self.path = Some(path);
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -593,7 +565,7 @@ struct Bars {
 impl Bars {
     fn prepare<D>(index: usize, ir: &ir::series::Bars, data_source: &D) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let cols = (ir.x_data().clone(), ir.y_data().clone());
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &cols.0, &cols.1)?;
@@ -632,13 +604,9 @@ impl Bars {
         }
     }
 
-    fn update_data<D>(
-        &mut self,
-        data_source: &D,
-        rect: &geom::Rect,
-        cm: &CoordMapXy,
-    ) where
-        D: data::Source,
+    fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
+    where
+        D: data::Source + ?Sized,
     {
         // unwraping here as data is checked during setup phase
         let x_col = get_column(&self.cols.0, data_source).unwrap();
@@ -652,7 +620,7 @@ impl Bars {
                 let cat_bin_width = cm.x.cat_bin_size();
                 let y_start = rect.bottom() - cm.y.map_coord_num(0.0);
 
-                for (x, y) in x_col.iter().zip(y_col.iter()) {
+                for (x, y) in x_col.sample_iter().zip(y_col.sample_iter()) {
                     if x.is_null() || y.is_null() {
                         continue;
                     }
@@ -671,7 +639,7 @@ impl Bars {
                 let cat_bin_height = cm.y.cat_bin_size();
                 let x_start = rect.left() + cm.x.map_coord_num(0.0);
 
-                for (x, y) in x_col.iter().zip(y_col.iter()) {
+                for (x, y) in x_col.sample_iter().zip(y_col.sample_iter()) {
                     if x.is_null() || y.is_null() {
                         continue;
                     }
@@ -692,11 +660,7 @@ impl Bars {
         self.path = Some(path);
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -727,7 +691,7 @@ pub struct BarsGroup {
 impl BarsGroup {
     fn prepare<D>(index: usize, ir: &ir::series::BarsGroup, data_source: &D) -> Result<Self, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let cat_col = get_column(ir.categories(), data_source)?;
         let categories: Categories = cat_col
@@ -751,7 +715,7 @@ impl BarsGroup {
                 "BarsGroup data must be numeric".to_string(),
             ))?;
 
-            for (v, bounds) in data_col.iter().zip(bounds_per_cat.iter_mut()) {
+            for (v, bounds) in data_col.f64_iter().zip(bounds_per_cat.iter_mut()) {
                 if let Some(v) = v {
                     match ir.arrangement() {
                         ir::series::BarsArrangement::Aside(..) => {
@@ -793,13 +757,9 @@ impl BarsGroup {
         })
     }
 
-    fn update_data<D>(
-        &mut self,
-        data_source: &D,
-        rect: &geom::Rect,
-        cm: &CoordMapXy,
-    ) where
-        D: data::Source,
+    fn update_data<D>(&mut self, data_source: &D, rect: &geom::Rect, cm: &CoordMapXy)
+    where
+        D: data::Source + ?Sized,
     {
         let categories = match self.orientation {
             ir::series::BarsOrientation::Vertical => self.bounds.0.as_cat().unwrap(),
@@ -826,7 +786,7 @@ impl BarsGroup {
         cm: &CoordMapXy,
     ) -> Vec<geom::Path>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let num_series = self.series.len();
         if num_series == 0 {
@@ -849,7 +809,7 @@ impl BarsGroup {
 
             let mut pb = geom::PathBuilder::new();
 
-            for (cat, val) in categories.iter().zip(data_col.iter()) {
+            for (cat, val) in categories.iter().zip(data_col.f64_iter()) {
                 let Some(val) = val else { continue };
 
                 let val_start = 0.0;
@@ -878,7 +838,7 @@ impl BarsGroup {
         cm: &CoordMapXy,
     ) -> Vec<geom::Path>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let mut cat_values = vec![0.0; categories.len()];
 
@@ -890,7 +850,7 @@ impl BarsGroup {
 
             let mut pb = geom::PathBuilder::new();
 
-            for (idx, (cat, val)) in categories.iter().zip(data_col.iter()).enumerate() {
+            for (idx, (cat, val)) in categories.iter().zip(data_col.f64_iter()).enumerate() {
                 let Some(val) = val else { continue };
 
                 let val_start = cat_values[idx];
@@ -916,11 +876,7 @@ impl BarsGroup {
         paths
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,

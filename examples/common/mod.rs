@@ -1,5 +1,6 @@
 use std::env;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use eidoplot::style::{self};
 use eidoplot::{Drawing, data, fontdb, ir};
@@ -145,9 +146,11 @@ fn save_fig<D>(
     }
 
     if args.show {
-        let fig = fig.prepare(data_source, Some(fontdb)).unwrap();
+        let data_source = data_source.copy();
+        let fontdb = Arc::new(fontdb.clone());
+
         let style = args.style.map(|s| s.to_style().to_custom());
-        fig.show(style).unwrap();
+        fig.show(data_source, fontdb, style).unwrap();
     }
 }
 

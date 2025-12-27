@@ -10,19 +10,48 @@ use crate::{Style, data, geom, ir, missing_params, render, style, text};
 /// Therefore, the fonts are no longer needed at draw time.
 ///
 /// The colors, strokes and fills will be resolved at draw time using the given theme.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Figure {
-    size: geom::Size,
-    fill: Option<theme::Fill>,
-    title: Option<(geom::Transform, super::Text)>,
-    legend: Option<(geom::Point, legend::Legend)>,
-    plots: plot::Plots,
+    pub(super) size: geom::Size,
+    pub(super) fill: Option<theme::Fill>,
+    pub(super) title: Option<(geom::Transform, super::Text)>,
+    pub(super) legend: Option<(geom::Point, legend::Legend)>,
+    pub(super) plots: plot::Plots,
+}
+
+impl Clone for Figure {
+    fn clone(&self) -> Self {
+        Self {
+            size: self.size,
+            fill: self.fill.clone(),
+            title: self.title.clone(),
+            legend: self.legend.clone(),
+            plots: self.plots.clone(),
+        }
+    }
 }
 
 impl Figure {
     /// The size of the figure in figure units
     pub fn size(&self) -> geom::Size {
         self.size
+    }
+
+    ///
+    pub fn plot_indices(&self) -> impl Iterator<Item = ir::PlotIdx> + '_ {
+        self.plots.iter_indices()
+    }
+
+    pub(super) fn _title_area(&self) -> Option<geom::Rect> {
+        self.title
+            .as_ref()
+            .and_then(|(transform, text)| text.bbox.as_ref().map(|bbox| bbox.transform(transform)))
+    }
+
+    pub(super) fn _legend_area(&self) -> Option<geom::Rect> {
+        self.legend
+            .as_ref()
+            .map(|(pos, legend)| geom::Rect::from_ps(*pos, legend.size()))
     }
 
     /// Update the data for all series in the figure from the given data source.
@@ -32,7 +61,7 @@ impl Figure {
     /// within the same axes bounds.
     pub fn update_series_data<D>(&mut self, data_source: &D) -> Result<(), Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         self.plots.update_series_data(data_source)?;
         Ok(())
@@ -41,7 +70,7 @@ impl Figure {
 
 impl<D> Ctx<'_, D>
 where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     pub fn setup_figure(&self, fig: &ir::Figure) -> Result<Figure, Error> {
         let mut rect =

@@ -1,4 +1,6 @@
 //! Polars data source integration in eidoplot.
+use std::sync::Arc;
+
 use polars::prelude::*;
 
 use crate::data;
@@ -8,7 +10,7 @@ impl data::F64Column for Float64Chunked {
         self.len()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(self.iter())
     }
 }
@@ -18,7 +20,7 @@ impl data::I64Column for Int64Chunked {
         self.len()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
+    fn i64_iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
         Box::new(self.iter())
     }
 }
@@ -28,7 +30,7 @@ impl data::StrColumn for StringChunked {
         self.len()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+    fn str_iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
         Box::new(self.iter())
     }
 }
@@ -61,9 +63,15 @@ impl data::Column for Series {
 }
 
 impl data::Source for DataFrame {
+    fn names(&self) -> Vec<&str> {
+        self.get_column_names_str()
+    }
     fn column(&self, name: &str) -> Option<&dyn data::Column> {
         self.column(name)
             .map(|c| c.as_materialized_series() as &dyn data::Column)
             .ok()
+    }
+    fn copy(&self) -> Arc<dyn data::Source> {
+        Arc::new(self.clone())
     }
 }

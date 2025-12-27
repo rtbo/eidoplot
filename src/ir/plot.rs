@@ -1,5 +1,5 @@
 //! Plot IR structures
-use crate::ir::{Axis, Legend, Series, axis};
+use crate::ir::{Axis, Legend, PlotIdx, Series, axis};
 use crate::style::{self, defaults, theme};
 
 /// Arrow border style for the plot area
@@ -309,47 +309,6 @@ impl PlotLine {
             y_axis: Some(y_axis),
             ..self
         }
-    }
-}
-
-/// Index of a plot in a subplot grid
-#[derive(Debug, Clone, Copy)]
-pub struct PlotIdx {
-    /// Row index of the plot (0-based)
-    pub row: u32,
-    /// Column index of the plot (0-based)
-    pub col: u32,
-}
-
-impl PlotIdx {
-    /// Create a new PlotIdx from row and column indices
-    pub fn new(row: u32, col: u32) -> Self {
-        PlotIdx { row, col }
-    }
-
-    pub(crate) fn index(&self, cols: u32) -> usize {
-        (self.row * cols + self.col) as usize
-    }
-
-    pub(crate) fn is_first(&self) -> bool {
-        self.row == 0 && self.col == 0
-    }
-
-    pub(crate) fn next(&self, cols: u32) -> Self {
-        let mut row = self.row;
-        let mut col = self.col + 1;
-        if col >= cols {
-            col = 0;
-            row += 1;
-        }
-        PlotIdx { row, col }
-    }
-}
-
-/// Convert a (row, col) tuple into a PlotIdx
-impl From<(u32, u32)> for PlotIdx {
-    fn from((row, col): (u32, u32)) -> Self {
-        PlotIdx { row, col }
     }
 }
 

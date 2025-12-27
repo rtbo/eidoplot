@@ -13,20 +13,71 @@ use crate::style::theme::{self, Theme};
 use crate::{Style, data, geom, ir, missing_params, render};
 
 #[derive(Debug, Clone)]
-pub struct Plots {
+pub(super) struct Plots {
+    size: (u32, u32),
     plots: Vec<Option<Plot>>,
 }
 
+impl Plots {
+    pub(super) fn rows(&self) -> u32 {
+        self.size.0
+    }
+    pub(super) fn cols(&self) -> u32 {
+        self.size.1
+    }
+
+    pub(super) fn len(&self) -> usize {
+        self.plots.len()
+    }
+
+    pub(super) fn iter_indices(&self) -> impl Iterator<Item = PlotIdx> + '_ {
+        ir::PlotIdxIter::new(self.rows(), self.cols())
+    }
+
+    pub(super) fn plots(&self) -> &[Option<Plot>] {
+        &self.plots
+    }
+    pub(super) fn plot(&self, idx: PlotIdx) -> Option<&Plot> {
+        self.plots
+            .get(idx.index(self.cols()))
+            .and_then(|p| p.as_ref())
+    }
+    pub(super) fn plot_mut(&mut self, idx: PlotIdx) -> Option<&mut Plot> {
+        let cols = self.cols();
+        self.plots.get_mut(idx.index(cols)).and_then(|p| p.as_mut())
+    }
+}
+
 #[derive(Debug, Clone)]
-struct Plot {
+pub(super) struct Plot {
+    idx: PlotIdx,
     rect: geom::Rect,
-    fill: Option<theme::Fill>,
-    border: Option<ir::plot::Border>,
     // None when there is no series (empty plot)
     axes: Option<Axes>,
+
+    fill: Option<theme::Fill>,
+    border: Option<ir::plot::Border>,
     series: Vec<Series>,
     legend: Option<(geom::Point, Legend)>,
     lines: Vec<PlotLine>,
+}
+
+impl Plot {
+    pub(super) fn idx(&self) -> PlotIdx {
+        self.idx
+    }
+
+    pub(super) fn rect(&self) -> &geom::Rect {
+        &self.rect
+    }
+
+    pub(super) fn axes(&self) -> Option<&Axes> {
+        self.axes.as_ref()
+    }
+
+    pub(super) fn axes_mut(&mut self) -> Option<&mut Axes> {
+        self.axes.as_mut()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -36,12 +87,17 @@ pub enum Orientation {
 }
 
 #[derive(Debug, Clone)]
-struct Axes {
+pub(super) struct Axes {
     x: Vec<Axis>,
     y: Vec<Axis>,
 }
 
 impl Axes {
+    pub(super) fn replace(&mut self, x: Vec<Axis>, y: Vec<Axis>) {
+        self.x = x;
+        self.y = y;
+    }
+
     fn or_find(
         &self,
         or: Orientation,
@@ -73,6 +129,14 @@ impl Axes {
             }
         }
         Ok(None)
+    }
+
+    pub(super) fn x(&self) -> &[Axis] {
+        &self.x
+    }
+
+    pub(super) fn y(&self) -> &[Axis] {
+        &self.y
     }
 }
 
@@ -112,8 +176,7 @@ trait IrPlotsExt {
     /// get the plot and its index at once
     fn idx_plt(&self, idx: impl Into<PlotIdx>) -> Option<(usize, &ir::Plot)> {
         let idx = idx.into();
-        self.plot(idx)
-            .map(|p| (idx.index(self.cols()) as usize, p))
+        self.plot(idx).map(|p| (idx.index(self.cols()) as usize, p))
     }
 
     fn or_axes_len(&self, or: Orientation) -> usize {
@@ -199,7 +262,7 @@ impl PlotAxes {
 
 impl<D> Ctx<'_, D>
 where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     /// Setup a collection of plots, given an IR representation of the plots
     /// and a bounding rectangle.
@@ -316,6 +379,7 @@ where
 
                     let plt_idx = row * ir_plots.cols() + col;
                     let plot = Plot {
+                        idx: (row, col).into(),
                         rect: plot_rect,
                         fill: ir_plot.fill().cloned(),
                         border: ir_plot.border().cloned(),
@@ -332,7 +396,10 @@ where
             y += height + ir_plots.space();
         }
 
-        let mut plots = Plots { plots };
+        let mut plots = Plots {
+            plots,
+            size: (ir_plots.rows(), ir_plots.cols()),
+        };
 
         plots.update_series_data(self.data_source())?;
 
@@ -737,12 +804,9 @@ fn y_side_matches_out_legend_pos(side: ir::axis::Side, legend_pos: ir::plot::Leg
 }
 
 impl Plots {
-    pub fn update_series_data<D>(
-        &mut self,
-        data_source: &D,
-    ) -> Result<(), Error>
+    pub fn update_series_data<D>(&mut self, data_source: &D) -> Result<(), Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         for plot in self.plots.iter_mut() {
             if let Some(plot) = plot.as_mut() {
@@ -752,11 +816,7 @@ impl Plots {
         Ok(())
     }
 
-    pub fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         T: Theme,
@@ -774,7 +834,7 @@ impl Plots {
 impl Plot {
     fn update_series_data<D>(&mut self, data_source: &D) -> Result<(), Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
         let Some(axes) = &self.axes else {
             return Ok(());
@@ -797,11 +857,7 @@ impl Plot {
         Ok(())
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         T: Theme,
@@ -829,11 +885,7 @@ impl Plot {
         Ok(())
     }
 
-    fn draw_background<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw_background<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         T: Theme,
@@ -849,11 +901,7 @@ impl Plot {
         Ok(())
     }
 
-    fn draw_border_box<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw_border_box<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         T: Theme,
@@ -876,11 +924,7 @@ impl Plot {
         }
     }
 
-    fn draw_series<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-    ) -> Result<(), Error>
+    fn draw_series<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
     where
         S: render::Surface,
         P: Palette,
@@ -894,7 +938,7 @@ impl Plot {
         };
         surface.push_clip(&clip)?;
 
-        for series in series.iter(){
+        for series in series.iter() {
             series.draw(surface, style)?;
         }
         surface.pop_clip()?;

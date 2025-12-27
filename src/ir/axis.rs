@@ -446,7 +446,7 @@ pub mod ticks {
         /// Format the ticks with decimal precision
         Prec(usize),
         /// The labels are percentages (E.g. `0.5` will be formatted as `50%`)
-        Percent,
+        Percent(PercentFormatter),
         /// Formats the time ticks
         /// The data must be DateTime, otherwise an error is returned.
         DateTime(DateTimeFormatter),
@@ -454,6 +454,20 @@ pub mod ticks {
         /// The series must be either TimeDelta or f64, otherwise an error is returned
         /// If the data is f64, it is assumed to be in seconds
         TimeDelta(TimeDeltaFormatter),
+    }
+
+    /// A label formatter for DateTime ticks
+    #[derive(Debug, Clone, Copy, Default)]
+    pub struct PercentFormatter {
+        /// Number of decimal places
+        /// None means automatic
+        pub decimal_places: Option<usize>,
+    }
+
+    impl From<PercentFormatter> for Formatter {
+        fn from(fmt: PercentFormatter) -> Self {
+            Formatter::Percent(fmt)
+        }
     }
 
     /// A label formatter for DateTime ticks

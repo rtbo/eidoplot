@@ -7,6 +7,7 @@
 //! Several column implementations are provided in this module, for common data types
 //! like `Vec<f64>`, `Vec<i64>`, `Vec<String>`, `Vec<DateTime>`, etc.
 use core::fmt;
+use std::sync::Arc;
 
 use crate::time::{DateTime, TimeDelta};
 
@@ -235,6 +236,12 @@ impl OwnedSample {
     }
 }
 
+impl<'a> From<Sample<'a>> for OwnedSample {
+    fn from(sample: Sample<'a>) -> Self {
+        sample.to_owned()
+    }
+}
+
 impl std::cmp::Eq for OwnedSample {}
 
 impl From<f64> for OwnedSample {
@@ -332,7 +339,7 @@ pub trait Column: std::fmt::Debug {
     fn len_some(&self) -> usize;
 
     /// Get an iterator over the samples in the column
-    fn iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
+    fn sample_iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
         if let Some(iter) = self.as_time_iter() {
             Box::new(iter.map(Sample::from))
         } else if let Some(iter) = self.as_time_delta_iter() {
@@ -343,6 +350,35 @@ pub trait Column: std::fmt::Debug {
             Box::new(iter.map(Sample::from))
         } else {
             Box::new(self.as_str_iter().unwrap().map(Sample::from))
+        }
+    }
+
+    /// Get a copy of the column as a boxed trait object
+    /// This should be implemented if a copy can be made in an efficient way.
+    /// It is not mandatory that the same type is returned.
+    ///
+    /// Panics if none of the f64, i64, str, time or time_delta methods return Some.
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        if let Some(col) = self.f64() {
+            let mut vec = Vec::with_capacity(col.len());
+            for v in col.f64_iter() {
+                vec.push(v.unwrap_or(f64::NAN));
+            }
+            Box::new(vec)
+        } else if let Some(col) = self.i64() {
+            Box::new(col.i64_iter().collect::<Vec<_>>())
+        } else if let Some(col) = self.str() {
+            Box::new(
+                col.str_iter()
+                    .map(|s| s.map(|s| s.to_string()))
+                    .collect::<Vec<_>>(),
+            )
+        } else if let Some(col) = self.time() {
+            Box::new(col.time_iter().collect::<Vec<_>>())
+        } else if let Some(col) = self.time_delta() {
+            Box::new(col.time_delta_iter().collect::<Vec<_>>())
+        } else {
+            panic!("Cannot box copy column: no known type");
         }
     }
 
@@ -373,27 +409,27 @@ pub trait Column: std::fmt::Debug {
 
     /// Helper to get f64 iterator
     fn as_f64_iter(&self) -> Option<Box<dyn Iterator<Item = Option<f64>> + '_>> {
-        self.f64().map(|c| c.iter())
+        self.f64().map(|c| c.f64_iter())
     }
 
     /// Helper to get i64 iterator
     fn as_i64_iter(&self) -> Option<Box<dyn Iterator<Item = Option<i64>> + '_>> {
-        self.i64().map(|c| c.iter())
+        self.i64().map(|c| c.i64_iter())
     }
 
     /// Helper to get str iterator
     fn as_str_iter(&self) -> Option<Box<dyn Iterator<Item = Option<&str>> + '_>> {
-        self.str().map(|c| c.iter())
+        self.str().map(|c| c.str_iter())
     }
 
     /// Helper to get time iterator
     fn as_time_iter(&self) -> Option<Box<dyn Iterator<Item = Option<DateTime>> + '_>> {
-        self.time().map(|c| c.iter())
+        self.time().map(|c| c.time_iter())
     }
 
     /// Helper to get time delta iterator
     fn as_time_delta_iter(&self) -> Option<Box<dyn Iterator<Item = Option<TimeDelta>> + '_>> {
-        self.time_delta().map(|c| c.iter())
+        self.time_delta().map(|c| c.time_delta_iter())
     }
 }
 
@@ -405,17 +441,17 @@ pub trait F64Column: std::fmt::Debug {
     /// Get the number of non-null values in the column
     /// That is, the number of values that are not NaN
     fn len_some(&self) -> usize {
-        self.iter().filter(|v| v.is_some()).count()
+        self.f64_iter().filter(|v| v.is_some()).count()
     }
 
     /// Get an iterator over the f64 values in the column
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_>;
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_>;
 
     /// Get the min and max values in the column.
     /// Returns None if there are only null values.
     fn minmax(&self) -> Option<(f64, f64)> {
         let mut res: Option<(f64, f64)> = None;
-        for v in self.iter() {
+        for v in self.f64_iter() {
             match (v, res) {
                 (None, _) => continue,
                 (Some(v), Some((min, max))) => {
@@ -437,17 +473,17 @@ pub trait I64Column: std::fmt::Debug {
 
     /// Get the number of non-null values in the column
     fn len_some(&self) -> usize {
-        self.iter().filter(|v| v.is_some()).count()
+        self.i64_iter().filter(|v| v.is_some()).count()
     }
 
     /// Get an iterator over the i64 values in the column
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_>;
+    fn i64_iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_>;
 
     /// Get the min and max values in the column.
     /// Returns None if there are only null values.
     fn minmax(&self) -> Option<(i64, i64)> {
         let mut res: Option<(i64, i64)> = None;
-        for v in self.iter() {
+        for v in self.i64_iter() {
             match (v, res) {
                 (None, _) => continue,
                 (Some(v), Some((min, max))) => {
@@ -469,11 +505,11 @@ pub trait StrColumn: std::fmt::Debug {
 
     /// Get the number of non-null values in the column
     fn len_some(&self) -> usize {
-        self.iter().filter(|v| v.is_some()).count()
+        self.str_iter().filter(|v| v.is_some()).count()
     }
 
     /// Get an iterator over the string values in the column
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_>;
+    fn str_iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_>;
 }
 
 /// Trait for a column of time values
@@ -483,17 +519,17 @@ pub trait TimeColumn: std::fmt::Debug {
 
     /// Get the number of non-null values in the column
     fn len_some(&self) -> usize {
-        self.iter().filter(|v| v.is_some()).count()
+        self.time_iter().filter(|v| v.is_some()).count()
     }
 
     /// Get an iterator over the time values in the column
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_>;
+    fn time_iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_>;
 
     /// Get the min and max values in the column.
     /// Returns None if there are only null values.
     fn minmax(&self) -> Option<(DateTime, DateTime)> {
         let mut res: Option<(DateTime, DateTime)> = None;
-        for v in self.iter() {
+        for v in self.time_iter() {
             match (v, res) {
                 (None, _) => continue,
                 (Some(v), Some((min, max))) => {
@@ -515,17 +551,17 @@ pub trait TimeDeltaColumn: std::fmt::Debug {
 
     /// Get the number of non-null values in the column
     fn len_some(&self) -> usize {
-        self.iter().filter(|v| v.is_some()).count()
+        self.time_delta_iter().filter(|v| v.is_some()).count()
     }
 
     /// Get an iterator over the time delta values in the column
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<TimeDelta>> + '_>;
+    fn time_delta_iter(&self) -> Box<dyn Iterator<Item = Option<TimeDelta>> + '_>;
 
     /// Get the min and max values in the column.
     /// Returns None if there are only null values.
     fn minmax(&self) -> Option<(TimeDelta, TimeDelta)> {
         let mut res: Option<(TimeDelta, TimeDelta)> = None;
-        for v in self.iter() {
+        for v in self.time_delta_iter() {
             match (v, res) {
                 (None, _) => continue,
                 (Some(v), Some((min, max))) => {
@@ -544,15 +580,54 @@ pub trait TimeDeltaColumn: std::fmt::Debug {
 /// This groups multiple columns together by name and provides
 /// data access to plotting functions.
 pub trait Source: fmt::Debug {
+    /// Get the names of the columns in the source
+    fn names(&self) -> Vec<&str>;
+
     /// Get a column by name
     fn column(&self, name: &str) -> Option<&dyn Column>;
+
+    /// Get a copy of this source as a Arc trait object
+    /// This should be implemented only if the source is clonable in an efficient way
+    /// By default, this method will attempt to copy each column individually.
+    fn copy(&self) -> Arc<dyn Source> {
+        let names = self.names();
+        let mut new_source = NamedOwnedColumns::new();
+        for name in names {
+            if let Some(col) = self.column(name) {
+                new_source.add_column(name, col.boxed_copy());
+            }
+        }
+        Arc::new(new_source)
+    }
 }
 
 /// Empty source.
 /// Use this if your data is inlined in the IR.
 impl Source for () {
+    fn names(&self) -> Vec<&str> {
+        Vec::new()
+    }
+
     fn column(&self, _name: &str) -> Option<&dyn Column> {
         None
+    }
+
+    fn copy(&self) -> Arc<dyn Source> {
+        Arc::new(())
+    }
+}
+
+impl Source for Arc<dyn Source> {
+    fn names(&self) -> Vec<&str> {
+        self.as_ref().names()
+    }
+
+    fn column(&self, name: &str) -> Option<&dyn Column> {
+        self.as_ref().column(name)
+    }
+
+    fn copy(&self) -> Arc<dyn Source> {
+        self.as_ref().copy()
     }
 }
 
@@ -567,7 +642,7 @@ impl F64Column for FCol<'_> {
     fn len_some(&self) -> usize {
         self.0.iter().filter(|v| v.is_finite()).count()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(
             self.0
                 .iter()
@@ -587,6 +662,9 @@ impl Column for FCol<'_> {
     fn f64(&self) -> Option<&dyn F64Column> {
         Some(self)
     }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.0.to_vec())
+    }
 }
 
 /// Column implementation for a slice of i64 values
@@ -600,7 +678,7 @@ impl I64Column for ICol<'_> {
     fn len_some(&self) -> usize {
         self.0.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
+    fn i64_iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
         Box::new(self.0.iter().copied().map(Some))
     }
 }
@@ -612,7 +690,7 @@ impl F64Column for ICol<'_> {
     fn len_some(&self) -> usize {
         self.0.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(self.0.iter().map(|i| *i as f64).map(Some))
     }
 }
@@ -630,6 +708,9 @@ impl Column for ICol<'_> {
     fn f64(&self) -> Option<&dyn F64Column> {
         Some(self)
     }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.0.to_vec())
+    }
 }
 
 /// Column implementation for a slice of string-like values
@@ -646,7 +727,7 @@ where
     fn len_some(&self) -> usize {
         self.0.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+    fn str_iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
         Box::new(self.0.iter().map(|s| Some(s.as_ref())))
     }
 }
@@ -664,6 +745,14 @@ where
     fn str(&self) -> Option<&dyn StrColumn> {
         Some(self)
     }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(
+            self.0
+                .iter()
+                .map(|s| s.as_ref().to_string())
+                .collect::<Vec<_>>(),
+        )
+    }
 }
 
 /// Column implementation for a slice of DateTime values
@@ -677,7 +766,7 @@ impl TimeColumn for TCol<'_> {
     fn len_some(&self) -> usize {
         self.0.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_> {
+    fn time_iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_> {
         Box::new(self.0.iter().copied().map(Some))
     }
 }
@@ -689,7 +778,7 @@ impl F64Column for TCol<'_> {
     fn len_some(&self) -> usize {
         self.0.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(self.0.iter().map(|dt| dt.timestamp()).map(Some))
     }
 }
@@ -707,6 +796,9 @@ impl Column for TCol<'_> {
     fn time(&self) -> Option<&dyn TimeColumn> {
         Some(self)
     }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.0.to_vec())
+    }
 }
 
 /// Column implementation for a slice of TimeDelta values
@@ -720,7 +812,7 @@ impl TimeDeltaColumn for TdCol<'_> {
     fn len_some(&self) -> usize {
         self.0.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<TimeDelta>> + '_> {
+    fn time_delta_iter(&self) -> Box<dyn Iterator<Item = Option<TimeDelta>> + '_> {
         Box::new(self.0.iter().copied().map(Some))
     }
 }
@@ -732,7 +824,7 @@ impl F64Column for TdCol<'_> {
     fn len_some(&self) -> usize {
         self.0.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(self.0.iter().map(|dt| dt.seconds()).map(Some))
     }
 }
@@ -750,6 +842,9 @@ impl Column for TdCol<'_> {
     fn time_delta(&self) -> Option<&dyn TimeDeltaColumn> {
         Some(self)
     }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.0.to_vec())
+    }
 }
 
 impl F64Column for Vec<f64> {
@@ -761,7 +856,7 @@ impl F64Column for Vec<f64> {
         self.as_slice().iter().filter(|v| v.is_finite()).count()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(
             self.as_slice()
                 .iter()
@@ -781,6 +876,9 @@ impl Column for Vec<f64> {
     fn f64(&self) -> Option<&dyn F64Column> {
         Some(self)
     }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
+    }
 }
 
 impl F64Column for Vec<f32> {
@@ -792,7 +890,7 @@ impl F64Column for Vec<f32> {
         self.as_slice().iter().filter(|v| v.is_finite()).count()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(
             self.as_slice()
                 .iter()
@@ -812,6 +910,9 @@ impl Column for Vec<f32> {
     fn f64(&self) -> Option<&dyn F64Column> {
         Some(self)
     }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
+    }
 }
 
 impl F64Column for Vec<Option<i64>> {
@@ -823,22 +924,8 @@ impl F64Column for Vec<Option<i64>> {
         self.as_slice().iter().filter(|v| v.is_some()).count()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(self.as_slice().iter().copied().map(|v| v.map(|v| v as f64)))
-    }
-}
-
-impl F64Column for Vec<i64> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn len_some(&self) -> usize {
-        self.len()
-    }
-
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
-        Box::new(self.as_slice().iter().copied().map(|v| Some(v as f64)))
     }
 }
 
@@ -851,8 +938,44 @@ impl I64Column for Vec<Option<i64>> {
         self.as_slice().iter().filter(|v| v.is_some()).count()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
+    fn i64_iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
         Box::new(self.as_slice().iter().copied())
+    }
+}
+
+impl Column for Vec<Option<i64>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_some()).count()
+    }
+
+    fn i64(&self) -> Option<&dyn I64Column> {
+        Some(self)
+    }
+
+    fn f64(&self) -> Option<&dyn F64Column> {
+        Some(self)
+    }
+
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
+    }
+}
+
+impl F64Column for Vec<i64> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(self.as_slice().iter().copied().map(|v| Some(v as f64)))
     }
 }
 
@@ -865,8 +988,30 @@ impl I64Column for Vec<i64> {
         self.len()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
+    fn i64_iter(&self) -> Box<dyn Iterator<Item = Option<i64>> + '_> {
         Box::new(self.as_slice().iter().copied().map(Some))
+    }
+}
+
+impl Column for Vec<i64> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+
+    fn i64(&self) -> Option<&dyn I64Column> {
+        Some(self)
+    }
+
+    fn f64(&self) -> Option<&dyn F64Column> {
+        Some(self)
+    }
+
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
     }
 }
 
@@ -874,8 +1019,23 @@ impl StrColumn for Vec<Option<String>> {
     fn len(&self) -> usize {
         self.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+    fn str_iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
         Box::new(self.as_slice().iter().map(|s| s.as_deref()))
+    }
+}
+
+impl Column for Vec<Option<String>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_some()).count()
+    }
+    fn str(&self) -> Option<&dyn StrColumn> {
+        Some(self)
+    }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
     }
 }
 
@@ -883,8 +1043,23 @@ impl StrColumn for Vec<String> {
     fn len(&self) -> usize {
         self.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+    fn str_iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
         Box::new(self.as_slice().iter().map(|s| Some(s.as_str())))
+    }
+}
+
+impl Column for Vec<String> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+    fn str(&self) -> Option<&dyn StrColumn> {
+        Some(self)
+    }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
     }
 }
 
@@ -892,8 +1067,20 @@ impl StrColumn for Vec<Option<&str>> {
     fn len(&self) -> usize {
         self.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+    fn str_iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
         Box::new(self.as_slice().iter().map(|s| *s))
+    }
+}
+
+impl Column for Vec<Option<&str>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_some()).count()
+    }
+    fn str(&self) -> Option<&dyn StrColumn> {
+        Some(self)
     }
 }
 
@@ -901,8 +1088,23 @@ impl StrColumn for Vec<&str> {
     fn len(&self) -> usize {
         self.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
+    fn str_iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_> {
         Box::new(self.as_slice().iter().map(|s| Some(*s)))
+    }
+}
+
+impl Column for Vec<&str> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.len()
+    }
+    fn str(&self) -> Option<&dyn StrColumn> {
+        Some(self)
+    }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.iter().map(|s| s.to_string()).collect::<Vec<_>>())
     }
 }
 
@@ -911,18 +1113,8 @@ impl TimeColumn for Vec<DateTime> {
         self.len()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_> {
+    fn time_iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_> {
         Box::new(self.as_slice().iter().map(|v| Some(*v)))
-    }
-}
-
-impl TimeColumn for Vec<Option<DateTime>> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_> {
-        Box::new(self.as_slice().iter().copied())
     }
 }
 
@@ -933,25 +1125,8 @@ impl F64Column for Vec<DateTime> {
     fn len_some(&self) -> usize {
         self.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(self.as_slice().iter().map(|v| Some(v.timestamp())))
-    }
-}
-
-impl F64Column for Vec<Option<DateTime>> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-    fn len_some(&self) -> usize {
-        self.as_slice().iter().filter(|v| v.is_some()).count()
-    }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
-        Box::new(
-            self.as_slice()
-                .iter()
-                .copied()
-                .map(|v| v.map(|v| v.timestamp())),
-        )
     }
 }
 
@@ -964,6 +1139,36 @@ impl Column for Vec<DateTime> {
     }
     fn time(&self) -> Option<&dyn TimeColumn> {
         Some(self)
+    }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
+    }
+}
+
+impl TimeColumn for Vec<Option<DateTime>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn time_iter(&self) -> Box<dyn Iterator<Item = Option<DateTime>> + '_> {
+        Box::new(self.as_slice().iter().copied())
+    }
+}
+
+impl F64Column for Vec<Option<DateTime>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_some()).count()
+    }
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(
+            self.as_slice()
+                .iter()
+                .copied()
+                .map(|v| v.map(|v| v.timestamp())),
+        )
     }
 }
 
@@ -979,6 +1184,10 @@ impl Column for Vec<Option<DateTime>> {
     fn time(&self) -> Option<&dyn TimeColumn> {
         Some(self)
     }
+
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
+    }
 }
 
 impl TimeDeltaColumn for Vec<TimeDelta> {
@@ -986,18 +1195,8 @@ impl TimeDeltaColumn for Vec<TimeDelta> {
         self.len()
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<TimeDelta>> + '_> {
+    fn time_delta_iter(&self) -> Box<dyn Iterator<Item = Option<TimeDelta>> + '_> {
         Box::new(self.as_slice().iter().map(|v| Some(*v)))
-    }
-}
-
-impl TimeDeltaColumn for Vec<Option<TimeDelta>> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<TimeDelta>> + '_> {
-        Box::new(self.as_slice().iter().copied())
     }
 }
 
@@ -1008,25 +1207,8 @@ impl F64Column for Vec<TimeDelta> {
     fn len_some(&self) -> usize {
         self.len()
     }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
         Box::new(self.as_slice().iter().map(|v| Some(v.seconds())))
-    }
-}
-
-impl F64Column for Vec<Option<TimeDelta>> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-    fn len_some(&self) -> usize {
-        self.as_slice().iter().filter(|v| v.is_some()).count()
-    }
-    fn iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
-        Box::new(
-            self.as_slice()
-                .iter()
-                .copied()
-                .map(|v| v.map(|v| v.seconds())),
-        )
     }
 }
 
@@ -1039,6 +1221,36 @@ impl Column for Vec<TimeDelta> {
     }
     fn time_delta(&self) -> Option<&dyn TimeDeltaColumn> {
         Some(self)
+    }
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
+    }
+}
+
+impl TimeDeltaColumn for Vec<Option<TimeDelta>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn time_delta_iter(&self) -> Box<dyn Iterator<Item = Option<TimeDelta>> + '_> {
+        Box::new(self.as_slice().iter().copied())
+    }
+}
+
+impl F64Column for Vec<Option<TimeDelta>> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+    fn len_some(&self) -> usize {
+        self.as_slice().iter().filter(|v| v.is_some()).count()
+    }
+    fn f64_iter(&self) -> Box<dyn Iterator<Item = Option<f64>> + '_> {
+        Box::new(
+            self.as_slice()
+                .iter()
+                .copied()
+                .map(|v| v.map(|v| v.seconds())),
+        )
     }
 }
 
@@ -1053,6 +1265,10 @@ impl Column for Vec<Option<TimeDelta>> {
 
     fn time_delta(&self) -> Option<&dyn TimeDeltaColumn> {
         Some(self)
+    }
+
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        Box::new(self.clone())
     }
 }
 
@@ -1085,11 +1301,23 @@ impl NamedOwnedColumns {
 }
 
 impl Source for NamedOwnedColumns {
+    fn names(&self) -> Vec<&str> {
+        self.names.iter().map(|s| s.as_str()).collect()
+    }
+
     fn column(&self, name: &str) -> Option<&dyn Column> {
         let Some(idx) = self.names.as_slice().iter().position(|k| k == name) else {
             return None;
         };
         self.columns.get(idx).map(|c| c.as_ref() as &dyn Column)
+    }
+
+    fn copy(&self) -> Arc<dyn Source> {
+        let mut new_source = NamedOwnedColumns::new();
+        for (name, col) in self.names.iter().zip(self.columns.iter()) {
+            new_source.add_column(name, col.boxed_copy());
+        }
+        Arc::new(new_source)
     }
 }
 
@@ -1111,7 +1339,7 @@ impl<'a> NamedColumns<'a> {
 
     /// Add a column with the given name
     pub fn add_column(&mut self, name: &str, col: &'a dyn Column) {
-        let position = self.names.as_slice().iter().position(|n| n == name);
+        let position = self.names.iter().position(|n| n == name);
         if let Some(pos) = position {
             self.columns[pos] = col;
             return;
@@ -1122,11 +1350,23 @@ impl<'a> NamedColumns<'a> {
 }
 
 impl<'a> Source for NamedColumns<'a> {
+    fn names(&self) -> Vec<&str> {
+        self.names.iter().map(|s| s.as_str()).collect()
+    }
+
     fn column(&self, name: &str) -> Option<&dyn Column> {
         let Some(idx) = self.names.as_slice().iter().position(|k| k == name) else {
             return None;
         };
         self.columns.get(idx).map(|c| *c as &dyn Column)
+    }
+
+    fn copy(&self) -> Arc<dyn Source> {
+        let mut new_source = NamedOwnedColumns::new();
+        for (name, col) in self.names.iter().zip(self.columns.iter()) {
+            new_source.add_column(name, col.boxed_copy());
+        }
+        Arc::new(new_source)
     }
 }
 
@@ -1192,19 +1432,22 @@ impl Column for VecColumn {
         match self {
             VecColumn::F64(v) => <dyn F64Column>::len_some(v),
             VecColumn::I64(v) => <dyn I64Column>::len_some(v),
-            VecColumn::Str(v) => v.len_some(),
+            VecColumn::Str(v) => <dyn StrColumn>::len_some(v),
             VecColumn::Time(v) => <dyn TimeColumn>::len_some(v),
             VecColumn::TimeDelta(v) => <dyn TimeDeltaColumn>::len_some(v),
         }
     }
 
-    fn iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
+    fn sample_iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
         match self {
-            VecColumn::F64(v) => Box::new(v.as_slice().iter().map(|v| (*v).into())),
-            VecColumn::I64(v) => Box::new(v.as_slice().iter().map(|v| (*v).into())),
-            VecColumn::Str(v) => Box::new(v.iter().map(|v| v.into())),
-            VecColumn::Time(v) => Box::new(v.as_slice().iter().map(|v| (*v).into())),
-            VecColumn::TimeDelta(v) => Box::new(v.as_slice().iter().map(|v| (*v).into())),
+            VecColumn::F64(v) => Box::new(v.iter().map(|v| (*v).into())),
+            VecColumn::I64(v) => Box::new(v.iter().map(|v| (*v).into())),
+            VecColumn::Str(v) => Box::new(v.iter().map(|v| match v {
+                Some(s) => Sample::Cat(s.as_str()),
+                None => Sample::Null,
+            })),
+            VecColumn::Time(v) => Box::new(v.iter().map(|v| (*v).into())),
+            VecColumn::TimeDelta(v) => Box::new(v.iter().map(|v| (*v).into())),
         }
     }
 
@@ -1243,10 +1486,21 @@ impl Column for VecColumn {
             _ => None,
         }
     }
+
+    fn boxed_copy(&self) -> Box<dyn Column> {
+        match self {
+            VecColumn::F64(v) => Box::new(v.clone()),
+            VecColumn::I64(v) => Box::new(v.clone()),
+            VecColumn::Str(v) => Box::new(v.clone()),
+            VecColumn::Time(v) => Box::new(v.clone()),
+            VecColumn::TimeDelta(v) => Box::new(v.clone()),
+        }
+    }
 }
 
 /// Simple table source backed by vectors
 /// This source owns the data and ensure that all columns have the same length
+#[derive(Clone)]
 pub struct TableSource {
     heads: Vec<String>,
     columns: Vec<VecColumn>,
@@ -1331,11 +1585,19 @@ impl TableSource {
 }
 
 impl Source for TableSource {
+    fn names(&self) -> Vec<&str> {
+        self.heads.iter().map(|s| s.as_str()).collect()
+    }
+
     fn column(&self, name: &str) -> Option<&dyn Column> {
         let Some(idx) = self.heads.as_slice().iter().position(|k| k == name) else {
             return None;
         };
         self.columns.get(idx).map(|c| c as &dyn Column)
+    }
+
+    fn copy(&self) -> Arc<dyn Source> {
+        Arc::new(self.clone())
     }
 }
 

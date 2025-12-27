@@ -131,8 +131,8 @@ fn main() {
 
     let fig = ir::Figure::new(
         ir::Subplots::new(2, 1)
-            .with_plot(0, 0, mag_plot)
-            .with_plot(0, 1, phase_plot)
+            .with_plot((0, 0), mag_plot)
+            .with_plot((1, 0), phase_plot)
             .into(),
     )
     .with_title(title.into())

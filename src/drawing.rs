@@ -13,14 +13,17 @@ use crate::{Style, data, geom, ir, render, text};
 
 mod axis;
 mod figure;
+mod hit_test;
 mod legend;
 mod marker;
 mod plot;
 mod scale;
 mod series;
 mod ticks;
+pub mod zoom;
 
 pub use figure::Figure;
+pub use hit_test::PlotHit;
 
 /// Errors that can occur during figure drawing
 #[derive(Debug)]
@@ -85,6 +88,16 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+#[inline]
+fn fig_x_to_plot_x(plot_rect: &geom::Rect, fig_x: f32) -> f32 {
+    fig_x - plot_rect.x()
+}
+
+#[inline]
+fn fig_y_to_plot_y(plot_rect: &geom::Rect, fig_y: f32) -> f32 {
+    plot_rect.bottom() - fig_y
+}
+
 /// Extension trait to prepare an IR figure for drawing
 pub trait Drawing {
     /// Prepare a figure for drawing.
@@ -101,7 +114,7 @@ pub trait Drawing {
         fontdb: Option<&fontdb::Database>,
     ) -> Result<Figure, Error>
     where
-        D: data::Source;
+        D: data::Source + ?Sized;
 
     /// Convenience method to prepare and draw a figure in one step.
     ///
@@ -114,7 +127,7 @@ pub trait Drawing {
         style: &Style<T, P>,
     ) -> Result<(), Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
         S: render::Surface,
         T: Theme,
         P: style::series::Palette,
@@ -130,60 +143,67 @@ impl Drawing for ir::Figure {
         fontdb: Option<&fontdb::Database>,
     ) -> Result<Figure, Error>
     where
-        D: data::Source,
+        D: data::Source + ?Sized,
     {
-        if let Some(fontdb) = fontdb {
-            let ctx = Ctx::new(data_source, fontdb);
-            ctx.setup_figure(self)
-        } else {
-            #[cfg(any(
-                feature = "noto-sans",
-                feature = "noto-sans-italic",
-                feature = "noto-serif",
-                feature = "noto-serif-italic",
-                feature = "noto-mono"
-            ))]
-            {
-                let fontdb = crate::bundled_font_db();
-                let ctx = Ctx::new(data_source, &fontdb);
-                ctx.setup_figure(self)
-            }
-            #[cfg(not(any(
-                feature = "noto-sans",
-                feature = "noto-sans-italic",
-                feature = "noto-serif",
-                feature = "noto-serif-italic",
-                feature = "noto-mono"
-            )))]
-            {
-                panic!(concat!(
-                    "No font database provided and no bundled font feature enabled. ",
-                    "Enable at least one of the bundled font features or provide a font database."
-                ));
-            }
-        }
+        with_ctx(data_source, fontdb, |ctx| ctx.setup_figure(self))
     }
 }
 
 #[derive(Debug)]
-struct Ctx<'a, D> {
+struct Ctx<'a, D : ?Sized> {
     data_source: &'a D,
     fontdb: &'a fontdb::Database,
 }
 
-impl<'a, D> Ctx<'a, D> {
-    pub fn new(data_source: &'a D, fontdb: &'a fontdb::Database) -> Ctx<'a, D> {
-        Ctx {
+fn with_ctx<D, F, R>(data_source: &D, fontdb: Option<&fontdb::Database>, f: F) -> R
+where
+    D: data::Source + ?Sized,
+    F: FnOnce(&Ctx<'_, D>) -> R,
+{
+    if let Some(fontdb) = fontdb {
+        let ctx = Ctx {
             data_source,
             fontdb,
+        };
+        f(&ctx)
+    } else {
+        #[cfg(any(
+            feature = "noto-sans",
+            feature = "noto-sans-italic",
+            feature = "noto-serif",
+            feature = "noto-serif-italic",
+            feature = "noto-mono"
+        ))]
+        {
+            let fontdb = crate::bundled_font_db();
+            let ctx = Ctx {
+                data_source,
+                fontdb: &fontdb,
+            };
+            f(&ctx)
+        }
+        #[cfg(not(any(
+            feature = "noto-sans",
+            feature = "noto-sans-italic",
+            feature = "noto-serif",
+            feature = "noto-serif-italic",
+            feature = "noto-mono"
+        )))]
+        {
+            panic!(concat!(
+                "No font database provided and no bundled font feature enabled. ",
+                "Enable at least one of the bundled font features or provide a font database."
+            ));
         }
     }
+}
 
-    pub fn data_source(&self) -> &D {
+impl<'a, D : ?Sized> Ctx<'a, D> {
+    fn data_source(&self) -> &D {
         self.data_source
     }
 
-    pub fn fontdb(&self) -> &fontdb::Database {
+    fn fontdb(&self) -> &fontdb::Database {
         &self.fontdb
     }
 }
@@ -191,7 +211,7 @@ impl<'a, D> Ctx<'a, D> {
 #[derive(Debug, Clone)]
 struct Text {
     spans: Vec<TextSpan>,
-    bbox: geom::Rect,
+    bbox: Option<geom::Rect>,
 }
 
 #[derive(Debug, Clone)]
@@ -217,7 +237,7 @@ impl Text {
         });
         Ok(Text {
             spans,
-            bbox: text.bbox().cloned().unwrap_or_else(|| geom::Rect::null()),
+            bbox: text.bbox().cloned(),
         })
     }
 
@@ -249,8 +269,26 @@ impl Text {
         })?;
         Ok(Text {
             spans,
-            bbox: text.bbox().cloned().unwrap_or_else(|| geom::Rect::null()),
+            bbox: text.bbox().cloned(),
         })
+    }
+
+    fn width(&self) -> f32 {
+        self.bbox.map_or(0.0, |r| r.width())
+    }
+
+    fn height(&self) -> f32 {
+        self.bbox.map_or(0.0, |r| r.height())
+    }
+
+    fn _visual_bbox(&self) -> Option<geom::Rect> {
+        let mut bbox: Option<geom::Rect> = None;
+        for s in self.spans.iter() {
+            let r = s.path.bounds();
+            let r = geom::Rect::from_trbl(r.top(), r.right(), r.bottom(), r.left());
+            bbox = geom::Rect::unite_opt(Some(&r), bbox.as_ref());
+        }
+        bbox
     }
 
     fn draw<S, T, P>(
@@ -327,7 +365,7 @@ impl Categories {
         self.cats.iter().map(|c| c.0.as_str())
     }
 
-    fn _get(&self, idx: usize) -> Option<&str> {
+    fn get(&self, idx: usize) -> Option<&str> {
         self.cats.get(idx).map(|c| c.0.as_str())
     }
 
@@ -346,7 +384,7 @@ impl Categories {
 impl From<&dyn data::StrColumn> for Categories {
     fn from(col: &dyn data::StrColumn) -> Self {
         let mut cats = Categories::new();
-        for s in col.iter() {
+        for s in col.str_iter() {
             if let Some(s) = s {
                 cats.push_if_not_present(s);
             }
