@@ -6,11 +6,10 @@ use std::sync::Arc;
 use eidoplot::drawing::zoom;
 use eidoplot::style::CustomStyle;
 use eidoplot::{Drawing, data, drawing, fontdb, geom, ir};
-use iced::Length;
-use iced::widget::column;
+use iced::widget::{button, column, row, space};
+use iced::{Alignment, Length};
 
 use crate::figure::figure;
-use crate::toolbar;
 
 /// Trait to show figures in a window
 pub trait Show {
@@ -61,7 +60,8 @@ impl Show for ir::Figure {
 
 #[derive(Debug, Clone)]
 enum Message {
-    Toolbar(toolbar::Message),
+    GoHome,
+    EnableZoom,
 
     FigureMousePress(geom::Point),
     FigureMouseMove(geom::Point),
@@ -82,10 +82,11 @@ enum Interaction {
     },
 }
 
-struct ShowWindow<D : ?Sized> {
+struct ShowWindow<D: ?Sized> {
     figure: drawing::Figure,
     style: Option<CustomStyle>,
-    tb_state: toolbar::State,
+    at_home: bool,
+    tb_status: Option<String>,
     interaction: Interaction,
     home_view: zoom::FigureView,
     data_source: Arc<D>,
@@ -106,7 +107,8 @@ where
         Self {
             figure,
             style,
-            tb_state: Default::default(),
+            at_home: true,
+            tb_status: None,
             interaction: Interaction::None,
             home_view,
             data_source,
@@ -116,34 +118,31 @@ where
 
     fn update(&mut self, msg: Message) -> iced::Task<Message> {
         match msg {
-            Message::Toolbar(msg) => match msg {
-                toolbar::Message::Home => {
-                    self.figure
-                        .apply_view(&self.home_view, &*self.data_source, Some(&*self.fontdb))
-                        .expect("Failed to apply home view");
-                    self.tb_state = toolbar::State::default();
-                }
-                toolbar::Message::Zoom => {
-                    // Toggle zoom interaction
-                    match &self.interaction {
-                        Interaction::ZoomEnabled | Interaction::ZoomDragging { .. } => {
-                            self.interaction = Interaction::None;
-                            self.tb_state.zooming = false;
-                        }
-                        _ => {
-                            self.interaction = Interaction::ZoomEnabled;
-                            self.tb_state.zooming = true;
-                        }
-                    };
-                }
-            },
+            Message::GoHome => {
+                self.figure
+                    .apply_view(&self.home_view, &*self.data_source, Some(&*self.fontdb))
+                    .expect("Failed to apply home view");
+                self.at_home = true;
+                self.interaction = Interaction::None;
+            }
+            Message::EnableZoom => {
+                // Toggle zoom interaction
+                match &self.interaction {
+                    Interaction::ZoomEnabled | Interaction::ZoomDragging { .. } => {
+                        self.interaction = Interaction::None;
+                    }
+                    _ => {
+                        self.interaction = Interaction::ZoomEnabled;
+                    }
+                };
+            }
             Message::FigureMouseMove(point) => {
                 let hit = self.figure.hit_test(point);
 
                 let status = hit
                     .as_ref()
                     .map(|h| format!("X = {} | Y = {}", h.x_coords, h.y_coords));
-                self.tb_state.status = status;
+                self.tb_status = status;
 
                 match (&mut self.interaction, &hit) {
                     (Interaction::ZoomDragging { idx: plot, end, .. }, Some(hit)) => {
@@ -177,19 +176,18 @@ where
                             self.figure
                                 .apply_zoom(*idx, &zoom, &*self.data_source, Some(&*self.fontdb))
                                 .expect("Failed to apply zoom");
-                            self.tb_state.at_home = false;
+                            self.at_home = false;
                         }
                     }
                     self.interaction = Interaction::ZoomEnabled;
                 }
                 _ => {
                     self.interaction = Interaction::None;
-                    self.tb_state.zooming = false;
                 }
             },
             Message::Event(iced::event::Event::Mouse(ev)) => match ev {
                 iced::mouse::Event::CursorLeft => {
-                    self.tb_state.status = None;
+                    self.tb_status = None;
                 }
                 _ => {}
             },
@@ -201,7 +199,6 @@ where
                         ..
                     } => {
                         self.interaction = Interaction::None;
-                        self.tb_state.zooming = false;
                     }
                     _ => {}
                 }
@@ -212,27 +209,53 @@ where
     }
 
     fn view(&self) -> iced::Element<'_, Message> {
-        let fig = figure(&self.figure)
+        column![self.figure_view(), self.toolbar_view()].into()
+    }
+
+    fn figure_view(&self) -> iced::Element<'_, Message> {
+        let mut fig = figure(&self.figure)
             .width(Length::Fill)
             .height(Length::Fill)
             .on_mouse_move(Message::FigureMouseMove)
             .on_mouse_press(Message::FigureMousePress)
             .on_mouse_release(Message::FigureMouseRelease);
 
-        let fig = if let Some(style) = &self.style {
-            fig.style(|_| style.clone())
+        if let Some(style) = &self.style {
+            fig = fig.style(|_| style.clone());
+        }
+
+        if let Interaction::ZoomDragging { start, end, .. } = &self.interaction {
+            fig = fig.zoom_rect(*start, *end);
+        }
+
+        fig.into()
+    }
+
+    fn toolbar_view(&self) -> iced::Element<'_, Message> {
+        let zooming = matches!(
+            self.interaction,
+            Interaction::ZoomEnabled | Interaction::ZoomDragging { .. }
+        );
+
+        let home_button = button("Home").on_press_maybe((!self.at_home).then_some(Message::GoHome));
+        let zoom_in_button = button("Zoom").on_press(Message::EnableZoom);
+        let zoom_in_button = if zooming {
+            zoom_in_button.style(button::secondary)
         } else {
-            fig
+            zoom_in_button.style(button::primary)
         };
 
-        let fig = match &self.interaction {
-            Interaction::ZoomDragging { start, end, .. } => fig.zoom_rect(*start, *end),
-            _ => fig,
-        };
+        let status_txt = self.tb_status.as_deref().unwrap_or("");
+        let status_txt = iced::widget::text(status_txt)
+            .height(Length::Fill)
+            .align_y(Alignment::Center);
 
-        let toolbar = toolbar::view(&self.tb_state).map(Message::Toolbar);
-
-        column![fig, toolbar].into()
+        row![home_button, zoom_in_button, space::horizontal(), status_txt]
+            .width(Length::Fill)
+            .height(Length::Shrink)
+            .spacing(10)
+            .padding(5)
+            .into()
     }
 
     fn subscription(&self) -> iced::Subscription<Message> {
