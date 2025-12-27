@@ -72,6 +72,11 @@ The `ir` module contains a declarative representation of figures, independent of
 Rendering surfaces implement the `render::Surface` trait and are in separate crates:
 - **`eidoplot-svg`**: SVG format rendering
 - **`eidoplot-pxl`**: Bitmap rendering (PNG, etc.)
+- **`iced-oplot`**: Rendering in iced window.
+
+Rendering surfaces don't need to know anything about figures or plotted data.
+They only have to render path primitives. Even text is pre-processed as paths before being submitted to surfaces.
+Therefore, implementing support for a new surface type is really straightforward.
 
 ### Drawing Module
 
@@ -79,7 +84,7 @@ The `drawing` module bridges the IR and rendering surfaces. It translates abstra
 
 ## Examples
 
-The project includes several examples in the `examples/` folder:
+The project includes several examples in the `examples/` folder, among others:
 
 - `sine`: Simple sine wave
 - `bode_rlc`: Bode diagram of RLC circuit
