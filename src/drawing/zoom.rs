@@ -1,3 +1,4 @@
+//! Module for handling zoom operations and views in figures.
 use std::sync::Arc;
 
 use crate::drawing::axis::Axis;
@@ -17,27 +18,33 @@ impl Default for AxisMask {
 }
 
 impl AxisMask {
+    /// Create a mask with no axes selected.
     pub fn none() -> Self {
         AxisMask(0)
     }
 
+    /// Create a mask with all axes selected.
     pub fn all() -> Self {
         AxisMask(0xffff_ffff)
     }
 
+    /// Check if the mask contains the given axis index.
     pub fn contains(&self, axis_idx: u32) -> bool {
         (self.0 & (1 << axis_idx)) != 0
     }
 
+    /// Insert the given axis index into the mask.
     pub fn insert(&mut self, axis_idx: u32) {
         self.0 |= 1 << axis_idx;
     }
 
+    /// Remove the given axis index from the mask.
     pub fn remove(&mut self, axis_idx: u32) {
         self.0 &= !(1 << axis_idx);
     }
 }
 
+/// A zoom operation to be applied to a figure.
 #[derive(Debug, Clone, Copy)]
 pub struct Zoom {
     rect: geom::Rect,
@@ -46,6 +53,7 @@ pub struct Zoom {
 }
 
 impl Zoom {
+    /// Create a new zoom operation with the given rectangle.
     pub fn new(rect: geom::Rect) -> Self {
         Zoom {
             rect,
@@ -53,16 +61,21 @@ impl Zoom {
             y_axis_mask: AxisMask::default(),
         }
     }
+
+    /// Set the mask of x axes affected by the zoom.
     pub fn x_axis_mask(mut self, mask: AxisMask) -> Self {
         self.x_axis_mask = mask;
         self
     }
+
+    /// Set the mask of y axes affected by the zoom.
     pub fn y_axis_mask(mut self, mask: AxisMask) -> Self {
         self.y_axis_mask = mask;
         self
     }
 }
 
+/// A view of a plot within a figure, capturing the current state of its axes.
 #[derive(Debug, Clone)]
 pub struct PlotView {
     idx: PlotIdx,
@@ -72,10 +85,12 @@ pub struct PlotView {
 }
 
 impl PlotView {
+    /// Get the index of the plot this view corresponds to.
     pub fn idx(&self) -> PlotIdx {
         self.idx
     }
 
+    /// Apply a zoom operation to this plot view, returning a new plot view.
     pub fn apply_zoom(&self, zoom: &Zoom) -> PlotView {
         let x_infos = self
             .x_infos
@@ -118,12 +133,14 @@ impl PlotView {
     }
 }
 
+/// A view of a figure, capturing the current state of all its plots.
 #[derive(Debug, Clone)]
 pub struct FigureView {
     plot_views: Vec<Option<PlotView>>,
 }
 
 impl super::Figure {
+    /// Get the current view of the figure.
     pub fn view(&self) -> FigureView {
         let mut plot_views = Vec::with_capacity(self.plots.len());
 
@@ -154,6 +171,7 @@ impl super::Figure {
         })
     }
 
+    /// Apply the given view to the figure.
     pub fn apply_view<D>(
         &mut self,
         view: &FigureView,
