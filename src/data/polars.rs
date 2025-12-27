@@ -1,4 +1,6 @@
 //! Polars data source integration in eidoplot.
+use std::sync::Arc;
+
 use polars::prelude::*;
 
 use crate::data;
@@ -69,7 +71,7 @@ impl data::Source for DataFrame {
             .map(|c| c.as_materialized_series() as &dyn data::Column)
             .ok()
     }
-    fn boxed_copy(&self) -> Box<dyn data::Source> {
-        Box::new(self.clone())
+    fn copy(&self) -> Arc<dyn data::Source> {
+        Arc::new(self.clone())
     }
 }
