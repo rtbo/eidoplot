@@ -1024,14 +1024,15 @@ impl Axis {
             pb.move_to(t, -mark.size_in);
             pb.line_to(t, mark.size_out);
         }
-        let path = pb.finish().expect("Should be a valid path");
-        let rpath = render::Path {
-            path: &path,
-            fill: None,
-            stroke: Some(mark.line.as_stroke(style)),
-            transform: Some(transform),
-        };
-        surface.draw_path(&rpath)?;
+        if let Some(path) = pb.finish() {
+            let rpath = render::Path {
+                path: &path,
+                fill: None,
+                stroke: Some(mark.line.as_stroke(style)),
+                transform: Some(transform),
+            };
+            surface.draw_path(&rpath)?;
+        }
         Ok(mark.size_out)
     }
 }
