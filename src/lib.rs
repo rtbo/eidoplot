@@ -30,11 +30,13 @@
 
 pub mod data;
 pub mod drawing;
-pub mod eplt;
 pub mod ir;
 pub mod render;
 pub mod style;
 pub mod time;
+
+#[cfg(feature = "eplt")]
+pub mod eplt;
 
 pub use drawing::Drawing;
 pub use style::Style;
@@ -45,6 +47,7 @@ pub mod color {
 }
 pub use color::{Color, ColorU8, ResolveColor};
 
+#[cfg(feature = "eplt")]
 /// Rexports of [`eidoplot_dsl`]` items
 pub mod dsl {
     pub use eidoplot_dsl::*;

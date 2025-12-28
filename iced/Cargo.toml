@@ -20,6 +20,7 @@ name = "scope"
 name = "audio_scope"
 
 [dev-dependencies]
+eidoplot = { workspace = true, features = ["utils"] }
 cpal = "0.16.0"
 rustfft = "6.4.1"
 
