@@ -33,10 +33,12 @@ pub mod drawing;
 pub mod ir;
 pub mod render;
 pub mod style;
-pub mod time;
 
 #[cfg(feature = "eplt")]
 pub mod eplt;
+
+#[cfg(feature = "time")]
+pub mod time;
 
 pub use drawing::Drawing;
 pub use style::Style;
@@ -77,6 +79,8 @@ pub use text::fontdb;
 #[cfg(feature = "utils")]
 pub mod utils {
     //! Utility functions for data generation
+
+    #[cfg(feature = "time")]
     use crate::time::DateTime;
 
     /// Create a linearly spaced vector of `num` elements between `start` and `end`
@@ -95,6 +99,7 @@ pub mod utils {
             .collect()
     }
 
+    #[cfg(feature = "time")]
     /// Create a linearly spaced time vector of `num` elements between `start` and `end`
     pub fn timespace(start: DateTime, end: DateTime, num: usize) -> Vec<DateTime> {
         let step = (end - start) / (num as f64 - 1.0);

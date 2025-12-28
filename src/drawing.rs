@@ -324,10 +324,13 @@ impl<T> F64ColumnExt for T where T: data::F64Column + ?Sized {}
 
 trait ColumnExt: data::Column {
     fn bounds(&self) -> Option<axis::Bounds> {
+        #[cfg(feature = "time")]
         if let Some(time) = self.time() {
-            time.minmax()
-                .map(|(min, max)| axis::Bounds::Time((min, max).into()))
-        } else if let Some(num) = self.f64() {
+            return time.minmax()
+                .map(|(min, max)| axis::Bounds::Time((min, max).into()));
+        }
+
+        if let Some(num) = self.f64() {
             num.minmax()
                 .map(|(min, max)| axis::Bounds::Num((min, max).into()))
         } else if let Some(cats) = self.str() {

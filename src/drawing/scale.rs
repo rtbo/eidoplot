@@ -13,7 +13,9 @@ pub trait CoordMap: std::fmt::Debug {
     fn map_coord(&self, sample: data::Sample) -> Option<f32> {
         match sample {
             data::Sample::Num(n) => Some(self.map_coord_num(n)),
+            #[cfg(feature = "time")]
             data::Sample::Time(n) => Some(self.map_coord_num(n.timestamp())),
+            #[cfg(feature = "time")]
             data::Sample::TimeDelta(n) => Some(self.map_coord_num(n.seconds())),
             data::Sample::Cat(c) => Some(self.map_coord_cat(c)),
             _ => None,

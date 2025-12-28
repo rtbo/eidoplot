@@ -1,4 +1,6 @@
 use super::{TableSource, VecColumn};
+
+#[cfg(feature = "time")]
 use crate::time::DateTime;
 
 /// CSV parsing error
@@ -53,6 +55,7 @@ impl std::fmt::Display for CsvParseError {
 
 impl std::error::Error for CsvParseError {}
 
+#[allow(missing_copy_implementations)]
 /// CSV parsing spec for a specific column
 #[derive(Debug, Clone)]
 pub enum CsvColSpec {
@@ -65,8 +68,10 @@ pub enum CsvColSpec {
     I64,
     /// Column of strings
     Str,
+    #[cfg(feature = "time")]
     /// Column of date/time values with automatic format detection
     TimeAuto,
+    #[cfg(feature = "time")]
     /// Column of date/time values with custom format
     TimeCustom {
         /// Date/time format string
@@ -94,8 +99,9 @@ enum CsvColumn {
     F64(Vec<f64>),
     I64(Vec<Option<i64>>),
     Str(Vec<Option<String>>),
-    // data and parse format
-    Time(Vec<Option<DateTime>>, Option<String>),
+
+    #[cfg(feature = "time")]
+    Time(Vec<Option<DateTime>>, Option<String>), // data and parse format
 }
 
 impl CsvColumn {
@@ -104,6 +110,7 @@ impl CsvColumn {
             CsvColumn::F64(vec) => vec.len(),
             CsvColumn::I64(vec) => vec.len(),
             CsvColumn::Str(vec) => vec.len(),
+            #[cfg(feature = "time")]
             CsvColumn::Time(vec, _) => vec.len(),
         }
     }
@@ -192,7 +199,9 @@ impl CsvParser {
                 CsvColSpec::F64 => Some(CsvColumn::F64(Vec::new())),
                 CsvColSpec::I64 => Some(CsvColumn::I64(Vec::new())),
                 CsvColSpec::Str => Some(CsvColumn::Str(Vec::new())),
+                #[cfg(feature = "time")]
                 CsvColSpec::TimeAuto => Some(CsvColumn::Time(Vec::new(), None)),
+                #[cfg(feature = "time")]
                 CsvColSpec::TimeCustom { fmt } => Some(CsvColumn::Time(Vec::new(), Some(fmt))),
                 CsvColSpec::Auto => None,
             })
@@ -220,6 +229,7 @@ impl CsvParser {
                 Some(CsvColumn::F64(vec)) => Some(VecColumn::F64(vec)),
                 Some(CsvColumn::I64(vec)) => Some(VecColumn::I64(vec)),
                 Some(CsvColumn::Str(vec)) => Some(VecColumn::Str(vec)),
+                #[cfg(feature = "time")]
                 Some(CsvColumn::Time(vec, ..)) => Some(VecColumn::Time(vec)),
                 None => None,
             };
@@ -231,23 +241,29 @@ impl CsvParser {
 }
 
 fn guess_column_type(data: &str, num_nulls: usize) -> CsvColumn {
+    #[cfg(feature = "time")]
     if let Ok(dt) = DateTime::fmt_parse(data, "%Y-%m-%d %H:%M:%S%.f") {
         let mut vec: Vec<Option<DateTime>> = vec![None; num_nulls];
         vec.push(Some(dt));
-        CsvColumn::Time(vec, Some("%Y-%m-%d %H:%M:%S%.f".to_string()))
-    } else if let Ok(dt) = DateTime::fmt_parse(data, "%Y-%m-%d %H:%M:%S") {
+        return CsvColumn::Time(vec, Some("%Y-%m-%d %H:%M:%S%.f".to_string()));
+    }
+
+    #[cfg(feature = "time")]
+    if let Ok(dt) = DateTime::fmt_parse(data, "%Y-%m-%d %H:%M:%S") {
         let mut vec: Vec<Option<DateTime>> = vec![None; num_nulls];
         vec.push(Some(dt));
-        CsvColumn::Time(vec, Some("%Y-%m-%d %H:%M:%S".to_string()))
-    } else if let Ok(dt) = DateTime::fmt_parse(data, "%Y-%m-%d") {
+        return CsvColumn::Time(vec, Some("%Y-%m-%d %H:%M:%S".to_string()));
+    }
+
+    #[cfg(feature = "time")]
+    if let Ok(dt) = DateTime::fmt_parse(data, "%Y-%m-%d") {
         let mut vec: Vec<Option<DateTime>> = vec![None; num_nulls];
         vec.push(Some(dt));
-        CsvColumn::Time(vec, Some("%Y-%m-%d".to_string()))
-    // } else if let Ok(d) = data.parse::<i64>() {
-    //     let mut vec: Vec<Option<i64>> = vec![None; num_nulls];
-    //     vec.push(Some(d));
-    //     CsvColumn::I64(vec)
-    } else if let Ok(d) = data.parse::<f64>() {
+        return CsvColumn::Time(vec, Some("%Y-%m-%d".to_string()));
+    }
+
+    // intentionally not trying i64 first to avoid misdetection of float columns with integer values
+    if let Ok(d) = data.parse::<f64>() {
         let mut vec: Vec<f64> = vec![f64::NAN; num_nulls];
         vec.push(d);
         CsvColumn::F64(vec)
@@ -287,6 +303,7 @@ fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), CsvParseErro
                 vec.push(Some(data.to_string()));
             }
         }
+        #[cfg(feature = "time")]
         CsvColumn::Time(vec, fmt) => {
             if data.is_empty() {
                 vec.push(None);
@@ -436,8 +453,10 @@ mod tests {
         assert_eq!(str_col, &["one", "two", "three"]);
     }
 
+    #[cfg(feature = "time")]
     pub const CSV_DATE: &str = "Date,Float\n2025-01-01,1.0\n2025-01-02,2.0\n2025-01-03,3.0\n";
 
+    #[cfg(feature = "time")]
     #[test]
     fn test_parse_csv_date() {
         let src = CsvParser::new().parse(CSV_DATE).unwrap();

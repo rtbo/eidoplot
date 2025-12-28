@@ -3,11 +3,14 @@ use std::sync::Arc;
 
 use crate::data;
 use crate::drawing::{Categories, Error, axis};
-use crate::ir::axis::ticks::{
-    DateTimeFormatter, DateTimeLocator, Formatter, Locator, Ticks, TimeDeltaFormatter,
-    TimeDeltaLocator,
-};
+use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
 use crate::ir::axis::{LogScale, Scale};
+
+#[cfg(feature = "time")]
+use crate::ir::axis::ticks::{
+    DateTimeFormatter, DateTimeLocator, TimeDeltaFormatter, TimeDeltaLocator,
+};
+#[cfg(feature = "time")]
 use crate::time::{DateTime, DateTimeComps, TimeDelta};
 
 pub fn locate_num(
@@ -32,6 +35,7 @@ pub fn locate_num(
         (Locator::Log(locator), Scale::Log(LogScale { base, .. })) if locator.base == *base => {
             Ok(LogLocator::new_major(*base).ticks(nb))
         }
+    #[cfg(feature = "time")]
         (Locator::TimeDelta(loc), Scale::Auto | Scale::Linear { .. }) => {
             locate_timedelta_num(loc, nb)
         }
@@ -71,6 +75,7 @@ pub fn locate_minor(
     }
 }
 
+#[cfg(feature = "time")]
 pub fn locate_datetime(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<DateTime>, Error> {
     match locator {
         Locator::Auto | Locator::DateTime(DateTimeLocator::Auto) => {
@@ -213,6 +218,7 @@ pub fn locate_datetime(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<Da
     }
 }
 
+#[cfg(feature = "time")]
 fn locate_datetime_even(start: DateTime, tb: axis::TimeBounds, td: TimeDelta) -> Vec<DateTime> {
     // pushing from one tick before start to one tick after end
     let mut res = Vec::new();
@@ -230,6 +236,7 @@ fn locate_datetime_even(start: DateTime, tb: axis::TimeBounds, td: TimeDelta) ->
     res
 }
 
+#[cfg(feature = "time")]
 fn time_steps(steps: &[u32], secs: f64, multiplier: f64) -> u32 {
     for s in steps {
         let bins = secs / ((*s as f64) * multiplier);
@@ -240,6 +247,7 @@ fn time_steps(steps: &[u32], secs: f64, multiplier: f64) -> u32 {
     steps[steps.len() - 1]
 }
 
+#[cfg(feature = "time")]
 fn locate_timedelta_num(loc: &TimeDeltaLocator, nb: axis::NumBounds) -> Result<Vec<f64>, Error> {
     let step = match loc {
         TimeDeltaLocator::Auto => {
@@ -285,6 +293,7 @@ fn locate_timedelta_num(loc: &TimeDeltaLocator, nb: axis::NumBounds) -> Result<V
     Ok(locate_timedelta_even(start, end, step))
 }
 
+#[cfg(feature = "time")]
 fn locate_timedelta_even(start: f64, end: f64, step: f64) -> Vec<f64> {
     // pushing from one tick before start to one tick after end
     let mut res = Vec::with_capacity((1.0 + (end - start) / step) as usize);
@@ -482,6 +491,7 @@ pub fn num_label_formatter(
     scale: &Scale,
 ) -> Arc<dyn LabelFormatter> {
     match ticks.formatter() {
+        None => Arc::new(NullFormat),
         Some(Formatter::Auto) if scale.is_shared() => Arc::new(NullFormat),
         Some(Formatter::Auto | Formatter::SharedAuto) => {
             auto_label_formatter(ticks.locator(), ab, scale)
@@ -493,8 +503,9 @@ pub fn num_label_formatter(
                 .unwrap_or_else(|| percent_auto_precision(ab));
             Arc::new(PercentLabelFormat(prec))
         }
+        #[cfg(feature = "time")]
         Some(Formatter::TimeDelta(tdfmt)) => timedelta_label_formatter(ab, tdfmt),
-        None => Arc::new(NullFormat),
+        #[cfg(feature = "time")]
         _ => todo!(),
     }
 }
@@ -538,6 +549,7 @@ fn percent_auto_precision(ab: axis::NumBounds) -> usize {
     }
 }
 
+#[cfg(feature = "time")]
 pub fn datetime_label_formatter(
     ticks: &Ticks,
     tb: axis::TimeBounds,
@@ -566,6 +578,7 @@ pub fn datetime_label_formatter(
     }
 }
 
+#[cfg(feature = "time")]
 fn auto_datetime_label_formatter(tb: axis::TimeBounds) -> Result<Arc<dyn LabelFormatter>, Error> {
     let start_date = tb.start().to_date();
     let end_date = tb.end().to_date();
@@ -592,6 +605,7 @@ fn auto_datetime_label_formatter(tb: axis::TimeBounds) -> Result<Arc<dyn LabelFo
     }))
 }
 
+#[cfg(feature = "time")]
 pub fn timedelta_label_formatter(
     nb: axis::NumBounds,
     tdfmt: &TimeDeltaFormatter,
@@ -672,11 +686,13 @@ impl LabelFormatter for PercentLabelFormat {
     }
 }
 
+#[cfg(feature = "time")]
 #[derive(Debug)]
 struct DateTimeLabelFormat {
     fmt: String,
 }
 
+#[cfg(feature = "time")]
 impl LabelFormatter for DateTimeLabelFormat {
     fn format_label(&self, data: data::Sample) -> String {
         let dt = data.as_time().unwrap();
@@ -684,11 +700,13 @@ impl LabelFormatter for DateTimeLabelFormat {
     }
 }
 
+#[cfg(feature = "time")]
 #[derive(Debug)]
 struct TimeDeltaLabelFormat {
     fmt: String,
 }
 
+#[cfg(feature = "time")]
 impl LabelFormatter for TimeDeltaLabelFormat {
     fn format_label(&self, data: data::Sample) -> String {
         match data {

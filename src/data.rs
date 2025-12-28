@@ -9,8 +9,6 @@
 use core::fmt;
 use std::sync::Arc;
 
-use crate::time::{DateTime, TimeDelta};
-
 #[cfg(feature = "data-csv")]
 mod csv;
 #[cfg(feature = "data-csv")]
@@ -18,6 +16,9 @@ pub use csv::{CsvColSpec, CsvParseError, CsvParser};
 
 #[cfg(feature = "data-polars")]
 pub mod polars;
+
+#[cfg(feature = "time")]
+use crate::time::{DateTime, TimeDelta};
 
 /// Sample value enum. Useful when the type is not known at compile time.
 /// You will typically not used a `Vec<Sample>`. Rather a [`VecColumn`] or similar
@@ -33,8 +34,10 @@ pub enum Sample<'a> {
     Num(f64),
     /// Categorical value
     Cat(&'a str),
+    #[cfg(feature = "time")]
     /// Time value
     Time(DateTime),
+    #[cfg(feature = "time")]
     /// Time delta value
     TimeDelta(TimeDelta),
 }
@@ -61,6 +64,7 @@ impl Sample<'_> {
         }
     }
 
+    #[cfg(feature = "time")]
     /// Get the sample as a time value, if possible
     pub fn as_time(&self) -> Option<DateTime> {
         match self {
@@ -69,6 +73,7 @@ impl Sample<'_> {
         }
     }
 
+    #[cfg(feature = "time")]
     /// Get the sample as a time delta value, if possible
     pub fn as_time_delta(&self) -> Option<TimeDelta> {
         match self {
@@ -83,7 +88,9 @@ impl Sample<'_> {
             Sample::Null => OwnedSample::Null,
             Sample::Num(v) => OwnedSample::Num(*v),
             Sample::Cat(v) => OwnedSample::Cat(v.to_string()),
+            #[cfg(feature = "time")]
             Sample::Time(v) => OwnedSample::Time(*v),
+            #[cfg(feature = "time")]
             Sample::TimeDelta(v) => OwnedSample::TimeDelta(*v),
         }
     }
@@ -140,12 +147,14 @@ impl<'a> From<Option<&'a str>> for Sample<'a> {
     }
 }
 
+#[cfg(feature = "time")]
 impl From<DateTime> for Sample<'_> {
     fn from(val: DateTime) -> Self {
         Sample::Time(val)
     }
 }
 
+#[cfg(feature = "time")]
 impl From<Option<DateTime>> for Sample<'_> {
     fn from(val: Option<DateTime>) -> Self {
         match val {
@@ -155,12 +164,14 @@ impl From<Option<DateTime>> for Sample<'_> {
     }
 }
 
+#[cfg(feature = "time")]
 impl From<TimeDelta> for Sample<'_> {
     fn from(val: TimeDelta) -> Self {
         Sample::TimeDelta(val)
     }
 }
 
+#[cfg(feature = "time")]
 impl From<Option<TimeDelta>> for Sample<'_> {
     fn from(val: Option<TimeDelta>) -> Self {
         match val {
@@ -180,8 +191,10 @@ pub enum OwnedSample {
     Num(f64),
     /// Categorical value
     Cat(String),
+    #[cfg(feature = "time")]
     /// Time value
     Time(DateTime),
+    #[cfg(feature = "time")]
     /// Time delta value
     TimeDelta(TimeDelta),
 }
@@ -208,6 +221,7 @@ impl OwnedSample {
         }
     }
 
+    #[cfg(feature = "time")]
     /// Get the sample as a time value, if possible
     pub fn as_time(&self) -> Option<DateTime> {
         match self {
@@ -216,6 +230,7 @@ impl OwnedSample {
         }
     }
 
+    #[cfg(feature = "time")]
     /// Get the sample as a time delta value, if possible
     pub fn as_time_delta(&self) -> Option<TimeDelta> {
         match self {
@@ -230,7 +245,9 @@ impl OwnedSample {
             OwnedSample::Null => Sample::Null,
             OwnedSample::Num(v) => Sample::Num(*v),
             OwnedSample::Cat(v) => Sample::Cat(v.as_str()),
+            #[cfg(feature = "time")]
             OwnedSample::Time(v) => Sample::Time(*v),
+            #[cfg(feature = "time")]
             OwnedSample::TimeDelta(v) => Sample::TimeDelta(*v),
         }
     }
@@ -299,12 +316,14 @@ impl From<Option<String>> for OwnedSample {
     }
 }
 
+#[cfg(feature = "time")]
 impl From<DateTime> for OwnedSample {
     fn from(val: DateTime) -> Self {
         OwnedSample::Time(val)
     }
 }
 
+#[cfg(feature = "time")]
 impl From<Option<DateTime>> for OwnedSample {
     fn from(val: Option<DateTime>) -> Self {
         match val {
@@ -314,12 +333,14 @@ impl From<Option<DateTime>> for OwnedSample {
     }
 }
 
+#[cfg(feature = "time")]
 impl From<TimeDelta> for OwnedSample {
     fn from(val: TimeDelta) -> Self {
         OwnedSample::TimeDelta(val)
     }
 }
 
+#[cfg(feature = "time")]
 impl From<Option<TimeDelta>> for OwnedSample {
     fn from(val: Option<TimeDelta>) -> Self {
         match val {
@@ -340,11 +361,14 @@ pub trait Column: std::fmt::Debug {
 
     /// Get an iterator over the samples in the column
     fn sample_iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
+        #[cfg(feature = "time")]
         if let Some(iter) = self.as_time_iter() {
-            Box::new(iter.map(Sample::from))
+            return Box::new(iter.map(Sample::from));
         } else if let Some(iter) = self.as_time_delta_iter() {
-            Box::new(iter.map(Sample::from))
-        } else if let Some(iter) = self.as_i64_iter() {
+            return Box::new(iter.map(Sample::from));
+        }
+
+        if let Some(iter) = self.as_i64_iter() {
             Box::new(iter.map(Sample::from))
         } else if let Some(iter) = self.as_f64_iter() {
             Box::new(iter.map(Sample::from))
@@ -364,22 +388,25 @@ pub trait Column: std::fmt::Debug {
             for v in col.f64_iter() {
                 vec.push(v.unwrap_or(f64::NAN));
             }
-            Box::new(vec)
+            return Box::new(vec);
         } else if let Some(col) = self.i64() {
-            Box::new(col.i64_iter().collect::<Vec<_>>())
+            return Box::new(col.i64_iter().collect::<Vec<_>>());
         } else if let Some(col) = self.str() {
-            Box::new(
+            return Box::new(
                 col.str_iter()
                     .map(|s| s.map(|s| s.to_string()))
                     .collect::<Vec<_>>(),
-            )
-        } else if let Some(col) = self.time() {
-            Box::new(col.time_iter().collect::<Vec<_>>())
-        } else if let Some(col) = self.time_delta() {
-            Box::new(col.time_delta_iter().collect::<Vec<_>>())
-        } else {
-            panic!("Cannot box copy column: no known type");
+            );
         }
+
+        #[cfg(feature = "time")]
+        if let Some(col) = self.time() {
+            return Box::new(col.time_iter().collect::<Vec<_>>());
+        } else if let Some(col) = self.time_delta() {
+            return Box::new(col.time_delta_iter().collect::<Vec<_>>());
+        }
+
+        panic!("Cannot box copy column: no known type");
     }
 
     /// Get the column as a f64 column, if possible
@@ -397,11 +424,13 @@ pub trait Column: std::fmt::Debug {
         None
     }
 
+    #[cfg(feature = "time")]
     /// Get the column as a time column, if possible
     fn time(&self) -> Option<&dyn TimeColumn> {
         None
     }
 
+    #[cfg(feature = "time")]
     /// Get the column as a time delta column, if possible
     fn time_delta(&self) -> Option<&dyn TimeDeltaColumn> {
         None
@@ -422,11 +451,13 @@ pub trait Column: std::fmt::Debug {
         self.str().map(|c| c.str_iter())
     }
 
+    #[cfg(feature = "time")]
     /// Helper to get time iterator
     fn as_time_iter(&self) -> Option<Box<dyn Iterator<Item = Option<DateTime>> + '_>> {
         self.time().map(|c| c.time_iter())
     }
 
+    #[cfg(feature = "time")]
     /// Helper to get time delta iterator
     fn as_time_delta_iter(&self) -> Option<Box<dyn Iterator<Item = Option<TimeDelta>> + '_>> {
         self.time_delta().map(|c| c.time_delta_iter())
@@ -512,6 +543,7 @@ pub trait StrColumn: std::fmt::Debug {
     fn str_iter(&self) -> Box<dyn Iterator<Item = Option<&str>> + '_>;
 }
 
+#[cfg(feature = "time")]
 /// Trait for a column of time values
 pub trait TimeColumn: std::fmt::Debug {
     /// Get the length of the column
@@ -544,6 +576,7 @@ pub trait TimeColumn: std::fmt::Debug {
     }
 }
 
+#[cfg(feature = "time")]
 /// Trait for a column of time delta values
 pub trait TimeDeltaColumn: std::fmt::Debug {
     /// Get the length of the column
@@ -755,10 +788,12 @@ where
     }
 }
 
+#[cfg(feature = "time")]
 /// Column implementation for a slice of DateTime values
 #[derive(Debug)]
 pub struct TCol<'a>(pub &'a [DateTime]);
 
+#[cfg(feature = "time")]
 impl TimeColumn for TCol<'_> {
     fn len(&self) -> usize {
         self.0.len()
@@ -771,6 +806,7 @@ impl TimeColumn for TCol<'_> {
     }
 }
 
+#[cfg(feature = "time")]
 impl F64Column for TCol<'_> {
     fn len(&self) -> usize {
         self.0.len()
@@ -783,6 +819,7 @@ impl F64Column for TCol<'_> {
     }
 }
 
+#[cfg(feature = "time")]
 impl Column for TCol<'_> {
     fn len(&self) -> usize {
         self.0.len()
@@ -801,10 +838,12 @@ impl Column for TCol<'_> {
     }
 }
 
+#[cfg(feature = "time")]
 /// Column implementation for a slice of TimeDelta values
 #[derive(Debug)]
 pub struct TdCol<'a>(pub &'a [TimeDelta]);
 
+#[cfg(feature = "time")]
 impl TimeDeltaColumn for TdCol<'_> {
     fn len(&self) -> usize {
         self.0.len()
@@ -817,6 +856,7 @@ impl TimeDeltaColumn for TdCol<'_> {
     }
 }
 
+#[cfg(feature = "time")]
 impl F64Column for TdCol<'_> {
     fn len(&self) -> usize {
         self.0.len()
@@ -829,6 +869,7 @@ impl F64Column for TdCol<'_> {
     }
 }
 
+#[cfg(feature = "time")]
 impl Column for TdCol<'_> {
     fn len(&self) -> usize {
         self.0.len()
@@ -1108,6 +1149,7 @@ impl Column for Vec<&str> {
     }
 }
 
+#[cfg(feature = "time")]
 impl TimeColumn for Vec<DateTime> {
     fn len(&self) -> usize {
         self.len()
@@ -1118,6 +1160,7 @@ impl TimeColumn for Vec<DateTime> {
     }
 }
 
+#[cfg(feature = "time")]
 impl F64Column for Vec<DateTime> {
     fn len(&self) -> usize {
         self.len()
@@ -1130,6 +1173,7 @@ impl F64Column for Vec<DateTime> {
     }
 }
 
+#[cfg(feature = "time")]
 impl Column for Vec<DateTime> {
     fn len(&self) -> usize {
         self.len()
@@ -1145,6 +1189,7 @@ impl Column for Vec<DateTime> {
     }
 }
 
+#[cfg(feature = "time")]
 impl TimeColumn for Vec<Option<DateTime>> {
     fn len(&self) -> usize {
         self.len()
@@ -1155,6 +1200,7 @@ impl TimeColumn for Vec<Option<DateTime>> {
     }
 }
 
+#[cfg(feature = "time")]
 impl F64Column for Vec<Option<DateTime>> {
     fn len(&self) -> usize {
         self.len()
@@ -1172,6 +1218,7 @@ impl F64Column for Vec<Option<DateTime>> {
     }
 }
 
+#[cfg(feature = "time")]
 impl Column for Vec<Option<DateTime>> {
     fn len(&self) -> usize {
         self.len()
@@ -1190,6 +1237,7 @@ impl Column for Vec<Option<DateTime>> {
     }
 }
 
+#[cfg(feature = "time")]
 impl TimeDeltaColumn for Vec<TimeDelta> {
     fn len(&self) -> usize {
         self.len()
@@ -1200,6 +1248,7 @@ impl TimeDeltaColumn for Vec<TimeDelta> {
     }
 }
 
+#[cfg(feature = "time")]
 impl F64Column for Vec<TimeDelta> {
     fn len(&self) -> usize {
         self.len()
@@ -1212,7 +1261,9 @@ impl F64Column for Vec<TimeDelta> {
     }
 }
 
+#[cfg(feature = "time")]
 impl Column for Vec<TimeDelta> {
+    #[cfg(feature = "time")]
     fn len(&self) -> usize {
         self.len()
     }
@@ -1227,6 +1278,7 @@ impl Column for Vec<TimeDelta> {
     }
 }
 
+#[cfg(feature = "time")]
 impl TimeDeltaColumn for Vec<Option<TimeDelta>> {
     fn len(&self) -> usize {
         self.len()
@@ -1237,6 +1289,7 @@ impl TimeDeltaColumn for Vec<Option<TimeDelta>> {
     }
 }
 
+#[cfg(feature = "time")]
 impl F64Column for Vec<Option<TimeDelta>> {
     fn len(&self) -> usize {
         self.len()
@@ -1254,6 +1307,7 @@ impl F64Column for Vec<Option<TimeDelta>> {
     }
 }
 
+#[cfg(feature = "time")]
 impl Column for Vec<Option<TimeDelta>> {
     fn len(&self) -> usize {
         self.len()
@@ -1379,8 +1433,10 @@ pub enum VecColumn {
     I64(Vec<Option<i64>>),
     /// string column
     Str(Vec<Option<String>>),
+    #[cfg(feature = "time")]
     /// time column
     Time(Vec<Option<DateTime>>),
+    #[cfg(feature = "time")]
     /// time delta column
     TimeDelta(Vec<Option<TimeDelta>>),
 }
@@ -1423,7 +1479,9 @@ impl Column for VecColumn {
             VecColumn::F64(v) => v.len(),
             VecColumn::I64(v) => v.len(),
             VecColumn::Str(v) => v.len(),
+            #[cfg(feature = "time")]
             VecColumn::Time(v) => v.len(),
+            #[cfg(feature = "time")]
             VecColumn::TimeDelta(v) => v.len(),
         }
     }
@@ -1433,7 +1491,9 @@ impl Column for VecColumn {
             VecColumn::F64(v) => <dyn F64Column>::len_some(v),
             VecColumn::I64(v) => <dyn I64Column>::len_some(v),
             VecColumn::Str(v) => <dyn StrColumn>::len_some(v),
+            #[cfg(feature = "time")]
             VecColumn::Time(v) => <dyn TimeColumn>::len_some(v),
+            #[cfg(feature = "time")]
             VecColumn::TimeDelta(v) => <dyn TimeDeltaColumn>::len_some(v),
         }
     }
@@ -1446,7 +1506,9 @@ impl Column for VecColumn {
                 Some(s) => Sample::Cat(s.as_str()),
                 None => Sample::Null,
             })),
+            #[cfg(feature = "time")]
             VecColumn::Time(v) => Box::new(v.iter().map(|v| (*v).into())),
+            #[cfg(feature = "time")]
             VecColumn::TimeDelta(v) => Box::new(v.iter().map(|v| (*v).into())),
         }
     }
@@ -1473,6 +1535,7 @@ impl Column for VecColumn {
         }
     }
 
+    #[cfg(feature = "time")]
     fn time(&self) -> Option<&dyn TimeColumn> {
         match self {
             VecColumn::Time(v) => Some(v),
@@ -1480,6 +1543,7 @@ impl Column for VecColumn {
         }
     }
 
+    #[cfg(feature = "time")]
     fn time_delta(&self) -> Option<&dyn TimeDeltaColumn> {
         match self {
             VecColumn::TimeDelta(v) => Some(v),
@@ -1492,7 +1556,9 @@ impl Column for VecColumn {
             VecColumn::F64(v) => Box::new(v.clone()),
             VecColumn::I64(v) => Box::new(v.clone()),
             VecColumn::Str(v) => Box::new(v.clone()),
+            #[cfg(feature = "time")]
             VecColumn::Time(v) => Box::new(v.clone()),
+            #[cfg(feature = "time")]
             VecColumn::TimeDelta(v) => Box::new(v.clone()),
         }
     }
@@ -1535,7 +1601,9 @@ impl TableSource {
                     VecColumn::F64(vec) => vec.push(f64::NAN),
                     VecColumn::I64(vec) => vec.push(None),
                     VecColumn::Str(vec) => vec.push(None),
+                    #[cfg(feature = "time")]
                     VecColumn::Time(vec) => vec.push(None),
+                    #[cfg(feature = "time")]
                     VecColumn::TimeDelta(vec) => vec.push(None),
                 }
             }
@@ -1566,12 +1634,14 @@ impl TableSource {
         self
     }
 
+    #[cfg(feature = "time")]
     /// Add a time column with the given name, returning self for chaining
     pub fn with_time_column(mut self, name: &str, col: Vec<Option<DateTime>>) -> Self {
         self.add_column(name, VecColumn::Time(col));
         self
     }
 
+    #[cfg(feature = "time")]
     /// Add a time delta column with the given name, returning self for chaining
     pub fn with_time_delta_column(mut self, name: &str, col: Vec<Option<TimeDelta>>) -> Self {
         self.add_column(name, VecColumn::TimeDelta(col));
@@ -1634,10 +1704,12 @@ impl std::fmt::Debug for TableSource {
                     Some(Some(s)) => s.clone(),
                     _ => "(null)".to_string(),
                 },
+                #[cfg(feature = "time")]
                 VecColumn::Time(v) => match v.get(row) {
                     Some(Some(t)) => format!("{}", t),
                     _ => "(null)".to_string(),
                 },
+                #[cfg(feature = "time")]
                 VecColumn::TimeDelta(v) => match v.get(row) {
                     Some(Some(t)) => format!("{}", t),
                     _ => "(null)".to_string(),

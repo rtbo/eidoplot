@@ -38,6 +38,7 @@ noto-sans = ["eidoplot-text/noto-sans"]
 noto-sans-italic = ["eidoplot-text/noto-sans-italic"]
 noto-serif = ["eidoplot-text/noto-serif"]
 noto-serif-italic = ["eidoplot-text/noto-serif-italic"]
+time = []
 utils = []
 
 [[example]]
@@ -45,7 +46,7 @@ name = "bars"
 
 [[example]]
 name = "bitcoin"
-required-features = ["data-csv"]
+required-features = ["data-csv", "time"]
 
 [[example]]
 name = "bode_rlc"
@@ -57,6 +58,7 @@ required-features = ["eplt", "noto-serif-italic", "utils"]
 
 [[example]]
 name = "bouncing_ball"
+required-features = ["time"]
 
 [[example]]
 name = "gauss"

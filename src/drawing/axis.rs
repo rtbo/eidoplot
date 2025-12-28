@@ -5,8 +5,11 @@ use std::sync::Arc;
 mod bounds;
 mod side;
 
-pub use bounds::{AsBoundRef, Bounds, BoundsRef, NumBounds, TimeBounds};
+pub use bounds::{AsBoundRef, Bounds, BoundsRef, NumBounds};
 pub use side::Side;
+
+#[cfg(feature = "time")]
+pub use bounds::TimeBounds;
 
 use crate::drawing::scale::{self, CoordMap};
 use crate::drawing::{Categories, Ctx, Error, Text, ticks};
@@ -76,6 +79,7 @@ impl Axis {
             } => ticks.lbl_formatter.format_label(sample),
             AxisScale::Num { .. } => match sample {
                 data::Sample::Num(n) => n.to_string(),
+                #[cfg(feature = "time")]
                 data::Sample::Time(t) => t.to_string(),
                 _ => "".to_string(),
             },
@@ -399,6 +403,7 @@ where
                     ir_scale: ir_axis.scale().clone(),
                 })
             }
+            #[cfg(feature = "time")]
             Bounds::Time(tb) => {
                 let nb: NumBounds = (*tb).into();
                 let cm = scale::map_scale_coord_num(ir_axis.scale(), size_along, &nb, insets);
@@ -513,6 +518,7 @@ where
         })
     }
 
+    #[cfg(feature = "time")]
     fn setup_time_ticks(
         &self,
         major_ticks: &ir::axis::Ticks,

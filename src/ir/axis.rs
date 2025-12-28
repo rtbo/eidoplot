@@ -352,9 +352,11 @@ pub mod ticks {
         PiMultiple(PiMultipleLocator),
         /// Places ticks on a logarithmic scale, using the specified base and max number of bins
         Log(LogLocator),
+    #[cfg(feature = "time")]
         /// Places ticks on a time scale
         /// The series data must be DateTime, otherwise an error is returned.
         DateTime(DateTimeLocator),
+    #[cfg(feature = "time")]
         /// Places ticks on a time delta scale
         /// The series data can be either numeric or TimeDelta.
         /// In the case of numeric data, seconds are assumed.
@@ -425,6 +427,7 @@ pub mod ticks {
         }
     }
 
+    #[cfg(feature = "time")]
     /// Describes how to locate the ticks of a DateTime axis
     #[derive(Debug, Default, Clone, Copy)]
     pub enum DateTimeLocator {
@@ -450,12 +453,14 @@ pub mod ticks {
         Micros(u32),
     }
 
+    #[cfg(feature = "time")]
     impl From<DateTimeLocator> for Locator {
         fn from(locator: DateTimeLocator) -> Self {
             Locator::DateTime(locator)
         }
     }
 
+    #[cfg(feature = "time")]
     /// Describes how to locate the ticks of a TimeDelta axis
     #[derive(Debug, Default, Clone, Copy)]
     pub enum TimeDeltaLocator {
@@ -475,12 +480,14 @@ pub mod ticks {
         Micros(u32),
     }
 
+    #[cfg(feature = "time")]
     impl From<TimeDeltaLocator> for Locator {
         fn from(locator: TimeDeltaLocator) -> Self {
             Locator::TimeDelta(locator)
         }
     }
 
+    #[allow(missing_copy_implementations)]
     /// Describes how to format the ticks labels
     #[derive(Debug, Default, Clone)]
     pub enum Formatter {
@@ -497,9 +504,11 @@ pub mod ticks {
         Prec(usize),
         /// The labels are percentages (E.g. `0.5` will be formatted as `50%`)
         Percent(PercentFormatter),
+    #[cfg(feature = "time")]
         /// Formats the time ticks
         /// The data must be DateTime, otherwise an error is returned.
         DateTime(DateTimeFormatter),
+    #[cfg(feature = "time")]
         /// Formats the time delta ticks
         /// The series must be either TimeDelta or f64, otherwise an error is returned
         /// If the data is f64, it is assumed to be in seconds
@@ -520,6 +529,7 @@ pub mod ticks {
         }
     }
 
+    #[cfg(feature = "time")]
     /// A label formatter for DateTime ticks
     #[derive(Debug, Clone, Default)]
     pub enum DateTimeFormatter {
@@ -536,12 +546,14 @@ pub mod ticks {
         Custom(String),
     }
 
+    #[cfg(feature = "time")]
     impl From<DateTimeFormatter> for Formatter {
         fn from(fmt: DateTimeFormatter) -> Self {
             Formatter::DateTime(fmt)
         }
     }
 
+    #[cfg(feature = "time")]
     /// A label formatter for TimeDelta ticks
     #[derive(Debug, Clone, Default)]
     pub enum TimeDeltaFormatter {
@@ -552,6 +564,7 @@ pub mod ticks {
         Custom(String),
     }
 
+    #[cfg(feature = "time")]
     impl From<TimeDeltaFormatter> for Formatter {
         fn from(fmt: TimeDeltaFormatter) -> Self {
             Formatter::TimeDelta(fmt)

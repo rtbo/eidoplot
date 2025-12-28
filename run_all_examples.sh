@@ -24,16 +24,17 @@ cargo run --example text_line --package eidoplot-text --features noto-sans
 cargo run --example text_rich --package eidoplot-text --features noto-sans,noto-serif
 
 cargo run --example bars -- ${POS_ARGS[@]}
-cargo run --example bouncing_ball -- ${POS_ARGS[@]}
 cargo run --example gauss -- ${POS_ARGS[@]}
 cargo run --example sine -- ${POS_ARGS[@]}
+
+cargo run --example bouncing_ball --features time -- ${POS_ARGS[@]}
 
 cargo run --example bode_rlc --features noto-serif-italic,utils -- ${POS_ARGS[@]}
 
 cargo run --example multiple_axes --features utils -- ${POS_ARGS[@]}
 cargo run --example subplots --features utils -- ${POS_ARGS[@]}
 
-cargo run --example bitcoin --features data-csv -- ${POS_ARGS[@]}
+cargo run --example bitcoin --features data-csv,time -- ${POS_ARGS[@]}
 cargo run --example iris --features data-csv -- ${POS_ARGS[@]}
 
 cargo run --example bode_rlc_eplt --features eplt,noto-serif-italic,utils -- ${POS_ARGS[@]}
