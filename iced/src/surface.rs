@@ -69,7 +69,8 @@ where
         }
 
         if let Some(stroke) = path.stroke.as_ref() {
-            let iced_stroke = to_iced_stroke(stroke);
+            let mut pattern = Vec::new();
+            let iced_stroke = to_iced_stroke(stroke, &mut pattern);
             self.frames
                 .last_mut()
                 .unwrap()
@@ -116,15 +117,18 @@ fn to_iced_fill(paint: &render::Paint) -> geometry::Fill {
 }
 
 #[inline]
-fn to_iced_stroke<'a>(stroke: &'a render::Stroke) -> geometry::Stroke<'a> {
+fn to_iced_stroke<'a>(stroke: &'a render::Stroke, pattern: &'a mut Vec<f32>) -> geometry::Stroke<'a> {
     let style = to_iced_color(stroke.color).into();
     let width = stroke.width;
     let line_dash = match &stroke.pattern {
         render::LinePattern::Solid => geometry::LineDash::default(),
-        render::LinePattern::Dash(pattern) => geometry::LineDash {
-            segments: *pattern,
-            offset: 0,
-        },
+        render::LinePattern::Dash(dash) => {
+            *pattern = dash.iter().map(|v| *v as f32 * width).collect();
+            geometry::LineDash {
+                segments: pattern.as_slice(),
+                offset: 0,
+            }
+        }
     };
     geometry::Stroke {
         width,
