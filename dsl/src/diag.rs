@@ -4,6 +4,12 @@ use miette::MietteSpanContents;
 
 use crate::{Span, lex, parse};
 
+/// Export miette::Result as DiagResult, to avoid requiring dependency on miette.
+pub type DiagResult<T> = miette::Result<T>;
+
+/// Export miette::Report as DiagReport, to avoid requiring dependency on miette.
+pub type DiagReport = miette::Report;
+
 pub trait DiagTrait: fmt::Debug + fmt::Display {
     fn span(&self) -> Span;
     fn message(&self) -> String;

@@ -3,10 +3,8 @@
 //! EPLT is a domain-specific language for defining plots and figures.
 //! An `*.eplt*` file contains one or more [`ir::Figure`] definitions.
 use std::fmt;
-#[cfg(feature = "dsl-diag")]
 use std::path;
 
-#[cfg(feature = "dsl-diag")]
 pub use dsl::{Diagnostic, Source};
 
 use crate::dsl::{self, ast};
@@ -53,7 +51,6 @@ impl From<dsl::Error> for Error {
     }
 }
 
-#[cfg(feature = "dsl-diag")]
 impl dsl::DiagTrait for Error {
     fn span(&self) -> dsl::Span {
         match self {
@@ -103,12 +100,11 @@ pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<ir::Figure>, Error> {
     Ok(figs)
 }
 
-#[cfg(feature = "dsl-diag")]
 /// Parse EPLT DSL input into a list of IR figures, returning diagnostics on error.
 pub fn parse_diag<'a>(
     input: &'a str,
     file_name: Option<&'a path::Path>,
-) -> miette::Result<Vec<ir::Figure>> {
+) -> dsl::DiagResult<Vec<ir::Figure>> {
     match parse(input) {
         Ok(figs) => Ok(figs),
         Err(err) => {
@@ -117,7 +113,7 @@ pub fn parse_diag<'a>(
                 src: input.to_string(),
             };
             let diag = Diagnostic::new(Box::new(err), src);
-            let report = miette::Report::new(diag);
+            let report = dsl::DiagReport::new(diag);
             Err(report)
         }
     }

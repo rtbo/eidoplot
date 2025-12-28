@@ -6,7 +6,7 @@ mod lex;
 mod parse;
 
 #[cfg(feature = "diag")]
-pub use diag::{DiagTrait, Diagnostic, Source};
+pub use diag::{DiagReport, DiagResult, DiagTrait, Diagnostic, Source};
 pub use input::Pos;
 pub use lex::Span;
 pub use parse::{Error, parse};
