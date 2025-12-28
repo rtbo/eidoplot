@@ -70,7 +70,10 @@ where
 
         if let Some(stroke) = path.stroke.as_ref() {
             let iced_stroke = to_iced_stroke(stroke);
-            self.frames.last_mut().unwrap().stroke(&iced_path, iced_stroke);
+            self.frames
+                .last_mut()
+                .unwrap()
+                .stroke(&iced_path, iced_stroke);
         }
 
         Ok(())

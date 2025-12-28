@@ -28,10 +28,8 @@ pub fn locate_num(
             let ticker = MaxN::new_pi(locator.bins);
             Ok(ticker.ticks(nb))
         }
-        (Locator::Log (locator), Scale::Auto) => Ok(LogLocator::new_major(locator.base).ticks(nb)),
-        (Locator::Log (locator), Scale::Log(LogScale { base, .. }))
-            if locator.base == *base =>
-        {
+        (Locator::Log(locator), Scale::Auto) => Ok(LogLocator::new_major(locator.base).ticks(nb)),
+        (Locator::Log(locator), Scale::Log(LogScale { base, .. })) if locator.base == *base => {
             Ok(LogLocator::new_major(*base).ticks(nb))
         }
         (Locator::TimeDelta(loc), Scale::Auto | Scale::Linear { .. }) => {
@@ -63,9 +61,7 @@ pub fn locate_minor(
             Ok(ticker.ticks(nb))
         }
         (Locator::Log(locator), Scale::Auto) => Ok(LogLocator::new_minor(locator.base).ticks(nb)),
-        (Locator::Log(locator), Scale::Log(LogScale { base, .. }))
-            if locator.base == *base =>
-        {
+        (Locator::Log(locator), Scale::Log(LogScale { base, .. })) if locator.base == *base => {
             Ok(LogLocator::new_minor(*base).ticks(nb))
         }
         _ => Err(Error::InconsistentIr(format!(

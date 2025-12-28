@@ -415,9 +415,7 @@ pub mod ticks {
 
     impl Default for LogLocator {
         fn default() -> Self {
-            LogLocator {
-                base: 10.0,
-            }
+            LogLocator { base: 10.0 }
         }
     }
 

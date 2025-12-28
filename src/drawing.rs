@@ -150,7 +150,7 @@ impl Drawing for ir::Figure {
 }
 
 #[derive(Debug)]
-struct Ctx<'a, D : ?Sized> {
+struct Ctx<'a, D: ?Sized> {
     data_source: &'a D,
     fontdb: &'a fontdb::Database,
 }
@@ -198,7 +198,7 @@ where
     }
 }
 
-impl<'a, D : ?Sized> Ctx<'a, D> {
+impl<'a, D: ?Sized> Ctx<'a, D> {
     fn data_source(&self) -> &D {
         self.data_source
     }
