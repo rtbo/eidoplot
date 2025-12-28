@@ -76,7 +76,13 @@ impl Axis {
         match &*scale {
             AxisScale::Num {
                 ticks: Some(ticks), ..
-            } => ticks.lbl_formatter.format_label(sample),
+            } => {
+                let mut res = ticks.lbl_formatter.format_label(sample);
+                if let Some(annot) = &ticks.annot {
+                    res.push_str(&format!(" {}", &annot.text));
+                }
+                res
+            }
             AxisScale::Num { .. } => match sample {
                 data::Sample::Num(n) => n.to_string(),
                 #[cfg(feature = "time")]

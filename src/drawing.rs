@@ -210,6 +210,7 @@ impl<'a, D: ?Sized> Ctx<'a, D> {
 
 #[derive(Debug, Clone)]
 struct Text {
+    text: String,
     spans: Vec<TextSpan>,
     bbox: Option<geom::Rect>,
 }
@@ -236,6 +237,7 @@ impl Text {
             });
         });
         Ok(Text {
+            text: text.text().to_string(),
             spans,
             bbox: text.bbox().cloned(),
         })
@@ -268,6 +270,7 @@ impl Text {
             }
         })?;
         Ok(Text {
+            text: text.text().to_string(),
             spans,
             bbox: text.bbox().cloned(),
         })
