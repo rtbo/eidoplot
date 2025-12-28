@@ -3,8 +3,8 @@ use iced::advanced::graphics::geometry::{self, frame};
 
 #[derive(Debug)]
 pub struct IcedSurface<Frame> {
-    frame: Frame,
-    clip_stack: Vec<Frame>,
+    frames: Vec<Frame>,
+    clip_bounds: Vec<iced::Rectangle>,
     transform: geom::Transform,
 }
 
@@ -12,16 +12,21 @@ impl<Frame> IcedSurface<Frame>
 where
     Frame: frame::Backend,
 {
-    pub fn new(frame: Frame, transform: geom::Transform) -> Self {
+    pub fn new(frame: Frame, bounds: iced::Rectangle, transform: geom::Transform) -> Self {
         Self {
-            frame,
-            clip_stack: vec![],
+            clip_bounds: vec![bounds],
+            frames: vec![frame],
             transform,
         }
     }
 
-    pub fn into_geometry(self) -> Frame::Geometry {
-        self.frame.into_geometry()
+    pub fn clip_bounds(&self) -> iced::Rectangle {
+        let rect = self.clip_bounds.last().expect("unbalanced clip stack");
+        *rect
+    }
+
+    pub fn into_geometries(self) -> Vec<Frame::Geometry> {
+        self.frames.into_iter().map(|f| f.into_geometry()).collect()
     }
 
     fn transform_item(&self, item_transform: Option<&geom::Transform>) -> geom::Transform {
@@ -46,8 +51,11 @@ where
                 iced::Color::from_rgba8(c.red(), c.green(), c.blue(), c.alpha() as f32 / 255.0)
             }
         };
-        self.frame
-            .fill_rectangle(iced::Point::ORIGIN, self.frame.size(), color);
+        let bounds = self.clip_bounds();
+        self.frames
+            .last_mut()
+            .unwrap()
+            .fill_rectangle(bounds.position(), bounds.size(), color);
         Ok(())
     }
 
@@ -57,36 +65,36 @@ where
 
         if let Some(fill) = path.fill.as_ref() {
             let iced_fill = to_iced_fill(fill);
-            self.frame.fill(&iced_path, iced_fill);
+            self.frames.last_mut().unwrap().fill(&iced_path, iced_fill);
         }
 
         if let Some(stroke) = path.stroke.as_ref() {
             let iced_stroke = to_iced_stroke(stroke);
-            self.frame.stroke(&iced_path, iced_stroke);
+            self.frames.last_mut().unwrap().stroke(&iced_path, iced_stroke);
         }
 
         Ok(())
     }
+
+    // The normal way to do clipping in iced would be to use draft, then paste into the previous frame.
+    // However, because of https://github.com/iced-rs/iced/issues/3147 we use a workaround here:
+    //   - Each clip push/pop creates a new frame with the correct clip bounds.
+    //   - Each of those frames are returned as geometries and drawn in sequence
 
     fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
         let transform = self.transform_item(clip.transform);
         let iced_rect = to_iced_rect(&clip.rect, &transform);
-        let mut clip = self.frame.draft(iced_rect);
-
-        // make the clip frame the current frame
-        std::mem::swap(&mut self.frame, &mut clip);
-
-        self.clip_stack.push(clip);
+        let frame = self.frames.last_mut().unwrap().draft(iced_rect);
+        self.frames.push(frame);
+        self.clip_bounds.push(iced_rect);
         Ok(())
     }
 
     fn pop_clip(&mut self) -> Result<(), render::Error> {
-        if let Some(mut clip) = self.clip_stack.pop() {
-            // restore the previous frame
-            std::mem::swap(&mut self.frame, &mut clip);
-            // paste the clipped content back to the previous frame
-            self.frame.paste(clip);
-        }
+        let _ = self.clip_bounds.pop();
+        let rect = self.clip_bounds();
+        let frame = self.frames.last_mut().unwrap().draft(rect);
+        self.frames.push(frame);
         Ok(())
     }
 }

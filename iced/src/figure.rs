@@ -258,7 +258,7 @@ where
         let transform = fit_to_bounds(self.fig.size(), bounds);
 
         let frame = renderer.new_frame(bounds);
-        let mut surface = surface::IcedSurface::new(frame, transform);
+        let mut surface = surface::IcedSurface::new(frame, bounds, transform);
 
         if let Err(err) = self.fig.draw(&mut surface, &style) {
             eprintln!("Failed to draw figure: {}", err);
@@ -278,8 +278,9 @@ where
             });
         }
 
-        let geometry = surface.into_geometry();
-        renderer.draw_geometry(geometry);
+        for g in surface.into_geometries() {
+            renderer.draw_geometry(g);
+        }
     }
 }
 
