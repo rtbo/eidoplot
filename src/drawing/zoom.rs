@@ -43,7 +43,12 @@ impl AxisMask {
     }
 }
 
-/// A zoom operation to be applied to a figure.
+/// A zoom operation to be applied to a figure plot.
+/// The zoom is defined by a rectangle in figure coordinates,
+/// and masks indicating which axes are affected.
+///
+/// In order to zoom-in, the rectangle should be smaller than the current view.
+/// To zoom-out, the rectangle should be larger than the current view.
 #[derive(Debug, Clone, Copy)]
 pub struct Zoom {
     rect: geom::Rect,
@@ -231,22 +236,6 @@ impl super::Figure {
             for (y_ax, new_y_cm) in axes.y_mut().iter_mut().zip(view.y_infos.iter()) {
                 ctx.axis_set_coord_map(y_ax, new_y_cm.clone())?;
             }
-            // let new_x: Vec<Axis> = axes
-            //     .x()
-            //     .iter()
-            //     .zip(view.x_infos.iter())
-            //     .map(|(ax, info)| ctx.copy_axis_with_coord_map(ax, info.clone()))
-            //     .collect::<Result<_, _>>()?;
-
-            // let new_y: Vec<Axis> = axes
-            //     .y()
-            //     .iter()
-            //     .zip(view.y_infos.iter())
-            //     .map(|(ax, info)| ctx.copy_axis_with_coord_map(ax, info.clone()))
-            //     .collect::<Result<_, _>>()?;
-
-            // axes.replace(new_x, new_y);
-
             Ok::<(), super::Error>(())
         })?;
 
