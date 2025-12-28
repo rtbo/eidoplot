@@ -1,7 +1,6 @@
 //! Module for handling zoom operations and views in figures.
 use std::sync::Arc;
 
-use crate::drawing::axis::Axis;
 use crate::drawing::scale::CoordMap;
 use crate::drawing::{fig_x_to_plot_x, fig_y_to_plot_y};
 use crate::ir::PlotIdx;
@@ -165,8 +164,8 @@ impl super::Figure {
             return None;
         };
 
-        let x_infos = axes.x().iter().map(|axis| axis.coord_map_arc()).collect();
-        let y_infos = axes.y().iter().map(|axis| axis.coord_map_arc()).collect();
+        let x_infos = axes.x().iter().map(|axis| axis.coord_map()).collect();
+        let y_infos = axes.y().iter().map(|axis| axis.coord_map()).collect();
 
         Some(PlotView {
             idx,
@@ -226,21 +225,27 @@ impl super::Figure {
         );
 
         super::with_ctx(data_source, fontdb, |ctx| {
-            let new_x: Vec<Axis> = axes
-                .x()
-                .iter()
-                .zip(view.x_infos.iter())
-                .map(|(ax, info)| ctx.copy_axis_with_coord_map(ax, info.clone()))
-                .collect::<Result<_, _>>()?;
+            for (x_ax, new_x_cm) in axes.x_mut().iter_mut().zip(view.x_infos.iter()) {
+                ctx.axis_set_coord_map(x_ax, new_x_cm.clone())?;
+            }
+            for (y_ax, new_y_cm) in axes.y_mut().iter_mut().zip(view.y_infos.iter()) {
+                ctx.axis_set_coord_map(y_ax, new_y_cm.clone())?;
+            }
+            // let new_x: Vec<Axis> = axes
+            //     .x()
+            //     .iter()
+            //     .zip(view.x_infos.iter())
+            //     .map(|(ax, info)| ctx.copy_axis_with_coord_map(ax, info.clone()))
+            //     .collect::<Result<_, _>>()?;
 
-            let new_y: Vec<Axis> = axes
-                .y()
-                .iter()
-                .zip(view.y_infos.iter())
-                .map(|(ax, info)| ctx.copy_axis_with_coord_map(ax, info.clone()))
-                .collect::<Result<_, _>>()?;
+            // let new_y: Vec<Axis> = axes
+            //     .y()
+            //     .iter()
+            //     .zip(view.y_infos.iter())
+            //     .map(|(ax, info)| ctx.copy_axis_with_coord_map(ax, info.clone()))
+            //     .collect::<Result<_, _>>()?;
 
-            axes.replace(new_x, new_y);
+            // axes.replace(new_x, new_y);
 
             Ok::<(), super::Error>(())
         })?;

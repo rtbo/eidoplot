@@ -1,4 +1,5 @@
-use std::sync::Arc;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::drawing::axis::{Axis, AxisScale, Bounds, Side};
 use crate::drawing::legend::{Legend, LegendBuilder};
@@ -93,9 +94,11 @@ pub(super) struct Axes {
 }
 
 impl Axes {
-    pub(super) fn replace(&mut self, x: Vec<Axis>, y: Vec<Axis>) {
-        self.x = x;
-        self.y = y;
+    pub(super) fn x_mut(&mut self) -> &mut [Axis] {
+        &mut self.x
+    }
+    pub(super) fn y_mut(&mut self) -> &mut [Axis] {
+        &mut self.y
     }
 
     fn or_find(
@@ -574,7 +577,7 @@ where
         // collecting all axes that own their scale.
 
         // ax_infos is Some only for the axis owning their scale
-        let mut ax_infos: Vec<Option<(Bounds, Arc<AxisScale>)>> =
+        let mut ax_infos: Vec<Option<(Bounds, Rc<RefCell<AxisScale>>)>> =
             vec![None; ir_plots.or_axes_len(or)];
 
         // index of the first axis of a plot, at figure level
@@ -847,9 +850,11 @@ impl Plot {
             let (Some(x), Some(y)) = (x, y) else {
                 unreachable!("Series without axis");
             };
+            let x_cm = x.coord_map();
+            let y_cm = y.coord_map();
             let cm = CoordMapXy {
-                x: x.coord_map(),
-                y: y.coord_map(),
+                x: &*x_cm,
+                y: &*y_cm,
             };
 
             series.update_data(data_source, &self.rect, &cm)?;

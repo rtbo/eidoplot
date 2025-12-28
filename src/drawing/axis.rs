@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 mod bounds;
@@ -18,7 +20,7 @@ pub struct Axis {
     title_text: Option<String>,
     side: Side,
     draw_opts: DrawOpts,
-    scale: Arc<AxisScale>,
+    scale: Rc<RefCell<AxisScale>>,
 }
 
 impl Axis {
@@ -34,14 +36,15 @@ impl Axis {
         self.side
     }
 
-    pub fn scale(&self) -> &Arc<AxisScale> {
+    pub fn scale(&self) -> &Rc<RefCell<AxisScale>> {
         &self.scale
     }
 
     pub fn size_across(&self) -> f32 {
         let mark_size = self.draw_opts.marks.as_ref().map_or(0.0, |m| m.size_out);
         let with_labels = self.draw_opts.ticks_labels;
-        let mut size = match self.scale.as_ref() {
+        let scale = self.scale.as_ref().borrow();
+        let mut size = match &*scale {
             AxisScale::Num {
                 ticks: Some(ticks), ..
             } => ticks.size_across(self.side, mark_size, with_labels),
@@ -57,22 +60,17 @@ impl Axis {
         size
     }
 
-    pub fn coord_map(&self) -> &dyn CoordMap {
-        match self.scale.as_ref() {
-            AxisScale::Num { cm, .. } => &**cm,
-            AxisScale::Cat { bins, .. } => bins,
-        }
-    }
-
-    pub fn coord_map_arc(&self) -> Arc<dyn CoordMap> {
-        match self.scale.as_ref() {
+    pub fn coord_map(&self) -> Arc<dyn CoordMap> {
+        let scale = self.scale.as_ref().borrow();
+        match &*scale {
             AxisScale::Num { cm, .. } => Arc::clone(cm),
             AxisScale::Cat { bins, .. } => Arc::new(bins.clone()),
         }
     }
 
     pub fn format_sample(&self, sample: data::Sample) -> String {
-        match self.scale.as_ref() {
+        let scale = self.scale.as_ref().borrow();
+        match &*scale {
             AxisScale::Num {
                 ticks: Some(ticks), ..
             } => ticks.lbl_formatter.format_label(sample),
@@ -341,7 +339,7 @@ where
         side: Side,
         size_along: f32,
         insets: &geom::Padding,
-        shared_scale: Option<Arc<AxisScale>>,
+        shared_scale: Option<Rc<RefCell<AxisScale>>>,
         spine: Option<ir::plot::Border>,
     ) -> Result<Axis, Error> {
         let id = ir_axis.id().map(|s| s.to_string());
@@ -354,7 +352,9 @@ where
             scale
         } else {
             let insets = side.insets(insets);
-            Arc::new(self.setup_axis_scale(ir_axis, bounds, side, size_along, insets)?)
+            Rc::new(RefCell::new(
+                self.setup_axis_scale(ir_axis, bounds, side, size_along, insets)?,
+            ))
         };
 
         Ok(Axis {
@@ -641,12 +641,23 @@ where
         })
     }
 
-    pub fn copy_axis_with_coord_map(
+    pub fn axis_set_coord_map(
+        &self,
+        axis: &mut Axis,
+        coord_map: Arc<dyn CoordMap>,
+    ) -> Result<(), Error> {
+        let scale = self.axis_rebuild_scale(axis, coord_map)?;
+        *axis.scale.as_ref().borrow_mut() = scale;
+        Ok(())
+    }
+
+    fn axis_rebuild_scale(
         &self,
         axis: &Axis,
         coord_map: Arc<dyn CoordMap>,
-    ) -> Result<Axis, Error> {
-        let scale = match axis.scale.as_ref() {
+    ) -> Result<AxisScale, Error> {
+        let scale = axis.scale.as_ref().borrow();
+        match &*scale {
             AxisScale::Num {
                 ir_scale,
                 ticks,
@@ -669,23 +680,15 @@ where
                     })
                     .transpose()?;
 
-                AxisScale::Num {
+                Ok(AxisScale::Num {
                     ir_scale,
                     cm: coord_map,
                     ticks,
                     minor_ticks,
-                }
+                })
             }
             AxisScale::Cat { .. } => todo!("not implemented yet for categorical axes"),
-        };
-
-        Ok(Axis {
-            id: axis.id.clone(),
-            title_text: axis.title_text.clone(),
-            side: axis.side,
-            draw_opts: axis.draw_opts.clone(),
-            scale: Arc::new(scale),
-        })
+        }
     }
 }
 
@@ -731,9 +734,10 @@ impl Axis {
         S: render::Surface,
         T: Theme,
     {
+        let scale = self.scale.as_ref().borrow();
         let AxisScale::Num {
             cm, minor_ticks, ..
-        } = self.scale.as_ref()
+        } = &*scale
         else {
             return Ok(());
         };
@@ -774,7 +778,8 @@ impl Axis {
         S: render::Surface,
         T: Theme,
     {
-        let AxisScale::Num { cm, ticks, .. } = self.scale.as_ref() else {
+        let scale = self.scale.as_ref().borrow();
+        let AxisScale::Num { cm, ticks, .. } = &*scale else {
             return Ok(());
         };
         if let Some(ticks) = ticks {
@@ -815,34 +820,37 @@ impl Axis {
             self.draw_spine(surface, style, plot_rect, spine)?;
         }
 
-        let mut shift_across = match self.scale.as_ref() {
-            AxisScale::Num {
-                cm,
-                ticks,
-                minor_ticks,
-                ..
-            } => {
-                let mut shift: f32 = 0.0;
-                if let Some(minor_ticks) = minor_ticks.as_ref() {
-                    shift = shift.max(self.draw_minor_ticks(
-                        surface,
-                        style,
-                        &**cm,
-                        minor_ticks,
-                        plot_rect,
-                    )?);
+        let mut shift_across = {
+            let scale = self.scale.as_ref().borrow();
+            match &*scale {
+                AxisScale::Num {
+                    cm,
+                    ticks,
+                    minor_ticks,
+                    ..
+                } => {
+                    let mut shift: f32 = 0.0;
+                    if let Some(minor_ticks) = minor_ticks.as_ref() {
+                        shift = shift.max(self.draw_minor_ticks(
+                            surface,
+                            style,
+                            &**cm,
+                            minor_ticks,
+                            plot_rect,
+                        )?);
+                    }
+                    if let Some(ticks) = ticks {
+                        shift = shift
+                            .max(self.draw_major_ticks(surface, style, &**cm, ticks, plot_rect)?);
+                    }
+                    shift
                 }
-                if let Some(ticks) = ticks {
-                    shift =
-                        shift.max(self.draw_major_ticks(surface, style, &**cm, ticks, plot_rect)?);
-                }
-                shift
-            }
-            AxisScale::Cat { bins, ticks, .. } => {
-                if let Some(ticks) = ticks {
-                    self.draw_category_ticks(surface, style, bins, ticks, plot_rect)?
-                } else {
-                    0.0
+                AxisScale::Cat { bins, ticks, .. } => {
+                    if let Some(ticks) = ticks {
+                        self.draw_category_ticks(surface, style, bins, ticks, plot_rect)?
+                    } else {
+                        0.0
+                    }
                 }
             }
         };

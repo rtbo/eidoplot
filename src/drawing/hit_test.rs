@@ -126,7 +126,8 @@ impl super::Figure {
 fn axes_coords(axes: &[super::axis::Axis], pos: f32) -> PlotCoords {
     let mut coords = PlotCoords::default();
     for axis in axes {
-        let sample = axis.coord_map().unmap_coord(pos);
+        let cm = axis.coord_map();
+        let sample = cm.unmap_coord(pos);
         let str = axis.format_sample(sample);
         coords.push((sample.into(), str));
     }
