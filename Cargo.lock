@@ -2131,6 +2131,7 @@ dependencies = [
  "cpal",
  "eidoplot",
  "iced",
+ "iced_font_awesome",
  "rustfft",
 ]
 
@@ -2161,6 +2162,17 @@ dependencies = [
  "iced_core",
  "iced_futures",
  "log",
+]
+
+[[package]]
+name = "iced_font_awesome"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fd18ad9721e8095ac7b131b5c232e4211911e0defb293e62d8e5689d34bebe7"
+dependencies = [
+ "iced",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

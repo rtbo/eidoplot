@@ -126,6 +126,7 @@ iced = { version = "0.14.0", features = [
     "image",
     "tokio",
 ] }
+iced_font_awesome = "0.4.0"
 log = "0.4"
 miette = "7.6.0"
 polars = { version = "0.50.0", features = ["lazy"] }

@@ -12,6 +12,7 @@ keywords.workspace = true
 eidoplot.workspace = true
 bytes.workspace = true
 iced.workspace = true
+iced_font_awesome.workspace = true
 
 [[example]]
 name = "scope"

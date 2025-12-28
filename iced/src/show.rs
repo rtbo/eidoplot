@@ -8,6 +8,7 @@ use eidoplot::style::CustomStyle;
 use eidoplot::{Drawing, data, drawing, fontdb, geom, ir};
 use iced::widget::{button, column, mouse_area, row, space};
 use iced::{Alignment, Length};
+use iced_font_awesome::fa_icon_solid;
 
 use crate::figure::figure;
 
@@ -300,14 +301,19 @@ where
             Interaction::PanEnabled | Interaction::PanDragging { .. }
         );
 
-        let home_button = button("Home").on_press_maybe((!self.at_home).then_some(Message::GoHome));
-        let zoom_button = button("Zoom").on_press(Message::EnableZoom);
+        const FA_HOME: &str = "down-left-and-up-right-to-center";
+        const FA_ZOOM: &str = "expand";
+        const FA_PAN: &str = "arrows-up-down-left-right";
+
+        let home_button = button(fa_icon_solid(FA_HOME))
+            .on_press_maybe((!self.at_home).then_some(Message::GoHome));
+        let zoom_button = button(fa_icon_solid(FA_ZOOM)).on_press(Message::EnableZoom);
         let zoom_button = if zooming {
             zoom_button.style(button::secondary)
         } else {
             zoom_button.style(button::primary)
         };
-        let pan_button = button("Pan").on_press(Message::EnablePan);
+        let pan_button = button(fa_icon_solid(FA_PAN)).on_press(Message::EnablePan);
         let pan_button = if panning {
             pan_button.style(button::secondary)
         } else {
@@ -324,7 +330,7 @@ where
             zoom_button,
             pan_button,
             space::horizontal(),
-            status_txt
+            status_txt,
         ]
         .width(Length::Fill)
         .height(Length::Shrink)
