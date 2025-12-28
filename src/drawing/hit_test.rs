@@ -68,7 +68,7 @@ impl std::fmt::Display for PlotCoords {
         } else {
             for (i, pc) in self.1.iter().enumerate() {
                 if i > 0 {
-                    f.write_str(" / ")?;
+                    f.write_str("  |  ")?;
                 }
                 f.write_str(&pc.1)?;
             }

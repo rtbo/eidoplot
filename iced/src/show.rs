@@ -97,7 +97,7 @@ struct ShowWindow<D: ?Sized> {
     style: Option<CustomStyle>,
     at_home: bool,
     over_plot: bool,
-    tb_status: Option<String>,
+    tb_status: Option<(String, String)>,
     interaction: Interaction,
 }
 
@@ -166,7 +166,7 @@ where
 
                 let status = hit
                     .as_ref()
-                    .map(|h| format!("X = {} | Y = {}", h.x_coords, h.y_coords));
+                    .map(|h| (format!("X = {}", h.x_coords), format!("Y = {}", h.y_coords)));
                 self.tb_status = status;
 
                 match (&mut self.interaction, &hit) {
@@ -301,37 +301,49 @@ where
             Interaction::PanEnabled | Interaction::PanDragging { .. }
         );
 
+        const ICON_SZ: u16 = 24;
         const FA_HOME: &str = "down-left-and-up-right-to-center";
         const FA_ZOOM: &str = "expand";
         const FA_PAN: &str = "arrows-up-down-left-right";
 
-        let home_button = button(fa_icon_solid(FA_HOME))
+        let home_button = button(fa_icon_solid(FA_HOME).size(ICON_SZ))
             .on_press_maybe((!self.at_home).then_some(Message::GoHome));
-        let zoom_button = button(fa_icon_solid(FA_ZOOM)).on_press(Message::EnableZoom);
+        let zoom_button =
+            button(fa_icon_solid(FA_ZOOM).size(ICON_SZ)).on_press(Message::EnableZoom);
         let zoom_button = if zooming {
             zoom_button.style(button::secondary)
         } else {
             zoom_button.style(button::primary)
         };
-        let pan_button = button(fa_icon_solid(FA_PAN)).on_press(Message::EnablePan);
+        let pan_button = button(fa_icon_solid(FA_PAN).size(ICON_SZ)).on_press(Message::EnablePan);
         let pan_button = if panning {
             pan_button.style(button::secondary)
         } else {
             pan_button.style(button::primary)
         };
 
-        let status_txt = self.tb_status.as_deref().unwrap_or("");
-        let status_txt = iced::widget::text(status_txt)
-            .height(Length::Fill)
-            .align_y(Alignment::Center);
+        let (x, y) = if let Some((x, y)) = &self.tb_status {
+            (x.as_str(), y.as_str())
+        } else {
+            ("", "")
+        };
+
+        const TEXT_SZ: u32 = 12;
+        let status_txt = column![
+            iced::widget::text(x).size(TEXT_SZ),
+            iced::widget::text(y).size(TEXT_SZ),
+        ]
+        .padding(4)
+        .spacing(5);
 
         row![
             home_button,
             zoom_button,
             pan_button,
-            space::horizontal(),
             status_txt,
+            space::horizontal(),
         ]
+        .align_y(Alignment::Center)
         .width(Length::Fill)
         .height(Length::Shrink)
         .spacing(10)
