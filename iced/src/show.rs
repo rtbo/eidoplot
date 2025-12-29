@@ -283,8 +283,7 @@ where
                         BuiltinStyle::default().to_custom()
                     };
                     self.figure
-                        .draw(&mut surface, &style)
-                        .expect("Failed to draw figure to PNG");
+                        .draw(&mut surface, &style);
                     surface.save_png(&path).unwrap();
                 }
             }
@@ -304,8 +303,7 @@ where
                         BuiltinStyle::default().to_custom()
                     };
                     self.figure
-                        .draw(&mut surface, &style)
-                        .expect("Failed to draw figure to SVG");
+                        .draw(&mut surface, &style);
                     surface.save_svg(&path).unwrap();
                 }
             }
@@ -324,8 +322,7 @@ where
                     BuiltinStyle::default().to_custom()
                 };
                 self.figure
-                    .draw(&mut surface, &style)
-                    .expect("Failed to draw figure to PNG");
+                    .draw(&mut surface, &style);
                 let pixmap = surface.into_pixmap();
                 self.clipboard
                     .set_image(arboard::ImageData {

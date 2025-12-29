@@ -28,8 +28,6 @@ pub use hit_test::PlotHit;
 /// Errors that can occur during figure drawing
 #[derive(Debug)]
 pub enum Error {
-    /// Error during rendering
-    Render(render::Error),
     /// A series references a missing data source
     MissingDataSrc(String),
     /// An axis reference is unknown
@@ -50,12 +48,6 @@ pub enum Error {
     FontOrText(text::Error),
 }
 
-impl From<render::Error> for Error {
-    fn from(err: render::Error) -> Self {
-        Error::Render(err)
-    }
-}
-
 impl From<text::Error> for Error {
     fn from(err: text::Error) -> Self {
         Error::FontOrText(err)
@@ -71,7 +63,6 @@ impl From<ttf_parser::FaceParsingError> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Render(err) => err.fmt(f),
             Error::MissingDataSrc(name) => write!(f, "Missing data source: {}", name),
             Error::UnknownAxisRef(axis_ref) => write!(f, "Unknown axis reference: {:?}", axis_ref),
             Error::IllegalAxisRef(axis_ref) => write!(f, "Illegal axis reference: {:?}", axis_ref),
@@ -132,7 +123,8 @@ pub trait Drawing {
         T: Theme,
         P: style::series::Palette,
     {
-        self.prepare(data_source, fontdb)?.draw(surface, style)
+        self.prepare(data_source, fontdb)?.draw(surface, style);
+        Ok(())
     }
 }
 
@@ -299,7 +291,7 @@ impl Text {
         surface: &mut S,
         style: &Style<T, P>,
         transform: Option<&geom::Transform>,
-    ) -> Result<(), render::Error>
+    )
     where
         S: render::Surface,
         T: Theme,
@@ -311,9 +303,8 @@ impl Text {
                 stroke: span.stroke.as_ref().map(|s| s.as_stroke(style)),
                 transform,
             };
-            surface.draw_path(&rpath)?;
+            surface.draw_path(&rpath);
         }
-        Ok(())
     }
 }
 

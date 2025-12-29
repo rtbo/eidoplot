@@ -67,28 +67,26 @@ impl State {
         }
     }
 
-    fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
+    fn prepare(&mut self, size: geom::Size) {
         let sx = self.width as f32 / size.width();
         let sy = self.height as f32 / size.height();
         self.transform = geom::Transform::from_scale(sx, sy);
-        Ok(())
     }
 
-    fn fill(&mut self, px: &mut PixmapMut<'_>, fill: render::Paint) -> Result<(), render::Error> {
+    fn fill(&mut self, px: &mut PixmapMut<'_>, fill: render::Paint) {
         match fill {
             render::Paint::Solid(color) => {
                 let color = ts_color(color);
                 px.fill(color);
             }
         }
-        Ok(())
     }
 
     fn draw_path(
         &mut self,
         px: &mut PixmapMut<'_>,
         path: &render::Path,
-    ) -> Result<(), render::Error> {
+    )  {
         let transform = path
             .transform
             .map(|t| t.post_concat(self.transform))
@@ -111,10 +109,9 @@ impl State {
             let stroke = ts_stroke(stroke, &mut paint);
             px.stroke_path(path.path, &paint, &stroke, transform, self.clip.as_ref());
         }
-        Ok(())
     }
 
-    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
+    fn push_clip(&mut self, clip: &render::Clip)  {
         if self.clip.is_some() {
             unimplemented!("clip with more than 1 layer");
         } else {
@@ -127,57 +124,55 @@ impl State {
             mask.fill_path(&path, FillRule::Winding, true, transform);
             self.clip = Some(mask);
         }
-        Ok(())
     }
 
-    fn pop_clip(&mut self) -> Result<(), render::Error> {
+    fn pop_clip(&mut self)  {
         self.clip = None;
-        Ok(())
     }
 }
 
 impl render::Surface for PxlSurface {
-    fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
+    fn prepare(&mut self, size: geom::Size)  {
         self.state.prepare(size)
     }
 
-    fn fill(&mut self, fill: render::Paint) -> Result<(), render::Error> {
+    fn fill(&mut self, fill: render::Paint) {
         let mut px = self.pixmap.as_mut();
         self.state.fill(&mut px, fill)
     }
 
-    fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
+    fn draw_path(&mut self, path: &render::Path) {
         let mut px = self.pixmap.as_mut();
         self.state.draw_path(&mut px, path)
     }
 
-    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
+    fn push_clip(&mut self, clip: &render::Clip) {
         self.state.push_clip(clip)
     }
 
-    fn pop_clip(&mut self) -> Result<(), render::Error> {
+    fn pop_clip(&mut self)  {
         self.state.pop_clip()
     }
 }
 
 impl render::Surface for PxlSurfaceRef<'_> {
-    fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
+    fn prepare(&mut self, size: geom::Size) {
         self.state.prepare(size)
     }
 
-    fn fill(&mut self, fill: render::Paint) -> Result<(), render::Error> {
+    fn fill(&mut self, fill: render::Paint) {
         self.state.fill(&mut self.pixmap, fill)
     }
 
-    fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
+    fn draw_path(&mut self, path: &render::Path) {
         self.state.draw_path(&mut self.pixmap, path)
     }
 
-    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
+    fn push_clip(&mut self, clip: &render::Clip) {
         self.state.push_clip(clip)
     }
 
-    fn pop_clip(&mut self) -> Result<(), render::Error> {
+    fn pop_clip(&mut self) {
         self.state.pop_clip()
     }
 }

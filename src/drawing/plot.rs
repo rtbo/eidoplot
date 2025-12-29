@@ -101,6 +101,39 @@ impl Axes {
         &mut self.y
     }
 
+    fn or_find_idx(
+        &self,
+        or: Orientation,
+        ax_ref: Option<&ir::axis::Ref>,
+    ) -> Result<Option<usize>, Error> {
+        let axes = match or {
+            Orientation::X => &self.x,
+            Orientation::Y => &self.y,
+        };
+
+        for (ax_idx, a) in axes.iter().enumerate() {
+            match ax_ref {
+                None => {
+                    if ax_idx == 0 {
+                        return Ok(Some(ax_idx));
+                    }
+                }
+                Some(ir::axis::Ref::Idx(idx)) => {
+                    if ax_idx == *idx {
+                        return Ok(Some(ax_idx));
+                    }
+                }
+                Some(ir::axis::Ref::Id(id)) => {
+                    if a.id() == Some(id.as_str()) || a.title_text() == Some(id.as_str()) {
+                        return Ok(Some(ax_idx));
+                    }
+                }
+                Some(ax_ref) => return Err(Error::IllegalAxisRef(ax_ref.clone())),
+            }
+        }
+        Ok(None)
+    }
+
     fn or_find(
         &self,
         or: Orientation,
@@ -111,27 +144,8 @@ impl Axes {
             Orientation::Y => &self.y,
         };
 
-        for (ax_idx, a) in axes.iter().enumerate() {
-            match ax_ref {
-                None => {
-                    if ax_idx == 0 {
-                        return Ok(Some(a));
-                    }
-                }
-                Some(ir::axis::Ref::Idx(idx)) => {
-                    if ax_idx == *idx {
-                        return Ok(Some(a));
-                    }
-                }
-                Some(ir::axis::Ref::Id(id)) => {
-                    if a.id() == Some(id.as_str()) || a.title_text() == Some(id.as_str()) {
-                        return Ok(Some(a));
-                    }
-                }
-                Some(ax_ref) => return Err(Error::IllegalAxisRef(ax_ref.clone())),
-            }
-        }
-        Ok(None)
+        let ax = self.or_find_idx(or, ax_ref)?.map(|idx| &axes[idx]);
+        Ok(ax)
     }
 
     pub(super) fn x(&self) -> &[Axis] {
@@ -140,6 +154,26 @@ impl Axes {
 
     pub(super) fn y(&self) -> &[Axis] {
         &self.y
+    }
+
+    fn index_plotlines(&self, lines: &[PlotLine]) -> Result<Vec<PlotLine>, Error> {
+        let mut res = Vec::with_capacity(lines.len());
+        for line in lines {
+            let x_axis = self
+                .or_find_idx(Orientation::X, line.x_axis.as_ref())?
+                .ok_or_else(|| Error::UnknownAxisRef(line.x_axis.as_ref().unwrap().clone()))?;
+            let y_axis = self
+                .or_find_idx(Orientation::Y, line.y_axis.as_ref())?
+                .ok_or_else(|| Error::UnknownAxisRef(line.y_axis.as_ref().unwrap().clone()))?;
+
+            let line = PlotLine {
+                x_axis: Some(ir::axis::Ref::Idx(x_axis)),
+                y_axis: Some(ir::axis::Ref::Idx(y_axis)),
+                ..line.clone()
+            };
+            res.push(line);
+        }
+        Ok(res)
     }
 }
 
@@ -380,6 +414,12 @@ where
                         }
                     };
 
+                    let lines = axes
+                        .as_ref()
+                        .map(|a| a.index_plotlines(&ir_plot.lines()))
+                        .transpose()?
+                        .unwrap_or_default();
+
                     let plt_idx = row * ir_plots.cols() + col;
                     let plot = Plot {
                         idx: (row, col).into(),
@@ -389,7 +429,7 @@ where
                         axes,
                         series,
                         legend,
-                        lines: ir_plot.lines().to_vec(),
+                        lines,
                     };
                     plots[plt_idx as usize] = Some(plot);
                 }
@@ -819,18 +859,16 @@ impl Plots {
         Ok(())
     }
 
-    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         T: Theme,
         P: Palette,
     {
-        for plot in self.plots.iter() {
-            if let Some(plot) = plot {
-                plot.draw(surface, style)?;
-            }
-        }
-        Ok(())
+        self.plots
+            .iter()
+            .filter_map(Option::as_ref)
+            .for_each(|p| p.draw(surface, style));
     }
 }
 
@@ -862,35 +900,33 @@ impl Plot {
         Ok(())
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         T: Theme,
         P: Palette,
     {
-        self.draw_background(surface, style)?;
+        self.draw_background(surface, style);
         let Some(axes) = &self.axes else {
-            self.draw_border_box(surface, style)?;
-            return Ok(());
+            self.draw_border_box(surface, style);
+            return;
         };
 
-        axes.draw_grids(surface, style, &self.rect)?;
+        axes.draw_grids(surface, style, &self.rect);
 
-        self.draw_lines(surface, style, axes, false)?;
-        self.draw_series(surface, style)?;
-        self.draw_lines(surface, style, axes, true)?;
+        self.draw_lines(surface, style, axes, false);
+        self.draw_series(surface, style);
+        self.draw_lines(surface, style, axes, true);
 
-        axes.draw(surface, style, &self.rect)?;
-        self.draw_border_box(surface, style)?;
+        axes.draw(surface, style, &self.rect);
+        self.draw_border_box(surface, style);
 
         if let Some((top_left, leg)) = self.legend.as_ref() {
-            leg.draw(surface, style, top_left)?;
+            leg.draw(surface, style, top_left);
         }
-
-        Ok(())
     }
 
-    fn draw_background<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    fn draw_background<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         T: Theme,
@@ -901,12 +937,11 @@ impl Plot {
                 fill: Some(fill.as_paint(style)),
                 stroke: None,
                 transform: None,
-            })?;
+            });
         }
-        Ok(())
     }
 
-    fn draw_border_box<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    fn draw_border_box<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         T: Theme,
@@ -915,21 +950,19 @@ impl Plot {
         // otherwise, axes draw the border as spines
         let rect = self.rect;
         match self.border.as_ref() {
-            None => Ok(()),
             Some(ir::plot::Border::Box(stroke)) => {
                 surface.draw_rect(&render::Rect {
                     rect,
                     fill: None,
                     stroke: Some(stroke.as_stroke(style)),
                     transform: None,
-                })?;
-                Ok(())
+                });
             }
-            Some(_) => Ok(()),
+            _ => (),
         }
     }
 
-    fn draw_series<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    fn draw_series<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         P: Palette,
@@ -941,13 +974,12 @@ impl Plot {
             rect: &rect,
             transform: None,
         };
-        surface.push_clip(&clip)?;
+        surface.push_clip(&clip);
 
         for series in series.iter() {
-            series.draw(surface, style)?;
+            series.draw(surface, style);
         }
-        surface.pop_clip()?;
-        Ok(())
+        surface.pop_clip();
     }
 
     fn draw_lines<S, T, P>(
@@ -956,7 +988,7 @@ impl Plot {
         style: &Style<T, P>,
         axes: &Axes,
         above: bool,
-    ) -> Result<(), Error>
+    )
     where
         S: render::Surface,
         T: Theme,
@@ -964,16 +996,17 @@ impl Plot {
         for line in self.lines.iter() {
             if line.above == above {
                 let x_axis = axes
-                    .or_find(Orientation::X, line.x_axis.as_ref())?
-                    .ok_or_else(|| Error::UnknownAxisRef(line.x_axis.as_ref().unwrap().clone()))?;
+                    .or_find(Orientation::X, line.x_axis.as_ref())
+                    .unwrap()
+                    .unwrap();
                 let y_axis = axes
-                    .or_find(Orientation::Y, line.y_axis.as_ref())?
-                    .ok_or_else(|| Error::UnknownAxisRef(line.y_axis.as_ref().unwrap().clone()))?;
+                    .or_find(Orientation::Y, line.y_axis.as_ref())
+                    .unwrap()
+                    .unwrap();
 
-                self.draw_line(surface, style, line, x_axis, y_axis, &self.rect)?;
+                self.draw_line(surface, style, line, x_axis, y_axis, &self.rect);
             }
         }
-        Ok(())
     }
 
     fn draw_line<S, T, P>(
@@ -984,8 +1017,7 @@ impl Plot {
         x_axis: &Axis,
         y_axis: &Axis,
         plot_rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
+    ) where
         S: render::Surface,
         T: Theme,
     {
@@ -1057,54 +1089,40 @@ impl Plot {
                 stroke: Some(line.line.as_stroke(style)),
                 transform: None,
             };
-            surface.draw_path(&path)?;
+            surface.draw_path(&path);
         }
-
-        Ok(())
     }
 }
 
 impl Axes {
-    fn draw_grids<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-        rect: &geom::Rect,
-    ) -> Result<(), Error>
+    fn draw_grids<S, T, P>(&self, surface: &mut S, style: &Style<T, P>, rect: &geom::Rect)
     where
         S: render::Surface,
         T: Theme,
     {
         for axis in self.x.iter() {
-            axis.draw_minor_grids(surface, style, rect)?;
+            axis.draw_minor_grids(surface, style, rect);
         }
         for axis in self.y.iter() {
-            axis.draw_minor_grids(surface, style, rect)?;
+            axis.draw_minor_grids(surface, style, rect);
         }
         for axis in self.x.iter() {
-            axis.draw_major_grids(surface, style, rect)?;
+            axis.draw_major_grids(surface, style, rect);
         }
         for axis in self.y.iter() {
-            axis.draw_major_grids(surface, style, rect)?;
+            axis.draw_major_grids(surface, style, rect);
         }
-        Ok(())
     }
 
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-        plot_rect: &geom::Rect,
-    ) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>, plot_rect: &geom::Rect)
     where
         S: render::Surface,
         T: Theme,
     {
-        self.draw_side(surface, style, &self.x, Side::Top, plot_rect)?;
-        self.draw_side(surface, style, &self.y, Side::Right, plot_rect)?;
-        self.draw_side(surface, style, &self.x, Side::Bottom, plot_rect)?;
-        self.draw_side(surface, style, &self.y, Side::Left, plot_rect)?;
-        Ok(())
+        self.draw_side(surface, style, &self.x, Side::Top, plot_rect);
+        self.draw_side(surface, style, &self.y, Side::Right, plot_rect);
+        self.draw_side(surface, style, &self.x, Side::Bottom, plot_rect);
+        self.draw_side(surface, style, &self.y, Side::Left, plot_rect);
     }
 
     fn draw_side<S, T, P>(
@@ -1114,15 +1132,14 @@ impl Axes {
         axes: &[Axis],
         side: Side,
         plot_rect: &geom::Rect,
-    ) -> Result<(), Error>
-    where
+    ) where
         S: render::Surface,
         T: Theme,
     {
         let mut rect = *plot_rect;
         for axis in axes.iter() {
             if axis.side() == side {
-                let shift = axis.draw(surface, style, &rect)?
+                let shift = axis.draw(surface, style, &rect)
                     + missing_params::AXIS_MARGIN
                     + missing_params::AXIS_SPINE_WIDTH;
                 rect = match side {
@@ -1133,7 +1150,6 @@ impl Axes {
                 };
             }
         }
-        Ok(())
     }
 }
 

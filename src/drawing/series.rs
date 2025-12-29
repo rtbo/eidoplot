@@ -265,7 +265,7 @@ impl Series {
 }
 
 impl Series {
-    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         P: Palette,
@@ -341,7 +341,7 @@ impl Line {
         self.path = Some(pb.finish().expect("Should be a valid path"));
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         P: Palette,
@@ -354,8 +354,7 @@ impl Line {
             stroke: Some(self.line.as_stroke(&rc)),
             transform: None,
         };
-        surface.draw_path(&path)?;
-        Ok(())
+        surface.draw_path(&path);
     }
 }
 
@@ -411,7 +410,7 @@ impl Scatter {
         self.points = points;
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         P: Palette,
@@ -426,9 +425,8 @@ impl Scatter {
                 stroke: self.marker.stroke.as_ref().map(|l| l.as_stroke(&rc)),
                 transform: Some(&transform),
             };
-            surface.draw_path(&path)?;
+            surface.draw_path(&path);
         }
-        Ok(())
     }
 }
 
@@ -527,7 +525,7 @@ impl Histogram {
         self.path = Some(path);
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         P: Palette,
@@ -540,8 +538,7 @@ impl Histogram {
             stroke: self.line.as_ref().map(|l| l.as_stroke(&rc)),
             transform: None,
         };
-        surface.draw_path(&path)?;
-        Ok(())
+        surface.draw_path(&path);
     }
 }
 
@@ -660,7 +657,7 @@ impl Bars {
         self.path = Some(path);
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         P: Palette,
@@ -673,8 +670,7 @@ impl Bars {
             stroke: self.line.as_ref().map(|l| l.as_stroke(&rc)),
             transform: None,
         };
-        surface.draw_path(&path)?;
-        Ok(())
+        surface.draw_path(&path);
     }
 }
 
@@ -876,7 +872,7 @@ impl BarsGroup {
         paths
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         P: Palette,
@@ -893,9 +889,8 @@ impl BarsGroup {
                 stroke: series.line().map(|l| l.as_stroke(&rc)),
                 transform: None,
             };
-            surface.draw_path(&rpath)?;
+            surface.draw_path(&rpath);
         }
-        Ok(())
     }
 }
 

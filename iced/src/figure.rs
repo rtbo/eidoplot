@@ -229,7 +229,7 @@ where
 
         match event {
             iced::Event::Window(window_ev) => {
-                if let iced::window::Event::Resized{..} = window_ev {
+                if let iced::window::Event::Resized { .. } = window_ev {
                     // Clear mouse position on resize to avoid incorrect coordinates
                     state.mouse_pos = None;
                 }
@@ -295,10 +295,7 @@ where
         let frame = renderer.new_frame(bounds);
         let mut surface = surface::IcedSurface::new(frame, bounds, transform);
 
-        if let Err(err) = self.fig.draw(&mut surface, &style) {
-            eprintln!("Failed to draw figure: {}", err);
-            return;
-        }
+        self.fig.draw(&mut surface, &style);
 
         if let Some((start, end)) = self.zoom_rect {
             let rect = geom::Rect::from_corners(start, end);

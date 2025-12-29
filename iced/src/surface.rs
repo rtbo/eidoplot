@@ -41,11 +41,9 @@ impl<Frame> eidoplot::render::Surface for IcedSurface<Frame>
 where
     Frame: frame::Backend,
 {
-    fn prepare(&mut self, _size: geom::Size) -> Result<(), render::Error> {
-        Ok(())
-    }
+    fn prepare(&mut self, _size: geom::Size) {}
 
-    fn fill(&mut self, fill: render::Paint) -> Result<(), render::Error> {
+    fn fill(&mut self, fill: render::Paint) {
         let color = match fill {
             render::Paint::Solid(c) => {
                 iced::Color::from_rgba8(c.red(), c.green(), c.blue(), c.alpha() as f32 / 255.0)
@@ -56,10 +54,9 @@ where
             .last_mut()
             .unwrap()
             .fill_rectangle(bounds.position(), bounds.size(), color);
-        Ok(())
     }
 
-    fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
+    fn draw_path(&mut self, path: &render::Path) {
         let transform = self.transform_item(path.transform);
         let iced_path = to_iced_path(&path.path, &transform);
 
@@ -76,8 +73,6 @@ where
                 .unwrap()
                 .stroke(&iced_path, iced_stroke);
         }
-
-        Ok(())
     }
 
     // The normal way to do clipping in iced would be to use draft, then paste into the previous frame.
@@ -85,21 +80,19 @@ where
     //   - Each clip push/pop creates a new frame with the correct clip bounds.
     //   - Each of those frames are returned as geometries and drawn in sequence
 
-    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
+    fn push_clip(&mut self, clip: &render::Clip) {
         let transform = self.transform_item(clip.transform);
         let iced_rect = to_iced_rect(&clip.rect, &transform);
         let frame = self.frames.last_mut().unwrap().draft(iced_rect);
         self.frames.push(frame);
         self.clip_bounds.push(iced_rect);
-        Ok(())
     }
 
-    fn pop_clip(&mut self) -> Result<(), render::Error> {
+    fn pop_clip(&mut self) {
         let _ = self.clip_bounds.pop();
         let rect = self.clip_bounds();
         let frame = self.frames.last_mut().unwrap().draft(rect);
         self.frames.push(frame);
-        Ok(())
     }
 }
 
@@ -117,7 +110,10 @@ fn to_iced_fill(paint: &render::Paint) -> geometry::Fill {
 }
 
 #[inline]
-fn to_iced_stroke<'a>(stroke: &'a render::Stroke, pattern: &'a mut Vec<f32>) -> geometry::Stroke<'a> {
+fn to_iced_stroke<'a>(
+    stroke: &'a render::Stroke,
+    pattern: &'a mut Vec<f32>,
+) -> geometry::Stroke<'a> {
     let style = to_iced_color(stroke.color).into();
     let width = stroke.width;
     let line_dash = match &stroke.pattern {

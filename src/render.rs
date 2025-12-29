@@ -2,72 +2,41 @@
 //!
 //! All rendering surfaces must implement the `Surface` trait.
 //! See the `eidoplot-pxl` and `eidoplot-svg` crates for examples.
-use std::fmt;
 
-use crate::{ColorU8, geom, text};
-
-/// Errors that can occur during rendering
-#[derive(Debug)]
-pub enum Error {
-    /// Font or text related error
-    FontOrText(text::Error),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::FontOrText(err) => err.fmt(f),
-        }
-    }
-}
-
-impl From<text::Error> for Error {
-    fn from(err: text::Error) -> Self {
-        Error::FontOrText(err)
-    }
-}
-
-impl From<ttf_parser::FaceParsingError> for Error {
-    fn from(err: ttf_parser::FaceParsingError) -> Self {
-        Error::FontOrText(err.into())
-    }
-}
-
-impl std::error::Error for Error {}
+use crate::{ColorU8, geom};
 
 /// Surface trait: defines the rendering surface API
 pub trait Surface {
     /// Prepare the surface for drawing, with the given size in plot units
-    fn prepare(&mut self, size: geom::Size) -> Result<(), Error>;
+    fn prepare(&mut self, size: geom::Size);
 
     /// Fill the entire surface with the given fill pattern
-    fn fill(&mut self, fill: Paint) -> Result<(), Error>;
+    fn fill(&mut self, fill: Paint);
 
     /// Draw a rectangle
     ///
     /// Default implementation converts the rectangle to a path and call [`draw_path`](Surface::draw_path)
-    fn draw_rect(&mut self, rect: &Rect) -> Result<(), Error> {
+    fn draw_rect(&mut self, rect: &Rect) {
         let path = rect.rect.to_path();
-        let path = self::Path {
+        let rpath = self::Path {
             path: &path,
             fill: rect.fill,
             stroke: rect.stroke,
             transform: rect.transform,
         };
-        self.draw_path(&path)?;
-        Ok(())
+        self.draw_path(&rpath);
     }
 
     /// Draw a path
-    fn draw_path(&mut self, path: &Path) -> Result<(), Error>;
+    fn draw_path(&mut self, path: &Path);
 
     /// Push a clipping rect
     /// Subsequent draw operations will be clipped to this rect,
     /// until a matching [`pop_clip`] is called
-    fn push_clip(&mut self, clip: &Clip) -> Result<(), Error>;
+    fn push_clip(&mut self, clip: &Clip);
 
     /// Pop a clipping rect that was pushed previously with [`push_clip`]
-    fn pop_clip(&mut self) -> Result<(), Error>;
+    fn pop_clip(&mut self);
 }
 
 /// Paint pattern, used for fill operations

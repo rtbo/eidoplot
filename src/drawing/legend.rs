@@ -201,12 +201,7 @@ impl Legend {
         self.size
     }
 
-    pub fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-        top_left: &geom::Point,
-    ) -> Result<(), render::Error>
+    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>, top_left: &geom::Point)
     where
         S: render::Surface,
         T: Theme,
@@ -219,14 +214,12 @@ impl Legend {
                 fill: self.fill.map(|f| f.as_paint(style)),
                 stroke: self.border.as_ref().map(|l| l.as_stroke(style)),
                 transform: None,
-            })?;
+            });
         }
 
         for entry in &self.entries {
-            entry.draw(surface, style, &rect)?;
+            entry.draw(surface, style, &rect);
         }
-
-        Ok(())
     }
 }
 
@@ -236,7 +229,7 @@ impl LegendEntry {
         surface: &mut S,
         style: &Style<T, P>,
         rect: &geom::Rect,
-    ) -> Result<(), render::Error>
+    )
     where
         S: render::Surface,
         T: Theme,
@@ -273,7 +266,7 @@ impl LegendEntry {
                     stroke: Some(line.as_stroke(&rc)),
                     transform: None,
                 };
-                surface.draw_path(&line)?;
+                surface.draw_path(&line);
             }
             Shape::Marker(marker) => {
                 let path = crate::drawing::marker::marker_path(&marker);
@@ -286,7 +279,7 @@ impl LegendEntry {
                     stroke: marker.stroke.as_ref().map(|s| s.as_stroke(&rc)),
                     transform: Some(&transform),
                 };
-                surface.draw_path(&path)?;
+                surface.draw_path(&path);
             }
             Shape::Rect(fill, line) => {
                 let r = geom::Rect::from_ps(
@@ -302,7 +295,7 @@ impl LegendEntry {
                     stroke: line.as_ref().map(|l| l.as_stroke(&rc)),
                     transform: None,
                 };
-                surface.draw_rect(&rr)?;
+                surface.draw_rect(&rr);
             }
         };
 
@@ -310,8 +303,6 @@ impl LegendEntry {
             rect.left() + shape_sz.width() + defaults::LEGEND_SHAPE_SPACING,
             rect.center_y(),
         );
-        self.text.draw(surface, style, Some(&transform))?;
-
-        Ok(())
+        self.text.draw(surface, style, Some(&transform));
     }
 }

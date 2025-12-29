@@ -45,14 +45,13 @@ impl SvgSurface {
 
 impl Surface for SvgSurface {
     /// Prepare the surface for drawing, with the given width and height in plot units
-    fn prepare(&mut self, size: geom::Size) -> Result<(), render::Error> {
+    fn prepare(&mut self, size: geom::Size) {
         self.doc
             .assign("viewBox", (0, 0, size.width(), size.height()));
-        Ok(())
     }
 
     /// Fill the entire surface with the given color
-    fn fill(&mut self, fill: render::Paint) -> Result<(), render::Error> {
+    fn fill(&mut self, fill: render::Paint) {
         let mut node = element::Rectangle::new()
             .set("width", "100%")
             .set("height", "100%");
@@ -60,30 +59,27 @@ impl Surface for SvgSurface {
             render::Paint::Solid(color) => node.assign("fill", color.html()),
         }
         self.append_node(node);
-        Ok(())
     }
 
     /// Draw a rectangle
-    fn draw_rect(&mut self, rect: &render::Rect) -> Result<(), render::Error> {
+    fn draw_rect(&mut self, rect: &render::Rect) {
         let mut node = rectangle_node(&rect.rect);
         assign_fill(&mut node, rect.fill.as_ref());
         assign_stroke(&mut node, rect.stroke.as_ref());
         assign_transform(&mut node, rect.transform);
         self.append_node(node);
-        Ok(())
     }
 
-    fn draw_path(&mut self, path: &render::Path) -> Result<(), render::Error> {
+    fn draw_path(&mut self, path: &render::Path) {
         let mut node = element::Path::new();
         assign_fill(&mut node, path.fill.as_ref());
         assign_stroke(&mut node, path.stroke.as_ref());
         assign_transform(&mut node, path.transform);
         node.assign("d", path_data(path.path));
         self.append_node(node);
-        Ok(())
     }
 
-    fn push_clip(&mut self, clip: &render::Clip) -> Result<(), render::Error> {
+    fn push_clip(&mut self, clip: &render::Clip) {
         let clip_id = self.bump_clip_id();
         let clip_id_url = format!("url(#{})", clip_id);
         let mut rect_node = rectangle_node(&clip.rect);
@@ -94,16 +90,14 @@ impl Surface for SvgSurface {
         self.append_node(node);
         self.group_stack
             .push(element::Group::new().set("clip-path", clip_id_url));
-        Ok(())
     }
 
-    fn pop_clip(&mut self) -> Result<(), render::Error> {
+    fn pop_clip(&mut self) {
         let g = self.group_stack.pop();
         if g.is_none() {
             panic!("Unbalanced clip stack");
         }
         self.append_node(g.unwrap());
-        Ok(())
     }
 }
 

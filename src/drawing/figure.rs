@@ -185,28 +185,26 @@ where
 impl Figure {
     /// Draw the figure on the given rendering surface, using the given theme
     /// The surface content will be replaced by the figure drawing.
-    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>) -> Result<(), Error>
+    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
     where
         S: render::Surface,
         T: Theme,
         P: style::series::Palette,
     {
-        surface.prepare(self.size)?;
+        surface.prepare(self.size);
 
         if let Some(fill) = &self.fill {
-            surface.fill(fill.as_paint(style))?;
+            surface.fill(fill.as_paint(style));
         }
 
         if let Some((transform, title)) = &self.title {
-            title.draw(surface, style, Some(transform))?;
+            title.draw(surface, style, Some(transform));
         }
 
         if let Some((pos, legend)) = &self.legend {
-            legend.draw(surface, style, pos)?;
+            legend.draw(surface, style, pos);
         }
 
-        self.plots.draw(surface, style)?;
-
-        Ok(())
+        self.plots.draw(surface, style);
     }
 }
