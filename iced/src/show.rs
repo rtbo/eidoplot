@@ -4,11 +4,11 @@
 use std::sync::Arc;
 
 use eidoplot::drawing::zoom;
-use eidoplot::style::CustomStyle;
+use eidoplot::style::{BuiltinStyle, CustomStyle};
 use eidoplot::{Drawing, data, drawing, fontdb, geom, ir};
-use iced::widget::{button, column, mouse_area, row, space};
+use iced::widget::{button, column, mouse_area, row, space, text};
 use iced::{Alignment, Length};
-use iced_font_awesome::fa_icon_solid;
+use iced_font_awesome::{fa_icon, fa_icon_solid};
 
 use crate::figure::figure;
 
@@ -68,8 +68,12 @@ enum Message {
     FigureMousePress(geom::Point),
     FigureMouseMove(geom::Point),
     FigureMouseRelease(geom::Point),
+    FigureSizeChange(geom::Size),
 
     Event(iced::event::Event),
+
+    ExportPng,
+    ExportSvg,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -99,6 +103,7 @@ struct ShowWindow<D: ?Sized> {
     over_plot: bool,
     tb_status: Option<(String, String)>,
     interaction: Interaction,
+    fig_size: geom::Size,
 }
 
 impl<D> ShowWindow<D>
@@ -122,6 +127,7 @@ where
             over_plot: false,
             tb_status: None,
             interaction: Interaction::None,
+            fig_size: geom::Size::new(800.0, 600.0),
         }
     }
 
@@ -250,6 +256,53 @@ where
                     _ => {}
                 }
             }
+            Message::FigureSizeChange(size) => {
+                self.fig_size = size;
+            }
+            Message::ExportPng => {
+                let filename = rfd::FileDialog::new()
+                    .set_title("Save figure as PNG")
+                    .add_filter("PNG Image", &["png"])
+                    .set_file_name("figure.png")
+                    .save_file();
+                if let Some(path) = filename {
+                    let mut surface = eidoplot_pxl::PxlSurface::new(
+                        self.fig_size.width() as _,
+                        self.fig_size.height() as _,
+                    )
+                    .unwrap();
+                    let style = if let Some(style) = &self.style {
+                        style.clone()
+                    } else {
+                        BuiltinStyle::default().to_custom()
+                    };
+                    self.figure
+                        .draw(&mut surface, &style)
+                        .expect("Failed to draw figure to PNG");
+                    surface.save_png(&path).unwrap();
+                }
+            }
+            Message::ExportSvg => {
+                let filename = rfd::FileDialog::new()
+                    .set_title("Save figure as SVG")
+                    .add_filter("SVG Image", &["svg"])
+                    .set_file_name("figure.svg")
+                    .save_file();
+                if let Some(path) = filename {
+                    let size = self.fig_size;
+                    let mut surface =
+                        eidoplot_svg::SvgSurface::new(size.width() as _, size.height() as _);
+                    let style = if let Some(style) = &self.style {
+                        style.clone()
+                    } else {
+                        BuiltinStyle::default().to_custom()
+                    };
+                    self.figure
+                        .draw(&mut surface, &style)
+                        .expect("Failed to draw figure to SVG");
+                    surface.save_svg(&path).unwrap();
+                }
+            }
             _ => {}
         }
         iced::Task::none()
@@ -265,7 +318,8 @@ where
             .height(Length::Fill)
             .on_mouse_move(Message::FigureMouseMove)
             .on_mouse_press(Message::FigureMousePress)
-            .on_mouse_release(Message::FigureMouseRelease);
+            .on_mouse_release(Message::FigureMouseRelease)
+            .on_size_change(Message::FigureSizeChange);
 
         if let Some(style) = &self.style {
             fig = fig.style(|_| style.clone());
@@ -329,12 +383,22 @@ where
         };
 
         const TEXT_SZ: u32 = 12;
-        let status_txt = column![
-            iced::widget::text(x).size(TEXT_SZ),
-            iced::widget::text(y).size(TEXT_SZ),
-        ]
-        .padding(4)
-        .spacing(5);
+        let status_txt = column![text(x).size(TEXT_SZ), text(y).size(TEXT_SZ),]
+            .padding(4)
+            .spacing(5);
+
+        let convert_png = button(
+            row![fa_icon("file-image"), text("PNG").size(TEXT_SZ)]
+                .align_y(Alignment::Center)
+                .spacing(5),
+        )
+        .on_press(Message::ExportPng);
+        let convert_svg = button(
+            row![fa_icon("file-image"), text("SVG").size(TEXT_SZ)]
+                .align_y(Alignment::Center)
+                .spacing(5),
+        )
+        .on_press(Message::ExportSvg);
 
         row![
             home_button,
@@ -342,6 +406,8 @@ where
             pan_button,
             status_txt,
             space::horizontal(),
+            convert_png,
+            convert_svg,
         ]
         .align_y(Alignment::Center)
         .width(Length::Fill)

@@ -252,7 +252,7 @@ impl CoordMap for CategoryBins {
     }
 
     fn create_view(&self, _start: f32, _end: f32) -> Arc<dyn CoordMap> {
-        todo!("Zoom not implemented yet for categorical axes")
+        todo!("Zoom for categorical axes")
     }
 }
 

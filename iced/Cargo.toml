@@ -10,9 +10,12 @@ keywords.workspace = true
 
 [dependencies]
 eidoplot.workspace = true
+eidoplot-pxl.workspace = true
+eidoplot-svg.workspace = true
 bytes.workspace = true
 iced.workspace = true
 iced_font_awesome.workspace = true
+rfd.workspace = true
 
 [[example]]
 name = "scope"

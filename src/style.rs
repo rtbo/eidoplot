@@ -54,6 +54,12 @@ impl<T, P> Style<T, P> {
     }
 }
 
+impl Default for BuiltinStyle {
+    fn default() -> Self {
+        Builtin::Light.to_style()
+    }
+}
+
 impl<T, P> ResolveColor<theme::Color> for Style<T, P>
 where
     T: Theme,
