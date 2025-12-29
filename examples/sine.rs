@@ -41,5 +41,5 @@ fn main() {
         .with_f64_column("x".into(), x)
         .with_f64_column("y".into(), y);
 
-    common::save_figure(&fig, &data_source, "sine");
+    common::save_figure(&fig, &data_source, None, "sine");
 }

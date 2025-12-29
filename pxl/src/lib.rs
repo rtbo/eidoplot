@@ -1,7 +1,91 @@
+use std::fmt;
 use std::io;
+use std::path::Path;
 
-use eidoplot::{ColorU8, geom, render};
+use eidoplot::{ColorU8, Style, drawing, geom, render, style};
 use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
+
+#[derive(Debug)]
+pub enum Error {
+    Io(io::Error),
+    Drawing(drawing::Error),
+    InvalidSurfaceSize(u32, u32),
+}
+
+impl From<io::Error> for Error {
+    fn from(err: io::Error) -> Self {
+        Error::Io(err)
+    }
+}
+
+impl From<drawing::Error> for Error {
+    fn from(err: drawing::Error) -> Self {
+        Error::Drawing(err)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::Io(err) => write!(f, "IO error: {}", err),
+            Error::Drawing(err) => write!(f, "Drawing error: {}", err),
+            Error::InvalidSurfaceSize(w, h) => write!(f, "Invalid surface size: {}x{}", w, h),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+/// Parameters needed for saving a [`drawing::Figure`] as PNG
+#[derive(Debug, Clone)]
+pub struct DrawingParams<T, SP> {
+    pub style: Style<T, SP>,
+    pub scale: f32,
+}
+
+impl<T, SP> Default for DrawingParams<T, SP>
+where
+    T: style::Theme + Default,
+    SP: style::series::Palette + Default,
+{
+    fn default() -> Self {
+        Self {
+            style: Style {
+                theme: T::default(),
+                palette: SP::default(),
+            },
+            scale: 1.0,
+        }
+    }
+}
+
+pub trait SavePng {
+    fn save_png<P, T, SP>(&self, path: P, params: DrawingParams<T, SP>) -> Result<(), Error>
+    where
+        P: AsRef<Path>,
+        T: style::Theme,
+        SP: style::series::Palette;
+}
+
+impl SavePng for drawing::Figure {
+    fn save_png<P, T, SP>(&self, path: P, params: DrawingParams<T, SP>) -> Result<(), Error>
+    where
+        P: AsRef<Path>,
+        T: style::Theme,
+        SP: style::series::Palette,
+    {
+        let size = self.size();
+        let witdth = (size.width() * params.scale) as u32;
+        let height = (size.height() * params.scale) as u32;
+
+        let mut surface =
+            PxlSurface::new(witdth, height).ok_or(Error::InvalidSurfaceSize(witdth, height))?;
+
+        self.draw(&mut surface, &params.style);
+        surface.save_png(path)?;
+        Ok(())
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct PxlSurface {
@@ -82,11 +166,7 @@ impl State {
         }
     }
 
-    fn draw_path(
-        &mut self,
-        px: &mut PixmapMut<'_>,
-        path: &render::Path,
-    )  {
+    fn draw_path(&mut self, px: &mut PixmapMut<'_>, path: &render::Path) {
         let transform = path
             .transform
             .map(|t| t.post_concat(self.transform))
@@ -111,7 +191,7 @@ impl State {
         }
     }
 
-    fn push_clip(&mut self, clip: &render::Clip)  {
+    fn push_clip(&mut self, clip: &render::Clip) {
         if self.clip.is_some() {
             unimplemented!("clip with more than 1 layer");
         } else {
@@ -126,13 +206,13 @@ impl State {
         }
     }
 
-    fn pop_clip(&mut self)  {
+    fn pop_clip(&mut self) {
         self.clip = None;
     }
 }
 
 impl render::Surface for PxlSurface {
-    fn prepare(&mut self, size: geom::Size)  {
+    fn prepare(&mut self, size: geom::Size) {
         self.state.prepare(size)
     }
 
@@ -150,7 +230,7 @@ impl render::Surface for PxlSurface {
         self.state.push_clip(clip)
     }
 
-    fn pop_clip(&mut self)  {
+    fn pop_clip(&mut self) {
         self.state.pop_clip()
     }
 }

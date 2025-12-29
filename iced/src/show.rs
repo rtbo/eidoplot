@@ -17,7 +17,7 @@ pub trait Show {
     /// Show the figure in a GUI window.
     /// This function will block the calling thread until the window is closed.
     fn show<D>(
-        &self,
+        self,
         data_source: Arc<D>,
         fontdb: Arc<fontdb::Database>,
         style: Option<CustomStyle>,
@@ -28,7 +28,7 @@ pub trait Show {
 
 impl Show for ir::Figure {
     fn show<D>(
-        &self,
+        self,
         data_source: Arc<D>,
         fontdb: Arc<fontdb::Database>,
         style: Option<CustomStyle>,
@@ -36,27 +36,53 @@ impl Show for ir::Figure {
     where
         D: data::Source + ?Sized + 'static,
     {
-        let ir_fig = self.clone();
-        iced::application(
-            move || {
-                let data_source = data_source.clone();
-                let fontdb = fontdb.clone();
-                let style = style.clone();
-                let fig = ir_fig
-                    .prepare(&*data_source, Some(&*fontdb))
-                    .expect("Failed to prepare figure");
-                (
-                    ShowWindow::new(fig, data_source, fontdb, style),
-                    iced::Task::none(),
-                )
-            },
-            ShowWindow::update,
-            ShowWindow::view,
-        )
-        // subscribe to key events
-        .subscription(ShowWindow::subscription)
-        .run()
+        let fig = self
+            .prepare(&*data_source, Some(&*fontdb))
+            .expect("Failed to prepare figure");
+        show_app(fig, data_source, fontdb, style)
     }
+}
+
+impl Show for drawing::Figure {
+    fn show<D>(
+        self,
+        data_source: Arc<D>,
+        fontdb: Arc<fontdb::Database>,
+        style: Option<CustomStyle>,
+    ) -> iced::Result
+    where
+        D: data::Source + ?Sized + 'static,
+    {
+        show_app(self, data_source, fontdb, style)
+    }
+}
+
+fn show_app<D>(
+    fig: drawing::Figure,
+    data_source: Arc<D>,
+    fontdb: Arc<fontdb::Database>,
+    style: Option<CustomStyle>,
+) -> iced::Result
+where
+    D: data::Source + ?Sized + 'static,
+{
+    iced::application(
+        move || {
+            let fig = fig.clone();
+            let data_source = data_source.clone();
+            let fontdb = fontdb.clone();
+            let style = style.clone();
+            (
+                ShowWindow::new(fig, data_source, fontdb, style),
+                iced::Task::none(),
+            )
+        },
+        ShowWindow::update,
+        ShowWindow::view,
+    )
+    // subscribe to key events
+    .subscription(ShowWindow::subscription)
+    .run()
 }
 
 #[derive(Debug, Clone)]
@@ -107,7 +133,7 @@ struct ShowWindow<D: ?Sized> {
     interaction: Interaction,
     fig_size: geom::Size,
     #[cfg(feature = "clipboard")]
-    clipboard: arboard::Clipboard
+    clipboard: arboard::Clipboard,
 }
 
 impl<D> ShowWindow<D>
@@ -282,8 +308,7 @@ where
                     } else {
                         BuiltinStyle::default().to_custom()
                     };
-                    self.figure
-                        .draw(&mut surface, &style);
+                    self.figure.draw(&mut surface, &style);
                     surface.save_png(&path).unwrap();
                 }
             }
@@ -302,8 +327,7 @@ where
                     } else {
                         BuiltinStyle::default().to_custom()
                     };
-                    self.figure
-                        .draw(&mut surface, &style);
+                    self.figure.draw(&mut surface, &style);
                     surface.save_svg(&path).unwrap();
                 }
             }
@@ -321,8 +345,7 @@ where
                 } else {
                     BuiltinStyle::default().to_custom()
                 };
-                self.figure
-                    .draw(&mut surface, &style);
+                self.figure.draw(&mut surface, &style);
                 let pixmap = surface.into_pixmap();
                 self.clipboard
                     .set_image(arboard::ImageData {

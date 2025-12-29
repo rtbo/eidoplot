@@ -83,5 +83,5 @@ fn main() {
 
     let fig = ir::Figure::new(plot.into()).with_title("Categorial bars".into());
 
-    common::save_figure(&fig, &source, "bars");
+    common::save_figure(&fig, &source, None, "bars");
 }

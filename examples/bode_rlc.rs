@@ -139,5 +139,5 @@ fn main() {
     .with_title(title.into())
     .with_legend(ir::figure::LegendPos::Right.into());
 
-    common::save_figure(&fig, &source, "bode_rlc");
+    common::save_figure(&fig, &source, None, "bode_rlc");
 }

@@ -49,5 +49,5 @@ fn main() {
     let mut fontdb = text::fontdb::Database::new();
     fontdb.load_system_fonts();
 
-    common::save_figure_with_fontdb(&fig, &data_source, &fontdb, "subplots");
+    common::save_figure(&fig, &data_source, Some(&fontdb), "subplots");
 }

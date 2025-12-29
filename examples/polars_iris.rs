@@ -123,5 +123,5 @@ fn main() {
 
     let fig = ir::Figure::new(plot.into()).with_title(title);
 
-    common::save_figure(&fig, &source, "polars-iris");
+    common::save_figure(&fig, &source, None, "polars-iris");
 }

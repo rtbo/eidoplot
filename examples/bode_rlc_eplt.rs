@@ -64,5 +64,5 @@ fn main() {
         );
     }
     source.add_column("freq", Box::new(freq));
-    common::save_figure(&fig, &source, "bode_rlc_eplt");
+    common::save_figure(&fig, &source, None, "bode_rlc_eplt");
 }

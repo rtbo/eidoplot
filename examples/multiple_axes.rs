@@ -42,5 +42,5 @@ fn main() {
         .with_title("Multiple axes".into())
         .with_legend(Default::default());
 
-    common::save_figure(&fig, &data_src, "multiple_axes");
+    common::save_figure(&fig, &data_src, None, "multiple_axes");
 }

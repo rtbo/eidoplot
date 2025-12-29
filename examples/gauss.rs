@@ -68,5 +68,5 @@ fn main() {
 
     let data_source = data::TableSource::new().with_f64_column("pop".into(), pop);
 
-    common::save_figure(&fig, &data_source, "gauss");
+    common::save_figure(&fig, &data_source, None, "gauss");
 }

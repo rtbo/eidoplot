@@ -195,6 +195,12 @@ pub mod palette {
         }
     }
 
+    impl Default for Custom {
+        fn default() -> Self {
+            Builtin::default().to_custom()
+        }
+    }
+
     const BLACK: &[ColorU8] = &[ColorU8::from_html(b"#000000")];
     const STANDARD: &[ColorU8] = &[
         ColorU8::from_html(b"#1f77b4"), // blue

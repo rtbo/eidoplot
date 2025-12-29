@@ -4,7 +4,7 @@ pub(crate) mod defaults;
 pub mod series;
 pub mod theme;
 
-use crate::style::theme::Theme;
+pub use crate::style::theme::Theme;
 use crate::{Color, ColorU8, ResolveColor, render};
 
 /// Overall style definition for figures
@@ -54,9 +54,16 @@ impl<T, P> Style<T, P> {
     }
 }
 
-impl Default for BuiltinStyle {
+impl<T, P> Default for Style<T, P>
+where
+    T: Default,
+    P: Default,
+{
     fn default() -> Self {
-        Builtin::Light.to_style()
+        Style {
+            theme: T::default(),
+            palette: P::default(),
+        }
     }
 }
 

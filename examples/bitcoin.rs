@@ -38,5 +38,5 @@ fn main() {
         .with_legend(ir::plot::LegendPos::InTopLeft.into());
     let fig = ir::Figure::new(plot.into()).with_title("Bitcoin historical data".into());
 
-    common::save_figure(&fig, &data_source, "bitcoin");
+    common::save_figure(&fig, &data_source, None, "bitcoin");
 }

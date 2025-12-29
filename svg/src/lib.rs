@@ -1,9 +1,92 @@
-use std::io;
+use std::path::Path;
+use std::{fmt, io};
 
+use eidoplot::{Style, drawing, style};
 use eidoplot::geom::{self, Transform};
 use eidoplot::render::{self, Surface};
 use svg::Node;
 use svg::node::element;
+
+
+#[derive(Debug)]
+pub enum Error {
+    Io(io::Error),
+    Drawing(drawing::Error),
+}
+
+impl From<io::Error> for Error {
+    fn from(err: io::Error) -> Self {
+        Error::Io(err)
+    }
+}
+
+impl From<drawing::Error> for Error {
+    fn from(err: drawing::Error) -> Self {
+        Error::Drawing(err)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::Io(err) => write!(f, "IO error: {}", err),
+            Error::Drawing(err) => write!(f, "Drawing error: {}", err),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+/// Parameters needed for saving a [`drawing::Figure`] as SVG
+#[derive(Debug, Clone)]
+pub struct DrawingParams<T, SP> {
+    pub style: Style<T, SP>,
+    pub scale: f32,
+}
+
+impl<T, SP> Default for DrawingParams<T, SP>
+where
+    T: style::Theme + Default,
+    SP: style::series::Palette + Default,
+{
+    fn default() -> Self {
+        Self {
+            style: Style {
+                theme: T::default(),
+                palette: SP::default(),
+            },
+            scale: 1.0,
+        }
+    }
+}
+
+pub trait SaveSvg {
+    fn save_svg<P, T, SP>(&self, path: P, params: DrawingParams<T, SP>) -> Result<(), Error>
+    where
+        P: AsRef<Path>,
+        T: style::Theme,
+        SP: style::series::Palette;
+}
+
+impl SaveSvg for drawing::Figure {
+    fn save_svg<P, T, SP>(&self, path: P, params: DrawingParams<T, SP>) -> Result<(), Error>
+    where
+        P: AsRef<Path>,
+        T: style::Theme,
+        SP: style::series::Palette,
+    {
+        let size = self.size();
+        let witdth = (size.width() * params.scale) as u32;
+        let height = (size.height() * params.scale) as u32;
+
+        let mut surface =
+            SvgSurface::new(witdth, height);
+
+        self.draw(&mut surface, &params.style);
+        surface.save_svg(path)?;
+        Ok(())
+    }
+}
 
 pub struct SvgSurface {
     doc: svg::Document,

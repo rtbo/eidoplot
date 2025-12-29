@@ -133,6 +133,12 @@ pub struct Custom {
     pub legend_border: ColorU8,
 }
 
+impl Default for Custom {
+    fn default() -> Self {
+        Builtin::default().to_custom()
+    }
+}
+
 impl Custom {
     /// Create a new custom theme from background and foreground colors
     /// The grid, legend fill and legend border colors are derived automatically.

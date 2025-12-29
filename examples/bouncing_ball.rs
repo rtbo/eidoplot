@@ -147,5 +147,5 @@ fn main() {
     )
     .with_title(title.into());
 
-    common::save_figure(&fig, &data_source, "bouncing_ball");
+    common::save_figure(&fig, &data_source, None, "bouncing_ball");
 }

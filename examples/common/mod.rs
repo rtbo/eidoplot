@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use eidoplot::style::{self};
 use eidoplot::{Drawing, data, fontdb, ir};
-use eidoplot_pxl::PxlSurface;
-use eidoplot_svg::SvgSurface;
+use eidoplot_pxl::SavePng;
+use eidoplot_svg::SaveSvg;
 use iced_oplot::Show;
 use rand::SeedableRng;
 
@@ -89,38 +89,35 @@ fn parse_args() -> Args {
     args
 }
 
-#[allow(dead_code)]
-pub fn save_figure<D>(fig: &ir::Figure, data_source: &D, default_name: &str)
-where
-    D: data::Source,
-{
-    let args = parse_args();
-    let fontdb = eidoplot::bundled_font_db();
-    save_fig(fig, data_source, &args, default_name, &fontdb);
-}
-
-#[allow(dead_code)]
-pub fn save_figure_with_fontdb<D>(
+pub fn save_figure<D>(
     fig: &ir::Figure,
     data_source: &D,
-    fontdb: &fontdb::Database,
+    fontdb: Option<&fontdb::Database>,
     default_name: &str,
 ) where
     D: data::Source,
 {
     let args = parse_args();
-    save_fig(fig, data_source, &args, default_name, &fontdb);
+    if let Some(fontdb) = fontdb {
+        save_fig(fig, data_source, &args, fontdb, default_name);
+    } else {
+        let fontdb = eidoplot::bundled_font_db();
+        save_fig(fig, data_source, &args, &fontdb, default_name);
+    }
 }
 
 fn save_fig<D>(
     fig: &ir::Figure,
     data_source: &D,
     args: &Args,
-    default_name: &str,
     fontdb: &fontdb::Database,
+    default_name: &str,
 ) where
     D: data::Source,
 {
+    let fig = fig.prepare(data_source, Some(fontdb)).unwrap();
+    let style = args.style.clone().unwrap_or_default().to_style();
+
     match &args.png {
         Png::No => (),
         Png::Yes(filename) => {
@@ -128,8 +125,14 @@ fn save_fig<D>(
                 Some(path) => path.to_string_lossy().to_string(),
                 None => format!("{}.png", default_name),
             };
-            let style = args.style.clone().unwrap_or_default().to_style();
-            save_fig_as_png(fig, data_source, &style, fontdb, &file_name);
+            fig.save_png(
+                &file_name,
+                eidoplot_pxl::DrawingParams {
+                    style: style.clone(),
+                    scale: 2.0,
+                },
+            )
+            .unwrap();
         }
     }
 
@@ -140,8 +143,14 @@ fn save_fig<D>(
                 Some(path) => path.to_string_lossy().to_string(),
                 None => format!("{}.svg", default_name),
             };
-            let style = args.style.clone().unwrap_or_default().to_style();
-            save_fig_as_svg(fig, data_source, &style, fontdb, &file_name);
+            fig.save_svg(
+                &file_name,
+                eidoplot_svg::DrawingParams {
+                    style: style.clone(),
+                    scale: 1.0,
+                },
+            )
+            .unwrap();
         }
     }
 
@@ -149,41 +158,7 @@ fn save_fig<D>(
         let data_source = data_source.copy();
         let fontdb = Arc::new(fontdb.clone());
 
-        let style = args.style.map(|s| s.to_style().to_custom());
-        fig.show(data_source, fontdb, style).unwrap();
+        fig.show(data_source, fontdb, Some(style.to_custom()))
+            .unwrap();
     }
-}
-
-fn save_fig_as_png<D>(
-    fig: &ir::Figure,
-    data_source: &D,
-    style: &style::Style,
-    fontdb: &fontdb::Database,
-    file_name: &str,
-) where
-    D: data::Source,
-{
-    let width = (fig.size().width() * 2.0) as _;
-    let height = (fig.size().height() * 2.0) as _;
-    let mut pxl = PxlSurface::new(width, height).unwrap();
-    fig.draw(data_source, Some(fontdb), &mut pxl, style)
-        .unwrap();
-    pxl.save_png(file_name).unwrap();
-}
-
-fn save_fig_as_svg<D>(
-    fig: &ir::Figure,
-    data_source: &D,
-    style: &style::Style,
-    fontdb: &fontdb::Database,
-    file_name: &str,
-) where
-    D: data::Source,
-{
-    let width = fig.size().width() as _;
-    let height = fig.size().height() as _;
-    let mut svg = SvgSurface::new(width, height);
-    fig.draw(data_source, Some(fontdb), &mut svg, style)
-        .unwrap();
-    svg.save_svg(file_name).unwrap();
 }

@@ -18,5 +18,5 @@ fn main() {
     let content = std::fs::read_to_string(&filename).unwrap();
     let figs = eplt::parse_diag(&content, Some(&filename)).unwrap();
 
-    common::save_figure(&figs[0], &data_src, "multiple_axes_eplt");
+    common::save_figure(&figs[0], &data_src, None, "multiple_axes_eplt");
 }

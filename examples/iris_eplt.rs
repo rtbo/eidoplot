@@ -103,5 +103,5 @@ fn main() {
     let eplt = std::fs::read_to_string(&eplt_file).unwrap();
 
     let figs = eplt::parse_diag(&eplt, Some(&eplt_file)).unwrap();
-    common::save_figure(&figs[0], &source, "iris_eplt");
+    common::save_figure(&figs[0], &source, None, "iris_eplt");
 }
