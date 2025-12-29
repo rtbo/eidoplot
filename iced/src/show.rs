@@ -74,6 +74,8 @@ enum Message {
 
     ExportPng,
     ExportSvg,
+    #[cfg(feature = "clipboard")]
+    ExportClipboard,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -104,6 +106,8 @@ struct ShowWindow<D: ?Sized> {
     tb_status: Option<(String, String)>,
     interaction: Interaction,
     fig_size: geom::Size,
+    #[cfg(feature = "clipboard")]
+    clipboard: arboard::Clipboard
 }
 
 impl<D> ShowWindow<D>
@@ -128,6 +132,8 @@ where
             tb_status: None,
             interaction: Interaction::None,
             fig_size: geom::Size::new(800.0, 600.0),
+            #[cfg(feature = "clipboard")]
+            clipboard: arboard::Clipboard::new().unwrap(),
         }
     }
 
@@ -303,6 +309,32 @@ where
                     surface.save_svg(&path).unwrap();
                 }
             }
+            #[cfg(feature = "clipboard")]
+            Message::ExportClipboard => {
+                use std::borrow::Cow;
+
+                let mut surface = eidoplot_pxl::PxlSurface::new(
+                    self.fig_size.width() as _,
+                    self.fig_size.height() as _,
+                )
+                .unwrap();
+                let style = if let Some(style) = &self.style {
+                    style.clone()
+                } else {
+                    BuiltinStyle::default().to_custom()
+                };
+                self.figure
+                    .draw(&mut surface, &style)
+                    .expect("Failed to draw figure to PNG");
+                let pixmap = surface.into_pixmap();
+                self.clipboard
+                    .set_image(arboard::ImageData {
+                        width: pixmap.width() as usize,
+                        height: pixmap.height() as usize,
+                        bytes: Cow::Borrowed(pixmap.data()),
+                    })
+                    .unwrap();
+            }
             _ => {}
         }
         iced::Task::none()
@@ -400,7 +432,7 @@ where
         )
         .on_press(Message::ExportSvg);
 
-        row![
+        let mut tb = row![
             home_button,
             zoom_button,
             pan_button,
@@ -413,7 +445,14 @@ where
         .width(Length::Fill)
         .height(Length::Shrink)
         .spacing(10)
-        .padding(5)
-        .into()
+        .padding(5);
+
+        #[cfg(feature = "clipboard")]
+        {
+            let convert_clipboard = button(fa_icon("clipboard")).on_press(Message::ExportClipboard);
+            tb = tb.push(convert_clipboard);
+        }
+
+        tb.into()
     }
 }
