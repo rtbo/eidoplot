@@ -4,9 +4,9 @@ use std::time::Instant;
 
 use eidoplot::style::theme;
 use eidoplot::{Drawing, data, drawing, ir, style, utils};
+use eidoplot_iced::figure::figure;
 use iced::widget::{column, text};
 use iced::{Element, Subscription, Task, window};
-use eidoplot_iced::figure::figure;
 
 #[derive(Debug, Clone)]
 enum Message {

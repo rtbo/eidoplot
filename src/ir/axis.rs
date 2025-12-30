@@ -352,11 +352,11 @@ pub mod ticks {
         PiMultiple(PiMultipleLocator),
         /// Places ticks on a logarithmic scale, using the specified base and max number of bins
         Log(LogLocator),
-    #[cfg(feature = "time")]
+        #[cfg(feature = "time")]
         /// Places ticks on a time scale
         /// The series data must be DateTime, otherwise an error is returned.
         DateTime(DateTimeLocator),
-    #[cfg(feature = "time")]
+        #[cfg(feature = "time")]
         /// Places ticks on a time delta scale
         /// The series data can be either numeric or TimeDelta.
         /// In the case of numeric data, seconds are assumed.
@@ -504,11 +504,11 @@ pub mod ticks {
         Prec(usize),
         /// The labels are percentages (E.g. `0.5` will be formatted as `50%`)
         Percent(PercentFormatter),
-    #[cfg(feature = "time")]
+        #[cfg(feature = "time")]
         /// Formats the time ticks
         /// The data must be DateTime, otherwise an error is returned.
         DateTime(DateTimeFormatter),
-    #[cfg(feature = "time")]
+        #[cfg(feature = "time")]
         /// Formats the time delta ticks
         /// The series must be either TimeDelta or f64, otherwise an error is returned
         /// If the data is f64, it is assumed to be in seconds

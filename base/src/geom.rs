@@ -378,11 +378,7 @@ impl Rect {
     /// Scale the rectangle about a center point
     ///
     /// Panics if the scale factor is not positive.
-    pub fn scale_about(
-        &self,
-        center: Point,
-        scale_factor: f32,
-    ) -> Self {
+    pub fn scale_about(&self, center: Point, scale_factor: f32) -> Self {
         assert!(scale_factor > 0.0, "Scale factor must be positive");
 
         let width = self.width() * scale_factor;

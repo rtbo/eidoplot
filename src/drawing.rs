@@ -291,8 +291,7 @@ impl Text {
         surface: &mut S,
         style: &Style<T, P>,
         transform: Option<&geom::Transform>,
-    )
-    where
+    ) where
         S: render::Surface,
         T: Theme,
     {
@@ -320,7 +319,8 @@ trait ColumnExt: data::Column {
     fn bounds(&self) -> Option<axis::Bounds> {
         #[cfg(feature = "time")]
         if let Some(time) = self.time() {
-            return time.minmax()
+            return time
+                .minmax()
                 .map(|(min, max)| axis::Bounds::Time((min, max).into()));
         }
 

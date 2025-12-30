@@ -5,11 +5,10 @@ use std::sync::Arc;
 mod bounds;
 mod side;
 
-pub use bounds::{AsBoundRef, Bounds, BoundsRef, NumBounds};
-pub use side::Side;
-
 #[cfg(feature = "time")]
 pub use bounds::TimeBounds;
+pub use bounds::{AsBoundRef, Bounds, BoundsRef, NumBounds};
+pub use side::Side;
 
 use crate::drawing::scale::{self, CoordMap};
 use crate::drawing::{Categories, Ctx, Error, Text, ticks};

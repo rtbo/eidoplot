@@ -3,13 +3,12 @@ use std::sync::Arc;
 
 use crate::data;
 use crate::drawing::{Categories, Error, axis};
-use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
-use crate::ir::axis::{LogScale, Scale};
-
 #[cfg(feature = "time")]
 use crate::ir::axis::ticks::{
     DateTimeFormatter, DateTimeLocator, TimeDeltaFormatter, TimeDeltaLocator,
 };
+use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
+use crate::ir::axis::{LogScale, Scale};
 #[cfg(feature = "time")]
 use crate::time::{DateTime, DateTimeComps, TimeDelta};
 
@@ -35,7 +34,7 @@ pub fn locate_num(
         (Locator::Log(locator), Scale::Log(LogScale { base, .. })) if locator.base == *base => {
             Ok(LogLocator::new_major(*base).ticks(nb))
         }
-    #[cfg(feature = "time")]
+        #[cfg(feature = "time")]
         (Locator::TimeDelta(loc), Scale::Auto | Scale::Linear { .. }) => {
             locate_timedelta_num(loc, nb)
         }

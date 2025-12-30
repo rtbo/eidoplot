@@ -242,7 +242,10 @@ where
                     let delta_x = point.x - last.x;
                     let delta_y = point.y - last.y;
                     *last = point;
-                    let view = self.figure.plot_view(*plot_idx).expect("Plot index invalid");
+                    let view = self
+                        .figure
+                        .plot_view(*plot_idx)
+                        .expect("Plot index invalid");
                     let rect = view.rect().translate(-delta_x, -delta_y);
                     let zoom = zoom::Zoom::new(rect);
                     self.figure
@@ -308,7 +311,8 @@ where
                     let scale_factor = (1.0 + delta * 0.1).max(0.1);
                     let rect = view.rect().scale_about(point, scale_factor);
                     let zoom = zoom::Zoom::new(rect);
-                    self.figure.apply_zoom(plot_idx, &zoom, &*self.data_source, Some(&*self.fontdb))
+                    self.figure
+                        .apply_zoom(plot_idx, &zoom, &*self.data_source, Some(&*self.fontdb))
                         .expect("Failed to apply zoom");
                     self.at_home = false;
                 }
@@ -374,8 +378,9 @@ where
             }
             #[cfg(feature = "clipboard")]
             Message::ExportClipboard => {
-                use eidoplot_pxl::ToPixmap;
                 use std::borrow::Cow;
+
+                use eidoplot_pxl::ToPixmap;
 
                 let style = if let Some(style) = &self.style {
                     style.clone()

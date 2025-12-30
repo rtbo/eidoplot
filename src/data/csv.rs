@@ -1,5 +1,4 @@
 use super::{TableSource, VecColumn};
-
 #[cfg(feature = "time")]
 use crate::time::DateTime;
 

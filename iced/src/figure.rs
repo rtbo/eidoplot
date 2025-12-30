@@ -98,7 +98,10 @@ where
 
     /// Sets the on mouse press callback of the [`Figure`].
     #[must_use]
-    pub fn on_mouse_press(mut self, callback: impl Fn(geom::Point, mouse::Button) -> Message + 'a) -> Self {
+    pub fn on_mouse_press(
+        mut self,
+        callback: impl Fn(geom::Point, mouse::Button) -> Message + 'a,
+    ) -> Self {
         self.on_mouse_press = Some(Box::new(callback));
         self
     }
@@ -112,7 +115,10 @@ where
 
     /// Sets the on mouse release callback of the [`Figure`].
     #[must_use]
-    pub fn on_mouse_release(mut self, callback: impl Fn(geom::Point, mouse::Button) -> Message + 'a) -> Self {
+    pub fn on_mouse_release(
+        mut self,
+        callback: impl Fn(geom::Point, mouse::Button) -> Message + 'a,
+    ) -> Self {
         self.on_mouse_release = Some(Box::new(callback));
         self
     }

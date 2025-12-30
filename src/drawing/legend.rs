@@ -224,12 +224,7 @@ impl Legend {
 }
 
 impl LegendEntry {
-    fn draw<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-        rect: &geom::Rect,
-    )
+    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>, rect: &geom::Rect)
     where
         S: render::Surface,
         T: Theme,

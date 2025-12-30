@@ -982,13 +982,7 @@ impl Plot {
         surface.pop_clip();
     }
 
-    fn draw_lines<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-        axes: &Axes,
-        above: bool,
-    )
+    fn draw_lines<S, T, P>(&self, surface: &mut S, style: &Style<T, P>, axes: &Axes, above: bool)
     where
         S: render::Surface,
         T: Theme,

@@ -2,8 +2,7 @@
 //!
 //! EPLT is a domain-specific language for defining plots and figures.
 //! An `*.eplt*` file contains one or more [`ir::Figure`] definitions.
-use std::fmt;
-use std::path;
+use std::{fmt, path};
 
 pub use dsl::{Diagnostic, Source};
 

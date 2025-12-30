@@ -1,12 +1,11 @@
 use std::path::Path;
 use std::{fmt, io};
 
-use eidoplot::{Style, drawing, style};
 use eidoplot::geom::{self, Transform};
 use eidoplot::render::{self, Surface};
+use eidoplot::{Style, drawing, style};
 use svg::Node;
 use svg::node::element;
-
 
 #[derive(Debug)]
 pub enum Error {
@@ -79,8 +78,7 @@ impl SaveSvg for drawing::Figure {
         let witdth = (size.width() * params.scale) as u32;
         let height = (size.height() * params.scale) as u32;
 
-        let mut surface =
-            SvgSurface::new(witdth, height);
+        let mut surface = SvgSurface::new(witdth, height);
 
         self.draw(&mut surface, &params.style);
         surface.save_svg(path)?;

@@ -1,5 +1,5 @@
 use crate::drawing::{Categories, Error};
-            #[cfg(feature = "time")]
+#[cfg(feature = "time")]
 use crate::time::{DateTime, TimeDelta};
 
 /// Bounds of an axis
@@ -9,7 +9,7 @@ pub enum Bounds {
     Num(NumBounds),
     /// Category bounds
     Cat(Categories),
-            #[cfg(feature = "time")]
+    #[cfg(feature = "time")]
     /// Time bounds
     Time(TimeBounds),
 }
@@ -26,7 +26,7 @@ impl From<Categories> for Bounds {
     }
 }
 
-            #[cfg(feature = "time")]
+#[cfg(feature = "time")]
 impl From<TimeBounds> for Bounds {
     fn from(value: TimeBounds) -> Self {
         Self::Time(value)
@@ -70,7 +70,7 @@ pub enum BoundsRef<'a> {
     Num(NumBounds),
     /// Category bounds
     Cat(&'a Categories),
-            #[cfg(feature = "time")]
+    #[cfg(feature = "time")]
     /// Time bounds
     Time(TimeBounds),
 }
@@ -98,7 +98,7 @@ impl<'a> From<&'a Categories> for BoundsRef<'a> {
     }
 }
 
-            #[cfg(feature = "time")]
+#[cfg(feature = "time")]
 impl From<TimeBounds> for BoundsRef<'_> {
     fn from(value: TimeBounds) -> Self {
         Self::Time(value)
@@ -256,25 +256,25 @@ impl NumBounds {
     }
 }
 
-            #[cfg(feature = "time")]
+#[cfg(feature = "time")]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TimeBounds(DateTime, DateTime);
 
-            #[cfg(feature = "time")]
+#[cfg(feature = "time")]
 impl From<DateTime> for TimeBounds {
     fn from(value: DateTime) -> Self {
         Self(value, value)
     }
 }
 
-            #[cfg(feature = "time")]
+#[cfg(feature = "time")]
 impl From<(DateTime, DateTime)> for TimeBounds {
     fn from(value: (DateTime, DateTime)) -> Self {
         Self(value.0.min(value.1), value.0.max(value.1))
     }
 }
 
-            #[cfg(feature = "time")]
+#[cfg(feature = "time")]
 impl TimeBounds {
     pub fn start(&self) -> DateTime {
         self.0
@@ -306,14 +306,14 @@ impl TimeBounds {
     }
 }
 
-            #[cfg(feature = "time")]
+#[cfg(feature = "time")]
 impl From<TimeBounds> for NumBounds {
     fn from(value: TimeBounds) -> Self {
         Self(value.0.timestamp(), value.1.timestamp())
     }
 }
 
-            #[cfg(feature = "time")]
+#[cfg(feature = "time")]
 impl From<NumBounds> for TimeBounds {
     fn from(value: NumBounds) -> Self {
         Self(
