@@ -375,6 +375,25 @@ impl Rect {
         }
     }
 
+    /// Scale the rectangle about a center point
+    ///
+    /// Panics if the scale factor is not positive.
+    pub fn scale_about(
+        &self,
+        center: Point,
+        scale_factor: f32,
+    ) -> Self {
+        assert!(scale_factor > 0.0, "Scale factor must be positive");
+
+        let width = self.width() * scale_factor;
+        let height = self.height() * scale_factor;
+
+        let left = center.x - (center.x - self.left()) * scale_factor;
+        let top = center.y - (center.y - self.top()) * scale_factor;
+
+        Rect::from_xywh(left, top, width, height)
+    }
+
     /// Test if the rectangle contains a point
     pub fn contains_point(&self, point: &Point) -> bool {
         point.x >= self.left()

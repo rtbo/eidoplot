@@ -94,6 +94,7 @@ enum Message {
     FigureMousePress(geom::Point),
     FigureMouseMove(geom::Point),
     FigureMouseRelease(geom::Point),
+    FigureMouseWheel(geom::Point, f32),
     FigureScaleChange(f32),
 
     Event(iced::event::Event),
@@ -276,6 +277,18 @@ where
                     self.interaction = Interaction::None;
                 }
             },
+            Message::FigureMouseWheel(point, delta) => {
+                let hit = self.figure.hit_test_idx(point);
+                if let Some(plot_idx) = hit {
+                    let view = self.figure.plot_view(plot_idx).expect("Plot index invalid");
+                    let scale_factor = (1.0 + delta * 0.1).max(0.1);
+                    let rect = view.rect().scale_about(point, scale_factor);
+                    let zoom = zoom::Zoom::new(rect);
+                    self.figure.apply_zoom(plot_idx, &zoom, &*self.data_source, Some(&*self.fontdb))
+                        .expect("Failed to apply zoom");
+                    self.at_home = false;
+                }
+            }
             Message::Event(iced::event::Event::Mouse(ev)) => match ev {
                 iced::mouse::Event::CursorLeft => {
                     self.tb_status = None;
@@ -387,6 +400,7 @@ where
             .on_mouse_move(Message::FigureMouseMove)
             .on_mouse_press(Message::FigureMousePress)
             .on_mouse_release(Message::FigureMouseRelease)
+            .on_mouse_wheel(Message::FigureMouseWheel)
             .on_scale_change(Message::FigureScaleChange);
 
         if let Some(style) = &self.style {

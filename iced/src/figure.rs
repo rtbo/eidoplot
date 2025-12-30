@@ -29,6 +29,7 @@ where
     on_mouse_press: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
     on_mouse_move: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
     on_mouse_release: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
+    on_mouse_wheel: Option<Box<dyn Fn(geom::Point, f32) -> Message + 'a>>,
     on_scale_change: Option<Box<dyn Fn(f32) -> Message + 'a>>,
     zoom_rect: Option<(geom::Point, geom::Point)>,
 }
@@ -61,6 +62,7 @@ where
             on_mouse_press: None,
             on_mouse_move: None,
             on_mouse_release: None,
+            on_mouse_wheel: None,
             on_scale_change: None,
             zoom_rect: None,
         }
@@ -112,6 +114,13 @@ where
     #[must_use]
     pub fn on_mouse_release(mut self, callback: impl Fn(geom::Point) -> Message + 'a) -> Self {
         self.on_mouse_release = Some(Box::new(callback));
+        self
+    }
+
+    /// Sets the on mouse wheel callback of the [`Figure`].
+    #[must_use]
+    pub fn on_mouse_wheel(mut self, callback: impl Fn(geom::Point, f32) -> Message + 'a) -> Self {
+        self.on_mouse_wheel = Some(Box::new(callback));
         self
     }
 
@@ -263,6 +272,19 @@ where
                     if let Some(pos) = state.mouse_pos {
                         if let Some(callback) = &self.on_mouse_release {
                             let msg = callback(pos);
+                            shell.publish(msg);
+                        }
+                    }
+                    shell.capture_event();
+                }
+                mouse::Event::WheelScrolled { delta } => {
+                    if let Some(pos) = state.mouse_pos {
+                        if let Some(callback) = &self.on_mouse_wheel {
+                            let scroll_amount = match delta {
+                                mouse::ScrollDelta::Lines { y, .. } => *y,
+                                mouse::ScrollDelta::Pixels { y, .. } => *y / 50.0,
+                            };
+                            let msg = callback(pos, scroll_amount);
                             shell.publish(msg);
                         }
                     }
