@@ -26,9 +26,9 @@ where
     height: Length,
     scale: f32,
     class: Theme::Class<'a>,
-    on_mouse_press: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
+    on_mouse_press: Option<Box<dyn Fn(geom::Point, mouse::Button) -> Message + 'a>>,
     on_mouse_move: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
-    on_mouse_release: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
+    on_mouse_release: Option<Box<dyn Fn(geom::Point, mouse::Button) -> Message + 'a>>,
     on_mouse_wheel: Option<Box<dyn Fn(geom::Point, f32) -> Message + 'a>>,
     on_scale_change: Option<Box<dyn Fn(f32) -> Message + 'a>>,
     zoom_rect: Option<(geom::Point, geom::Point)>,
@@ -98,7 +98,7 @@ where
 
     /// Sets the on mouse press callback of the [`Figure`].
     #[must_use]
-    pub fn on_mouse_press(mut self, callback: impl Fn(geom::Point) -> Message + 'a) -> Self {
+    pub fn on_mouse_press(mut self, callback: impl Fn(geom::Point, mouse::Button) -> Message + 'a) -> Self {
         self.on_mouse_press = Some(Box::new(callback));
         self
     }
@@ -112,7 +112,7 @@ where
 
     /// Sets the on mouse release callback of the [`Figure`].
     #[must_use]
-    pub fn on_mouse_release(mut self, callback: impl Fn(geom::Point) -> Message + 'a) -> Self {
+    pub fn on_mouse_release(mut self, callback: impl Fn(geom::Point, mouse::Button) -> Message + 'a) -> Self {
         self.on_mouse_release = Some(Box::new(callback));
         self
     }
@@ -257,21 +257,21 @@ where
                     }
                     shell.capture_event();
                 }
-                mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                mouse::Event::ButtonPressed(but) => {
                     state.dragging = true;
                     if let Some(pos) = state.mouse_pos {
                         if let Some(callback) = &self.on_mouse_press {
-                            let msg = callback(pos);
+                            let msg = callback(pos, *but);
                             shell.publish(msg);
                         }
                     }
                     shell.capture_event();
                 }
-                mouse::Event::ButtonReleased(mouse::Button::Left) => {
+                mouse::Event::ButtonReleased(but) => {
                     state.dragging = false;
                     if let Some(pos) = state.mouse_pos {
                         if let Some(callback) = &self.on_mouse_release {
-                            let msg = callback(pos);
+                            let msg = callback(pos, *but);
                             shell.publish(msg);
                         }
                     }

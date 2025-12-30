@@ -7,7 +7,7 @@ use eidoplot::drawing::zoom;
 use eidoplot::style::{BuiltinStyle, CustomStyle};
 use eidoplot::{Drawing, data, drawing, fontdb, geom, ir};
 use iced::widget::{button, column, mouse_area, row, space, text};
-use iced::{Alignment, Length};
+use iced::{Alignment, Length, mouse};
 use iced_font_awesome::{fa_icon, fa_icon_solid};
 
 use crate::figure::figure;
@@ -91,9 +91,9 @@ enum Message {
     EnableZoom,
     EnablePan,
 
-    FigureMousePress(geom::Point),
+    FigureMousePress(geom::Point, mouse::Button),
     FigureMouseMove(geom::Point),
-    FigureMouseRelease(geom::Point),
+    FigureMouseRelease(geom::Point, mouse::Button),
     FigureMouseWheel(geom::Point, f32),
     FigureScaleChange(f32),
 
@@ -134,6 +134,7 @@ struct ShowWindow<D: ?Sized> {
     over_plot: bool,
     tb_status: Option<(String, String)>,
     interaction: Interaction,
+    middle_but_drag: Option<(ir::PlotIdx, geom::Point)>,
     fig_scale: f32,
     #[cfg(feature = "clipboard")]
     clipboard: arboard::Clipboard,
@@ -162,6 +163,7 @@ where
             over_plot: false,
             tb_status: None,
             interaction: Interaction::None,
+            middle_but_drag: None,
             fig_scale: 1.0,
             #[cfg(feature = "clipboard")]
             clipboard: arboard::Clipboard::new().unwrap(),
@@ -235,8 +237,21 @@ where
                     }
                     _ => {}
                 }
+
+                if let Some((plot_idx, last)) = self.middle_but_drag.as_mut() {
+                    let delta_x = point.x - last.x;
+                    let delta_y = point.y - last.y;
+                    *last = point;
+                    let view = self.figure.plot_view(*plot_idx).expect("Plot index invalid");
+                    let rect = view.rect().translate(-delta_x, -delta_y);
+                    let zoom = zoom::Zoom::new(rect);
+                    self.figure
+                        .apply_zoom(*plot_idx, &zoom, &*self.data_source, Some(&*self.fontdb))
+                        .expect("Failed to apply pan");
+                    self.at_home = false;
+                }
             }
-            Message::FigureMousePress(point) => {
+            Message::FigureMousePress(point, mouse::Button::Left) => {
                 let hit = self.figure.hit_test_idx(point);
                 match (&self.interaction, hit) {
                     (Interaction::ZoomEnabled, Some(plot)) => {
@@ -255,7 +270,7 @@ where
                     _ => {}
                 }
             }
-            Message::FigureMouseRelease(point) => match &self.interaction {
+            Message::FigureMouseRelease(point, mouse::Button::Left) => match &self.interaction {
                 Interaction::ZoomDragging { idx, start, end } => {
                     let hit = self.figure.hit_test_idx(point);
                     if let Some(hit_plot_idx) = hit {
@@ -277,6 +292,15 @@ where
                     self.interaction = Interaction::None;
                 }
             },
+            Message::FigureMousePress(point, mouse::Button::Middle) => {
+                let hit = self.figure.hit_test_idx(point);
+                if let Some(plot_idx) = hit {
+                    self.middle_but_drag = Some((plot_idx, point));
+                }
+            }
+            Message::FigureMouseRelease(_point, mouse::Button::Middle) => {
+                self.middle_but_drag = None;
+            }
             Message::FigureMouseWheel(point, delta) => {
                 let hit = self.figure.hit_test_idx(point);
                 if let Some(plot_idx) = hit {
