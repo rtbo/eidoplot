@@ -6,6 +6,8 @@ use std::sync::Arc;
 use eidoplot::drawing::zoom;
 use eidoplot::style::{BuiltinStyle, CustomStyle};
 use eidoplot::{Drawing, data, drawing, fontdb, geom, ir};
+use eidoplot_pxl::SavePng;
+use eidoplot_svg::SaveSvg;
 use iced::widget::{button, column, mouse_area, row, space, text};
 use iced::{Alignment, Length};
 use iced_font_awesome::{fa_icon, fa_icon_solid};
@@ -94,7 +96,7 @@ enum Message {
     FigureMousePress(geom::Point),
     FigureMouseMove(geom::Point),
     FigureMouseRelease(geom::Point),
-    FigureSizeChange(geom::Size),
+    FigureScaleChange(f32),
 
     Event(iced::event::Event),
 
@@ -131,7 +133,7 @@ struct ShowWindow<D: ?Sized> {
     over_plot: bool,
     tb_status: Option<(String, String)>,
     interaction: Interaction,
-    fig_size: geom::Size,
+    fig_scale: f32,
     #[cfg(feature = "clipboard")]
     clipboard: arboard::Clipboard,
 }
@@ -157,7 +159,7 @@ where
             over_plot: false,
             tb_status: None,
             interaction: Interaction::None,
-            fig_size: geom::Size::new(800.0, 600.0),
+            fig_scale: 1.0,
             #[cfg(feature = "clipboard")]
             clipboard: arboard::Clipboard::new().unwrap(),
         }
@@ -288,8 +290,8 @@ where
                     _ => {}
                 }
             }
-            Message::FigureSizeChange(size) => {
-                self.fig_size = size;
+            Message::FigureScaleChange(scale) => {
+                self.fig_scale = scale;
             }
             Message::ExportPng => {
                 let filename = rfd::FileDialog::new()
@@ -298,18 +300,15 @@ where
                     .set_file_name("figure.png")
                     .save_file();
                 if let Some(path) = filename {
-                    let mut surface = eidoplot_pxl::PxlSurface::new(
-                        self.fig_size.width() as _,
-                        self.fig_size.height() as _,
-                    )
-                    .unwrap();
                     let style = if let Some(style) = &self.style {
                         style.clone()
                     } else {
                         BuiltinStyle::default().to_custom()
                     };
-                    self.figure.draw(&mut surface, &style);
-                    surface.save_png(&path).unwrap();
+                    let scale = self.fig_scale;
+                    self.figure
+                        .save_png(path, eidoplot_pxl::DrawingParams { style, scale })
+                        .unwrap();
                 }
             }
             Message::ExportSvg => {
@@ -319,25 +318,24 @@ where
                     .set_file_name("figure.svg")
                     .save_file();
                 if let Some(path) = filename {
-                    let size = self.fig_size;
-                    let mut surface =
-                        eidoplot_svg::SvgSurface::new(size.width() as _, size.height() as _);
                     let style = if let Some(style) = &self.style {
                         style.clone()
                     } else {
                         BuiltinStyle::default().to_custom()
                     };
-                    self.figure.draw(&mut surface, &style);
-                    surface.save_svg(&path).unwrap();
+                    let scale = self.fig_scale;
+                    self.figure
+                        .save_svg(path, eidoplot_svg::DrawingParams { style, scale })
+                        .unwrap();
                 }
             }
             #[cfg(feature = "clipboard")]
             Message::ExportClipboard => {
                 use std::borrow::Cow;
-
+                let size = self.figure.size();
                 let mut surface = eidoplot_pxl::PxlSurface::new(
-                    self.fig_size.width() as _,
-                    self.fig_size.height() as _,
+                    (size.width() * self.fig_scale) as _,
+                    (size.height() * self.fig_scale) as _,
                 )
                 .unwrap();
                 let style = if let Some(style) = &self.style {
@@ -371,7 +369,7 @@ where
             .on_mouse_move(Message::FigureMouseMove)
             .on_mouse_press(Message::FigureMousePress)
             .on_mouse_release(Message::FigureMouseRelease)
-            .on_size_change(Message::FigureSizeChange);
+            .on_scale_change(Message::FigureScaleChange);
 
         if let Some(style) = &self.style {
             fig = fig.style(|_| style.clone());

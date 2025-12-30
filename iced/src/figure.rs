@@ -29,7 +29,7 @@ where
     on_mouse_press: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
     on_mouse_move: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
     on_mouse_release: Option<Box<dyn Fn(geom::Point) -> Message + 'a>>,
-    on_size_change: Option<Box<dyn Fn(geom::Size) -> Message + 'a>>,
+    on_scale_change: Option<Box<dyn Fn(f32) -> Message + 'a>>,
     zoom_rect: Option<(geom::Point, geom::Point)>,
 }
 
@@ -61,7 +61,7 @@ where
             on_mouse_press: None,
             on_mouse_move: None,
             on_mouse_release: None,
-            on_size_change: None,
+            on_scale_change: None,
             zoom_rect: None,
         }
     }
@@ -115,10 +115,10 @@ where
         self
     }
 
-    /// Sets the on size change callback of the [`Figure`].
+    /// Sets the on scale change callback of the [`Figure`].
     #[must_use]
-    pub fn on_size_change(mut self, callback: impl Fn(geom::Size) -> Message + 'a) -> Self {
-        self.on_size_change = Some(Box::new(callback));
+    pub fn on_scale_change(mut self, callback: impl Fn(f32) -> Message + 'a) -> Self {
+        self.on_scale_change = Some(Box::new(callback));
         self
     }
 
@@ -151,14 +151,11 @@ fn fit_transform_to_bounds(size: geom::Size, bounds: Rectangle) -> geom::Transfo
     geom::Transform::from_translate(tx, ty).pre_concat(geom::Transform::from_scale(s, s))
 }
 
-fn fit_size_to_bounds(size: geom::Size, bounds: Rectangle) -> geom::Size {
+fn fit_scale_to_bounds(size: geom::Size, bounds: Rectangle) -> f32 {
     // scale up or down to fit the size into bounds, preserving aspect ratio and centering
     let sx = bounds.width / size.width();
     let sy = bounds.height / size.height();
-    let s = sx.min(sy);
-    let w = size.width() * s;
-    let h = size.height() * s;
-    geom::Size::new(w, h)
+    sx.min(sy)
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Figure<'a, Message, Theme>
@@ -215,8 +212,8 @@ where
         let bounds = layout.bounds();
         if state.cached_bounds != Some(bounds) {
             state.cached_bounds = Some(bounds);
-            let size = fit_size_to_bounds(self.fig.size(), bounds);
-            if let Some(callback) = &self.on_size_change {
+            let size = fit_scale_to_bounds(self.fig.size(), bounds);
+            if let Some(callback) = &self.on_scale_change {
                 let msg = callback(size);
                 shell.publish(msg);
             }
