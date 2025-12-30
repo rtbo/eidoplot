@@ -2203,6 +2203,7 @@ dependencies = [
  "iced_font_awesome",
  "rfd",
  "rustfft",
+ "tokio",
 ]
 
 [[package]]

@@ -17,6 +17,7 @@ iced.workspace = true
 iced_font_awesome.workspace = true
 rfd.workspace = true
 arboard = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
 
 [[example]]
 name = "scope"
@@ -31,7 +32,7 @@ rustfft = "6.4.1"
 
 [features]
 default = ["noto-sans"]
-clipboard = ["dep:arboard"]
+clipboard = ["dep:arboard", "dep:tokio"]
 noto-sans = ["eidoplot/noto-sans"]
 noto-sans-italic = ["eidoplot/noto-sans-italic"]
 noto-serif = ["eidoplot/noto-serif"]

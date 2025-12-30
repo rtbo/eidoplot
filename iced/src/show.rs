@@ -6,8 +6,6 @@ use std::sync::Arc;
 use eidoplot::drawing::zoom;
 use eidoplot::style::{BuiltinStyle, CustomStyle};
 use eidoplot::{Drawing, data, drawing, fontdb, geom, ir};
-use eidoplot_pxl::SavePng;
-use eidoplot_svg::SaveSvg;
 use iced::widget::{button, column, mouse_area, row, space, text};
 use iced::{Alignment, Length};
 use iced_font_awesome::{fa_icon, fa_icon_solid};
@@ -104,6 +102,8 @@ enum Message {
     ExportSvg,
     #[cfg(feature = "clipboard")]
     ExportClipboard,
+    #[cfg(feature = "clipboard")]
+    ResetClipboardAck,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -136,6 +136,8 @@ struct ShowWindow<D: ?Sized> {
     fig_scale: f32,
     #[cfg(feature = "clipboard")]
     clipboard: arboard::Clipboard,
+    #[cfg(feature = "clipboard")]
+    ack_clipboard: bool,
 }
 
 impl<D> ShowWindow<D>
@@ -162,6 +164,8 @@ where
             fig_scale: 1.0,
             #[cfg(feature = "clipboard")]
             clipboard: arboard::Clipboard::new().unwrap(),
+            #[cfg(feature = "clipboard")]
+            ack_clipboard: false,
         }
     }
 
@@ -294,6 +298,7 @@ where
                 self.fig_scale = scale;
             }
             Message::ExportPng => {
+                use eidoplot_pxl::SavePng;
                 let filename = rfd::FileDialog::new()
                     .set_title("Save figure as PNG")
                     .add_filter("PNG Image", &["png"])
@@ -312,6 +317,7 @@ where
                 }
             }
             Message::ExportSvg => {
+                use eidoplot_svg::SaveSvg;
                 let filename = rfd::FileDialog::new()
                     .set_title("Save figure as SVG")
                     .add_filter("SVG Image", &["svg"])
@@ -340,7 +346,8 @@ where
                     BuiltinStyle::default().to_custom()
                 };
                 let scale = self.fig_scale;
-                let pixmap = self.figure
+                let pixmap = self
+                    .figure
                     .to_pixmap(eidoplot_pxl::DrawingParams { style, scale })
                     .unwrap();
                 self.clipboard
@@ -350,6 +357,19 @@ where
                         bytes: Cow::Borrowed(pixmap.data()),
                     })
                     .unwrap();
+                self.ack_clipboard = true;
+                return iced::Task::perform(
+                    async {
+                        tokio::time::sleep(std::time::Duration::from_millis(800)).await;
+                    },
+                    |_| Message::ResetClipboardAck,
+                );
+            }
+            #[cfg(feature = "clipboard")]
+            Message::ResetClipboardAck => {
+                if self.ack_clipboard {
+                    self.ack_clipboard = false;
+                }
             }
             _ => {}
         }
@@ -465,7 +485,13 @@ where
 
         #[cfg(feature = "clipboard")]
         {
-            let convert_clipboard = button(fa_icon("clipboard")).on_press(Message::ExportClipboard);
+            let icon = if self.ack_clipboard {
+                fa_icon_solid("check")
+            } else {
+                fa_icon("clipboard")
+            };
+
+            let convert_clipboard = button(icon).on_press(Message::ExportClipboard);
             tb = tb.push(convert_clipboard);
         }
 
