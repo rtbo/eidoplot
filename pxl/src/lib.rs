@@ -82,8 +82,35 @@ impl SavePng for drawing::Figure {
             PxlSurface::new(witdth, height).ok_or(Error::InvalidSurfaceSize(witdth, height))?;
 
         self.draw(&mut surface, &params.style);
+
         surface.save_png(path)?;
         Ok(())
+    }
+}
+
+pub trait ToPixmap {
+    fn to_pixmap<T, P>(&self, params: DrawingParams<T, P>) -> Result<tiny_skia::Pixmap, Error>
+    where
+        T: style::Theme,
+        P: style::series::Palette;
+}
+
+impl ToPixmap for drawing::Figure {
+    fn to_pixmap<T, P>(&self, params: DrawingParams<T, P>) -> Result<tiny_skia::Pixmap, Error>
+    where
+        T: style::Theme,
+        P: style::series::Palette,
+    {
+        let size = self.size();
+        let witdth = (size.width() * params.scale) as u32;
+        let height = (size.height() * params.scale) as u32;
+
+        let mut surface =
+            PxlSurface::new(witdth, height).ok_or(Error::InvalidSurfaceSize(witdth, height))?;
+
+        self.draw(&mut surface, &params.style);
+
+        Ok(surface.into_pixmap())
     }
 }
 
