@@ -6,7 +6,7 @@ use eidoplot::style::theme;
 use eidoplot::{Drawing, data, drawing, ir, style, utils};
 use iced::widget::{column, text};
 use iced::{Element, Subscription, Task, window};
-use iced_oplot::figure::figure;
+use eidoplot_iced::figure::figure;
 
 #[derive(Debug, Clone)]
 enum Message {
@@ -150,7 +150,7 @@ fn build_figure() -> ir::Figure {
 
 fn main() -> iced::Result {
     iced::application(Scope::default, Scope::update, Scope::view)
-        .title("Iced-Oplot: Real-time")
+        .title("eidoplot-iced: Real-time")
         .subscription(|_| Subscription::batch([window::frames().map(Message::Frame)]))
         .antialiasing(true)
         .run()

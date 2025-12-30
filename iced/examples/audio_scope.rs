@@ -645,7 +645,7 @@ impl AudioScope {
             column![host_row, device_row, bs_row, sr_row,],
         ];
         let plot: Element<'_, Message> = if let Some(fig) = &self.fig {
-            iced_oplot::Figure::new(&fig).scale(2.0).into()
+            eidoplot_iced::Figure::new(&fig).scale(2.0).into()
         } else {
             text("No data")
                 .width(Length::Fill)

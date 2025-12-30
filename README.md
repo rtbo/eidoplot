@@ -31,7 +31,7 @@ Eidoplot separates figure design from data and rendering surfaces.
   for axis ticks labels, legends etc. without a single line of code on the user side.
 
 - **GUI integration and real-time rendering**
- - The package `iced-oplot` provides a [iced](https::/github.com/iced-rs/iced.git) `Figure` widget.
+  - The package `eidoplot-iced` provides a [iced](https::/github.com/iced-rs/iced.git) `Figure` widget.
 Thanks to separation of data from design, redraws of the same figure with different data
 is very efficient and compatible with real-time rendering, up to hundreds of redraws per second.
 
@@ -72,7 +72,7 @@ The `ir` module contains a declarative representation of figures, independent of
 Rendering surfaces implement the `render::Surface` trait and are in separate crates:
 - **`eidoplot-svg`**: SVG format rendering
 - **`eidoplot-pxl`**: Bitmap rendering (PNG, etc.)
-- **`iced-oplot`**: Rendering in iced window.
+- **`eidoplot-iced`**: Rendering in iced window.
 
 Rendering surfaces don't need to know anything about figures or plotted data.
 They only have to render path primitives. Even text is pre-processed as paths before being submitted to surfaces.
@@ -111,7 +111,7 @@ cargo run --example iris --features data-csv -- svg png
 - **`eidoplot-dsl`**: Parser for `.eplt` DSL
 - **`eidoplot-svg`**: SVG rendering backend
 - **`eidoplot-pxl`**: Pixel rendering backend (suitable for PNG exports)
-- **`iced-oplot`**: Figure widget for iced
+- **`eidoplot-iced`**: Figure widget for iced
 - **`eidoplot-text`**: Text and font management
 - **`eidoplot-tests`**: Integration tests
 

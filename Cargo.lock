@@ -1292,10 +1292,10 @@ version = "0.1.0-dev"
 dependencies = [
  "eidoplot-base",
  "eidoplot-dsl",
+ "eidoplot-iced",
  "eidoplot-pxl",
  "eidoplot-svg",
  "eidoplot-text",
- "iced-oplot",
  "ode_solvers",
  "polars",
  "rand",
@@ -1318,6 +1318,23 @@ name = "eidoplot-dsl"
 version = "0.1.0-dev"
 dependencies = [
  "miette",
+]
+
+[[package]]
+name = "eidoplot-iced"
+version = "0.1.0-dev"
+dependencies = [
+ "arboard",
+ "bytes",
+ "cpal",
+ "eidoplot",
+ "eidoplot-pxl",
+ "eidoplot-svg",
+ "iced",
+ "iced_font_awesome",
+ "rfd",
+ "rustfft",
+ "tokio",
 ]
 
 [[package]]
@@ -2187,23 +2204,6 @@ dependencies = [
  "iced_winit",
  "image",
  "thiserror 2.0.14",
-]
-
-[[package]]
-name = "iced-oplot"
-version = "0.1.0-dev"
-dependencies = [
- "arboard",
- "bytes",
- "cpal",
- "eidoplot",
- "eidoplot-pxl",
- "eidoplot-svg",
- "iced",
- "iced_font_awesome",
- "rfd",
- "rustfft",
- "tokio",
 ]
 
 [[package]]

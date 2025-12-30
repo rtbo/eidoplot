@@ -6,7 +6,7 @@ use eidoplot::style::{self};
 use eidoplot::{Drawing, data, fontdb, ir};
 use eidoplot_pxl::SavePng;
 use eidoplot_svg::SaveSvg;
-use iced_oplot::Show;
+use eidoplot_iced::Show;
 use rand::SeedableRng;
 
 /// Get the path to a file in the examples folder
