@@ -331,20 +331,18 @@ where
             }
             #[cfg(feature = "clipboard")]
             Message::ExportClipboard => {
+                use eidoplot_pxl::ToPixmap;
                 use std::borrow::Cow;
-                let size = self.figure.size();
-                let mut surface = eidoplot_pxl::PxlSurface::new(
-                    (size.width() * self.fig_scale) as _,
-                    (size.height() * self.fig_scale) as _,
-                )
-                .unwrap();
+
                 let style = if let Some(style) = &self.style {
                     style.clone()
                 } else {
                     BuiltinStyle::default().to_custom()
                 };
-                self.figure.draw(&mut surface, &style);
-                let pixmap = surface.into_pixmap();
+                let scale = self.fig_scale;
+                let pixmap = self.figure
+                    .to_pixmap(eidoplot_pxl::DrawingParams { style, scale })
+                    .unwrap();
                 self.clipboard
                     .set_image(arboard::ImageData {
                         width: pixmap.width() as usize,

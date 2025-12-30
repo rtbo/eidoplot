@@ -119,6 +119,7 @@ eidoplot-pxl = { version = "0.1.0-dev", path = "pxl" }
 eidoplot-svg = { version = "0.1.0-dev", path = "svg" }
 eidoplot-text = { version = "0.1.0-dev", path = "text" }
 iced-oplot = { version = "0.1.0-dev", path = "iced" }
+arboard = "3.6.1"
 bytes = "1.6"
 iced = { version = "0.14.0", features = [
     "advanced",
