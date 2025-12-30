@@ -11,6 +11,7 @@ use crate::style::theme::Theme;
 use crate::style::{self, theme};
 use crate::{Style, data, geom, ir, render, text};
 
+mod annot;
 mod axis;
 mod figure;
 mod hit_test;

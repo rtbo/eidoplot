@@ -141,7 +141,7 @@ fn main() {
                 .with_ticks(ir::axis::Ticks::new())
                 .with_grid(Default::default()),
         )
-        .with_line(ir::PlotLine::horizontal(0.0))
+        .with_annotation(ir::annot::Line::horizontal(0.0).into())
         .with_legend(ir::plot::LegendPos::InTopRight.into())
         .into(),
     )

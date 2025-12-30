@@ -113,18 +113,26 @@ fn main() {
     // magnitude two decades after cut-off (to increase precision)
     let mag_2_decades = rlc_freq_response(cutoff * 100.0, 1.0, L, C).0;
 
-    println!("cutoff = {:.2} kHz", cutoff / 1000.0);
-    println!("slope = {:.0} dB/decade", mag_2_decades / 2.0);
-
-    let cutoff_line = ir::PlotLine::vertical(cutoff).with_pattern(style::Dash::default().into());
-    let slope_line = ir::PlotLine::two_points(cutoff, 0.0, 100.0 * cutoff, mag_2_decades)
+    let cutoff_line = ir::annot::Line::vertical(cutoff).with_pattern(style::Dash::default().into());
+    let slope_line = ir::annot::Line::two_points(cutoff, 0.0, 100.0 * cutoff, mag_2_decades)
         .with_pattern(style::Dash::default().into());
+    let cut_off_label = ir::annot::Label::new(format!("{:.2} kHz", cutoff / 1000.0), cutoff, -60.0)
+        .with_anchor(ir::annot::Anchor::BottomLeft)
+        .with_angle(90.0);
+    let slope_label = ir::annot::Label::new(
+        format!("{:.0} dB/decade", mag_2_decades / 2.0),
+        cutoff * 10.0,
+        mag_2_decades / 2.0,
+    )
+    .with_anchor(ir::annot::Anchor::BottomLeft);
 
     let mag_plot = ir::Plot::new(mag_series)
         .with_x_axis(mag_freq_axis)
         .with_y_axis(mag_axis)
-        .with_line(cutoff_line)
-        .with_line(slope_line);
+        .with_annotation(cutoff_line.into())
+        .with_annotation(slope_line.into())
+        .with_annotation(cut_off_label.into())
+        .with_annotation(slope_label.into());
 
     let phase_plot = ir::Plot::new(phase_series)
         .with_x_axis(phase_freq_axis)

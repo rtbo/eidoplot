@@ -3,16 +3,18 @@
  *
  * This module contains all data structures for the design of plotting figures.
  */
+pub mod annot;
 pub mod axis;
 pub mod figure;
 pub mod legend;
 pub mod plot;
 pub mod series;
 
+pub use annot::Annotation;
 pub use axis::Axis;
 pub use figure::{FigLegend, Figure};
 pub use legend::Legend;
-pub use plot::{Plot, PlotLegend, PlotLine, Subplots};
+pub use plot::{Plot, PlotLegend, Subplots};
 pub use series::{DataCol, Series, data_src_ref};
 
 /// Index of a plot in a subplot grid

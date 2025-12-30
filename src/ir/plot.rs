@@ -1,6 +1,7 @@
 //! Plot IR structures
-use crate::ir::{Axis, Legend, PlotIdx, Series, axis};
-use crate::style::{self, defaults, theme};
+
+use crate::ir::{Annotation, Axis, Legend, PlotIdx, Series};
+use crate::style::{defaults, theme};
 
 /// Arrow border style for the plot area
 #[derive(Debug, Clone)]
@@ -193,125 +194,6 @@ impl From<LegendPos> for PlotLegend {
     }
 }
 
-/// A line traced on the plot in addition to the series.
-/// By default it is plotted under the series, unless `with_above()` is called.
-#[derive(Debug, Clone)]
-pub struct PlotLine {
-    pub(crate) x: f64,
-    pub(crate) y: f64,
-    pub(crate) direction: Direction,
-    pub(crate) line: theme::Line,
-    pub(crate) above: bool,
-    pub(crate) x_axis: Option<axis::Ref>,
-    pub(crate) y_axis: Option<axis::Ref>,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) enum Direction {
-    Horizontal,
-    Vertical,
-    Slope(f32),
-    SecondPoint(f64, f64),
-}
-
-impl PlotLine {
-    /// Plot a vertical line passing by x
-    pub fn vertical(x: f64) -> Self {
-        PlotLine {
-            x,
-            y: 0.0,
-            direction: Direction::Vertical,
-            line: theme::Col::Foreground.into(),
-            above: false,
-            x_axis: None,
-            y_axis: None,
-        }
-    }
-
-    /// Plot a horizontal line passing by y
-    pub fn horizontal(y: f64) -> Self {
-        PlotLine {
-            x: 0.0,
-            y,
-            direction: Direction::Horizontal,
-            line: theme::Col::Foreground.into(),
-            above: false,
-            x_axis: None,
-            y_axis: None,
-        }
-    }
-
-    /// Plot a line passing by x and y with the given slope.
-    /// This is only meaningful on linear scales, and will raise an error
-    /// if either X or Y axes are logarithmic.
-    pub fn slope(x: f64, y: f64, slope: f32) -> Self {
-        PlotLine {
-            x,
-            y,
-            direction: Direction::Slope(slope),
-            line: theme::Col::Foreground.into(),
-            above: false,
-            x_axis: None,
-            y_axis: None,
-        }
-    }
-
-    /// Plot a line passing by (x1, y1) and (x2, y2).
-    pub fn two_points(x1: f64, y1: f64, x2: f64, y2: f64) -> Self {
-        PlotLine {
-            x: x1,
-            y: y1,
-            direction: Direction::SecondPoint(x2, y2),
-            line: theme::Col::Foreground.into(),
-            above: false,
-            x_axis: None,
-            y_axis: None,
-        }
-    }
-
-    /// Set the line to be displayed.
-    /// By default, the line is a solid line of the foreground theme color.
-    pub fn with_line(self, line: theme::Line) -> Self {
-        Self { line, ..self }
-    }
-
-    /// Set the pattern of the line
-    pub fn with_pattern(self, pattern: style::LinePattern) -> Self {
-        Self {
-            line: self.line.with_pattern(pattern),
-            ..self
-        }
-    }
-
-    /// Set the line to be displayed above the series.
-    pub fn with_above(self) -> Self {
-        Self {
-            above: true,
-            ..self
-        }
-    }
-
-    /// Set the X-axis to use for this line.
-    /// Only useful if multiple X-axes are used.
-    /// By default, the first X-axis is used.
-    pub fn with_x_axis(self, x_axis: axis::Ref) -> Self {
-        Self {
-            x_axis: Some(x_axis),
-            ..self
-        }
-    }
-
-    /// Set the Y-axis to use for this line.
-    /// Only useful if multiple Y-axes are used.
-    /// By default, the first Y-axis is used.
-    pub fn with_y_axis(self, y_axis: axis::Ref) -> Self {
-        Self {
-            y_axis: Some(y_axis),
-            ..self
-        }
-    }
-}
-
 /// A plot, containing series, axes, title, legend, and styles
 #[derive(Debug, Clone)]
 pub struct Plot {
@@ -326,7 +208,7 @@ pub struct Plot {
     border: Option<Border>,
     insets: Option<Insets>,
     legend: Option<PlotLegend>,
-    lines: Vec<PlotLine>,
+    annotations: Vec<Annotation>,
 }
 
 impl Plot {
@@ -343,7 +225,7 @@ impl Plot {
             border: Some(Border::default()),
             insets: Some(Insets::default()),
             legend: None,
-            lines: vec![],
+            annotations: vec![],
         }
     }
 
@@ -405,9 +287,9 @@ impl Plot {
         }
     }
 
-    /// Add a line to the plot and return self for chaining
-    pub fn with_line(mut self, line: PlotLine) -> Self {
-        self.lines.push(line);
+    /// Add an arbitrary [`Annotation`] to the plot and return self for chaining
+    pub fn with_annotation(mut self, annotation: Annotation) -> Self {
+        self.annotations.push(annotation);
         self
     }
 
@@ -451,9 +333,9 @@ impl Plot {
         self.legend.as_ref()
     }
 
-    /// Get the lines of the plot
-    pub fn lines(&self) -> &[PlotLine] {
-        &self.lines
+    /// Get the annotations of the plot
+    pub fn annotations(&self) -> &[Annotation] {
+        &self.annotations
     }
 
     /// Add a series to the plot
@@ -461,9 +343,9 @@ impl Plot {
         self.series.push(series);
     }
 
-    /// Add a line to the plot
-    pub fn push_line(&mut self, line: PlotLine) {
-        self.lines.push(line);
+    /// Add an [`Annotation`] to the plot
+    pub fn push_annotation(&mut self, annotation: Annotation) {
+        self.annotations.push(annotation);
     }
 }
 

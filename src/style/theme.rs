@@ -289,6 +289,37 @@ impl From<Col> for Fill {
     }
 }
 
+/// Marker style for theme elements
+pub type Marker = style::Marker<Color>;
+
+impl From<Col> for Marker {
+    fn from(col: Col) -> Self {
+        Marker {
+            size: Default::default(),
+            shape: Default::default(),
+            fill: Some(Fill::Solid {
+                color: col.into(),
+                opacity: None,
+            }),
+            stroke: None,
+        }
+    }
+}
+
+impl Default for Marker {
+    fn default() -> Self {
+        Marker {
+            size: Default::default(),
+            shape: Default::default(),
+            fill: Some(Fill::Solid {
+                color: Col::Foreground.into(),
+                opacity: None,
+            }),
+            stroke: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Light;
 

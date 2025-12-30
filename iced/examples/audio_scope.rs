@@ -371,7 +371,7 @@ fn build_figure() -> ir::Figure {
                     )
                     .into(),
                 ])
-                .with_line(ir::PlotLine::horizontal(0.0))
+                .with_annotation(ir::annot::Line::horizontal(0.0).into())
                 .with_x_axis(
                     ir::Axis::new()
                         .with_title("Time (s)".to_string().into())
