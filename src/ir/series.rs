@@ -66,15 +66,14 @@ pub enum Series {
 }
 
 impl Series {
-    /// Get the x and y axis references used by this series, if any
-    /// None indicates the default axis (the first axis of that orientation),
-    /// or that it is not applicable for this series type.
-    pub fn axes(&self) -> (Option<&axis::Ref>, Option<&axis::Ref>) {
+    /// Get the x and y axis references used by this series
+    pub fn axes(&self) -> (&axis::Ref, &axis::Ref) {
         match self {
             Series::Line(s) => (s.x_axis(), s.y_axis()),
             Series::Scatter(s) => (s.x_axis(), s.y_axis()),
             Series::Histogram(s) => (s.x_axis(), s.y_axis()),
-            _ => (None, None),
+            Series::Bars(s) => (s.x_axis(), s.y_axis()),
+            Series::BarsGroup(s) => (s.x_axis(), s.y_axis()),
         }
     }
 }
@@ -119,8 +118,8 @@ pub struct Line {
     y_data: DataCol,
 
     name: Option<String>,
-    x_axis: Option<axis::Ref>,
-    y_axis: Option<axis::Ref>,
+    x_axis: axis::Ref,
+    y_axis: axis::Ref,
     line: style::series::Line,
 }
 
@@ -132,8 +131,8 @@ impl Line {
             y_data,
 
             name: None,
-            x_axis: None,
-            y_axis: None,
+            x_axis: Default::default(),
+            y_axis: Default::default(),
             line: style::series::Line::default().with_width(defaults::SERIES_LINE_WIDTH),
         }
     }
@@ -149,14 +148,14 @@ impl Line {
     /// Set a reference to the x axis and return self for chaining
     /// Use this to associate the series with a specific x axis in the plot, when a plot has multiple x axes.
     pub fn with_x_axis(mut self, axis: axis::Ref) -> Self {
-        self.x_axis = Some(axis);
+        self.x_axis = axis;
         self
     }
 
     /// Set a reference to the y axis and return self for chaining
     /// Use this to associate the series with a specific y axis in the plot, when a plot has multiple y axes.
     pub fn with_y_axis(mut self, axis: axis::Ref) -> Self {
-        self.y_axis = Some(axis);
+        self.y_axis = axis;
         self
     }
 
@@ -181,14 +180,14 @@ impl Line {
         self.name.as_deref()
     }
 
-    /// Get a reference to the x axis, if any
-    pub fn x_axis(&self) -> Option<&axis::Ref> {
-        self.x_axis.as_ref()
+    /// Get a reference to the x axis
+    pub fn x_axis(&self) -> &axis::Ref {
+        &self.x_axis
     }
 
-    /// Get a reference to the y axis, if any
-    pub fn y_axis(&self) -> Option<&axis::Ref> {
-        self.y_axis.as_ref()
+    /// Get a reference to the y axis
+    pub fn y_axis(&self) -> &axis::Ref {
+        &self.y_axis
     }
 
     /// Get the line style
@@ -207,8 +206,8 @@ pub struct Scatter {
     y_data: DataCol,
 
     name: Option<String>,
-    x_axis: Option<axis::Ref>,
-    y_axis: Option<axis::Ref>,
+    x_axis: axis::Ref,
+    y_axis: axis::Ref,
     marker: style::series::Marker,
 }
 
@@ -220,8 +219,8 @@ impl Scatter {
             y_data,
 
             name: None,
-            x_axis: None,
-            y_axis: None,
+            x_axis: Default::default(),
+            y_axis: Default::default(),
             marker: style::series::Marker::default(),
         }
     }
@@ -237,14 +236,14 @@ impl Scatter {
     /// Set a reference to the x axis and return self for chaining
     /// Use this to associate the series with a specific x axis in the plot, when a plot has multiple x axes.
     pub fn with_x_axis(mut self, axis: axis::Ref) -> Self {
-        self.x_axis = Some(axis);
+        self.x_axis = axis;
         self
     }
 
     /// Set a reference to the y axis and return self for chaining
     /// Use this to associate the series with a specific y axis in the plot, when a plot has multiple y axes.
     pub fn with_y_axis(mut self, axis: axis::Ref) -> Self {
-        self.y_axis = Some(axis);
+        self.y_axis = axis;
         self
     }
 
@@ -269,14 +268,14 @@ impl Scatter {
         self.name.as_deref()
     }
 
-    /// Get a reference to the x axis, if any
-    pub fn x_axis(&self) -> Option<&axis::Ref> {
-        self.x_axis.as_ref()
+    /// Get a reference to the x axis
+    pub fn x_axis(&self) -> &axis::Ref {
+        &self.x_axis
     }
 
-    /// Get a reference to the y axis, if any
-    pub fn y_axis(&self) -> Option<&axis::Ref> {
-        self.y_axis.as_ref()
+    /// Get a reference to the y axis
+    pub fn y_axis(&self) -> &axis::Ref {
+        &self.y_axis
     }
 
     /// Get the marker style
@@ -294,8 +293,8 @@ pub struct Histogram {
     data: DataCol,
 
     name: Option<String>,
-    x_axis: Option<axis::Ref>,
-    y_axis: Option<axis::Ref>,
+    x_axis: axis::Ref,
+    y_axis: axis::Ref,
     fill: style::series::Fill,
     line: Option<style::series::Line>,
     bins: u32,
@@ -309,8 +308,8 @@ impl Histogram {
             data,
 
             name: None,
-            x_axis: None,
-            y_axis: None,
+            x_axis: Default::default(),
+            y_axis: Default::default(),
             fill: style::series::Fill::default(),
             line: None,
             bins: 10,
@@ -328,13 +327,13 @@ impl Histogram {
 
     /// Set a reference to the x axis and return self for chaining
     pub fn with_x_axis(mut self, axis: axis::Ref) -> Self {
-        self.x_axis = Some(axis);
+        self.x_axis = axis;
         self
     }
 
     /// Set a reference to the y axis and return self for chaining
     pub fn with_y_axis(mut self, axis: axis::Ref) -> Self {
-        self.y_axis = Some(axis);
+        self.y_axis = axis;
         self
     }
 
@@ -372,13 +371,13 @@ impl Histogram {
     }
 
     /// Get a reference to the x axis, if any
-    pub fn x_axis(&self) -> Option<&axis::Ref> {
-        self.x_axis.as_ref()
+    pub fn x_axis(&self) -> &axis::Ref {
+        &self.x_axis
     }
 
-    /// Get a reference to the y axis, if any
-    pub fn y_axis(&self) -> Option<&axis::Ref> {
-        self.y_axis.as_ref()
+    /// Get a reference to the y axis
+    pub fn y_axis(&self) -> &axis::Ref {
+        &self.y_axis
     }
 
     /// Get the fill style
@@ -435,6 +434,8 @@ pub struct Bars {
     y_data: DataCol,
 
     name: Option<String>,
+    x_axis: axis::Ref,
+    y_axis: axis::Ref,
     fill: style::series::Fill,
     line: Option<style::series::Line>,
     position: BarsPosition,
@@ -448,6 +449,8 @@ impl Bars {
             y_data,
 
             name: None,
+            x_axis: Default::default(),
+            y_axis: Default::default(),
             fill: style::series::Fill::default(),
             line: None,
             position: BarsPosition::default(),
@@ -493,6 +496,16 @@ impl Bars {
     /// Get the name
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    /// Get a reference to the x axis
+    pub fn x_axis(&self) -> &axis::Ref {
+        &self.x_axis
+    }
+
+    /// Get a reference to the y axis
+    pub fn y_axis(&self) -> &axis::Ref {
+        &self.y_axis
     }
 
     /// Get the fill style
@@ -673,6 +686,8 @@ pub struct BarsGroup {
     categories: DataCol,
     series: Vec<BarSeries>,
 
+    x_axis: axis::Ref,
+    y_axis: axis::Ref,
     orientation: BarsOrientation,
     arrangement: BarsArrangement,
 }
@@ -683,6 +698,8 @@ impl BarsGroup {
         BarsGroup {
             categories,
             series,
+            x_axis: Default::default(),
+            y_axis: Default::default(),
             orientation: Default::default(),
             arrangement: Default::default(),
         }
@@ -712,6 +729,16 @@ impl BarsGroup {
     /// Get the bar series
     pub fn series(&self) -> &[BarSeries] {
         &self.series
+    }
+
+    /// Get a reference to the x axis
+    pub fn x_axis(&self) -> &axis::Ref {
+        &self.x_axis
+    }
+
+    /// Get a reference to the y axis
+    pub fn y_axis(&self) -> &axis::Ref {
+        &self.y_axis
     }
 
     /// Get the orientation

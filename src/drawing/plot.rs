@@ -105,7 +105,7 @@ impl Axes {
     pub(super) fn or_find_idx(
         &self,
         or: Orientation,
-        ax_ref: Option<&ir::axis::Ref>,
+        ax_ref: &ir::axis::Ref,
     ) -> Result<Option<usize>, Error> {
         let axes = match or {
             Orientation::X => &self.x,
@@ -114,22 +114,17 @@ impl Axes {
 
         for (ax_idx, a) in axes.iter().enumerate() {
             match ax_ref {
-                None => {
-                    if ax_idx == 0 {
-                        return Ok(Some(ax_idx));
-                    }
-                }
-                Some(ir::axis::Ref::Idx(idx)) => {
+                ir::axis::Ref::Idx(idx) => {
                     if ax_idx == *idx {
                         return Ok(Some(ax_idx));
                     }
                 }
-                Some(ir::axis::Ref::Id(id)) => {
+                ir::axis::Ref::Id(id) => {
                     if a.id() == Some(id.as_str()) || a.title_text() == Some(id.as_str()) {
                         return Ok(Some(ax_idx));
                     }
                 }
-                Some(ax_ref) => return Err(Error::IllegalAxisRef(ax_ref.clone())),
+                ax_ref => return Err(Error::IllegalAxisRef(ax_ref.clone())),
             }
         }
         Ok(None)
@@ -138,7 +133,7 @@ impl Axes {
     pub(super) fn or_find(
         &self,
         or: Orientation,
-        ax_ref: Option<&ir::axis::Ref>,
+        ax_ref: &ir::axis::Ref,
     ) -> Result<Option<&Axis>, Error> {
         let axes = match or {
             Orientation::X => &self.x,
@@ -647,7 +642,7 @@ where
 
                     for (ax_idx2, ir_ax2) in ir_plot2.or_axes(or).iter().enumerate() {
                         if let ir::axis::Scale::Shared(ax_ref2) = ir_ax2.scale() {
-                            if matcher.matches_ref(Some(ax_ref2), plt_idx2)? {
+                            if matcher.matches_ref(ax_ref2, plt_idx2)? {
                                 let matcher = series::AxisMatcher {
                                     plt_idx: plt_idx2,
                                     ax_idx: ax_idx2,

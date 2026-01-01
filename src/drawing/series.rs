@@ -111,14 +111,13 @@ pub(super) struct AxisMatcher<'a> {
 impl<'a> AxisMatcher<'a> {
     pub(super) fn matches_ref(
         &self,
-        ax_ref: Option<&ir::axis::Ref>,
+        ax_ref: &ir::axis::Ref,
         plt_idx: usize,
     ) -> Result<bool, Error> {
         match ax_ref {
-            None => Ok(self.ax_idx == 0 && self.plt_idx == plt_idx),
-            Some(ir::axis::Ref::Idx(ax_idx)) => Ok(self.ax_idx == *ax_idx),
-            Some(ir::axis::Ref::Id(id)) => Ok(self.id == Some(id) || self.title == Some(id)),
-            Some(ax_ref) => Err(Error::IllegalAxisRef(ax_ref.clone())),
+            ir::axis::Ref::Idx(ax_idx) => Ok(self.ax_idx == *ax_idx && self.plt_idx == plt_idx),
+            ir::axis::Ref::Id(id) => Ok(self.id == Some(id) || self.title == Some(id)),
+            ax_ref => Err(Error::IllegalAxisRef(ax_ref.clone())),
         }
     }
 }
@@ -126,8 +125,8 @@ impl<'a> AxisMatcher<'a> {
 #[derive(Debug, Clone)]
 pub struct Series {
     plot: SeriesPlot,
-    x_axis: Option<ir::axis::Ref>,
-    y_axis: Option<ir::axis::Ref>,
+    x_axis: ir::axis::Ref,
+    y_axis: ir::axis::Ref,
 }
 
 #[derive(Debug, Clone)]
@@ -162,13 +161,13 @@ impl Series {
 
         Ok(Series {
             plot,
-            x_axis: x_axis.cloned(),
-            y_axis: y_axis.cloned(),
+            x_axis: x_axis.clone(),
+            y_axis: y_axis.clone(),
         })
     }
 
-    pub fn axes(&self) -> (Option<&ir::axis::Ref>, Option<&ir::axis::Ref>) {
-        (self.x_axis.as_ref(), self.y_axis.as_ref())
+    pub fn axes(&self) -> (&ir::axis::Ref, &ir::axis::Ref) {
+        (&self.x_axis, &self.y_axis)
     }
 
     /// Unites bounds for series whose axis matches with `matcher`
@@ -218,23 +217,23 @@ impl Series {
         }
     }
 
-    fn x_axis(&self) -> Option<&ir::axis::Ref> {
+    fn x_axis(&self) -> &ir::axis::Ref {
         match &self.plot {
-            SeriesPlot::Line(line) => line.axes.0.as_ref(),
-            SeriesPlot::Scatter(scatter) => scatter.axes.0.as_ref(),
-            SeriesPlot::Histogram(hist) => hist.axes.0.as_ref(),
-            SeriesPlot::Bars(..) => None,
-            SeriesPlot::BarsGroup(..) => None,
+            SeriesPlot::Line(line) => &line.axes.0,
+            SeriesPlot::Scatter(scatter) => &scatter.axes.0,
+            SeriesPlot::Histogram(hist) => &hist.axes.0,
+            SeriesPlot::Bars(bars) => &bars.axes.0,
+            SeriesPlot::BarsGroup(bg) => &bg.axes.0,
         }
     }
 
-    fn y_axis(&self) -> Option<&ir::axis::Ref> {
+    fn y_axis(&self) -> &ir::axis::Ref {
         match &self.plot {
-            SeriesPlot::Line(line) => line.axes.1.as_ref(),
-            SeriesPlot::Scatter(scatter) => scatter.axes.1.as_ref(),
-            SeriesPlot::Histogram(hist) => hist.axes.1.as_ref(),
-            SeriesPlot::Bars(..) => None,
-            SeriesPlot::BarsGroup(..) => None,
+            SeriesPlot::Line(line) => &line.axes.1,
+            SeriesPlot::Scatter(scatter) => &scatter.axes.1,
+            SeriesPlot::Histogram(hist) => &hist.axes.1,
+            SeriesPlot::Bars(bars) => &bars.axes.1,
+            SeriesPlot::BarsGroup(bg) => &bg.axes.1,
         }
     }
 
@@ -285,7 +284,7 @@ struct Line {
     index: usize,
     cols: (ir::DataCol, ir::DataCol),
     ab: (axis::Bounds, axis::Bounds),
-    axes: (Option<ir::axis::Ref>, Option<ir::axis::Ref>),
+    axes: (ir::axis::Ref, ir::axis::Ref),
     path: Option<geom::Path>,
     line: style::series::Line,
 }
@@ -301,7 +300,7 @@ impl Line {
             index,
             cols,
             ab: (x_bounds, y_bounds),
-            axes: (ir.x_axis().cloned(), ir.y_axis().cloned()),
+            axes: (ir.x_axis().clone(), ir.y_axis().clone()),
             path: None,
             line: ir.line().clone(),
         })
@@ -363,7 +362,7 @@ struct Scatter {
     index: usize,
     cols: (ir::DataCol, ir::DataCol),
     ab: (axis::Bounds, axis::Bounds),
-    axes: (Option<ir::axis::Ref>, Option<ir::axis::Ref>),
+    axes: (ir::axis::Ref, ir::axis::Ref),
     path: geom::Path,
     points: Vec<geom::Point>,
     marker: style::series::Marker,
@@ -381,7 +380,7 @@ impl Scatter {
             index,
             cols,
             ab: (x_bounds, y_bounds),
-            axes: (ir.x_axis().cloned(), ir.y_axis().cloned()),
+            axes: (ir.x_axis().clone(), ir.y_axis().clone()),
             path,
             points: Vec::new(),
             marker: ir.marker().clone(),
@@ -442,7 +441,7 @@ struct HistBin {
 struct Histogram {
     index: usize,
     ab: (axis::NumBounds, axis::NumBounds),
-    axes: (Option<ir::axis::Ref>, Option<ir::axis::Ref>),
+    axes: (ir::axis::Ref, ir::axis::Ref),
     bins: Vec<HistBin>,
     path: Option<geom::Path>,
     fill: style::series::Fill,
@@ -497,7 +496,7 @@ impl Histogram {
         Ok(Histogram {
             index,
             ab: (x_bounds, y_bounds),
-            axes: (hist.x_axis().cloned(), hist.y_axis().cloned()),
+            axes: (hist.x_axis().clone(), hist.y_axis().clone()),
             bins,
             path: None,
             fill: hist.fill().clone(),
@@ -553,6 +552,7 @@ struct Bars {
     index: usize,
     cols: (ir::DataCol, ir::DataCol),
     bounds: BarsBounds,
+    axes: (ir::axis::Ref, ir::axis::Ref),
     position: ir::series::BarsPosition,
     path: Option<geom::Path>,
     fill: style::series::Fill,
@@ -587,6 +587,7 @@ impl Bars {
             index,
             cols,
             bounds,
+            axes: (ir.x_axis().clone(), ir.y_axis().clone()),
             position: ir.position().clone(),
             path: None,
             fill: ir.fill().clone(),
@@ -678,6 +679,7 @@ impl Bars {
 pub struct BarsGroup {
     fst_index: usize,
     bounds: (axis::Bounds, axis::Bounds),
+    axes: (ir::axis::Ref, ir::axis::Ref),
     orientation: ir::series::BarsOrientation,
     arrangement: ir::series::BarsArrangement,
     series: Vec<ir::series::BarSeries>,
@@ -746,6 +748,7 @@ impl BarsGroup {
         Ok(BarsGroup {
             fst_index: index,
             bounds,
+            axes: (ir.x_axis().clone(), ir.y_axis().clone()),
             orientation: ir.orientation().clone(),
             arrangement: ir.arrangement().clone(),
             series: ir.series().to_vec(),

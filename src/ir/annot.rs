@@ -57,7 +57,7 @@ impl Annotation {
     /// Only useful if multiple X-axes are used.
     /// By default, the first X-axis is used.
     pub fn with_x_axis(mut self, x_axis: axis::Ref) -> Self {
-        self.pos_mut().x_axis = Some(x_axis);
+        self.pos_mut().x_axis = x_axis;
         self
     }
 
@@ -65,7 +65,7 @@ impl Annotation {
     /// Only useful if multiple Y-axes are used.
     /// By default, the first Y-axis is used.
     pub fn with_y_axis(mut self, y_axis: axis::Ref) -> Self {
-        self.pos_mut().y_axis = Some(y_axis);
+        self.pos_mut().y_axis = y_axis;
         self
     }
 
@@ -89,8 +89,8 @@ pub enum ZPos {
 pub(crate) struct Pos {
     pub(crate) x: f64,
     pub(crate) y: f64,
-    pub(crate) x_axis: Option<axis::Ref>,
-    pub(crate) y_axis: Option<axis::Ref>,
+    pub(crate) x_axis: axis::Ref,
+    pub(crate) y_axis: axis::Ref,
     pub(crate) zpos: ZPos,
 }
 
@@ -120,8 +120,8 @@ impl Line {
             pos: Pos {
                 x,
                 y: 0.0,
-                x_axis: None,
-                y_axis: None,
+                x_axis: Default::default(),
+                y_axis: Default::default(),
                 zpos: ZPos::BelowSeries,
             },
         }
@@ -135,8 +135,8 @@ impl Line {
             pos: Pos {
                 x: 0.0,
                 y,
-                x_axis: None,
-                y_axis: None,
+                x_axis: Default::default(),
+                y_axis: Default::default(),
                 zpos: ZPos::BelowSeries,
             },
         }
@@ -152,8 +152,8 @@ impl Line {
             pos: Pos {
                 x,
                 y,
-                x_axis: None,
-                y_axis: None,
+                x_axis: Default::default(),
+                y_axis: Default::default(),
                 zpos: ZPos::BelowSeries,
             },
         }
@@ -167,8 +167,8 @@ impl Line {
             pos: Pos {
                 x: x1,
                 y: y1,
-                x_axis: None,
-                y_axis: None,
+                x_axis: Default::default(),
+                y_axis: Default::default(),
                 zpos: ZPos::BelowSeries,
             },
         }
@@ -212,8 +212,8 @@ impl Arrow {
             pos: Pos {
                 x,
                 y,
-                x_axis: None,
-                y_axis: None,
+                x_axis: Default::default(),
+                y_axis: Default::default(),
                 zpos: ZPos::AboveSeries,
             },
         }
@@ -291,8 +291,8 @@ impl Label {
             pos: Pos {
                 x,
                 y,
-                x_axis: None,
-                y_axis: None,
+                x_axis: Default::default(),
+                y_axis: Default::default(),
                 zpos: ZPos::AboveSeries,
             },
         }

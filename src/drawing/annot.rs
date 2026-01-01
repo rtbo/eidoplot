@@ -67,17 +67,17 @@ where
 
         // Resolve axis reference to index, to ensure no error can happen later during drawing
         let x_axis = axes
-            .or_find_idx(Orientation::X, annot.pos().x_axis.as_ref())?
+            .or_find_idx(Orientation::X, &annot.pos().x_axis)?
             .ok_or_else(|| {
-                super::Error::UnknownAxisRef(annot.pos().x_axis.as_ref().unwrap().clone())
+                super::Error::UnknownAxisRef(annot.pos().x_axis.clone())
             })?;
         let y_axis = axes
-            .or_find_idx(Orientation::Y, annot.pos().y_axis.as_ref())?
+            .or_find_idx(Orientation::Y, &annot.pos().y_axis)?
             .ok_or_else(|| {
-                super::Error::UnknownAxisRef(annot.pos().y_axis.as_ref().unwrap().clone())
+                super::Error::UnknownAxisRef(annot.pos().y_axis.clone())
             })?;
-        annot.pos_mut().x_axis = Some(ir::axis::Ref::Idx(x_axis));
-        annot.pos_mut().y_axis = Some(ir::axis::Ref::Idx(y_axis));
+        annot.pos_mut().x_axis = ir::axis::Ref::Idx(x_axis);
+        annot.pos_mut().y_axis = ir::axis::Ref::Idx(y_axis);
 
         Ok(annot)
     }
@@ -117,11 +117,11 @@ impl Annot {
         T: style::Theme,
     {
         let x_axis = axes
-            .or_find(Orientation::X, self.pos().x_axis.as_ref())
+            .or_find(Orientation::X, &self.pos().x_axis)
             .unwrap()
             .unwrap();
         let y_axis = axes
-            .or_find(Orientation::Y, self.pos().y_axis.as_ref())
+            .or_find(Orientation::Y, &self.pos().y_axis)
             .unwrap()
             .unwrap();
         match self {

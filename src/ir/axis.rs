@@ -50,7 +50,7 @@ pub enum Ref {
     /// and to the second Y axis of the first plot in Y context.
     FigIdx(usize),
     /// Reference by id (see [Axis::id]) or by title (see [Axis::title]).
-    /// If two axes share the same id or title, the first one found will be used.
+    /// If two axes have the same id or title, the first one found will be used.
     Id(String),
 }
 
