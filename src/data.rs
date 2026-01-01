@@ -26,7 +26,7 @@ use crate::time::{DateTime, TimeDelta};
 ///
 /// This type borrows string data for categorical samples. See also [`OwnedSample`].
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
-pub enum Sample<'a> {
+pub enum SampleRef<'a> {
     /// Null value
     #[default]
     Null,
@@ -42,7 +42,164 @@ pub enum Sample<'a> {
     TimeDelta(TimeDelta),
 }
 
-impl Sample<'_> {
+impl SampleRef<'_> {
+    /// Check if the sample is null
+    pub fn is_null(&self) -> bool {
+        matches!(self, SampleRef::Null)
+    }
+
+    /// Get the sample as a numeric value, if possible
+    pub fn as_num(&self) -> Option<f64> {
+        match self {
+            SampleRef::Num(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    /// Get the sample as a categorical value, if possible
+    pub fn as_cat(&self) -> Option<&str> {
+        match self {
+            SampleRef::Cat(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    #[cfg(feature = "time")]
+    /// Get the sample as a time value, if possible
+    pub fn as_time(&self) -> Option<DateTime> {
+        match self {
+            SampleRef::Time(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    #[cfg(feature = "time")]
+    /// Get the sample as a time delta value, if possible
+    pub fn as_time_delta(&self) -> Option<TimeDelta> {
+        match self {
+            SampleRef::TimeDelta(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    /// Convert the sample to an owned sample
+    pub fn to_sample(&self) -> Sample {
+        match self {
+            SampleRef::Null => Sample::Null,
+            SampleRef::Num(v) => Sample::Num(*v),
+            SampleRef::Cat(v) => Sample::Cat(v.to_string()),
+            #[cfg(feature = "time")]
+            SampleRef::Time(v) => Sample::Time(*v),
+            #[cfg(feature = "time")]
+            SampleRef::TimeDelta(v) => Sample::TimeDelta(*v),
+        }
+    }
+}
+
+impl std::cmp::Eq for SampleRef<'_> {}
+
+impl From<f64> for SampleRef<'_> {
+    fn from(val: f64) -> Self {
+        if val.is_finite() {
+            SampleRef::Num(val)
+        } else {
+            SampleRef::Num(val)
+        }
+    }
+}
+
+impl From<Option<f64>> for SampleRef<'_> {
+    fn from(val: Option<f64>) -> Self {
+        match val {
+            Some(v) => v.into(),
+            None => SampleRef::Null,
+        }
+    }
+}
+
+impl From<i64> for SampleRef<'_> {
+    fn from(val: i64) -> Self {
+        SampleRef::Num(val as f64)
+    }
+}
+
+impl From<Option<i64>> for SampleRef<'_> {
+    fn from(val: Option<i64>) -> Self {
+        match val {
+            Some(v) => SampleRef::Num(v as f64),
+            None => SampleRef::Null,
+        }
+    }
+}
+
+impl<'a> From<&'a str> for SampleRef<'a> {
+    fn from(val: &'a str) -> Self {
+        SampleRef::Cat(val)
+    }
+}
+
+impl<'a> From<Option<&'a str>> for SampleRef<'a> {
+    fn from(val: Option<&'a str>) -> Self {
+        match val {
+            Some(val) => SampleRef::Cat(val),
+            None => SampleRef::Null,
+        }
+    }
+}
+
+#[cfg(feature = "time")]
+impl From<DateTime> for SampleRef<'_> {
+    fn from(val: DateTime) -> Self {
+        SampleRef::Time(val)
+    }
+}
+
+#[cfg(feature = "time")]
+impl From<Option<DateTime>> for SampleRef<'_> {
+    fn from(val: Option<DateTime>) -> Self {
+        match val {
+            Some(v) => SampleRef::Time(v),
+            None => SampleRef::Null,
+        }
+    }
+}
+
+#[cfg(feature = "time")]
+impl From<TimeDelta> for SampleRef<'_> {
+    fn from(val: TimeDelta) -> Self {
+        SampleRef::TimeDelta(val)
+    }
+}
+
+#[cfg(feature = "time")]
+impl From<Option<TimeDelta>> for SampleRef<'_> {
+    fn from(val: Option<TimeDelta>) -> Self {
+        match val {
+            Some(v) => SampleRef::TimeDelta(v),
+            None => SampleRef::Null,
+        }
+    }
+}
+
+/// Owned version of [`Sample`].
+#[derive(Debug, Clone, Default, PartialEq)]
+pub enum Sample {
+    /// Null value
+    #[default]
+    Null,
+    /// Numeric value
+    Num(f64),
+    /// Categorical value
+    Cat(String),
+    #[cfg(feature = "time")]
+    /// Time value
+    Time(DateTime),
+    #[cfg(feature = "time")]
+    /// Time delta value
+    TimeDelta(TimeDelta),
+}
+
+impl Sample {
     /// Check if the sample is null
     pub fn is_null(&self) -> bool {
         matches!(self, Sample::Null)
@@ -82,23 +239,29 @@ impl Sample<'_> {
         }
     }
 
-    /// Convert the sample to an owned sample
-    pub fn to_owned(&self) -> OwnedSample {
+    /// Convert the owned sample to a borrowed sample
+    pub fn as_ref(&self) -> SampleRef<'_> {
         match self {
-            Sample::Null => OwnedSample::Null,
-            Sample::Num(v) => OwnedSample::Num(*v),
-            Sample::Cat(v) => OwnedSample::Cat(v.to_string()),
+            Sample::Null => SampleRef::Null,
+            Sample::Num(v) => SampleRef::Num(*v),
+            Sample::Cat(v) => SampleRef::Cat(v.as_str()),
             #[cfg(feature = "time")]
-            Sample::Time(v) => OwnedSample::Time(*v),
+            Sample::Time(v) => SampleRef::Time(*v),
             #[cfg(feature = "time")]
-            Sample::TimeDelta(v) => OwnedSample::TimeDelta(*v),
+            Sample::TimeDelta(v) => SampleRef::TimeDelta(*v),
         }
     }
 }
 
-impl std::cmp::Eq for Sample<'_> {}
+impl<'a> From<SampleRef<'a>> for Sample {
+    fn from(sample: SampleRef<'a>) -> Self {
+        sample.to_sample()
+    }
+}
 
-impl From<f64> for Sample<'_> {
+impl std::cmp::Eq for Sample {}
+
+impl From<f64> for Sample {
     fn from(val: f64) -> Self {
         if val.is_finite() {
             Sample::Num(val)
@@ -108,7 +271,7 @@ impl From<f64> for Sample<'_> {
     }
 }
 
-impl From<Option<f64>> for Sample<'_> {
+impl From<Option<f64>> for Sample {
     fn from(val: Option<f64>) -> Self {
         match val {
             Some(v) => v.into(),
@@ -117,13 +280,13 @@ impl From<Option<f64>> for Sample<'_> {
     }
 }
 
-impl From<i64> for Sample<'_> {
+impl From<i64> for Sample {
     fn from(val: i64) -> Self {
         Sample::Num(val as f64)
     }
 }
 
-impl From<Option<i64>> for Sample<'_> {
+impl From<Option<i64>> for Sample {
     fn from(val: Option<i64>) -> Self {
         match val {
             Some(v) => Sample::Num(v as f64),
@@ -132,14 +295,20 @@ impl From<Option<i64>> for Sample<'_> {
     }
 }
 
-impl<'a> From<&'a str> for Sample<'a> {
+impl<'a> From<&'a str> for Sample {
     fn from(val: &'a str) -> Self {
+        Sample::Cat(val.to_string())
+    }
+}
+
+impl From<String> for Sample {
+    fn from(val: String) -> Self {
         Sample::Cat(val)
     }
 }
 
-impl<'a> From<Option<&'a str>> for Sample<'a> {
-    fn from(val: Option<&'a str>) -> Self {
+impl From<Option<String>> for Sample {
+    fn from(val: Option<String>) -> Self {
         match val {
             Some(val) => Sample::Cat(val),
             None => Sample::Null,
@@ -148,14 +317,14 @@ impl<'a> From<Option<&'a str>> for Sample<'a> {
 }
 
 #[cfg(feature = "time")]
-impl From<DateTime> for Sample<'_> {
+impl From<DateTime> for Sample {
     fn from(val: DateTime) -> Self {
         Sample::Time(val)
     }
 }
 
 #[cfg(feature = "time")]
-impl From<Option<DateTime>> for Sample<'_> {
+impl From<Option<DateTime>> for Sample {
     fn from(val: Option<DateTime>) -> Self {
         match val {
             Some(v) => Sample::Time(v),
@@ -165,187 +334,18 @@ impl From<Option<DateTime>> for Sample<'_> {
 }
 
 #[cfg(feature = "time")]
-impl From<TimeDelta> for Sample<'_> {
+impl From<TimeDelta> for Sample {
     fn from(val: TimeDelta) -> Self {
         Sample::TimeDelta(val)
     }
 }
 
 #[cfg(feature = "time")]
-impl From<Option<TimeDelta>> for Sample<'_> {
+impl From<Option<TimeDelta>> for Sample {
     fn from(val: Option<TimeDelta>) -> Self {
         match val {
             Some(v) => Sample::TimeDelta(v),
             None => Sample::Null,
-        }
-    }
-}
-
-/// Owned version of [`Sample`].
-#[derive(Debug, Clone, Default, PartialEq)]
-pub enum OwnedSample {
-    /// Null value
-    #[default]
-    Null,
-    /// Numeric value
-    Num(f64),
-    /// Categorical value
-    Cat(String),
-    #[cfg(feature = "time")]
-    /// Time value
-    Time(DateTime),
-    #[cfg(feature = "time")]
-    /// Time delta value
-    TimeDelta(TimeDelta),
-}
-
-impl OwnedSample {
-    /// Check if the sample is null
-    pub fn is_null(&self) -> bool {
-        matches!(self, OwnedSample::Null)
-    }
-
-    /// Get the sample as a numeric value, if possible
-    pub fn as_num(&self) -> Option<f64> {
-        match self {
-            OwnedSample::Num(v) => Some(*v),
-            _ => None,
-        }
-    }
-
-    /// Get the sample as a categorical value, if possible
-    pub fn as_cat(&self) -> Option<&str> {
-        match self {
-            OwnedSample::Cat(v) => Some(v),
-            _ => None,
-        }
-    }
-
-    #[cfg(feature = "time")]
-    /// Get the sample as a time value, if possible
-    pub fn as_time(&self) -> Option<DateTime> {
-        match self {
-            OwnedSample::Time(v) => Some(*v),
-            _ => None,
-        }
-    }
-
-    #[cfg(feature = "time")]
-    /// Get the sample as a time delta value, if possible
-    pub fn as_time_delta(&self) -> Option<TimeDelta> {
-        match self {
-            OwnedSample::TimeDelta(v) => Some(*v),
-            _ => None,
-        }
-    }
-
-    /// Convert the owned sample to a borrowed sample
-    pub fn as_sample(&self) -> Sample<'_> {
-        match self {
-            OwnedSample::Null => Sample::Null,
-            OwnedSample::Num(v) => Sample::Num(*v),
-            OwnedSample::Cat(v) => Sample::Cat(v.as_str()),
-            #[cfg(feature = "time")]
-            OwnedSample::Time(v) => Sample::Time(*v),
-            #[cfg(feature = "time")]
-            OwnedSample::TimeDelta(v) => Sample::TimeDelta(*v),
-        }
-    }
-}
-
-impl<'a> From<Sample<'a>> for OwnedSample {
-    fn from(sample: Sample<'a>) -> Self {
-        sample.to_owned()
-    }
-}
-
-impl std::cmp::Eq for OwnedSample {}
-
-impl From<f64> for OwnedSample {
-    fn from(val: f64) -> Self {
-        if val.is_finite() {
-            OwnedSample::Num(val)
-        } else {
-            OwnedSample::Num(val)
-        }
-    }
-}
-
-impl From<Option<f64>> for OwnedSample {
-    fn from(val: Option<f64>) -> Self {
-        match val {
-            Some(v) => v.into(),
-            None => OwnedSample::Null,
-        }
-    }
-}
-
-impl From<i64> for OwnedSample {
-    fn from(val: i64) -> Self {
-        OwnedSample::Num(val as f64)
-    }
-}
-
-impl From<Option<i64>> for OwnedSample {
-    fn from(val: Option<i64>) -> Self {
-        match val {
-            Some(v) => OwnedSample::Num(v as f64),
-            None => OwnedSample::Null,
-        }
-    }
-}
-
-impl<'a> From<&'a str> for OwnedSample {
-    fn from(val: &'a str) -> Self {
-        OwnedSample::Cat(val.to_string())
-    }
-}
-
-impl From<String> for OwnedSample {
-    fn from(val: String) -> Self {
-        OwnedSample::Cat(val)
-    }
-}
-
-impl From<Option<String>> for OwnedSample {
-    fn from(val: Option<String>) -> Self {
-        match val {
-            Some(val) => OwnedSample::Cat(val),
-            None => OwnedSample::Null,
-        }
-    }
-}
-
-#[cfg(feature = "time")]
-impl From<DateTime> for OwnedSample {
-    fn from(val: DateTime) -> Self {
-        OwnedSample::Time(val)
-    }
-}
-
-#[cfg(feature = "time")]
-impl From<Option<DateTime>> for OwnedSample {
-    fn from(val: Option<DateTime>) -> Self {
-        match val {
-            Some(v) => OwnedSample::Time(v),
-            None => OwnedSample::Null,
-        }
-    }
-}
-
-#[cfg(feature = "time")]
-impl From<TimeDelta> for OwnedSample {
-    fn from(val: TimeDelta) -> Self {
-        OwnedSample::TimeDelta(val)
-    }
-}
-
-#[cfg(feature = "time")]
-impl From<Option<TimeDelta>> for OwnedSample {
-    fn from(val: Option<TimeDelta>) -> Self {
-        match val {
-            Some(v) => OwnedSample::TimeDelta(v),
-            None => OwnedSample::Null,
         }
     }
 }
@@ -360,20 +360,20 @@ pub trait Column: std::fmt::Debug {
     fn len_some(&self) -> usize;
 
     /// Get an iterator over the samples in the column
-    fn sample_iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
+    fn sample_iter(&self) -> Box<dyn Iterator<Item = SampleRef<'_>> + '_> {
         #[cfg(feature = "time")]
         if let Some(iter) = self.as_time_iter() {
-            return Box::new(iter.map(Sample::from));
+            return Box::new(iter.map(SampleRef::from));
         } else if let Some(iter) = self.as_time_delta_iter() {
-            return Box::new(iter.map(Sample::from));
+            return Box::new(iter.map(SampleRef::from));
         }
 
         if let Some(iter) = self.as_i64_iter() {
-            Box::new(iter.map(Sample::from))
+            Box::new(iter.map(SampleRef::from))
         } else if let Some(iter) = self.as_f64_iter() {
-            Box::new(iter.map(Sample::from))
+            Box::new(iter.map(SampleRef::from))
         } else {
-            Box::new(self.as_str_iter().unwrap().map(Sample::from))
+            Box::new(self.as_str_iter().unwrap().map(SampleRef::from))
         }
     }
 
@@ -1498,13 +1498,13 @@ impl Column for VecColumn {
         }
     }
 
-    fn sample_iter(&self) -> Box<dyn Iterator<Item = Sample<'_>> + '_> {
+    fn sample_iter(&self) -> Box<dyn Iterator<Item = SampleRef<'_>> + '_> {
         match self {
             VecColumn::F64(v) => Box::new(v.iter().map(|v| (*v).into())),
             VecColumn::I64(v) => Box::new(v.iter().map(|v| (*v).into())),
             VecColumn::Str(v) => Box::new(v.iter().map(|v| match v {
-                Some(s) => Sample::Cat(s.as_str()),
-                None => Sample::Null,
+                Some(s) => SampleRef::Cat(s.as_str()),
+                None => SampleRef::Null,
             })),
             #[cfg(feature = "time")]
             VecColumn::Time(v) => Box::new(v.iter().map(|v| (*v).into())),

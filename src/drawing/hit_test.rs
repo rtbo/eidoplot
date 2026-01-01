@@ -2,10 +2,10 @@ use crate::ir::PlotIdx;
 use crate::{data, geom};
 
 #[derive(Debug, Clone)]
-pub struct HitCoord<'a>(data::Sample<'a>, &'a str);
+pub struct HitCoord<'a>(data::SampleRef<'a>, &'a str);
 
 impl HitCoord<'_> {
-    pub fn as_sample(&self) -> data::Sample<'_> {
+    pub fn as_sample(&self) -> data::SampleRef<'_> {
         self.0
     }
 
@@ -21,10 +21,7 @@ impl HitCoord<'_> {
 // An empty plot will have None and empty Vec.
 // There can't be Some and non-empty Vec at the same time.
 #[derive(Debug, Clone, Default)]
-pub struct PlotCoords(
-    Option<(data::OwnedSample, String)>,
-    Vec<(data::OwnedSample, String)>,
-);
+pub struct PlotCoords(Option<(data::Sample, String)>, Vec<(data::Sample, String)>);
 
 impl PlotCoords {
     pub fn len(&self) -> usize {
@@ -38,17 +35,17 @@ impl PlotCoords {
     pub fn get(&self, index: usize) -> Option<HitCoord<'_>> {
         if let Some(pc) = &self.0 {
             if index == 0 {
-                return Some(HitCoord(pc.0.as_sample(), pc.1.as_str()));
+                return Some(HitCoord(pc.0.as_ref(), pc.1.as_str()));
             } else {
                 return None;
             }
         }
         self.1
             .get(index)
-            .map(|pc| HitCoord(pc.0.as_sample(), pc.1.as_str()))
+            .map(|pc| HitCoord(pc.0.as_ref(), pc.1.as_str()))
     }
 
-    fn push(&mut self, sample: (data::OwnedSample, String)) {
+    fn push(&mut self, sample: (data::Sample, String)) {
         if self.0.is_none() && self.1.is_empty() {
             self.0.replace(sample);
         } else if self.0.is_some() {

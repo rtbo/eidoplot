@@ -70,7 +70,7 @@ impl Axis {
         }
     }
 
-    pub fn format_sample(&self, sample: data::Sample) -> String {
+    pub fn format_sample(&self, sample: data::SampleRef) -> String {
         let scale = self.scale.as_ref().borrow();
         match &*scale {
             AxisScale::Num {
@@ -83,13 +83,13 @@ impl Axis {
                 res
             }
             AxisScale::Num { .. } => match sample {
-                data::Sample::Num(n) => n.to_string(),
+                data::SampleRef::Num(n) => n.to_string(),
                 #[cfg(feature = "time")]
-                data::Sample::Time(t) => t.to_string(),
+                data::SampleRef::Time(t) => t.to_string(),
                 _ => "".to_string(),
             },
             AxisScale::Cat { .. } => match sample {
-                data::Sample::Cat(c) => c.to_string(),
+                data::SampleRef::Cat(c) => c.to_string(),
                 _ => "".to_string(),
             },
         }
@@ -230,16 +230,16 @@ impl CoordMap for CategoryBins {
         self.cat_location(cat_idx)
     }
 
-    fn unmap_coord(&self, pos: f32) -> data::Sample<'_> {
+    fn unmap_coord(&self, pos: f32) -> data::SampleRef<'_> {
         if pos < self.inset.0 || pos > (self.inset.0 + self.bin_size * self.categories.len() as f32)
         {
-            return data::Sample::Null;
+            return data::SampleRef::Null;
         }
         let cat_idx = ((pos - self.inset.0) / self.bin_size).floor() as usize;
         self.categories
             .get(cat_idx)
-            .map(|c| data::Sample::Cat(c))
-            .unwrap_or(data::Sample::Null)
+            .map(|c| data::SampleRef::Cat(c))
+            .unwrap_or(data::SampleRef::Null)
     }
 
     fn axis_bounds(&self) -> BoundsRef<'_> {

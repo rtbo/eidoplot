@@ -10,14 +10,14 @@ use crate::{data, ir};
 pub trait CoordMap: std::fmt::Debug {
     fn axis_bounds(&self) -> axis::BoundsRef<'_>;
 
-    fn map_coord(&self, sample: data::Sample) -> Option<f32> {
+    fn map_coord(&self, sample: data::SampleRef) -> Option<f32> {
         match sample {
-            data::Sample::Num(n) => Some(self.map_coord_num(n)),
+            data::SampleRef::Num(n) => Some(self.map_coord_num(n)),
             #[cfg(feature = "time")]
-            data::Sample::Time(n) => Some(self.map_coord_num(n.timestamp())),
+            data::SampleRef::Time(n) => Some(self.map_coord_num(n.timestamp())),
             #[cfg(feature = "time")]
-            data::Sample::TimeDelta(n) => Some(self.map_coord_num(n.seconds())),
-            data::Sample::Cat(c) => Some(self.map_coord_cat(c)),
+            data::SampleRef::TimeDelta(n) => Some(self.map_coord_num(n.seconds())),
+            data::SampleRef::Cat(c) => Some(self.map_coord_cat(c)),
             _ => None,
         }
     }
@@ -35,7 +35,7 @@ pub trait CoordMap: std::fmt::Debug {
         unimplemented!("Only for categorical scales");
     }
 
-    fn unmap_coord(&self, pos: f32) -> data::Sample<'_>;
+    fn unmap_coord(&self, pos: f32) -> data::SampleRef<'_>;
 
     fn create_view(&self, start: f32, end: f32) -> Arc<dyn CoordMap>;
 }
@@ -47,7 +47,7 @@ pub struct CoordMapXy<'a> {
 }
 
 impl<'a> CoordMapXy<'a> {
-    pub fn map_coord(&self, dp: (data::Sample, data::Sample)) -> Option<(f32, f32)> {
+    pub fn map_coord(&self, dp: (data::SampleRef, data::SampleRef)) -> Option<(f32, f32)> {
         self.x
             .map_coord(dp.0)
             .and_then(|x| self.y.map_coord(dp.1).map(|y| (x, y)))
@@ -121,10 +121,10 @@ impl CoordMap for LinCoordMap {
         ratio as f32 * self.plot_size
     }
 
-    fn unmap_coord(&self, pos: f32) -> data::Sample<'_> {
+    fn unmap_coord(&self, pos: f32) -> data::SampleRef<'_> {
         let ratio = pos as f64 / self.plot_size as f64;
         let value = self.ab.start() + ratio * self.ab.span();
-        data::Sample::Num(value)
+        data::SampleRef::Num(value)
     }
 
     fn axis_bounds(&self) -> axis::BoundsRef<'_> {
@@ -187,13 +187,13 @@ impl CoordMap for LogCoordMap {
         ratio as f32 * self.plot_size
     }
 
-    fn unmap_coord(&self, pos: f32) -> data::Sample<'_> {
+    fn unmap_coord(&self, pos: f32) -> data::SampleRef<'_> {
         let start = self.ab.start().log(self.base);
         let end = self.ab.end().log(self.base);
         let ratio = pos as f64 / self.plot_size as f64;
         let log_value = start + ratio * (end - start);
         let value = self.base.powf(log_value);
-        data::Sample::Num(value)
+        data::SampleRef::Num(value)
     }
 
     fn axis_bounds(&self) -> axis::BoundsRef<'_> {

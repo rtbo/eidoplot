@@ -626,11 +626,11 @@ pub trait LabelFormatter: std::fmt::Debug {
     fn axis_annotation(&self) -> Option<&str> {
         None
     }
-    fn format_label(&self, data: data::Sample) -> String;
+    fn format_label(&self, data: data::SampleRef) -> String;
 }
 
 impl LabelFormatter for Categories {
-    fn format_label(&self, data: data::Sample) -> String {
+    fn format_label(&self, data: data::SampleRef) -> String {
         let cat = data.as_cat().expect("Should be a category");
         self.iter()
             .find(|c| *c == cat)
@@ -643,7 +643,7 @@ impl LabelFormatter for Categories {
 struct PrecLabelFormat(usize);
 
 impl LabelFormatter for PrecLabelFormat {
-    fn format_label(&self, data: data::Sample) -> String {
+    fn format_label(&self, data: data::SampleRef) -> String {
         let data = data.as_num().unwrap();
         format!("{data:.*}", self.0)
     }
@@ -653,7 +653,7 @@ impl LabelFormatter for PrecLabelFormat {
 struct SciLabelFormat;
 
 impl LabelFormatter for SciLabelFormat {
-    fn format_label(&self, data: data::Sample) -> String {
+    fn format_label(&self, data: data::SampleRef) -> String {
         let data = data.as_num().unwrap();
         format!("{data:.2e}")
     }
@@ -668,7 +668,7 @@ impl LabelFormatter for PiMultipleLabelFormat {
     fn axis_annotation(&self) -> Option<&str> {
         Some("\u{00d7} π")
     }
-    fn format_label(&self, data: data::Sample) -> String {
+    fn format_label(&self, data: data::SampleRef) -> String {
         let data = data.as_num().unwrap();
         let val = data / PI;
         format!("{val:.*}", self.prec)
@@ -679,7 +679,7 @@ impl LabelFormatter for PiMultipleLabelFormat {
 struct PercentLabelFormat(usize);
 
 impl LabelFormatter for PercentLabelFormat {
-    fn format_label(&self, data: data::Sample) -> String {
+    fn format_label(&self, data: data::SampleRef) -> String {
         let data = data.as_num().unwrap();
         format!("{:.*}%", self.0, data * 100.0)
     }
@@ -693,7 +693,7 @@ struct DateTimeLabelFormat {
 
 #[cfg(feature = "time")]
 impl LabelFormatter for DateTimeLabelFormat {
-    fn format_label(&self, data: data::Sample) -> String {
+    fn format_label(&self, data: data::SampleRef) -> String {
         let dt = data.as_time().unwrap();
         format!("{}", dt.fmt_to_string(&self.fmt))
     }
@@ -707,13 +707,13 @@ struct TimeDeltaLabelFormat {
 
 #[cfg(feature = "time")]
 impl LabelFormatter for TimeDeltaLabelFormat {
-    fn format_label(&self, data: data::Sample) -> String {
+    fn format_label(&self, data: data::SampleRef) -> String {
         match data {
-            data::Sample::Num(num) => {
+            data::SampleRef::Num(num) => {
                 let td = TimeDelta::from_seconds(num);
                 td.fmt_to_string(&self.fmt)
             }
-            data::Sample::TimeDelta(td) => td.fmt_to_string(&self.fmt),
+            data::SampleRef::TimeDelta(td) => td.fmt_to_string(&self.fmt),
             _ => panic!("data is not compatible with formatter"),
         }
     }
@@ -723,7 +723,7 @@ impl LabelFormatter for TimeDeltaLabelFormat {
 struct NullFormat;
 
 impl LabelFormatter for NullFormat {
-    fn format_label(&self, _: data::Sample) -> String {
+    fn format_label(&self, _: data::SampleRef) -> String {
         String::new()
     }
 }
