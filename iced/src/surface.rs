@@ -6,6 +6,7 @@ pub struct IcedSurface<Frame> {
     frames: Vec<Frame>,
     clip_bounds: Vec<iced::Rectangle>,
     transform: geom::Transform,
+    scale: f32,
 }
 
 impl<Frame> IcedSurface<Frame>
@@ -13,10 +14,12 @@ where
     Frame: frame::Backend,
 {
     pub fn new(frame: Frame, bounds: iced::Rectangle, transform: geom::Transform) -> Self {
+        let scale = transform.sx.abs().min(transform.sy.abs());
         Self {
             clip_bounds: vec![bounds],
             frames: vec![frame],
             transform,
+            scale,
         }
     }
 
@@ -67,7 +70,7 @@ where
 
         if let Some(stroke) = path.stroke.as_ref() {
             let mut pattern = Vec::new();
-            let iced_stroke = to_iced_stroke(stroke, &mut pattern);
+            let iced_stroke = to_iced_stroke(stroke, &mut pattern, self.scale);
             self.frames
                 .last_mut()
                 .unwrap()
@@ -113,9 +116,10 @@ fn to_iced_fill(paint: &render::Paint) -> geometry::Fill {
 fn to_iced_stroke<'a>(
     stroke: &'a render::Stroke,
     pattern: &'a mut Vec<f32>,
+    scale: f32,
 ) -> geometry::Stroke<'a> {
     let style = to_iced_color(stroke.color).into();
-    let width = stroke.width;
+    let width = stroke.width * scale;
     let line_dash = match &stroke.pattern {
         render::LinePattern::Solid => geometry::LineDash::default(),
         render::LinePattern::Dash(dash) => {
