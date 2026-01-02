@@ -48,6 +48,9 @@ pub enum Ref {
     /// As an example, if a figure has 2 plots, each with a single X axis and two Y axes,
     /// Ref::FigIdx(1) will refer to the X axis of the second plot in X context,
     /// and to the second Y axis of the first plot in Y context.
+    ///
+    /// FigIdx can only be used in the context of shared axes across subplots (see [`Scale::Shared`]).
+    /// An error is raised if it is assigned to a series or annotation.
     FigIdx(usize),
     /// Reference by id (see [Axis::id]) or by title (see [Axis::title]).
     /// If two axes have the same id or title, the first one found will be used.
