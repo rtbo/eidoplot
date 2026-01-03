@@ -158,7 +158,7 @@ fn save_fig<D>(
         let data_source = data_source.copy();
         let fontdb = Arc::new(fontdb.clone());
 
-        fig.show(data_source, fontdb, Some(style.to_custom()))
+        fig.show(data_source, fontdb, Some(style))
             .unwrap();
     }
 }

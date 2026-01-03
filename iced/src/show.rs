@@ -1,14 +1,13 @@
 //! Module that provides the "show" functionality using the `iced` GUI library
-//! Requires the `iced` feature to be enabled
 
 use std::sync::Arc;
 
-use plotive::drawing::zoom;
-use plotive::style::{BuiltinStyle, CustomStyle};
-use plotive::{Drawing, data, drawing, fontdb, geom, ir};
 use iced::widget::{button, column, mouse_area, row, space, text};
 use iced::{Alignment, Length, mouse};
 use iced_font_awesome::{fa_icon, fa_icon_solid};
+use plotive::drawing::zoom;
+use plotive::style::{self, BuiltinStyle, CustomStyle};
+use plotive::{Drawing, Style, data, drawing, fontdb, geom, ir};
 
 use crate::figure::figure;
 
@@ -16,44 +15,50 @@ use crate::figure::figure;
 pub trait Show {
     /// Show the figure in a GUI window.
     /// This function will block the calling thread until the window is closed.
-    fn show<D>(
+    fn show<D, T, P>(
         self,
         data_source: Arc<D>,
         fontdb: Arc<fontdb::Database>,
-        style: Option<CustomStyle>,
-    ) -> iced::Result
-    where
-        D: data::Source + ?Sized + 'static;
-}
-
-impl Show for ir::Figure {
-    fn show<D>(
-        self,
-        data_source: Arc<D>,
-        fontdb: Arc<fontdb::Database>,
-        style: Option<CustomStyle>,
+        style: Option<Style<T, P>>,
     ) -> iced::Result
     where
         D: data::Source + ?Sized + 'static,
+        T: style::Theme,
+        P: style::series::Palette;
+}
+
+impl Show for ir::Figure {
+    fn show<D, T, P>(
+        self,
+        data_source: Arc<D>,
+        fontdb: Arc<fontdb::Database>,
+        style: Option<Style<T, P>>,
+    ) -> iced::Result
+    where
+        D: data::Source + ?Sized + 'static,
+        T: style::Theme,
+        P: style::series::Palette,
     {
         let fig = self
             .prepare(&*data_source, Some(&*fontdb))
             .expect("Failed to prepare figure");
-        show_app(fig, data_source, fontdb, style)
+        show_app(fig, data_source, fontdb, style.map(|s| s.to_custom()))
     }
 }
 
 impl Show for drawing::Figure {
-    fn show<D>(
+    fn show<D, T, P>(
         self,
         data_source: Arc<D>,
         fontdb: Arc<fontdb::Database>,
-        style: Option<CustomStyle>,
+        style: Option<Style<T, P>>,
     ) -> iced::Result
     where
         D: data::Source + ?Sized + 'static,
+        T: style::Theme,
+        P: style::series::Palette,
     {
-        show_app(self, data_source, fontdb, style)
+        show_app(self, data_source, fontdb, style.map(|s| s.to_custom()))
     }
 }
 
