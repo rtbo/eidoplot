@@ -37,5 +37,5 @@ fn main() {
 
     let fig = ir::Figure::new(plot.into()).with_title(title);
 
-    common::save_figure(&fig, &data_source, "polars-sine");
+    common::save_figure(&fig, &data_source, None, "polars-sine");
 }
