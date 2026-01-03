@@ -164,7 +164,6 @@ struct State {
     width: u32,
     height: u32,
     transform: geom::Transform,
-    scale: f32,
     clip: Option<Mask>,
 }
 
@@ -174,7 +173,6 @@ impl State {
             width,
             height,
             transform: geom::Transform::identity(),
-            scale: 1.0,
             clip: None,
         }
     }
@@ -183,7 +181,6 @@ impl State {
         let sx = self.width as f32 / size.width();
         let sy = self.height as f32 / size.height();
         self.transform = geom::Transform::from_scale(sx, sy);
-        self.scale = sx.min(sy);
     }
 
     fn fill(&mut self, px: &mut PixmapMut<'_>, fill: render::Paint) {
@@ -215,7 +212,7 @@ impl State {
         }
         if let Some(stroke) = path.stroke {
             let mut paint = tiny_skia::Paint::default();
-            let stroke = ts_stroke(stroke, &mut paint, self.scale);
+            let stroke = ts_stroke(stroke, &mut paint);
             px.stroke_path(path.path, &paint, &stroke, transform, self.clip.as_ref());
         }
     }
@@ -300,21 +297,21 @@ fn ts_fill(fill: render::Paint, paint: &mut tiny_skia::Paint) {
     paint.force_hq_pipeline = true;
 }
 
-fn ts_stroke(stroke: render::Stroke, paint: &mut tiny_skia::Paint, scale: f32) -> tiny_skia::Stroke {
+fn ts_stroke(stroke: render::Stroke, paint: &mut tiny_skia::Paint) -> tiny_skia::Stroke {
     paint.force_hq_pipeline = true;
 
     let color = ts_color(stroke.color);
     paint.set_color(color);
 
     let mut ts = tiny_skia::Stroke {
-        width: stroke.width * scale,
+        width: stroke.width,
         ..Default::default()
     };
 
     match stroke.pattern {
         render::LinePattern::Solid => (),
         render::LinePattern::Dash(dash) => {
-            let array = dash.iter().map(|d| d * stroke.width * scale).collect();
+            let array = dash.iter().map(|d| d * stroke.width).collect();
             ts.dash = tiny_skia::StrokeDash::new(array, 0.0);
         }
     }
