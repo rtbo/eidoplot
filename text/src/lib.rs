@@ -6,7 +6,9 @@ use ttf_parser as ttf;
 mod bidi;
 pub mod font;
 pub mod fontdb;
+mod input;
 pub mod line;
+pub mod math;
 pub mod rich;
 
 pub use font::{Font, ScaledMetrics, parse_font_families};
