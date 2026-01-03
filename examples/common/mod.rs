@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use plotive::style::{self};
-use plotive::{Drawing, data, fontdb, ir};
+use plotive::{Drawing, data, fontdb, des};
 use plotive_iced::Show;
 use plotive_pxl::SavePng;
 use plotive_svg::SaveSvg;
@@ -90,7 +90,7 @@ fn parse_args() -> Args {
 }
 
 pub fn save_figure<D>(
-    fig: &ir::Figure,
+    fig: &des::Figure,
     data_source: &D,
     fontdb: Option<&fontdb::Database>,
     default_name: &str,
@@ -107,7 +107,7 @@ pub fn save_figure<D>(
 }
 
 fn save_fig<D>(
-    fig: &ir::Figure,
+    fig: &des::Figure,
     data_source: &D,
     args: &Args,
     fontdb: &fontdb::Database,

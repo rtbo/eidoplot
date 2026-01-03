@@ -9,7 +9,7 @@ use text::fontdb;
 
 use crate::style::theme::Theme;
 use crate::style::{self, theme};
-use crate::{Style, data, geom, ir, render, text};
+use crate::{Style, data, geom, des, render, text};
 
 mod annot;
 mod axis;
@@ -32,9 +32,9 @@ pub enum Error {
     /// A series references a missing data source
     MissingDataSrc(String),
     /// An axis reference is unknown
-    UnknownAxisRef(ir::axis::Ref),
+    UnknownAxisRef(des::axis::Ref),
     /// An axis reference is illegal in the given context
-    IllegalAxisRef(ir::axis::Ref),
+    IllegalAxisRef(des::axis::Ref),
     /// An axis has no bounds (e.g. all data is NaN)
     UnboundedAxis,
     /// The IR model is inconsistent
@@ -129,7 +129,7 @@ pub trait Drawing {
     }
 }
 
-impl Drawing for ir::Figure {
+impl Drawing for des::Figure {
     fn prepare<D>(
         &self,
         data_source: &D,

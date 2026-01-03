@@ -4,7 +4,7 @@ use scale::{CoordMap, CoordMapXy};
 use crate::drawing::plot::Orientation;
 use crate::drawing::{Categories, ColumnExt, Error, F64ColumnExt, axis, legend, marker, scale};
 use crate::style::series::Palette;
-use crate::{Style, data, geom, ir, render, style};
+use crate::{Style, data, geom, des, render, style};
 
 /// trait implemented by series, or any other item that
 /// has to populate the legend
@@ -12,7 +12,7 @@ pub trait SeriesExt {
     fn legend_entry(&self) -> Option<legend::Entry<'_>>;
 }
 
-impl SeriesExt for ir::series::Line {
+impl SeriesExt for des::series::Line {
     fn legend_entry(&self) -> Option<legend::Entry<'_>> {
         self.name().map(|n| legend::Entry {
             label: n.as_ref(),
@@ -22,7 +22,7 @@ impl SeriesExt for ir::series::Line {
     }
 }
 
-impl SeriesExt for ir::series::Scatter {
+impl SeriesExt for des::series::Scatter {
     fn legend_entry(&self) -> Option<legend::Entry<'_>> {
         self.name().map(|n| legend::Entry {
             label: n.as_ref(),
@@ -32,7 +32,7 @@ impl SeriesExt for ir::series::Scatter {
     }
 }
 
-impl SeriesExt for ir::series::Histogram {
+impl SeriesExt for des::series::Histogram {
     fn legend_entry(&self) -> Option<legend::Entry<'_>> {
         self.name().map(|n| legend::Entry {
             label: n.as_ref(),
@@ -42,7 +42,7 @@ impl SeriesExt for ir::series::Histogram {
     }
 }
 
-impl SeriesExt for ir::series::Bars {
+impl SeriesExt for des::series::Bars {
     fn legend_entry(&self) -> Option<legend::Entry<'_>> {
         self.name().map(|n| legend::Entry {
             label: n.as_ref(),
@@ -52,7 +52,7 @@ impl SeriesExt for ir::series::Bars {
     }
 }
 
-impl SeriesExt for ir::series::BarSeries {
+impl SeriesExt for des::series::BarSeries {
     fn legend_entry(&self) -> Option<legend::Entry<'_>> {
         self.name().map(|n| legend::Entry {
             label: n.as_ref(),
@@ -63,15 +63,15 @@ impl SeriesExt for ir::series::BarSeries {
 }
 
 fn get_column<'a, D>(
-    col: &'a ir::series::DataCol,
+    col: &'a des::series::DataCol,
     data_source: &'a D,
 ) -> Result<&'a dyn data::Column, Error>
 where
     D: data::Source + ?Sized,
 {
     match col {
-        ir::series::DataCol::Inline(col) => Ok(col),
-        ir::series::DataCol::SrcRef(name) => data_source
+        des::series::DataCol::Inline(col) => Ok(col),
+        des::series::DataCol::SrcRef(name) => data_source
             .column(name)
             .ok_or_else(|| Error::MissingDataSrc(name.to_string())),
     }
@@ -79,8 +79,8 @@ where
 
 fn calc_xy_bounds<D>(
     data_source: &D,
-    x_data: &ir::series::DataCol,
-    y_data: &ir::series::DataCol,
+    x_data: &des::series::DataCol,
+    y_data: &des::series::DataCol,
 ) -> Result<(axis::Bounds, axis::Bounds), Error>
 where
     D: data::Source + ?Sized,
@@ -111,12 +111,12 @@ pub(super) struct AxisMatcher<'a> {
 impl<'a> AxisMatcher<'a> {
     pub(super) fn matches_ref(
         &self,
-        ax_ref: &ir::axis::Ref,
+        ax_ref: &des::axis::Ref,
         plt_idx: usize,
     ) -> Result<bool, Error> {
         match ax_ref {
-            ir::axis::Ref::Idx(ax_idx) => Ok(self.ax_idx == *ax_idx && self.plt_idx == plt_idx),
-            ir::axis::Ref::Id(id) => Ok(self.id == Some(id) || self.title == Some(id)),
+            des::axis::Ref::Idx(ax_idx) => Ok(self.ax_idx == *ax_idx && self.plt_idx == plt_idx),
+            des::axis::Ref::Id(id) => Ok(self.id == Some(id) || self.title == Some(id)),
             ax_ref => Err(Error::IllegalAxisRef(ax_ref.clone())),
         }
     }
@@ -125,8 +125,8 @@ impl<'a> AxisMatcher<'a> {
 #[derive(Debug, Clone)]
 pub struct Series {
     plot: SeriesPlot,
-    x_axis: ir::axis::Ref,
-    y_axis: ir::axis::Ref,
+    x_axis: des::axis::Ref,
+    y_axis: des::axis::Ref,
 }
 
 #[derive(Debug, Clone)]
@@ -139,21 +139,21 @@ enum SeriesPlot {
 }
 
 impl Series {
-    pub fn prepare<D>(index: usize, series: &ir::Series, data_source: &D) -> Result<Self, Error>
+    pub fn prepare<D>(index: usize, series: &des::Series, data_source: &D) -> Result<Self, Error>
     where
         D: data::Source + ?Sized,
     {
         let plot = match &series {
-            ir::Series::Line(ir) => SeriesPlot::Line(Line::prepare(index, ir, data_source)?),
-            ir::Series::Scatter(ir) => {
-                SeriesPlot::Scatter(Scatter::prepare(index, ir, data_source)?)
+            des::Series::Line(des) => SeriesPlot::Line(Line::prepare(index, des, data_source)?),
+            des::Series::Scatter(des) => {
+                SeriesPlot::Scatter(Scatter::prepare(index, des, data_source)?)
             }
-            ir::Series::Histogram(ir) => {
-                SeriesPlot::Histogram(Histogram::prepare(index, ir, data_source)?)
+            des::Series::Histogram(des) => {
+                SeriesPlot::Histogram(Histogram::prepare(index, des, data_source)?)
             }
-            ir::Series::Bars(ir) => SeriesPlot::Bars(Bars::prepare(index, ir, data_source)?),
-            ir::Series::BarsGroup(ir) => {
-                SeriesPlot::BarsGroup(BarsGroup::prepare(index, ir, data_source)?)
+            des::Series::Bars(des) => SeriesPlot::Bars(Bars::prepare(index, des, data_source)?),
+            des::Series::BarsGroup(des) => {
+                SeriesPlot::BarsGroup(BarsGroup::prepare(index, des, data_source)?)
             }
         };
 
@@ -166,7 +166,7 @@ impl Series {
         })
     }
 
-    pub fn axes(&self) -> (&ir::axis::Ref, &ir::axis::Ref) {
+    pub fn axes(&self) -> (&des::axis::Ref, &des::axis::Ref) {
         (&self.x_axis, &self.y_axis)
     }
 
@@ -217,7 +217,7 @@ impl Series {
         }
     }
 
-    fn x_axis(&self) -> &ir::axis::Ref {
+    fn x_axis(&self) -> &des::axis::Ref {
         match &self.plot {
             SeriesPlot::Line(line) => &line.axes.0,
             SeriesPlot::Scatter(scatter) => &scatter.axes.0,
@@ -227,7 +227,7 @@ impl Series {
         }
     }
 
-    fn y_axis(&self) -> &ir::axis::Ref {
+    fn y_axis(&self) -> &des::axis::Ref {
         match &self.plot {
             SeriesPlot::Line(line) => &line.axes.1,
             SeriesPlot::Scatter(scatter) => &scatter.axes.1,
@@ -282,27 +282,27 @@ impl Series {
 #[derive(Debug, Clone)]
 struct Line {
     index: usize,
-    cols: (ir::DataCol, ir::DataCol),
+    cols: (des::DataCol, des::DataCol),
     ab: (axis::Bounds, axis::Bounds),
-    axes: (ir::axis::Ref, ir::axis::Ref),
+    axes: (des::axis::Ref, des::axis::Ref),
     path: Option<geom::Path>,
     line: style::series::Line,
 }
 
 impl Line {
-    fn prepare<D>(index: usize, ir: &ir::series::Line, data_source: &D) -> Result<Self, Error>
+    fn prepare<D>(index: usize, des: &des::series::Line, data_source: &D) -> Result<Self, Error>
     where
         D: data::Source + ?Sized,
     {
-        let cols = (ir.x_data().clone(), ir.y_data().clone());
+        let cols = (des.x_data().clone(), des.y_data().clone());
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &cols.0, &cols.1)?;
         Ok(Line {
             index,
             cols,
             ab: (x_bounds, y_bounds),
-            axes: (ir.x_axis().clone(), ir.y_axis().clone()),
+            axes: (des.x_axis().clone(), des.y_axis().clone()),
             path: None,
-            line: ir.line().clone(),
+            line: des.line().clone(),
         })
     }
 
@@ -360,30 +360,30 @@ impl Line {
 #[derive(Debug, Clone)]
 struct Scatter {
     index: usize,
-    cols: (ir::DataCol, ir::DataCol),
+    cols: (des::DataCol, des::DataCol),
     ab: (axis::Bounds, axis::Bounds),
-    axes: (ir::axis::Ref, ir::axis::Ref),
+    axes: (des::axis::Ref, des::axis::Ref),
     path: geom::Path,
     points: Vec<geom::Point>,
     marker: style::series::Marker,
 }
 
 impl Scatter {
-    fn prepare<D>(index: usize, ir: &ir::series::Scatter, data_source: &D) -> Result<Self, Error>
+    fn prepare<D>(index: usize, des: &des::series::Scatter, data_source: &D) -> Result<Self, Error>
     where
         D: data::Source + ?Sized,
     {
-        let cols = (ir.x_data().clone(), ir.y_data().clone());
+        let cols = (des.x_data().clone(), des.y_data().clone());
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &cols.0, &cols.1)?;
-        let path = marker::marker_path(ir.marker());
+        let path = marker::marker_path(des.marker());
         Ok(Scatter {
             index,
             cols,
             ab: (x_bounds, y_bounds),
-            axes: (ir.x_axis().clone(), ir.y_axis().clone()),
+            axes: (des.x_axis().clone(), des.y_axis().clone()),
             path,
             points: Vec::new(),
-            marker: ir.marker().clone(),
+            marker: des.marker().clone(),
         })
     }
 
@@ -441,7 +441,7 @@ struct HistBin {
 struct Histogram {
     index: usize,
     ab: (axis::NumBounds, axis::NumBounds),
-    axes: (ir::axis::Ref, ir::axis::Ref),
+    axes: (des::axis::Ref, des::axis::Ref),
     bins: Vec<HistBin>,
     path: Option<geom::Path>,
     fill: style::series::Fill,
@@ -451,7 +451,7 @@ struct Histogram {
 impl Histogram {
     fn prepare<D>(
         index: usize,
-        hist: &ir::series::Histogram,
+        hist: &des::series::Histogram,
         data_source: &D,
     ) -> Result<Self, Error>
     where
@@ -550,21 +550,21 @@ enum BarsBounds {
 #[derive(Debug, Clone)]
 struct Bars {
     index: usize,
-    cols: (ir::DataCol, ir::DataCol),
+    cols: (des::DataCol, des::DataCol),
     bounds: BarsBounds,
-    axes: (ir::axis::Ref, ir::axis::Ref),
-    position: ir::series::BarsPosition,
+    axes: (des::axis::Ref, des::axis::Ref),
+    position: des::series::BarsPosition,
     path: Option<geom::Path>,
     fill: style::series::Fill,
     line: Option<style::series::Line>,
 }
 
 impl Bars {
-    fn prepare<D>(index: usize, ir: &ir::series::Bars, data_source: &D) -> Result<Self, Error>
+    fn prepare<D>(index: usize, des: &des::series::Bars, data_source: &D) -> Result<Self, Error>
     where
         D: data::Source + ?Sized,
     {
-        let cols = (ir.x_data().clone(), ir.y_data().clone());
+        let cols = (des.x_data().clone(), des.y_data().clone());
         let (x_bounds, y_bounds) = calc_xy_bounds(data_source, &cols.0, &cols.1)?;
 
         let bounds = match (x_bounds, y_bounds) {
@@ -587,11 +587,11 @@ impl Bars {
             index,
             cols,
             bounds,
-            axes: (ir.x_axis().clone(), ir.y_axis().clone()),
-            position: ir.position().clone(),
+            axes: (des.x_axis().clone(), des.y_axis().clone()),
+            position: des.position().clone(),
             path: None,
-            fill: ir.fill().clone(),
-            line: ir.line().cloned(),
+            fill: des.fill().clone(),
+            line: des.line().cloned(),
         })
     }
 
@@ -679,19 +679,19 @@ impl Bars {
 pub struct BarsGroup {
     fst_index: usize,
     bounds: (axis::Bounds, axis::Bounds),
-    axes: (ir::axis::Ref, ir::axis::Ref),
-    orientation: ir::series::BarsOrientation,
-    arrangement: ir::series::BarsArrangement,
-    series: Vec<ir::series::BarSeries>,
+    axes: (des::axis::Ref, des::axis::Ref),
+    orientation: des::series::BarsOrientation,
+    arrangement: des::series::BarsArrangement,
+    series: Vec<des::series::BarSeries>,
     series_paths: Vec<geom::Path>,
 }
 
 impl BarsGroup {
-    fn prepare<D>(index: usize, ir: &ir::series::BarsGroup, data_source: &D) -> Result<Self, Error>
+    fn prepare<D>(index: usize, des: &des::series::BarsGroup, data_source: &D) -> Result<Self, Error>
     where
         D: data::Source + ?Sized,
     {
-        let cat_col = get_column(ir.categories(), data_source)?;
+        let cat_col = get_column(des.categories(), data_source)?;
         let categories: Categories = cat_col
             .str()
             .ok_or_else(|| {
@@ -702,7 +702,7 @@ impl BarsGroup {
         let mut bounds_per_cat: Vec<axis::NumBounds> =
             vec![axis::NumBounds::from(0.0); categories.len()];
 
-        for bs in ir.series() {
+        for bs in des.series() {
             let data_col = get_column(bs.data(), data_source)?;
             if data_col.len() != categories.len() {
                 return Err(Error::InconsistentData(
@@ -715,11 +715,11 @@ impl BarsGroup {
 
             for (v, bounds) in data_col.f64_iter().zip(bounds_per_cat.iter_mut()) {
                 if let Some(v) = v {
-                    match ir.arrangement() {
-                        ir::series::BarsArrangement::Aside(..) => {
+                    match des.arrangement() {
+                        des::series::BarsArrangement::Aside(..) => {
                             bounds.add_sample(v);
                         }
-                        ir::series::BarsArrangement::Stack(..) => {
+                        des::series::BarsArrangement::Stack(..) => {
                             if bounds.end().is_finite() {
                                 bounds.add_sample(v + bounds.end());
                             } else {
@@ -736,11 +736,11 @@ impl BarsGroup {
             num_bounds.unite_with(bounds);
         }
 
-        let bounds = match ir.orientation() {
-            ir::series::BarsOrientation::Vertical => {
+        let bounds = match des.orientation() {
+            des::series::BarsOrientation::Vertical => {
                 (axis::Bounds::Cat(categories), axis::Bounds::Num(num_bounds))
             }
-            ir::series::BarsOrientation::Horizontal => {
+            des::series::BarsOrientation::Horizontal => {
                 (axis::Bounds::Num(num_bounds), axis::Bounds::Cat(categories))
             }
         };
@@ -748,10 +748,10 @@ impl BarsGroup {
         Ok(BarsGroup {
             fst_index: index,
             bounds,
-            axes: (ir.x_axis().clone(), ir.y_axis().clone()),
-            orientation: ir.orientation().clone(),
-            arrangement: ir.arrangement().clone(),
-            series: ir.series().to_vec(),
+            axes: (des.x_axis().clone(), des.y_axis().clone()),
+            orientation: des.orientation().clone(),
+            arrangement: des.arrangement().clone(),
+            series: des.series().to_vec(),
             series_paths: Vec::new(),
         })
     }
@@ -761,15 +761,15 @@ impl BarsGroup {
         D: data::Source + ?Sized,
     {
         let categories = match self.orientation {
-            ir::series::BarsOrientation::Vertical => self.bounds.0.as_cat().unwrap(),
-            ir::series::BarsOrientation::Horizontal => self.bounds.1.as_cat().unwrap(),
+            des::series::BarsOrientation::Vertical => self.bounds.0.as_cat().unwrap(),
+            des::series::BarsOrientation::Horizontal => self.bounds.1.as_cat().unwrap(),
         };
 
         let paths = match self.arrangement {
-            ir::series::BarsArrangement::Aside(aside) => {
+            des::series::BarsArrangement::Aside(aside) => {
                 self.build_paths_aside(data_source, &aside, categories, rect, cm)
             }
-            ir::series::BarsArrangement::Stack(stack) => {
+            des::series::BarsArrangement::Stack(stack) => {
                 self.build_paths_stack(data_source, &stack, categories, rect, cm)
             }
         };
@@ -779,7 +779,7 @@ impl BarsGroup {
     fn build_paths_aside<D>(
         &self,
         data_source: &D,
-        arrangement: &ir::series::BarsAsideArrangement,
+        arrangement: &des::series::BarsAsideArrangement,
         categories: &Categories,
         rect: &geom::Rect,
         cm: &CoordMapXy,
@@ -793,7 +793,7 @@ impl BarsGroup {
         }
         let num_gaps = num_series - 1;
 
-        let ir::series::BarsAsideArrangement {
+        let des::series::BarsAsideArrangement {
             mut offset,
             width,
             gap,
@@ -831,7 +831,7 @@ impl BarsGroup {
     fn build_paths_stack<D>(
         &self,
         data_source: &D,
-        arrangement: &ir::series::BarsStackArrangement,
+        arrangement: &des::series::BarsStackArrangement,
         categories: &Categories,
         rect: &geom::Rect,
         cm: &CoordMapXy,
@@ -926,7 +926,7 @@ trait BarsOrientationExt {
     );
 }
 
-impl BarsOrientationExt for ir::series::BarsOrientation {
+impl BarsOrientationExt for des::series::BarsOrientation {
     fn cat_map<'a>(&self, cm: &'a CoordMapXy) -> &'a dyn CoordMap {
         match self {
             Self::Vertical => cm.x,

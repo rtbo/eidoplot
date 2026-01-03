@@ -1,4 +1,4 @@
-use plotive::{color, ir};
+use plotive::{color, des};
 
 use super::{fig_small, line, line2};
 use crate::tests::fig_mid;
@@ -7,7 +7,7 @@ use crate::{TestHarness, assert_fig_eq_ref};
 #[test]
 fn axes_default() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series]);
+    let plot = des::Plot::new(vec![series]);
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/default");
@@ -17,7 +17,7 @@ fn axes_default() {
 fn axes_x_title() {
     let series = line().into();
     let plot =
-        ir::Plot::new(vec![series]).with_x_axis(ir::Axis::default().with_title("x axis".into()));
+        des::Plot::new(vec![series]).with_x_axis(des::Axis::default().with_title("x axis".into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/x-title");
@@ -27,7 +27,7 @@ fn axes_x_title() {
 fn axes_y_title() {
     let series = line().into();
     let plot =
-        ir::Plot::new(vec![series]).with_y_axis(ir::Axis::default().with_title("y axis".into()));
+        des::Plot::new(vec![series]).with_y_axis(des::Axis::default().with_title("y axis".into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/y-title");
@@ -36,9 +36,9 @@ fn axes_y_title() {
 #[test]
 fn axes_titles() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series])
-        .with_x_axis(ir::Axis::new().with_title("x axis".into()))
-        .with_y_axis(ir::Axis::new().with_title("y axis".into()));
+    let plot = des::Plot::new(vec![series])
+        .with_x_axis(des::Axis::new().with_title("x axis".into()))
+        .with_y_axis(des::Axis::new().with_title("y axis".into()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/titles");
@@ -48,7 +48,7 @@ fn axes_titles() {
 fn axes_x_major_ticks() {
     let series = line().into();
     let plot =
-        ir::Plot::new(vec![series]).with_x_axis(ir::Axis::default().with_ticks(Default::default()));
+        des::Plot::new(vec![series]).with_x_axis(des::Axis::default().with_ticks(Default::default()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/x-major-ticks");
@@ -58,7 +58,7 @@ fn axes_x_major_ticks() {
 fn axes_y_major_ticks() {
     let series = line().into();
     let plot =
-        ir::Plot::new(vec![series]).with_y_axis(ir::Axis::default().with_ticks(Default::default()));
+        des::Plot::new(vec![series]).with_y_axis(des::Axis::default().with_ticks(Default::default()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/y-major-ticks");
@@ -67,9 +67,9 @@ fn axes_y_major_ticks() {
 #[test]
 fn axes_major_ticks() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series])
-        .with_x_axis(ir::Axis::default().with_ticks(Default::default()))
-        .with_y_axis(ir::Axis::default().with_ticks(Default::default()));
+    let plot = des::Plot::new(vec![series])
+        .with_x_axis(des::Axis::default().with_ticks(Default::default()))
+        .with_y_axis(des::Axis::default().with_ticks(Default::default()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/major-ticks");
@@ -78,8 +78,8 @@ fn axes_major_ticks() {
 #[test]
 fn axes_x_title_major_ticks() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series]).with_x_axis(
-        ir::Axis::new()
+    let plot = des::Plot::new(vec![series]).with_x_axis(
+        des::Axis::new()
             .with_title("x axis".into())
             .with_ticks(Default::default()),
     );
@@ -91,8 +91,8 @@ fn axes_x_title_major_ticks() {
 #[test]
 fn axes_y_title_major_ticks() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series]).with_y_axis(
-        ir::Axis::new()
+    let plot = des::Plot::new(vec![series]).with_y_axis(
+        des::Axis::new()
             .with_title("y axis".into())
             .with_ticks(Default::default()),
     );
@@ -104,14 +104,14 @@ fn axes_y_title_major_ticks() {
 #[test]
 fn axes_titles_major_ticks() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series])
+    let plot = des::Plot::new(vec![series])
         .with_x_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_title("x axis".into())
                 .with_ticks(Default::default()),
         )
         .with_y_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_title("y axis".into())
                 .with_ticks(Default::default()),
         );
@@ -123,14 +123,14 @@ fn axes_titles_major_ticks() {
 #[test]
 fn axes_minor_ticks() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series])
+    let plot = des::Plot::new(vec![series])
         .with_x_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(Default::default())
                 .with_minor_ticks(Default::default()),
         )
         .with_y_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(Default::default())
                 .with_minor_ticks(Default::default()),
         );
@@ -142,8 +142,8 @@ fn axes_minor_ticks() {
 #[test]
 fn axes_x_major_grid() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series]).with_x_axis(
-        ir::Axis::new()
+    let plot = des::Plot::new(vec![series]).with_x_axis(
+        des::Axis::new()
             .with_ticks(Default::default())
             .with_grid(Default::default()),
     );
@@ -155,8 +155,8 @@ fn axes_x_major_grid() {
 #[test]
 fn axes_y_major_grid() {
     let series = line().into();
-    let plot = ir::Plot::new(vec![series]).with_y_axis(
-        ir::Axis::new()
+    let plot = des::Plot::new(vec![series]).with_y_axis(
+        des::Axis::new()
             .with_ticks(Default::default())
             .with_grid(Default::default()),
     );
@@ -168,10 +168,10 @@ fn axes_y_major_grid() {
 #[test]
 fn axes_major_grid() {
     let series = line().into();
-    let axis = ir::Axis::new()
+    let axis = des::Axis::new()
         .with_ticks(Default::default())
         .with_grid(Default::default());
-    let plot = ir::Plot::new(vec![series])
+    let plot = des::Plot::new(vec![series])
         .with_x_axis(axis.clone())
         .with_y_axis(axis);
     let fig = fig_small(plot);
@@ -182,13 +182,13 @@ fn axes_major_grid() {
 #[test]
 fn axes_minor_grid() {
     let series = line().into();
-    let axis = ir::Axis::new()
+    let axis = des::Axis::new()
         .with_ticks(Default::default())
         .with_grid(Default::default())
         .with_minor_ticks(Default::default())
         .with_minor_grid(Default::default());
 
-    let plot = ir::Plot::new(vec![series])
+    let plot = des::Plot::new(vec![series])
         .with_x_axis(axis.clone())
         .with_y_axis(axis);
     let fig = fig_small(plot);
@@ -200,12 +200,12 @@ fn axes_minor_grid() {
 fn axes_categories() {
     let x = vec!["a".to_string(), "b".to_string(), "c".to_string()];
     let y = vec![1.0, 1.4, 3.0];
-    let series = ir::series::Bars::new(x.into(), y.into())
+    let series = des::series::Bars::new(x.into(), y.into())
         .with_fill(color::TRANSPARENT.into())
         .with_line(Default::default());
 
-    let plot = ir::Plot::new(vec![series.into()])
-        .with_x_axis(ir::Axis::new().with_ticks(Default::default()));
+    let plot = des::Plot::new(vec![series.into()])
+        .with_x_axis(des::Axis::new().with_ticks(Default::default()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/categories");
@@ -216,10 +216,10 @@ fn axes_pi_locator() {
     use std::f64::consts::PI;
     let x = vec![PI, 2.0 * PI, 3.0 * PI];
     let y = vec![1.0, 1.4, 3.0];
-    let series = ir::series::Line::new(x.into(), y.into());
+    let series = des::series::Line::new(x.into(), y.into());
 
-    let plot = ir::Plot::new(vec![series.into()]).with_x_axis(ir::Axis::new().with_ticks(
-        ir::axis::Ticks::new().with_locator(ir::axis::ticks::PiMultipleLocator { bins: 5 }.into()),
+    let plot = des::Plot::new(vec![series.into()]).with_x_axis(des::Axis::new().with_ticks(
+        des::axis::Ticks::new().with_locator(des::axis::ticks::PiMultipleLocator { bins: 5 }.into()),
     ));
     let fig = fig_small(plot);
 
@@ -231,17 +231,17 @@ fn axes_pi_locator_minor() {
     use std::f64::consts::PI;
     let x = vec![PI, 2.0 * PI, 3.0 * PI];
     let y = vec![1.0, 1.4, 3.0];
-    let series = ir::series::Line::new(x.into(), y.into());
+    let series = des::series::Line::new(x.into(), y.into());
 
-    let plot = ir::Plot::new(vec![series.into()]).with_x_axis(
-        ir::Axis::new()
+    let plot = des::Plot::new(vec![series.into()]).with_x_axis(
+        des::Axis::new()
             .with_ticks(
-                ir::axis::Ticks::new()
-                    .with_locator(ir::axis::ticks::PiMultipleLocator { bins: 5 }.into()),
+                des::axis::Ticks::new()
+                    .with_locator(des::axis::ticks::PiMultipleLocator { bins: 5 }.into()),
             )
             .with_minor_ticks(
-                ir::axis::MinorTicks::new()
-                    .with_locator(ir::axis::ticks::PiMultipleLocator { bins: 30 }.into()),
+                des::axis::MinorTicks::new()
+                    .with_locator(des::axis::ticks::PiMultipleLocator { bins: 30 }.into()),
             ),
     );
     let fig = fig_small(plot);
@@ -252,14 +252,14 @@ fn axes_pi_locator_minor() {
 #[test]
 fn axes_top_right() {
     let s1 = line();
-    let plot = ir::Plot::new(vec![s1.into()])
+    let plot = des::Plot::new(vec![s1.into()])
         .with_x_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(Default::default())
                 .with_opposite_side(),
         )
         .with_y_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(Default::default())
                 .with_opposite_side(),
         );
@@ -272,13 +272,13 @@ fn axes_top_right() {
 fn axes_multiple_bl() {
     let s1 = line();
     let s2 = line2(&[4.0, 5.0, 6.0], &[6.0, 5.0, 4.0])
-        .with_x_axis(ir::axis::Ref::Id("x2".to_string()))
-        .with_y_axis(ir::axis::Ref::Id("y2".to_string()));
-    let plot = ir::Plot::new(vec![s1.into(), s2.into()])
-        .with_x_axis(ir::Axis::new().with_ticks(Default::default()))
-        .with_y_axis(ir::Axis::new().with_ticks(Default::default()))
-        .with_x_axis(ir::Axis::new().with_ticks(Default::default()).with_id("x2"))
-        .with_y_axis(ir::Axis::new().with_ticks(Default::default()).with_id("y2"));
+        .with_x_axis(des::axis::Ref::Id("x2".to_string()))
+        .with_y_axis(des::axis::Ref::Id("y2".to_string()));
+    let plot = des::Plot::new(vec![s1.into(), s2.into()])
+        .with_x_axis(des::Axis::new().with_ticks(Default::default()))
+        .with_y_axis(des::Axis::new().with_ticks(Default::default()))
+        .with_x_axis(des::Axis::new().with_ticks(Default::default()).with_id("x2"))
+        .with_y_axis(des::Axis::new().with_ticks(Default::default()).with_id("y2"));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/multiple-bl");
@@ -288,19 +288,19 @@ fn axes_multiple_bl() {
 fn axes_multiple_trbl() {
     let s1 = line();
     let s2 = line2(&[4.0, 5.0, 6.0], &[6.0, 5.0, 4.0])
-        .with_x_axis(ir::axis::Ref::Id("x2".to_string()))
-        .with_y_axis(ir::axis::Ref::Id("y2".to_string()));
-    let plot = ir::Plot::new(vec![s1.into(), s2.into()])
-        .with_x_axis(ir::Axis::new().with_ticks(Default::default()))
-        .with_y_axis(ir::Axis::new().with_ticks(Default::default()))
+        .with_x_axis(des::axis::Ref::Id("x2".to_string()))
+        .with_y_axis(des::axis::Ref::Id("y2".to_string()));
+    let plot = des::Plot::new(vec![s1.into(), s2.into()])
+        .with_x_axis(des::Axis::new().with_ticks(Default::default()))
+        .with_y_axis(des::Axis::new().with_ticks(Default::default()))
         .with_x_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(Default::default())
                 .with_id("x2")
                 .with_opposite_side(),
         )
         .with_y_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(Default::default())
                 .with_id("y2")
                 .with_opposite_side(),
@@ -314,27 +314,27 @@ fn axes_multiple_trbl() {
 fn axes_multiple_trbl_titles() {
     let s1 = line();
     let s2 = line2(&[4.0, 5.0, 6.0], &[6.0, 5.0, 4.0])
-        .with_x_axis(ir::axis::Ref::Id("x2".to_string()))
-        .with_y_axis(ir::axis::Ref::Id("y2".to_string()));
-    let plot = ir::Plot::new(vec![s1.into(), s2.into()])
+        .with_x_axis(des::axis::Ref::Id("x2".to_string()))
+        .with_y_axis(des::axis::Ref::Id("y2".to_string()));
+    let plot = des::Plot::new(vec![s1.into(), s2.into()])
         .with_x_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(Default::default())
                 .with_title("x1".into()),
         )
         .with_y_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(Default::default())
                 .with_title("y1".into()),
         )
         .with_x_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(Default::default())
                 .with_title("x2".into())
                 .with_opposite_side(),
         )
         .with_y_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(Default::default())
                 .with_title("y2".into())
                 .with_opposite_side(),

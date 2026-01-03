@@ -1,4 +1,4 @@
-use plotive::{data, ir};
+use plotive::{data, des};
 
 mod common;
 
@@ -21,10 +21,10 @@ fn main() {
     source.add_column("stocks_2024", &stocks_2024);
     source.add_column("stocks_2025", &stocks_2025);
 
-    let x_axis = ir::Axis::new()
+    let x_axis = des::Axis::new()
         .with_title("Fruits".into())
         .with_ticks(Default::default());
-    let y_axis = ir::Axis::new()
+    let y_axis = des::Axis::new()
         .with_title("Stocks".into())
         .with_ticks(Default::default());
 
@@ -49,26 +49,26 @@ fn main() {
 
     // let series = vec![bars_group];
 
-    let stocks_2023 = ir::Series::Bars(
-        ir::series::Bars::new(ir::data_src_ref("fruits"), ir::data_src_ref("stocks_2023"))
+    let stocks_2023 = des::Series::Bars(
+        des::series::Bars::new(des::data_src_ref("fruits"), des::data_src_ref("stocks_2023"))
             .with_name("Stocks 2023")
-            .with_position(ir::series::BarsPosition {
+            .with_position(des::series::BarsPosition {
                 offset: 0.2,
                 width: 0.2,
             }),
     );
-    let stocks_2024 = ir::Series::Bars(
-        ir::series::Bars::new(ir::data_src_ref("fruits"), ir::data_src_ref("stocks_2024"))
+    let stocks_2024 = des::Series::Bars(
+        des::series::Bars::new(des::data_src_ref("fruits"), des::data_src_ref("stocks_2024"))
             .with_name("Stocks 2024")
-            .with_position(ir::series::BarsPosition {
+            .with_position(des::series::BarsPosition {
                 offset: 0.4,
                 width: 0.2,
             }),
     );
-    let stocks_2025 = ir::Series::Bars(
-        ir::series::Bars::new(ir::data_src_ref("fruits"), ir::data_src_ref("stocks_2025"))
+    let stocks_2025 = des::Series::Bars(
+        des::series::Bars::new(des::data_src_ref("fruits"), des::data_src_ref("stocks_2025"))
             .with_name("Stocks 2025")
-            .with_position(ir::series::BarsPosition {
+            .with_position(des::series::BarsPosition {
                 offset: 0.6,
                 width: 0.2,
             }),
@@ -76,12 +76,12 @@ fn main() {
 
     let series = vec![stocks_2023, stocks_2024, stocks_2025];
 
-    let plot = ir::Plot::new(series)
+    let plot = des::Plot::new(series)
         .with_x_axis(x_axis)
         .with_y_axis(y_axis)
         .with_legend(Default::default());
 
-    let fig = ir::Figure::new(plot.into()).with_title("Categorial bars".into());
+    let fig = des::Figure::new(plot.into()).with_title("Categorial bars".into());
 
     common::save_figure(&fig, &source, None, "bars");
 }

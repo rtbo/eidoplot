@@ -7,7 +7,7 @@ use iced::{Alignment, Length, mouse};
 use iced_font_awesome::{fa_icon, fa_icon_solid};
 use plotive::drawing::zoom;
 use plotive::style::{self, BuiltinStyle, CustomStyle};
-use plotive::{Drawing, Style, data, drawing, fontdb, geom, ir};
+use plotive::{Drawing, Style, data, drawing, fontdb, geom, des};
 
 use crate::figure::figure;
 
@@ -27,7 +27,7 @@ pub trait Show {
         P: style::series::Palette;
 }
 
-impl Show for ir::Figure {
+impl Show for des::Figure {
     fn show<D, T, P>(
         self,
         data_source: Arc<D>,
@@ -118,13 +118,13 @@ enum Interaction {
     None,
     ZoomEnabled,
     ZoomDragging {
-        idx: ir::PlotIdx,
+        idx: des::PlotIdx,
         start: geom::Point,
         end: geom::Point,
     },
     PanEnabled,
     PanDragging {
-        idx: ir::PlotIdx,
+        idx: des::PlotIdx,
         last: geom::Point,
     },
 }
@@ -139,7 +139,7 @@ struct ShowWindow<D: ?Sized> {
     over_plot: bool,
     tb_status: Option<(String, String)>,
     interaction: Interaction,
-    middle_but_drag: Option<(ir::PlotIdx, geom::Point)>,
+    middle_but_drag: Option<(des::PlotIdx, geom::Point)>,
     fig_scale: f32,
     #[cfg(feature = "clipboard")]
     clipboard: arboard::Clipboard,

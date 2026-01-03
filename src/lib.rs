@@ -29,8 +29,8 @@
 // Copyright (c) 2025 Rémi Thebault
 
 pub mod data;
+pub mod des;
 pub mod drawing;
-pub mod ir;
 pub mod render;
 pub mod style;
 

@@ -1,4 +1,4 @@
-use crate::ir::PlotIdx;
+use crate::des::PlotIdx;
 use crate::{data, geom};
 
 #[derive(Debug, Clone)]

@@ -1,7 +1,7 @@
 use crate::drawing::legend::{self, LegendBuilder};
 use crate::drawing::{Ctx, Error, plot};
 use crate::style::theme::{self, Theme};
-use crate::{Style, data, geom, ir, missing_params, render, style, text};
+use crate::{Style, data, geom, des, missing_params, render, style, text};
 
 /// A figure that has been prepared for drawing. See [`Figure::prepare`].
 /// It contains all the necessary data and layout information.
@@ -38,7 +38,7 @@ impl Figure {
     }
 
     ///
-    pub fn plot_indices(&self) -> impl Iterator<Item = ir::PlotIdx> + '_ {
+    pub fn plot_indices(&self) -> impl Iterator<Item = des::PlotIdx> + '_ {
         self.plots.iter_indices()
     }
 
@@ -72,7 +72,7 @@ impl<D> Ctx<'_, D>
 where
     D: data::Source + ?Sized,
 {
-    pub fn setup_figure(&self, fig: &ir::Figure) -> Result<Figure, Error> {
+    pub fn setup_figure(&self, fig: &des::Figure) -> Result<Figure, Error> {
         let mut rect =
             geom::Rect::from_ps(geom::Point { x: 0.0, y: 0.0 }, fig.size()).pad(fig.padding());
 
@@ -119,8 +119,8 @@ where
 
     fn prepare_legend(
         &self,
-        fig: &ir::Figure,
-        legend: &ir::FigLegend,
+        fig: &des::Figure,
+        legend: &des::FigLegend,
         rect: &mut geom::Rect,
     ) -> Result<Option<(geom::Point, legend::Legend)>, Error> {
         let mut builder = LegendBuilder::from_ir(
@@ -147,7 +147,7 @@ where
 
         let sz = leg.size();
         let top_left = match legend.pos() {
-            ir::figure::LegendPos::Top => {
+            des::figure::LegendPos::Top => {
                 let tl = geom::Point {
                     x: rect.center_x() - sz.width() / 2.0,
                     y: rect.top(),
@@ -155,21 +155,21 @@ where
                 rect.shift_top_side(sz.height() + legend.margin());
                 tl
             }
-            ir::figure::LegendPos::Right => {
+            des::figure::LegendPos::Right => {
                 rect.shift_right_side(-sz.width() - legend.margin());
                 geom::Point {
                     x: rect.right() + legend.margin(),
                     y: rect.center_y() - sz.height() / 2.0,
                 }
             }
-            ir::figure::LegendPos::Bottom => {
+            des::figure::LegendPos::Bottom => {
                 rect.shift_bottom_side(-sz.height() - legend.margin());
                 geom::Point {
                     x: rect.center_x() - sz.width() / 2.0,
                     y: rect.bottom() + legend.margin(),
                 }
             }
-            ir::figure::LegendPos::Left => {
+            des::figure::LegendPos::Left => {
                 let tl = geom::Point {
                     x: rect.left(),
                     y: rect.center_y() - sz.height() / 2.0,

@@ -1,5 +1,5 @@
 //! Annotations to place on the plot area.
-use crate::ir::axis;
+use crate::des::axis;
 use crate::style::{self, theme};
 use crate::text::Font;
 

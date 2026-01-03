@@ -4,16 +4,16 @@ use super::Ctx;
 use crate::drawing::axis::Axis;
 use crate::drawing::plot::{Axes, Orientation};
 use crate::drawing::{Text, marker};
-use crate::ir::annot::{Anchor, Direction, Pos, ZPos};
-use crate::ir::{self};
+use crate::des::annot::{Anchor, Direction, Pos, ZPos};
+use crate::des::{self};
 use crate::style::{self, theme};
 use crate::{Style, data, geom, render, text};
 
 #[derive(Debug, Clone)]
 pub(super) enum Annot {
-    Line(ir::annot::Line),
-    Arrow(ir::annot::Arrow),
-    Marker(ir::annot::Marker),
+    Line(des::annot::Line),
+    Arrow(des::annot::Arrow),
+    Marker(des::annot::Marker),
     Label(Label),
 }
 
@@ -29,12 +29,12 @@ impl<D> Ctx<'_, D>
 where
     D: data::Source + ?Sized,
 {
-    pub fn setup_annot(&self, annot: &ir::Annotation, axes: &Axes) -> Result<Annot, super::Error> {
+    pub fn setup_annot(&self, annot: &des::Annotation, axes: &Axes) -> Result<Annot, super::Error> {
         let mut annot = match annot {
-            ir::Annotation::Line(line) => Annot::Line(line.clone()),
-            ir::Annotation::Arrow(arrow) => Annot::Arrow(arrow.clone()),
-            ir::Annotation::Marker(marker) => Annot::Marker(marker.clone()),
-            ir::Annotation::Label(label) => {
+            des::Annotation::Line(line) => Annot::Line(line.clone()),
+            des::Annotation::Arrow(arrow) => Annot::Arrow(arrow.clone()),
+            des::Annotation::Marker(marker) => Annot::Marker(marker.clone()),
+            des::Annotation::Label(label) => {
                 let (align, ver_align) = match label.anchor {
                     Anchor::TopLeft => (text::line::Align::Left, text::line::VerAlign::Top),
                     Anchor::TopCenter => (text::line::Align::Center, text::line::VerAlign::Top),
@@ -76,8 +76,8 @@ where
             .ok_or_else(|| {
                 super::Error::UnknownAxisRef(annot.pos().y_axis.clone())
             })?;
-        annot.pos_mut().x_axis = ir::axis::Ref::Idx(x_axis);
-        annot.pos_mut().y_axis = ir::axis::Ref::Idx(y_axis);
+        annot.pos_mut().x_axis = des::axis::Ref::Idx(x_axis);
+        annot.pos_mut().y_axis = des::axis::Ref::Idx(y_axis);
 
         Ok(annot)
     }
@@ -144,7 +144,7 @@ impl Annot {
         &self,
         surface: &mut S,
         style: &Style<T, P>,
-        line: &ir::annot::Line,
+        line: &des::annot::Line,
         x_axis: &Axis,
         y_axis: &Axis,
         plot_rect: &geom::Rect,
@@ -228,7 +228,7 @@ impl Annot {
         &self,
         surface: &mut S,
         style: &Style<T, P>,
-        arrow: &ir::annot::Arrow,
+        arrow: &des::annot::Arrow,
         x_axis: &Axis,
         y_axis: &Axis,
         plot_rect: &geom::Rect,
@@ -265,7 +265,7 @@ impl Annot {
         &self,
         surface: &mut S,
         style: &Style<T, P>,
-        marker: &ir::annot::Marker,
+        marker: &des::annot::Marker,
         x_axis: &Axis,
         y_axis: &Axis,
         plot_rect: &geom::Rect,

@@ -8,7 +8,7 @@ pub use dsl::{Diagnostic, Source};
 
 use crate::dsl::{self, ast};
 use crate::text::{self, ParseRichTextError, ParsedRichText};
-use crate::{ir, style};
+use crate::{des, style};
 
 /// Errors that can occur during EPLT parsing
 #[derive(Debug, Clone)]
@@ -80,7 +80,7 @@ impl dsl::DiagTrait for Error {
 }
 
 /// Parse EPLT DSL input into a list of IR figures
-pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<ir::Figure>, Error> {
+pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<des::Figure>, Error> {
     let props = dsl::parse(input.as_ref().chars())?;
 
     let mut figs = vec![];
@@ -103,7 +103,7 @@ pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<ir::Figure>, Error> {
 pub fn parse_diag<'a>(
     input: &'a str,
     file_name: Option<&'a path::Path>,
-) -> dsl::DiagResult<Vec<ir::Figure>> {
+) -> dsl::DiagResult<Vec<des::Figure>> {
     match parse(input) {
         Ok(figs) => Ok(figs),
         Err(err) => {
@@ -166,17 +166,17 @@ fn expect_string_val(prop: ast::Prop) -> Result<(dsl::Span, String), Error> {
     Ok((span, val))
 }
 
-fn expect_axis_ref_val(prop: ast::Prop) -> Result<ir::axis::Ref, Error> {
+fn expect_axis_ref_val(prop: ast::Prop) -> Result<des::axis::Ref, Error> {
     match prop.value {
         Some(ast::Value::Scalar(ast::Scalar {
             kind: ast::ScalarKind::Str(val),
             ..
-        })) => Ok(ir::axis::Ref::Id(val)),
+        })) => Ok(des::axis::Ref::Id(val)),
 
         Some(ast::Value::Scalar(ast::Scalar {
             kind: ast::ScalarKind::Int(val),
             ..
-        })) => Ok(ir::axis::Ref::Idx(val as usize)),
+        })) => Ok(des::axis::Ref::Idx(val as usize)),
 
         _ => Err(Error::Parse {
             span: prop.span(),
@@ -224,7 +224,7 @@ fn parse_rich_text(
     Ok(text)
 }
 
-fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
+fn parse_fig(mut val: ast::Struct) -> Result<des::Figure, Error> {
     check_opt_type(&val, "Figure")?;
 
     let mut row_cols: Option<(u32, u32)> = None;
@@ -272,7 +272,7 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
         plot.into()
     } else {
         let (rows, cols) = row_cols;
-        let mut subplots = ir::Subplots::new(rows, cols);
+        let mut subplots = des::Subplots::new(rows, cols);
         // eplt has rows and cols starting at 1,
         // but ir has rows and cols starting at 0
         let mut row = 0;
@@ -295,7 +295,7 @@ fn parse_fig(mut val: ast::Struct) -> Result<ir::Figure, Error> {
         subplots.into()
     };
 
-    let mut fig = ir::Figure::new(plots);
+    let mut fig = des::Figure::new(plots);
 
     for prop in val.props {
         match prop.name.name.as_str() {
@@ -348,18 +348,18 @@ fn parse_subplots_val(value: Option<ast::Value>) -> Result<(u32, u32), Error> {
     }
 }
 
-fn parse_fig_legend(value: Option<ast::Value>) -> Result<ir::FigLegend, Error> {
-    let mut legend = ir::FigLegend::default();
+fn parse_fig_legend(value: Option<ast::Value>) -> Result<des::FigLegend, Error> {
+    let mut legend = des::FigLegend::default();
 
     match value {
         Some(ast::Value::Scalar(ast::Scalar {
             kind: ast::ScalarKind::Enum(ident),
             span,
         })) => match ident.as_str() {
-            "Top" => legend = legend.with_pos(ir::figure::LegendPos::Top),
-            "Right" => legend = legend.with_pos(ir::figure::LegendPos::Right),
-            "Bottom" => legend = legend.with_pos(ir::figure::LegendPos::Bottom),
-            "Left" => legend = legend.with_pos(ir::figure::LegendPos::Left),
+            "Top" => legend = legend.with_pos(des::figure::LegendPos::Top),
+            "Right" => legend = legend.with_pos(des::figure::LegendPos::Right),
+            "Bottom" => legend = legend.with_pos(des::figure::LegendPos::Bottom),
+            "Left" => legend = legend.with_pos(des::figure::LegendPos::Left),
             _ => {
                 return Err(Error::Parse {
                     span,
@@ -381,7 +381,7 @@ fn parse_fig_legend(value: Option<ast::Value>) -> Result<ir::FigLegend, Error> {
     Ok(legend)
 }
 
-fn parse_plot(mut val: ast::Struct) -> Result<(Option<(u32, u32)>, ir::plot::Plot), Error> {
+fn parse_plot(mut val: ast::Struct) -> Result<(Option<(u32, u32)>, des::plot::Plot), Error> {
     check_opt_type(&val, "Plot")?;
 
     let mut series = vec![];
@@ -392,7 +392,7 @@ fn parse_plot(mut val: ast::Struct) -> Result<(Option<(u32, u32)>, ir::plot::Plo
         series.push(parse_series(expect_struct_val(prop)?)?);
     }
     let mut row_cols = None;
-    let mut plot = ir::Plot::new(series);
+    let mut plot = des::Plot::new(series);
 
     for prop in val.props {
         match prop.name.name.as_str() {
@@ -416,26 +416,26 @@ fn parse_plot(mut val: ast::Struct) -> Result<(Option<(u32, u32)>, ir::plot::Plo
     Ok((row_cols, plot))
 }
 
-fn parse_plot_legend(value: Option<ast::Value>) -> Result<ir::plot::PlotLegend, Error> {
-    let mut legend = ir::plot::PlotLegend::default();
+fn parse_plot_legend(value: Option<ast::Value>) -> Result<des::plot::PlotLegend, Error> {
+    let mut legend = des::plot::PlotLegend::default();
 
     match value {
         Some(ast::Value::Scalar(ast::Scalar {
             kind: ast::ScalarKind::Enum(ident),
             span,
         })) => match ident.as_str() {
-            "OutTop" | "Top" => legend = legend.with_pos(ir::plot::LegendPos::OutTop),
-            "OutRight" | "Right" => legend = legend.with_pos(ir::plot::LegendPos::OutRight),
-            "OutBottom" | "Bottom" => legend = legend.with_pos(ir::plot::LegendPos::OutBottom),
-            "OutLeft" | "Left" => legend = legend.with_pos(ir::plot::LegendPos::OutLeft),
-            "InTop" => legend = legend.with_pos(ir::plot::LegendPos::InTop),
-            "InTopRight" => legend = legend.with_pos(ir::plot::LegendPos::InTopRight),
-            "InRight" => legend = legend.with_pos(ir::plot::LegendPos::InRight),
-            "InBottomRight" => legend = legend.with_pos(ir::plot::LegendPos::InBottomRight),
-            "InBottom" => legend = legend.with_pos(ir::plot::LegendPos::InBottom),
-            "InBottomLeft" => legend = legend.with_pos(ir::plot::LegendPos::InBottomLeft),
-            "InLeft" => legend = legend.with_pos(ir::plot::LegendPos::InLeft),
-            "InTopLeft" => legend = legend.with_pos(ir::plot::LegendPos::InTopLeft),
+            "OutTop" | "Top" => legend = legend.with_pos(des::plot::LegendPos::OutTop),
+            "OutRight" | "Right" => legend = legend.with_pos(des::plot::LegendPos::OutRight),
+            "OutBottom" | "Bottom" => legend = legend.with_pos(des::plot::LegendPos::OutBottom),
+            "OutLeft" | "Left" => legend = legend.with_pos(des::plot::LegendPos::OutLeft),
+            "InTop" => legend = legend.with_pos(des::plot::LegendPos::InTop),
+            "InTopRight" => legend = legend.with_pos(des::plot::LegendPos::InTopRight),
+            "InRight" => legend = legend.with_pos(des::plot::LegendPos::InRight),
+            "InBottomRight" => legend = legend.with_pos(des::plot::LegendPos::InBottomRight),
+            "InBottom" => legend = legend.with_pos(des::plot::LegendPos::InBottom),
+            "InBottomLeft" => legend = legend.with_pos(des::plot::LegendPos::InBottomLeft),
+            "InLeft" => legend = legend.with_pos(des::plot::LegendPos::InLeft),
+            "InTopLeft" => legend = legend.with_pos(des::plot::LegendPos::InTopLeft),
             _ => {
                 return Err(Error::Parse {
                     span,
@@ -457,7 +457,7 @@ fn parse_plot_legend(value: Option<ast::Value>) -> Result<ir::plot::PlotLegend, 
     Ok(legend)
 }
 
-fn parse_series(val: ast::Struct) -> Result<ir::Series, Error> {
+fn parse_series(val: ast::Struct) -> Result<des::Series, Error> {
     let Some(ident) = &val.typ else {
         return Err(Error::Parse {
             span: val.span,
@@ -488,25 +488,25 @@ fn expect_prop(val: &mut ast::Struct, name: &str) -> Result<ast::Prop, Error> {
     })
 }
 
-fn expect_data_prop(val: &mut ast::Struct, prop_name: &str) -> Result<ir::DataCol, Error> {
+fn expect_data_prop(val: &mut ast::Struct, prop_name: &str) -> Result<des::DataCol, Error> {
     let prop = expect_prop(val, prop_name)?;
     match prop.value {
         Some(ast::Value::Scalar(ast::Scalar {
             kind: ast::ScalarKind::Str(val),
             ..
-        })) => Ok(ir::DataCol::SrcRef(val)),
+        })) => Ok(des::DataCol::SrcRef(val)),
         Some(ast::Value::Array(ast::Array {
             kind: ast::ArrayKind::Int(vals),
             ..
-        })) => Ok(ir::DataCol::Inline(vals.into())),
+        })) => Ok(des::DataCol::Inline(vals.into())),
         Some(ast::Value::Array(ast::Array {
             kind: ast::ArrayKind::Float(vals),
             ..
-        })) => Ok(ir::DataCol::Inline(vals.into())),
+        })) => Ok(des::DataCol::Inline(vals.into())),
         Some(ast::Value::Array(ast::Array {
             kind: ast::ArrayKind::Str(vals),
             ..
-        })) => Ok(ir::DataCol::Inline(vals.into())),
+        })) => Ok(des::DataCol::Inline(vals.into())),
         _ => Err(Error::Parse {
             span: prop.span(),
             reason: format!("Could not parse '{prop_name}' as a data column"),
@@ -515,11 +515,11 @@ fn expect_data_prop(val: &mut ast::Struct, prop_name: &str) -> Result<ir::DataCo
     }
 }
 
-fn parse_line(mut val: ast::Struct) -> Result<ir::series::Line, Error> {
+fn parse_line(mut val: ast::Struct) -> Result<des::series::Line, Error> {
     let x_data = expect_data_prop(&mut val, "x-data")?;
     let y_data = expect_data_prop(&mut val, "y-data")?;
 
-    let mut line = ir::series::Line::new(x_data, y_data);
+    let mut line = des::series::Line::new(x_data, y_data);
 
     if let Some(prop) = val.take_prop("name") {
         line = line.with_name(expect_string_val(prop)?.1);
@@ -534,11 +534,11 @@ fn parse_line(mut val: ast::Struct) -> Result<ir::series::Line, Error> {
     Ok(line)
 }
 
-fn parse_scatter(mut val: ast::Struct) -> Result<ir::series::Scatter, Error> {
+fn parse_scatter(mut val: ast::Struct) -> Result<des::series::Scatter, Error> {
     let x_data = expect_data_prop(&mut val, "x-data")?;
     let y_data = expect_data_prop(&mut val, "y-data")?;
 
-    let mut series = ir::series::Scatter::new(x_data, y_data);
+    let mut series = des::series::Scatter::new(x_data, y_data);
 
     if let Some(prop) = val.take_prop("name") {
         series = series.with_name(expect_string_val(prop)?.1);
@@ -553,10 +553,10 @@ fn parse_scatter(mut val: ast::Struct) -> Result<ir::series::Scatter, Error> {
     Ok(series)
 }
 
-fn parse_histogram(mut val: ast::Struct) -> Result<ir::series::Histogram, Error> {
+fn parse_histogram(mut val: ast::Struct) -> Result<des::series::Histogram, Error> {
     let data = expect_data_prop(&mut val, "data")?;
 
-    let mut series = ir::series::Histogram::new(data);
+    let mut series = des::series::Histogram::new(data);
 
     if let Some(prop) = val.take_prop("name") {
         series = series.with_name(expect_string_val(prop)?.1);
@@ -571,11 +571,11 @@ fn parse_histogram(mut val: ast::Struct) -> Result<ir::series::Histogram, Error>
     Ok(series)
 }
 
-fn parse_bars(mut val: ast::Struct) -> Result<ir::series::Bars, Error> {
+fn parse_bars(mut val: ast::Struct) -> Result<des::series::Bars, Error> {
     let x_data = expect_data_prop(&mut val, "x-data")?;
     let y_data = expect_data_prop(&mut val, "y-data")?;
 
-    let mut bars = ir::series::Bars::new(x_data, y_data);
+    let mut bars = des::series::Bars::new(x_data, y_data);
 
     if let Some(prop) = val.take_prop("name") {
         bars = bars.with_name(expect_string_val(prop)?.1);
@@ -584,11 +584,11 @@ fn parse_bars(mut val: ast::Struct) -> Result<ir::series::Bars, Error> {
     Ok(bars)
 }
 
-fn parse_bars_group(_val: ast::Struct) -> Result<ir::series::BarsGroup, Error> {
+fn parse_bars_group(_val: ast::Struct) -> Result<des::series::BarsGroup, Error> {
     todo!()
 }
 
-fn parse_axis(prop: ast::Prop, is_y: bool) -> Result<ir::Axis, Error> {
+fn parse_axis(prop: ast::Prop, is_y: bool) -> Result<des::Axis, Error> {
     let Some(val) = prop.value else {
         return Ok(Default::default());
     };
@@ -596,7 +596,7 @@ fn parse_axis(prop: ast::Prop, is_y: bool) -> Result<ir::Axis, Error> {
         ast::Value::Scalar(ast::Scalar {
             span,
             kind: ast::ScalarKind::Str(title),
-        }) => Ok(ir::Axis::default().with_title(parse_rich_text(span, title)?.into())),
+        }) => Ok(des::Axis::default().with_title(parse_rich_text(span, title)?.into())),
 
         ast::Value::Scalar(ast::Scalar {
             kind: ast::ScalarKind::Enum(ident),
@@ -616,17 +616,17 @@ fn parse_axis(prop: ast::Prop, is_y: bool) -> Result<ir::Axis, Error> {
 }
 
 fn axis_set_enum_field(
-    axis: ir::Axis,
+    axis: des::Axis,
     is_y: bool,
     span: dsl::Span,
     ident: &str,
-) -> Result<ir::Axis, Error> {
+) -> Result<des::Axis, Error> {
     match ident {
-        "LogScale" => Ok(axis.with_scale(ir::axis::LogScale::default().into())),
+        "LogScale" => Ok(axis.with_scale(des::axis::LogScale::default().into())),
         "Ticks" => Ok(axis.with_ticks(Default::default())),
         "PiMultipleTicks" => Ok(axis.with_ticks(
-            ir::axis::Ticks::default()
-                .with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
+            des::axis::Ticks::default()
+                .with_locator(des::axis::ticks::PiMultipleLocator::default().into()),
         )),
         "MinorTicks" => Ok(axis.with_minor_ticks(Default::default())),
         "Grid" => Ok(axis.with_grid(Default::default())),
@@ -643,11 +643,11 @@ fn axis_set_enum_field(
 }
 
 fn axis_set_side_enum(
-    axis: ir::Axis,
+    axis: des::Axis,
     is_y: bool,
     span: dsl::Span,
     ident: &str,
-) -> Result<ir::Axis, Error> {
+) -> Result<des::Axis, Error> {
     match ident {
         "MainSide" => Ok(axis),
         "OppositeSide" => Ok(axis.with_opposite_side()),
@@ -670,11 +670,11 @@ fn axis_set_side_enum(
 }
 
 fn axis_set_side_prop(
-    axis: ir::Axis,
+    axis: des::Axis,
     is_y: bool,
     span: dsl::Span,
     ident: &str,
-) -> Result<ir::Axis, Error> {
+) -> Result<des::Axis, Error> {
     match ident {
         "main-side" => Ok(axis),
         "opposote-side" => Ok(axis.with_opposite_side()),
@@ -696,8 +696,8 @@ fn axis_set_side_prop(
     }
 }
 
-fn parse_axis_seq(seq: ast::Seq, is_y: bool) -> Result<ir::Axis, Error> {
-    let mut axis = ir::Axis::default();
+fn parse_axis_seq(seq: ast::Seq, is_y: bool) -> Result<des::Axis, Error> {
+    let mut axis = des::Axis::default();
     for scalar in seq.scalars {
         match scalar {
             ast::Scalar {
@@ -734,11 +734,11 @@ fn parse_axis_seq(seq: ast::Seq, is_y: bool) -> Result<ir::Axis, Error> {
                         Some(ast::Scalar {
                             kind: ast::ScalarKind::Str(id),
                             ..
-                        }) => ir::axis::Ref::Id(id),
+                        }) => des::axis::Ref::Id(id),
                         Some(ast::Scalar {
                             kind: ast::ScalarKind::Int(idx),
                             ..
-                        }) => ir::axis::Ref::Idx(idx as usize),
+                        }) => des::axis::Ref::Idx(idx as usize),
                         _ => {
                             return Err(Error::Parse {
                                 span,
@@ -749,7 +749,7 @@ fn parse_axis_seq(seq: ast::Seq, is_y: bool) -> Result<ir::Axis, Error> {
                             });
                         }
                     };
-                    axis = axis.with_scale(ir::axis::Scale::Shared(ax_ref));
+                    axis = axis.with_scale(des::axis::Scale::Shared(ax_ref));
                 } else {
                     return Err(Error::Parse {
                         span,
@@ -777,9 +777,9 @@ fn parse_axis_seq(seq: ast::Seq, is_y: bool) -> Result<ir::Axis, Error> {
     Ok(axis)
 }
 
-fn parse_axis_struct(val: ast::Struct, is_y: bool) -> Result<ir::Axis, Error> {
+fn parse_axis_struct(val: ast::Struct, is_y: bool) -> Result<des::Axis, Error> {
     check_opt_type(&val, "Axis")?;
-    let mut axis = ir::Axis::default();
+    let mut axis = des::Axis::default();
     for prop in val.props {
         match prop.name.name.as_str() {
             "title" => {
@@ -814,7 +814,7 @@ fn parse_axis_struct(val: ast::Struct, is_y: bool) -> Result<ir::Axis, Error> {
     Ok(axis)
 }
 
-fn parse_ticks(prop: ast::Prop) -> Result<ir::axis::Ticks, Error> {
+fn parse_ticks(prop: ast::Prop) -> Result<des::axis::Ticks, Error> {
     let Some(val) = prop.value else {
         return Ok(Default::default());
     };
@@ -823,7 +823,7 @@ fn parse_ticks(prop: ast::Prop) -> Result<ir::axis::Ticks, Error> {
             kind: ast::ScalarKind::Enum(ident),
             span,
         }) => Ok(ticks_set_enum_field(
-            ir::axis::Ticks::default(),
+            des::axis::Ticks::default(),
             span,
             &ident,
         )?),
@@ -837,8 +837,8 @@ fn parse_ticks(prop: ast::Prop) -> Result<ir::axis::Ticks, Error> {
     }
 }
 
-fn parse_ticks_seq(val: ast::Seq) -> Result<ir::axis::Ticks, Error> {
-    let mut ticks = ir::axis::Ticks::default();
+fn parse_ticks_seq(val: ast::Seq) -> Result<des::axis::Ticks, Error> {
+    let mut ticks = des::axis::Ticks::default();
     for scalar in val.scalars {
         match scalar {
             ast::Scalar {
@@ -858,14 +858,14 @@ fn parse_ticks_seq(val: ast::Seq) -> Result<ir::axis::Ticks, Error> {
 }
 
 fn ticks_set_enum_field(
-    ticks: ir::axis::Ticks,
+    ticks: des::axis::Ticks,
     span: dsl::Span,
     ident: &str,
-) -> Result<ir::axis::Ticks, Error> {
+) -> Result<des::axis::Ticks, Error> {
     match ident {
-        "Locator" => Ok(ticks.with_locator(ir::axis::ticks::Locator::default())),
+        "Locator" => Ok(ticks.with_locator(des::axis::ticks::Locator::default())),
         "PiMultiple" => {
-            Ok(ticks.with_locator(ir::axis::ticks::PiMultipleLocator::default().into()))
+            Ok(ticks.with_locator(des::axis::ticks::PiMultipleLocator::default().into()))
         }
         _ => Err(Error::Parse {
             span,
@@ -875,13 +875,13 @@ fn ticks_set_enum_field(
     }
 }
 
-fn parse_ticks_struct(val: ast::Struct) -> Result<ir::axis::Ticks, Error> {
+fn parse_ticks_struct(val: ast::Struct) -> Result<des::axis::Ticks, Error> {
     check_opt_type(&val, "Ticks")?;
-    let mut ticks = ir::axis::Ticks::default();
+    let mut ticks = des::axis::Ticks::default();
     for prop in val.props {
         match prop.name.name.as_str() {
             "locator" => {
-                ticks = ticks.with_locator(ir::axis::ticks::Locator::default());
+                ticks = ticks.with_locator(des::axis::ticks::Locator::default());
             }
             _ => {
                 return Err(Error::Parse {

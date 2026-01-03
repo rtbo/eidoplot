@@ -3,7 +3,7 @@ use crate::geom::{Padding, Size};
 use crate::style::theme::Theme;
 use crate::style::{defaults, theme};
 use crate::text::{self, LineText, fontdb};
-use crate::{Style, drawing, geom, ir, render, style};
+use crate::{Style, drawing, geom, des, render, style};
 
 #[derive(Debug, Clone)]
 pub enum Shape {
@@ -33,7 +33,7 @@ impl ShapeRef<'_> {
 #[derive(Debug, Clone)]
 pub struct Entry<'a> {
     pub label: &'a str,
-    pub font: Option<&'a ir::legend::EntryFont>,
+    pub font: Option<&'a des::legend::EntryFont>,
     pub shape: ShapeRef<'a>,
 }
 
@@ -59,7 +59,7 @@ impl LegendEntry {
 
 #[derive(Debug)]
 pub struct LegendBuilder<'a> {
-    font: ir::legend::EntryFont,
+    font: des::legend::EntryFont,
     fill: Option<theme::Fill>,
     border: Option<theme::Line>,
     columns: Option<u32>,
@@ -82,7 +82,7 @@ pub struct Legend {
 
 impl<'a> LegendBuilder<'a> {
     pub fn from_ir(
-        legend: &ir::Legend,
+        legend: &des::Legend,
         prefers_vertical: bool,
         avail_width: f32,
         fontdb: &'a fontdb::Database,

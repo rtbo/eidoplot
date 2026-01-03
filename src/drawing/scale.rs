@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::drawing::axis;
-use crate::{data, ir};
+use crate::{data, des};
 
 /// Maps coordinates from data space to surface space.
 /// The surface space starts at zero for lowest displayed data and goes up for higher data.
@@ -55,37 +55,37 @@ impl<'a> CoordMapXy<'a> {
 }
 
 pub fn map_scale_coord_num(
-    scale: &ir::axis::Scale,
+    scale: &des::axis::Scale,
     plot_size: f32,
     axis_bounds: &axis::NumBounds,
     insets: (f32, f32),
 ) -> Arc<dyn CoordMap> {
     match scale {
-        ir::axis::Scale::Auto | ir::axis::Scale::Linear(ir::axis::Range::Auto) => {
+        des::axis::Scale::Auto | des::axis::Scale::Linear(des::axis::Range::Auto) => {
             Arc::new(LinCoordMap::new(plot_size, insets, *axis_bounds))
         }
-        ir::axis::Scale::Linear(range) => {
+        des::axis::Scale::Linear(range) => {
             let (adj_nb, adj_insets) = adjusted_nb_insets(*range, axis_bounds, insets);
             Arc::new(LinCoordMap::new(plot_size, adj_insets, adj_nb))
         }
-        ir::axis::Scale::Log(ir::axis::LogScale { base, range }) => {
+        des::axis::Scale::Log(des::axis::LogScale { base, range }) => {
             let (adj_nb, adj_insets) = adjusted_nb_insets(*range, axis_bounds, insets);
             Arc::new(LogCoordMap::new(*base, plot_size, adj_insets, adj_nb))
         }
-        ir::axis::Scale::Shared(..) => unreachable!("shared scale to be handled upfront"),
+        des::axis::Scale::Shared(..) => unreachable!("shared scale to be handled upfront"),
     }
 }
 
 fn adjusted_nb_insets(
-    range: ir::axis::Range,
+    range: des::axis::Range,
     nb: &axis::NumBounds,
     insets: (f32, f32),
 ) -> (axis::NumBounds, (f32, f32)) {
     match range {
-        ir::axis::Range::Auto => (*nb, insets),
-        ir::axis::Range::MinAuto(min) => ((min, nb.end()).into(), (0.0, insets.1)),
-        ir::axis::Range::AutoMax(max) => ((nb.start(), max).into(), (insets.0, 0.0)),
-        ir::axis::Range::MinMax(min, max) => ((min, max).into(), (0.0, 0.0)),
+        des::axis::Range::Auto => (*nb, insets),
+        des::axis::Range::MinAuto(min) => ((min, nb.end()).into(), (0.0, insets.1)),
+        des::axis::Range::AutoMax(max) => ((nb.start(), max).into(), (insets.0, 0.0)),
+        des::axis::Range::MinMax(min, max) => ((min, max).into(), (0.0, 0.0)),
     }
 }
 
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_map_scale_coord_linear_auto() {
-        let linear_auto = ir::axis::Scale::Linear(ir::axis::Range::Auto);
+        let linear_auto = des::axis::Scale::Linear(des::axis::Range::Auto);
 
         let map = map_scale_coord_num(&linear_auto, 100.0, &(0.0, 10.0).into(), (0.0, 0.0));
         assert_near!(rel, map.map_coord_num(0.0), 0.0);
@@ -257,9 +257,9 @@ mod tests {
 
     #[test]
     fn test_map_scale_coord_log_auto() {
-        let log_auto = ir::axis::Scale::Log(ir::axis::LogScale {
+        let log_auto = des::axis::Scale::Log(des::axis::LogScale {
             base: 10.0,
-            range: ir::axis::Range::Auto,
+            range: des::axis::Range::Auto,
         });
         let axis_bounds = (1e-5, 1e5).into();
 

@@ -1,6 +1,6 @@
 use std::path;
 
-use plotive::{data, ir};
+use plotive::{data, des};
 use polars::prelude::*;
 
 mod common;
@@ -85,43 +85,43 @@ fn main() {
             .as_materialized_series(),
     );
 
-    let title: ir::figure::Title = "Iris dataset".into();
+    let title: des::figure::Title = "Iris dataset".into();
 
-    let x_axis = ir::Axis::new()
+    let x_axis = des::Axis::new()
         .with_title("Sepal Length [cm]".into())
         .with_ticks(Default::default());
-    let y_axis = ir::Axis::new()
+    let y_axis = des::Axis::new()
         .with_title("Petal Length [cm]".into())
         .with_ticks(Default::default());
 
-    let setosa = ir::Series::Scatter(
-        ir::series::Scatter::new(
-            ir::data_src_ref("setosa_sepal_length"),
-            ir::data_src_ref("setosa_petal_length"),
+    let setosa = des::Series::Scatter(
+        des::series::Scatter::new(
+            des::data_src_ref("setosa_sepal_length"),
+            des::data_src_ref("setosa_petal_length"),
         )
         .with_name("Setosa"),
     );
-    let virginica = ir::Series::Scatter(
-        ir::series::Scatter::new(
-            ir::data_src_ref("virginica_sepal_length"),
-            ir::data_src_ref("virginica_petal_length"),
+    let virginica = des::Series::Scatter(
+        des::series::Scatter::new(
+            des::data_src_ref("virginica_sepal_length"),
+            des::data_src_ref("virginica_petal_length"),
         )
         .with_name("Virginica"),
     );
-    let versicolor = ir::Series::Scatter(
-        ir::series::Scatter::new(
-            ir::data_src_ref("versicolor_sepal_length"),
-            ir::data_src_ref("versicolor_petal_length"),
+    let versicolor = des::Series::Scatter(
+        des::series::Scatter::new(
+            des::data_src_ref("versicolor_sepal_length"),
+            des::data_src_ref("versicolor_petal_length"),
         )
         .with_name("Versicolor"),
     );
 
-    let plot = ir::Plot::new(vec![setosa, versicolor, virginica])
+    let plot = des::Plot::new(vec![setosa, versicolor, virginica])
         .with_x_axis(x_axis)
         .with_y_axis(y_axis)
-        .with_legend(ir::plot::LegendPos::InBottomRight.into());
+        .with_legend(des::plot::LegendPos::InBottomRight.into());
 
-    let fig = ir::Figure::new(plot.into()).with_title(title);
+    let fig = des::Figure::new(plot.into()).with_title(title);
 
     common::save_figure(&fig, &source, None, "polars-iris");
 }

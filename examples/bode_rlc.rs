@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use plotive::{data, ir, style, text, utils};
+use plotive::{data, des, style, text, utils};
 
 mod common;
 
@@ -60,30 +60,30 @@ fn main() {
 
     // magnitude X axis scale is taken from the phase X axis
     // the reference uses the title given to the phase X axis
-    let mag_freq_axis = ir::Axis::new()
-        .with_scale(ir::axis::ref_id("Frequency [Hz]").into())
+    let mag_freq_axis = des::Axis::new()
+        .with_scale(des::axis::ref_id("Frequency [Hz]").into())
         .with_ticks(Default::default())
         .with_minor_ticks(Default::default());
-    let mag_axis = ir::Axis::new()
+    let mag_axis = des::Axis::new()
         .with_title("Magnitude [dB]".into())
         .with_ticks(Default::default())
         .with_grid(Default::default());
 
-    let phase_freq_axis = ir::Axis::new()
+    let phase_freq_axis = des::Axis::new()
         .with_title("Frequency [Hz]".into())
-        .with_scale(ir::axis::LogScale::default().into())
+        .with_scale(des::axis::LogScale::default().into())
         .with_ticks(Default::default())
         .with_minor_ticks(Default::default());
-    let phase_axis = ir::Axis::new()
+    let phase_axis = des::Axis::new()
         .with_title("Phase [rad]".into())
         .with_ticks(
-            ir::axis::Ticks::new()
-                .with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
+            des::axis::Ticks::new()
+                .with_locator(des::axis::ticks::PiMultipleLocator::default().into()),
         )
         .with_grid(Default::default());
 
-    let mut mag_series: Vec<ir::Series> = Vec::with_capacity(3);
-    let mut phase_series: Vec<ir::Series> = Vec::with_capacity(3);
+    let mut mag_series: Vec<des::Series> = Vec::with_capacity(3);
+    let mut phase_series: Vec<des::Series> = Vec::with_capacity(3);
 
     let mut source = data::NamedOwnedColumns::new();
 
@@ -97,12 +97,12 @@ fn main() {
 
         // name only on the magnitude to avoid double legend
         mag_series.push(
-            ir::series::Line::new(ir::data_src_ref("freq"), ir::data_src_ref(mag_col))
+            des::series::Line::new(des::data_src_ref("freq"), des::data_src_ref(mag_col))
                 .with_name(name)
                 .into(),
         );
         phase_series.push(
-            ir::series::Line::new(ir::data_src_ref("freq"), ir::data_src_ref(phase_col)).into(),
+            des::series::Line::new(des::data_src_ref("freq"), des::data_src_ref(phase_col)).into(),
         );
     }
 
@@ -113,20 +113,20 @@ fn main() {
     // magnitude two decades after cut-off (to increase precision)
     let mag_2_decades = rlc_freq_response(cutoff * 100.0, 1.0, L, C).0;
 
-    let cutoff_line = ir::annot::Line::vertical(cutoff).with_pattern(style::Dash::default().into());
-    let slope_line = ir::annot::Line::two_points(cutoff, 0.0, 100.0 * cutoff, mag_2_decades)
+    let cutoff_line = des::annot::Line::vertical(cutoff).with_pattern(style::Dash::default().into());
+    let slope_line = des::annot::Line::two_points(cutoff, 0.0, 100.0 * cutoff, mag_2_decades)
         .with_pattern(style::Dash::default().into());
-    let cut_off_label = ir::annot::Label::new(format!("{:.2} kHz", cutoff / 1000.0), cutoff, -60.0)
-        .with_anchor(ir::annot::Anchor::BottomLeft)
+    let cut_off_label = des::annot::Label::new(format!("{:.2} kHz", cutoff / 1000.0), cutoff, -60.0)
+        .with_anchor(des::annot::Anchor::BottomLeft)
         .with_angle(90.0);
-    let slope_label = ir::annot::Label::new(
+    let slope_label = des::annot::Label::new(
         format!("{:.0} dB/decade", mag_2_decades / 2.0),
         cutoff * 10.0,
         mag_2_decades / 2.0,
     )
-    .with_anchor(ir::annot::Anchor::BottomLeft);
+    .with_anchor(des::annot::Anchor::BottomLeft);
 
-    let mag_plot = ir::Plot::new(mag_series)
+    let mag_plot = des::Plot::new(mag_series)
         .with_x_axis(mag_freq_axis)
         .with_y_axis(mag_axis)
         .with_annotation(cutoff_line.into())
@@ -134,18 +134,18 @@ fn main() {
         .with_annotation(cut_off_label.into())
         .with_annotation(slope_label.into());
 
-    let phase_plot = ir::Plot::new(phase_series)
+    let phase_plot = des::Plot::new(phase_series)
         .with_x_axis(phase_freq_axis)
         .with_y_axis(phase_axis);
 
-    let fig = ir::Figure::new(
-        ir::Subplots::new(2, 1)
+    let fig = des::Figure::new(
+        des::Subplots::new(2, 1)
             .with_plot((0, 0), mag_plot)
             .with_plot((1, 0), phase_plot)
             .into(),
     )
     .with_title(title.into())
-    .with_legend(ir::figure::LegendPos::Right.into());
+    .with_legend(des::figure::LegendPos::Right.into());
 
     common::save_figure(&fig, &source, None, "bode_rlc");
 }

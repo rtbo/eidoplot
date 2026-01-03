@@ -8,11 +8,11 @@ use crate::drawing::legend::{Legend, LegendBuilder};
 use crate::drawing::scale::CoordMapXy;
 use crate::drawing::series::{self, Series, SeriesExt};
 use crate::drawing::{Ctx, Error};
-use crate::ir::{PlotIdx, annot};
+use crate::des::{PlotIdx, annot};
 use crate::style::defaults;
 use crate::style::series::Palette;
 use crate::style::theme::{self, Theme};
-use crate::{Style, data, geom, ir, missing_params, render};
+use crate::{Style, data, geom, des, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub(super) struct Plots {
@@ -33,7 +33,7 @@ impl Plots {
     }
 
     pub(super) fn iter_indices(&self) -> impl Iterator<Item = PlotIdx> + '_ {
-        ir::PlotIdxIter::new(self.rows(), self.cols())
+        des::PlotIdxIter::new(self.rows(), self.cols())
     }
 
     pub(super) fn plots(&self) -> &[Option<Plot>] {
@@ -58,7 +58,7 @@ pub(super) struct Plot {
     axes: Option<Axes>,
 
     fill: Option<theme::Fill>,
-    border: Option<ir::plot::Border>,
+    border: Option<des::plot::Border>,
     series: Vec<Series>,
     legend: Option<(geom::Point, Legend)>,
     annots: Vec<Annot>,
@@ -105,7 +105,7 @@ impl Axes {
     pub(super) fn or_find_idx(
         &self,
         or: Orientation,
-        ax_ref: &ir::axis::Ref,
+        ax_ref: &des::axis::Ref,
     ) -> Result<Option<usize>, Error> {
         let axes = match or {
             Orientation::X => &self.x,
@@ -114,12 +114,12 @@ impl Axes {
 
         for (ax_idx, a) in axes.iter().enumerate() {
             match ax_ref {
-                ir::axis::Ref::Idx(idx) => {
+                des::axis::Ref::Idx(idx) => {
                     if ax_idx == *idx {
                         return Ok(Some(ax_idx));
                     }
                 }
-                ir::axis::Ref::Id(id) => {
+                des::axis::Ref::Id(id) => {
                     if a.id() == Some(id.as_str()) || a.title_text() == Some(id.as_str()) {
                         return Ok(Some(ax_idx));
                     }
@@ -133,7 +133,7 @@ impl Axes {
     pub(super) fn or_find(
         &self,
         or: Orientation,
-        ax_ref: &ir::axis::Ref,
+        ax_ref: &des::axis::Ref,
     ) -> Result<Option<&Axis>, Error> {
         let axes = match or {
             Orientation::X => &self.x,
@@ -162,9 +162,9 @@ struct PlotData {
 }
 
 trait IrPlotExt {
-    fn x_axes(&self) -> &[ir::Axis];
-    fn y_axes(&self) -> &[ir::Axis];
-    fn or_axes(&self, or: Orientation) -> &[ir::Axis] {
+    fn x_axes(&self) -> &[des::Axis];
+    fn y_axes(&self) -> &[des::Axis];
+    fn or_axes(&self, or: Orientation) -> &[des::Axis] {
         match or {
             Orientation::X => self.x_axes(),
             Orientation::Y => self.y_axes(),
@@ -172,22 +172,22 @@ trait IrPlotExt {
     }
 }
 
-impl IrPlotExt for ir::Plot {
-    fn x_axes(&self) -> &[ir::Axis] {
+impl IrPlotExt for des::Plot {
+    fn x_axes(&self) -> &[des::Axis] {
         self.x_axes()
     }
-    fn y_axes(&self) -> &[ir::Axis] {
+    fn y_axes(&self) -> &[des::Axis] {
         self.y_axes()
     }
 }
 
 trait IrPlotsExt {
     fn cols(&self) -> u32;
-    fn plot(&self, idx: PlotIdx) -> Option<&ir::Plot>;
-    fn plots(&self) -> impl Iterator<Item = Option<&ir::Plot>> + '_;
+    fn plot(&self, idx: PlotIdx) -> Option<&des::Plot>;
+    fn plots(&self) -> impl Iterator<Item = Option<&des::Plot>> + '_;
 
     /// get the plot and its index at once
-    fn idx_plt(&self, idx: impl Into<PlotIdx>) -> Option<(usize, &ir::Plot)> {
+    fn idx_plt(&self, idx: impl Into<PlotIdx>) -> Option<(usize, &des::Plot)> {
         let idx = idx.into();
         self.plot(idx).map(|p| (idx.index(self.cols()) as usize, p))
     }
@@ -202,26 +202,26 @@ trait IrPlotsExt {
     fn or_find_axis(
         &self,
         or: Orientation,
-        ax_ref: &ir::axis::Ref,
+        ax_ref: &des::axis::Ref,
         plt_idx: usize,
-    ) -> Option<(usize, &ir::Axis)> {
+    ) -> Option<(usize, &des::Axis)> {
         let mut fig_ax_idx = 0;
         for (pi, plot) in self.plots().enumerate() {
             let Some(plot) = plot else { continue };
 
             for (ai, axis) in plot.or_axes(or).iter().enumerate() {
                 match ax_ref {
-                    ir::axis::Ref::Idx(idx) => {
+                    des::axis::Ref::Idx(idx) => {
                         if *idx == ai && plt_idx == pi {
                             return Some((fig_ax_idx, axis));
                         }
                     }
-                    ir::axis::Ref::FigIdx(idx) => {
+                    des::axis::Ref::FigIdx(idx) => {
                         if *idx == fig_ax_idx {
                             return Some((fig_ax_idx, axis));
                         }
                     }
-                    ir::axis::Ref::Id(id) => {
+                    des::axis::Ref::Id(id) => {
                         if axis.id() == Some(id) || axis.title().map(|t| t.text()) == Some(id) {
                             return Some((fig_ax_idx, axis));
                         }
@@ -234,14 +234,14 @@ trait IrPlotsExt {
     }
 }
 
-impl IrPlotsExt for ir::figure::Plots {
+impl IrPlotsExt for des::figure::Plots {
     fn cols(&self) -> u32 {
         self.cols()
     }
-    fn plot(&self, idx: PlotIdx) -> Option<&ir::Plot> {
+    fn plot(&self, idx: PlotIdx) -> Option<&des::Plot> {
         self.plot(idx)
     }
-    fn plots(&self) -> impl Iterator<Item = Option<&ir::Plot>> + '_ {
+    fn plots(&self) -> impl Iterator<Item = Option<&des::Plot>> + '_ {
         self.iter()
     }
 }
@@ -253,7 +253,7 @@ impl IrPlotsExt for ir::figure::Plots {
 struct PlotAxes(Vec<Option<Axis>>);
 
 impl PlotAxes {
-    fn size_across(&self, side: ir::axis::Side) -> f32 {
+    fn size_across(&self, side: des::axis::Side) -> f32 {
         let mut sz = 0.0;
         let mut cnt = 0;
         for a in &self.0 {
@@ -281,7 +281,7 @@ where
     /// and a bounding rectangle.
     pub fn setup_plots(
         &self,
-        ir_plots: &ir::figure::Plots,
+        ir_plots: &des::figure::Plots,
         rect: &geom::Rect,
     ) -> Result<Plots, Error> {
         // We build all needed characteristics by the plots one after another.
@@ -295,9 +295,9 @@ where
         // Can be slightly wrong if font metrics height isn't exactly font size.
         // This will be fixed at end of the setup phase.
         let bottom_heights =
-            self.calc_estimated_x_heights(ir_plots, &plot_data, ir::axis::Side::Main);
+            self.calc_estimated_x_heights(ir_plots, &plot_data, des::axis::Side::Main);
         let top_heights =
-            self.calc_estimated_x_heights(ir_plots, &plot_data, ir::axis::Side::Opposite);
+            self.calc_estimated_x_heights(ir_plots, &plot_data, des::axis::Side::Opposite);
         let hor_space_height = bottom_heights.iter().sum::<f32>()
             + top_heights.iter().sum::<f32>()
             + ir_plots.space() * (ir_plots.rows() - 1) as f32;
@@ -308,9 +308,9 @@ where
             self.setup_orientation_axes(Orientation::Y, ir_plots, &plot_data, subplot_rect_height)?;
 
         // Now we calculate the interspace between vertical axes
-        let left_widths = self.calc_y_widths(ir_plots, &plot_data, &y_axes, ir::axis::Side::Main);
+        let left_widths = self.calc_y_widths(ir_plots, &plot_data, &y_axes, des::axis::Side::Main);
         let right_widths =
-            self.calc_y_widths(ir_plots, &plot_data, &y_axes, ir::axis::Side::Opposite);
+            self.calc_y_widths(ir_plots, &plot_data, &y_axes, des::axis::Side::Opposite);
         let vert_space_width = left_widths.iter().sum::<f32>()
             + right_widths.iter().sum::<f32>()
             + ir_plots.space() * (ir_plots.cols() - 1) as f32;
@@ -322,9 +322,9 @@ where
 
         // bottom heights were estimated, we can now calculate them accurately and rebuild the y-axes
         let bottom_heights =
-            self.calc_x_heights(ir_plots, &plot_data, &x_axes, ir::axis::Side::Main);
+            self.calc_x_heights(ir_plots, &plot_data, &x_axes, des::axis::Side::Main);
         let top_heights =
-            self.calc_x_heights(ir_plots, &plot_data, &x_axes, ir::axis::Side::Opposite);
+            self.calc_x_heights(ir_plots, &plot_data, &x_axes, des::axis::Side::Opposite);
         let hor_space_height = bottom_heights.iter().sum::<f32>()
             + top_heights.iter().sum::<f32>()
             + ir_plots.space() * (ir_plots.rows() - 1) as f32;
@@ -431,7 +431,7 @@ where
 
     fn setup_plot_data(
         &self,
-        ir_plots: &ir::figure::Plots,
+        ir_plots: &des::figure::Plots,
         rect: &geom::Rect,
     ) -> Result<Vec<Option<PlotData>>, Error> {
         let mut plot_data = vec![None; ir_plots.len()];
@@ -451,7 +451,7 @@ where
         Ok(plot_data)
     }
 
-    fn setup_plot_series(&self, plot: &ir::Plot) -> Result<Vec<Series>, Error> {
+    fn setup_plot_series(&self, plot: &des::Plot) -> Result<Vec<Series>, Error> {
         plot.series()
             .iter()
             .enumerate()
@@ -461,7 +461,7 @@ where
 
     fn setup_plot_legend(
         &self,
-        ir_plot: &ir::Plot,
+        ir_plot: &des::Plot,
         avail_width: f32,
     ) -> Result<Option<Legend>, Error> {
         let Some(ir_leg) = ir_plot.legend() else {
@@ -489,9 +489,9 @@ where
 
     fn calc_estimated_x_heights(
         &self,
-        ir_plots: &ir::figure::Plots,
+        ir_plots: &des::figure::Plots,
         datas: &[Option<PlotData>],
-        side: ir::axis::Side,
+        side: des::axis::Side,
     ) -> Vec<f32> {
         let mut heights = Vec::with_capacity(ir_plots.rows() as usize);
         for row in 0..ir_plots.rows() {
@@ -517,10 +517,10 @@ where
 
     fn calc_x_heights(
         &self,
-        ir_plots: &ir::figure::Plots,
+        ir_plots: &des::figure::Plots,
         datas: &[Option<PlotData>],
         x_axes: &[Option<PlotAxes>],
-        side: ir::axis::Side,
+        side: des::axis::Side,
     ) -> Vec<f32> {
         let mut heights = Vec::with_capacity(ir_plots.rows() as usize);
 
@@ -553,10 +553,10 @@ where
 
     fn calc_y_widths(
         &self,
-        ir_plots: &ir::figure::Plots,
+        ir_plots: &des::figure::Plots,
         datas: &[Option<PlotData>],
         y_axes: &[Option<PlotAxes>],
-        side: ir::axis::Side,
+        side: des::axis::Side,
     ) -> Vec<f32> {
         let mut widths = Vec::with_capacity(ir_plots.cols() as usize);
 
@@ -588,7 +588,7 @@ where
     fn setup_orientation_axes(
         &self,
         or: Orientation,
-        ir_plots: &ir::figure::Plots,
+        ir_plots: &des::figure::Plots,
         datas: &[Option<PlotData>],
         size_along: f32,
     ) -> Result<Vec<Option<PlotAxes>>, Error> {
@@ -641,7 +641,7 @@ where
                     bounds = Series::unite_bounds(or, series, bounds, &matcher, plt_idx2)?;
 
                     for (ax_idx2, ir_ax2) in ir_plot2.or_axes(or).iter().enumerate() {
-                        if let ir::axis::Scale::Shared(ax_ref2) = ir_ax2.scale() {
+                        if let des::axis::Scale::Shared(ax_ref2) = ir_ax2.scale() {
                             if matcher.matches_ref(ax_ref2, plt_idx2)? {
                                 let matcher = series::AxisMatcher {
                                     plt_idx: plt_idx2,
@@ -659,8 +659,8 @@ where
                 let Some(bounds) = bounds else { continue };
 
                 let off_plot = match ir_ax.side() {
-                    ir::axis::Side::Main => &mut main_off_plot,
-                    ir::axis::Side::Opposite => &mut opposite_off_plot,
+                    des::axis::Side::Main => &mut main_off_plot,
+                    des::axis::Side::Opposite => &mut opposite_off_plot,
                 };
                 let off_plot_area = *off_plot;
                 *off_plot = true;
@@ -670,7 +670,7 @@ where
                 //  - when it is in plot area, but not a boxed plot
                 let spine = match (off_plot_area, ir_plot.border()) {
                     (true, _) => ir_plot.border().cloned(),
-                    (false, Some(ir::plot::Border::Box(_))) => None,
+                    (false, Some(des::plot::Border::Box(_))) => None,
                     (false, Some(border)) => Some(border.clone()),
                     (false, None) => None,
                 };
@@ -707,7 +707,7 @@ where
             let mut opposite_off_plot = false;
 
             for (ax_idx, ir_ax) in ir_axes.iter().enumerate() {
-                let ir::axis::Scale::Shared(ax_ref) = ir_ax.scale() else {
+                let des::axis::Scale::Shared(ax_ref) = ir_ax.scale() else {
                     continue;
                 };
                 let (fig_ax_idx, _) = ir_plots
@@ -719,8 +719,8 @@ where
                     .ok_or_else(|| Error::IllegalAxisRef(ax_ref.clone()))?;
 
                 let off_plot = match ir_ax.side() {
-                    ir::axis::Side::Main => &mut main_off_plot,
-                    ir::axis::Side::Opposite => &mut opposite_off_plot,
+                    des::axis::Side::Main => &mut main_off_plot,
+                    des::axis::Side::Opposite => &mut opposite_off_plot,
                 };
                 let off_plot_area = *off_plot;
                 *off_plot = true;
@@ -730,7 +730,7 @@ where
                 //  - when it is in plot area, but not a boxed plot
                 let spine = match (off_plot_area, ir_plot.border()) {
                     (true, _) => ir_plot.border().cloned(),
-                    (false, Some(ir::plot::Border::Box(_))) => None,
+                    (false, Some(des::plot::Border::Box(_))) => None,
                     (false, Some(border)) => Some(border.clone()),
                     (false, None) => None,
                 };
@@ -751,17 +751,17 @@ where
     }
 }
 
-pub fn for_each_series<F>(plot: &ir::Plot, mut f: F) -> Result<(), Error>
+pub fn for_each_series<F>(plot: &des::Plot, mut f: F) -> Result<(), Error>
 where
     F: FnMut(&dyn SeriesExt) -> Result<(), Error>,
 {
     for s in plot.series() {
         match &s {
-            ir::Series::Line(line) => f(line)?,
-            ir::Series::Scatter(scatter) => f(scatter)?,
-            ir::Series::Histogram(hist) => f(hist)?,
-            ir::Series::Bars(bars) => f(bars)?,
-            ir::Series::BarsGroup(bars_group) => {
+            des::Series::Line(line) => f(line)?,
+            des::Series::Scatter(scatter) => f(scatter)?,
+            des::Series::Histogram(hist) => f(hist)?,
+            des::Series::Bars(bars) => f(bars)?,
+            des::Series::BarsGroup(bars_group) => {
                 for bs in bars_group.series() {
                     f(bs)?
                 }
@@ -771,23 +771,23 @@ where
     Ok(())
 }
 
-fn plot_insets(plot: &ir::Plot) -> geom::Padding {
+fn plot_insets(plot: &des::Plot) -> geom::Padding {
     match plot.insets() {
-        Some(&ir::plot::Insets::Fixed(x, y)) => geom::Padding::Center { v: y, h: x },
-        Some(ir::plot::Insets::Auto) => auto_insets(plot),
+        Some(&des::plot::Insets::Fixed(x, y)) => geom::Padding::Center { v: y, h: x },
+        Some(des::plot::Insets::Auto) => auto_insets(plot),
         None => geom::Padding::Even(0.0),
     }
 }
 
-fn auto_insets(plot: &ir::Plot) -> geom::Padding {
+fn auto_insets(plot: &des::Plot) -> geom::Padding {
     for s in plot.series() {
         match s {
-            ir::Series::Histogram(..) => return defaults::PLOT_VER_BARS_AUTO_INSETS,
-            ir::Series::Bars(..) => return defaults::PLOT_VER_BARS_AUTO_INSETS,
-            ir::Series::BarsGroup(bg) if bg.orientation().is_vertical() => {
+            des::Series::Histogram(..) => return defaults::PLOT_VER_BARS_AUTO_INSETS,
+            des::Series::Bars(..) => return defaults::PLOT_VER_BARS_AUTO_INSETS,
+            des::Series::BarsGroup(bg) if bg.orientation().is_vertical() => {
                 return defaults::PLOT_VER_BARS_AUTO_INSETS;
             }
-            ir::Series::BarsGroup(bg) if bg.orientation().is_horizontal() => {
+            des::Series::BarsGroup(bg) if bg.orientation().is_horizontal() => {
                 return defaults::PLOT_HOR_BARS_AUTO_INSETS;
             }
             _ => (),
@@ -796,32 +796,32 @@ fn auto_insets(plot: &ir::Plot) -> geom::Padding {
     defaults::PLOT_XY_AUTO_INSETS
 }
 
-fn x_plot_padding(side: ir::axis::Side) -> f32 {
+fn x_plot_padding(side: des::axis::Side) -> f32 {
     match side {
-        ir::axis::Side::Main => missing_params::PLOT_PADDING.bottom(),
-        ir::axis::Side::Opposite => missing_params::PLOT_PADDING.top(),
+        des::axis::Side::Main => missing_params::PLOT_PADDING.bottom(),
+        des::axis::Side::Opposite => missing_params::PLOT_PADDING.top(),
     }
 }
 
-fn y_plot_padding(side: ir::axis::Side) -> f32 {
+fn y_plot_padding(side: des::axis::Side) -> f32 {
     match side {
-        ir::axis::Side::Main => missing_params::PLOT_PADDING.left(),
-        ir::axis::Side::Opposite => missing_params::PLOT_PADDING.right(),
+        des::axis::Side::Main => missing_params::PLOT_PADDING.left(),
+        des::axis::Side::Opposite => missing_params::PLOT_PADDING.right(),
     }
 }
 
-fn x_side_matches_out_legend_pos(side: ir::axis::Side, legend_pos: ir::plot::LegendPos) -> bool {
+fn x_side_matches_out_legend_pos(side: des::axis::Side, legend_pos: des::plot::LegendPos) -> bool {
     match (side, legend_pos) {
-        (ir::axis::Side::Main, ir::plot::LegendPos::OutBottom) => true,
-        (ir::axis::Side::Opposite, ir::plot::LegendPos::OutTop) => true,
+        (des::axis::Side::Main, des::plot::LegendPos::OutBottom) => true,
+        (des::axis::Side::Opposite, des::plot::LegendPos::OutTop) => true,
         _ => false,
     }
 }
 
-fn y_side_matches_out_legend_pos(side: ir::axis::Side, legend_pos: ir::plot::LegendPos) -> bool {
+fn y_side_matches_out_legend_pos(side: des::axis::Side, legend_pos: des::plot::LegendPos) -> bool {
     match (side, legend_pos) {
-        (ir::axis::Side::Main, ir::plot::LegendPos::OutLeft) => true,
-        (ir::axis::Side::Opposite, ir::plot::LegendPos::OutRight) => true,
+        (des::axis::Side::Main, des::plot::LegendPos::OutLeft) => true,
+        (des::axis::Side::Opposite, des::plot::LegendPos::OutRight) => true,
         _ => false,
     }
 }
@@ -930,7 +930,7 @@ impl Plot {
         // otherwise, axes draw the border as spines
         let rect = self.rect;
         match self.border.as_ref() {
-            Some(ir::plot::Border::Box(stroke)) => {
+            Some(des::plot::Border::Box(stroke)) => {
                 surface.draw_rect(&render::Rect {
                     rect,
                     fill: None,
@@ -1041,57 +1041,57 @@ impl Axes {
 }
 
 fn legend_top_left(
-    legend: &ir::PlotLegend,
+    legend: &des::PlotLegend,
     sz: geom::Size,
     plot_rect: &geom::Rect,
     outer_rect: &geom::Rect,
 ) -> geom::Point {
     match legend.pos() {
-        ir::plot::LegendPos::OutTop => geom::Point {
+        des::plot::LegendPos::OutTop => geom::Point {
             x: outer_rect.center_x() - sz.width() / 2.0,
             y: outer_rect.top(),
         },
-        ir::plot::LegendPos::OutRight => geom::Point {
+        des::plot::LegendPos::OutRight => geom::Point {
             x: outer_rect.right() - sz.width(),
             y: outer_rect.center_y() - sz.height() / 2.0,
         },
-        ir::plot::LegendPos::OutBottom => geom::Point {
+        des::plot::LegendPos::OutBottom => geom::Point {
             x: outer_rect.center_x() - sz.width() / 2.0,
             y: outer_rect.bottom() - sz.height(),
         },
-        ir::plot::LegendPos::OutLeft => geom::Point {
+        des::plot::LegendPos::OutLeft => geom::Point {
             x: outer_rect.left(),
             y: outer_rect.center_y() - sz.height() / 2.0,
         },
-        ir::plot::LegendPos::InTop => geom::Point {
+        des::plot::LegendPos::InTop => geom::Point {
             x: plot_rect.center_x() - sz.width() / 2.0,
             y: plot_rect.top() + legend.margin(),
         },
-        ir::plot::LegendPos::InTopRight => geom::Point {
+        des::plot::LegendPos::InTopRight => geom::Point {
             x: plot_rect.right() - sz.width() - legend.margin(),
             y: plot_rect.top() + legend.margin(),
         },
-        ir::plot::LegendPos::InRight => geom::Point {
+        des::plot::LegendPos::InRight => geom::Point {
             x: plot_rect.right() - sz.width() - legend.margin(),
             y: plot_rect.center_y() - sz.height() / 2.0,
         },
-        ir::plot::LegendPos::InBottomRight => geom::Point {
+        des::plot::LegendPos::InBottomRight => geom::Point {
             x: plot_rect.right() - sz.width() - legend.margin(),
             y: plot_rect.bottom() - sz.height() - legend.margin(),
         },
-        ir::plot::LegendPos::InBottom => geom::Point {
+        des::plot::LegendPos::InBottom => geom::Point {
             x: plot_rect.center_x() - sz.width() / 2.0,
             y: plot_rect.bottom() - sz.height() - legend.margin(),
         },
-        ir::plot::LegendPos::InBottomLeft => geom::Point {
+        des::plot::LegendPos::InBottomLeft => geom::Point {
             x: plot_rect.left() + legend.margin(),
             y: plot_rect.bottom() - sz.height() - legend.margin(),
         },
-        ir::plot::LegendPos::InLeft => geom::Point {
+        des::plot::LegendPos::InLeft => geom::Point {
             x: plot_rect.left() + legend.margin(),
             y: plot_rect.center_y() - sz.height() / 2.0,
         },
-        ir::plot::LegendPos::InTopLeft => geom::Point {
+        des::plot::LegendPos::InTopLeft => geom::Point {
             x: plot_rect.left() + legend.margin(),
             y: plot_rect.top() + legend.margin(),
         },

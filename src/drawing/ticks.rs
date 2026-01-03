@@ -4,11 +4,11 @@ use std::sync::Arc;
 use crate::data;
 use crate::drawing::{Categories, Error, axis};
 #[cfg(feature = "time")]
-use crate::ir::axis::ticks::{
+use crate::des::axis::ticks::{
     DateTimeFormatter, DateTimeLocator, TimeDeltaFormatter, TimeDeltaLocator,
 };
-use crate::ir::axis::ticks::{Formatter, Locator, Ticks};
-use crate::ir::axis::{LogScale, Scale};
+use crate::des::axis::ticks::{Formatter, Locator, Ticks};
+use crate::des::axis::{LogScale, Scale};
 #[cfg(feature = "time")]
 use crate::time::{DateTime, DateTimeComps, TimeDelta};
 

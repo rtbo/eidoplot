@@ -1,6 +1,6 @@
 //! Plot IR structures
 
-use crate::ir::{Annotation, Axis, Legend, PlotIdx, Series};
+use crate::des::{Annotation, Axis, Legend, PlotIdx, Series};
 use crate::style::{defaults, theme};
 
 /// Arrow border style for the plot area

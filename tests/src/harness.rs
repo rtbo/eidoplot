@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use plotive::style::series;
 use plotive::style::theme::Theme;
-use plotive::{Drawing, Style, ir};
+use plotive::{Drawing, Style, des};
 use plotive_pxl::PxlSurface;
 use plotive_svg::SvgSurface;
 
@@ -36,7 +36,7 @@ pub trait TestHarness {
         Path::new(tests_dir).join("failed").join(file_name)
     }
 
-    fn draw_fig<T, P>(fig: &ir::Figure, style: &Style<T, P>) -> Self::DrawnFig
+    fn draw_fig<T, P>(fig: &des::Figure, style: &Style<T, P>) -> Self::DrawnFig
     where
         T: Theme,
         P: series::Palette;
@@ -50,7 +50,7 @@ pub trait TestHarness {
     fn regenerate_refs() -> bool;
 
     fn check_fig_eq_ref<T, P>(
-        fig: &ir::Figure,
+        fig: &des::Figure,
         ref_name: &str,
         style: &Style<T, P>,
     ) -> Result<(), String>
@@ -134,7 +134,7 @@ impl TestHarness for PxlHarness {
         "-diff.png"
     }
 
-    fn draw_fig<T, P>(fig: &ir::Figure, style: &Style<T, P>) -> Self::DrawnFig
+    fn draw_fig<T, P>(fig: &des::Figure, style: &Style<T, P>) -> Self::DrawnFig
     where
         T: Theme,
         P: series::Palette,
@@ -198,7 +198,7 @@ impl TestHarness for SvgHarness {
         ".svg.diff"
     }
 
-    fn draw_fig<T, P>(fig: &ir::Figure, style: &Style<T, P>) -> Self::DrawnFig
+    fn draw_fig<T, P>(fig: &des::Figure, style: &Style<T, P>) -> Self::DrawnFig
     where
         T: Theme,
         P: series::Palette,

@@ -1,4 +1,4 @@
-use plotive::{data, ir, text, utils};
+use plotive::{data, des, text, utils};
 
 mod common;
 
@@ -16,35 +16,35 @@ fn main() {
     data_source.add_column("x2", &x2 as &dyn data::Column);
     data_source.add_column("y2", &y2 as &dyn data::Column);
 
-    let ax_x1 = ir::Axis::new()
+    let ax_x1 = des::Axis::new()
         .with_grid(Default::default())
-        .with_scale(ir::axis::ref_id("x2").into());
-    let ax_y1 = ir::Axis::new().with_ticks(Default::default());
-    let ax_x2 = ir::Axis::new()
+        .with_scale(des::axis::ref_id("x2").into());
+    let ax_y1 = des::Axis::new().with_ticks(Default::default());
+    let ax_x2 = des::Axis::new()
         .with_id("x2")
         .with_ticks(
-            ir::axis::Ticks::new()
-                .with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
+            des::axis::Ticks::new()
+                .with_locator(des::axis::ticks::PiMultipleLocator::default().into()),
         )
         .with_grid(Default::default());
-    let ax_y2 = ir::Axis::new().with_ticks(Default::default());
+    let ax_y2 = des::Axis::new().with_ticks(Default::default());
 
-    let series1 = ir::series::Line::new(ir::data_src_ref("x1"), ir::data_src_ref("y1")).into();
-    let series2 = ir::series::Line::new(ir::data_src_ref("x2"), ir::data_src_ref("y2")).into();
+    let series1 = des::series::Line::new(des::data_src_ref("x1"), des::data_src_ref("y1")).into();
+    let series2 = des::series::Line::new(des::data_src_ref("x2"), des::data_src_ref("y2")).into();
 
-    let plot1 = ir::Plot::new(vec![series1])
+    let plot1 = des::Plot::new(vec![series1])
         .with_x_axis(ax_x1)
         .with_y_axis(ax_y1);
-    let plot2 = ir::Plot::new(vec![series2])
+    let plot2 = des::Plot::new(vec![series2])
         .with_x_axis(ax_x2)
         .with_y_axis(ax_y2);
 
-    let subplots = ir::Subplots::new(2, 1)
+    let subplots = des::Subplots::new(2, 1)
         .with_plot((0, 0), plot1)
         .with_plot((1, 0), plot2)
         .with_space(10.0);
 
-    let fig = ir::Figure::new(subplots.into()).with_title("Subplots".into());
+    let fig = des::Figure::new(subplots.into()).with_title("Subplots".into());
 
     let mut fontdb = text::fontdb::Database::new();
     fontdb.load_system_fonts();

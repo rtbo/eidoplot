@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use plotive::{data, ir, utils};
+use plotive::{data, des, utils};
 
 mod common;
 
@@ -14,31 +14,31 @@ fn main() {
     data_src.add_column("sin(x)", &sin_x as &dyn data::Column);
     data_src.add_column("exp(x)", &exp_x as &dyn data::Column);
 
-    let x_axis = ir::Axis::new().with_title("x".into()).with_ticks(
-        ir::axis::Ticks::new().with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
+    let x_axis = des::Axis::new().with_title("x".into()).with_ticks(
+        des::axis::Ticks::new().with_locator(des::axis::ticks::PiMultipleLocator::default().into()),
     );
-    let y1_axis = ir::Axis::new()
+    let y1_axis = des::Axis::new()
         .with_title("sin(x)".into())
         .with_ticks(Default::default());
-    let y2_axis = ir::Axis::new()
+    let y2_axis = des::Axis::new()
         .with_title("exp(x)".into())
-        .with_scale(ir::axis::LogScale::default().into())
+        .with_scale(des::axis::LogScale::default().into())
         .with_ticks(Default::default());
 
-    let series1 = ir::series::Line::new(ir::data_src_ref("x"), ir::data_src_ref("sin(x)"))
+    let series1 = des::series::Line::new(des::data_src_ref("x"), des::data_src_ref("sin(x)"))
         .with_name("sin(x)")
         .into();
-    let series2 = ir::series::Line::new(ir::data_src_ref("x"), ir::data_src_ref("exp(x)"))
+    let series2 = des::series::Line::new(des::data_src_ref("x"), des::data_src_ref("exp(x)"))
         .with_name("exp(x)")
-        .with_y_axis(ir::axis::ref_id("exp(x)"))
+        .with_y_axis(des::axis::ref_id("exp(x)"))
         .into();
 
-    let plot = ir::Plot::new(vec![series1, series2])
-        .with_border(ir::plot::AxisArrow::default().into())
+    let plot = des::Plot::new(vec![series1, series2])
+        .with_border(des::plot::AxisArrow::default().into())
         .with_x_axis(x_axis)
         .with_y_axis(y1_axis)
         .with_y_axis(y2_axis);
-    let fig = ir::Figure::new(plot.into())
+    let fig = des::Figure::new(plot.into())
         .with_title("Multiple axes".into())
         .with_legend(Default::default());
 

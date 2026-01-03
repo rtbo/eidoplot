@@ -1,4 +1,4 @@
-use plotive::ir;
+use plotive::des;
 
 mod common;
 
@@ -115,34 +115,34 @@ fn main() {
 
     let title = "Tennis ball thrown from 1\u{02E2}\u{1D57} floor of Eiffel Tower";
 
-    let fig = ir::Figure::new(
-        ir::Plot::new(vec![
-            ir::series::Line::new(ir::data_src_ref("time"), ir::data_src_ref("height"))
+    let fig = des::Figure::new(
+        des::Plot::new(vec![
+            des::series::Line::new(des::data_src_ref("time"), des::data_src_ref("height"))
                 .with_name("Height (m)")
                 .into(),
-            ir::series::Line::new(ir::data_src_ref("time"), ir::data_src_ref("velocity"))
+            des::series::Line::new(des::data_src_ref("time"), des::data_src_ref("velocity"))
                 .with_name("Velocity (m/s)")
                 .into(),
         ])
         .with_x_axis(
-            ir::Axis::new()
+            des::Axis::new()
                 .with_ticks(
-                    ir::axis::Ticks::new()
-                        .with_locator(ir::axis::ticks::TimeDeltaLocator::Seconds(2).into())
+                    des::axis::Ticks::new()
+                        .with_locator(des::axis::ticks::TimeDeltaLocator::Seconds(2).into())
                         .with_formatter(Some(
-                            ir::axis::ticks::TimeDeltaFormatter::Custom("%M:%S".to_string()).into(),
+                            des::axis::ticks::TimeDeltaFormatter::Custom("%M:%S".to_string()).into(),
                         )),
                 )
                 .with_grid(Default::default())
                 .with_title("Time".into()),
         )
         .with_y_axis(
-            ir::Axis::new()
-                .with_ticks(ir::axis::Ticks::new())
+            des::Axis::new()
+                .with_ticks(des::axis::Ticks::new())
                 .with_grid(Default::default()),
         )
-        .with_annotation(ir::annot::Line::horizontal(0.0).into())
-        .with_legend(ir::plot::LegendPos::InTopRight.into())
+        .with_annotation(des::annot::Line::horizontal(0.0).into())
+        .with_legend(des::plot::LegendPos::InTopRight.into())
         .into(),
     )
     .with_title(title.into());

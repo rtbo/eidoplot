@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use plotive::{data, ir, style};
+use plotive::{data, des, style};
 use rand_distr::{Distribution, Normal};
 
 mod common;
@@ -26,19 +26,19 @@ fn main() {
     let normal = Normal::new(MU, SIGMA).unwrap();
     let pop = (0..N_POP).map(|_| normal.sample(&mut rng)).collect();
 
-    let title: ir::figure::Title =
+    let title: des::figure::Title =
         format!("Normal distribution (\u{03bc}={}, \u{03c3}={})", MU, SIGMA).into();
 
-    let x_axis = ir::Axis::new()
+    let x_axis = des::Axis::new()
         .with_title("x".into())
         .with_ticks(Default::default());
-    let y_axis = ir::Axis::new().with_title("y".into()).with_ticks(
-        ir::axis::Ticks::new()
-            .with_formatter(Some(ir::axis::ticks::PercentFormatter::default().into())),
+    let y_axis = des::Axis::new().with_title("y".into()).with_ticks(
+        des::axis::Ticks::new()
+            .with_formatter(Some(des::axis::ticks::PercentFormatter::default().into())),
     );
 
-    let pop_series = ir::Series::Histogram(
-        ir::series::Histogram::new(ir::data_src_ref("pop"))
+    let pop_series = des::Series::Histogram(
+        des::series::Histogram::new(des::data_src_ref("pop"))
             .with_name("population")
             .with_fill(style::series::Fill::Solid {
                 color: style::series::Color::Auto,
@@ -48,8 +48,8 @@ fn main() {
             .with_density(),
     );
 
-    let dist_series = ir::Series::Line(
-        ir::series::Line::new(x.into(), y.into())
+    let dist_series = des::Series::Line(
+        des::series::Line::new(x.into(), y.into())
             .with_name("distribution")
             .with_line(style::series::Line {
                 width: 4.0,
@@ -59,12 +59,12 @@ fn main() {
 
     let series = vec![dist_series, pop_series];
 
-    let plot = ir::Plot::new(series)
+    let plot = des::Plot::new(series)
         .with_x_axis(x_axis)
         .with_y_axis(y_axis)
-        .with_legend(ir::plot::LegendPos::OutRight.into());
+        .with_legend(des::plot::LegendPos::OutRight.into());
 
-    let fig = ir::Figure::new(plot.into()).with_title(title);
+    let fig = des::Figure::new(plot.into()).with_title(title);
 
     let data_source = data::TableSource::new().with_f64_column("pop".into(), pop);
 

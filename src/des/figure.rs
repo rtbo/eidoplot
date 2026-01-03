@@ -2,7 +2,7 @@
 use std::iter::FusedIterator;
 
 use crate::geom;
-use crate::ir::{Legend, Plot, PlotIdx, Subplots};
+use crate::des::{Legend, Plot, PlotIdx, Subplots};
 use crate::style::{defaults, theme};
 
 super::define_rich_text_structs!(Title, TitleProps, TitleOptProps);

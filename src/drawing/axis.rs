@@ -14,7 +14,7 @@ use crate::drawing::scale::{self, CoordMap};
 use crate::drawing::{Categories, Ctx, Error, Text, ticks};
 use crate::style::theme::{self, Theme};
 use crate::text::{self, font};
-use crate::{Style, data, geom, ir, missing_params, render};
+use crate::{Style, data, geom, des, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub struct Axis {
@@ -102,7 +102,7 @@ pub enum AxisScale {
     /// Numerical axis
     Num {
         /// IR definition of the scale
-        ir_scale: ir::axis::Scale,
+        ir_scale: des::axis::Scale,
         /// The coordinate mapper
         cm: Arc<dyn CoordMap>,
         /// The ticks and labels for the axis
@@ -120,7 +120,7 @@ pub enum AxisScale {
 #[derive(Debug, Clone)]
 pub struct NumTicks {
     /// IR definition of the ticks
-    ir_ticks: ir::axis::Ticks,
+    ir_ticks: des::axis::Ticks,
     /// The list of ticks
     ticks: Vec<NumTick>,
     /// Annotation of the axis (e.g. a multiplication factor)
@@ -183,7 +183,7 @@ struct TickMark {
 
 #[derive(Debug, Clone)]
 pub struct MinorTicks {
-    ir_ticks: ir::axis::MinorTicks,
+    ir_ticks: des::axis::MinorTicks,
     locs: Vec<f64>,
 }
 
@@ -302,7 +302,7 @@ impl CategoryTicks {
 #[derive(Debug, Clone)]
 struct DrawOpts {
     title: Option<Text>,
-    spine: Option<ir::plot::Border>,
+    spine: Option<des::plot::Border>,
     marks: Option<TickMark>,
     minor_marks: Option<TickMark>,
     ticks_labels: bool,
@@ -317,7 +317,7 @@ where
     /// Estimate the height taken by a horizontal axis.
     /// It includes ticks marks, ticks labels and axis title.
     /// This is the height without any additional margin
-    pub fn estimate_x_axes_height(&self, x_axes: &[ir::Axis], side: ir::axis::Side) -> f32 {
+    pub fn estimate_x_axes_height(&self, x_axes: &[des::Axis], side: des::axis::Side) -> f32 {
         let mut height = 0.0;
         for (idx, axis) in x_axes.iter().filter(|a| a.side() == side).enumerate() {
             if idx != 0 {
@@ -343,13 +343,13 @@ where
 
     pub fn setup_axis(
         &self,
-        ir_axis: &ir::Axis,
+        ir_axis: &des::Axis,
         bounds: &Bounds,
         side: Side,
         size_along: f32,
         insets: &geom::Padding,
         shared_scale: Option<Rc<RefCell<AxisScale>>>,
-        spine: Option<ir::plot::Border>,
+        spine: Option<des::plot::Border>,
     ) -> Result<Axis, Error> {
         let id = ir_axis.id().map(|s| s.to_string());
         let title_text = ir_axis.title().map(|t| t.text().to_string());
@@ -377,7 +377,7 @@ where
 
     fn setup_axis_scale(
         &self,
-        ir_axis: &ir::Axis,
+        ir_axis: &des::Axis,
         bounds: &Bounds,
         side: Side,
         size_along: f32,
@@ -448,9 +448,9 @@ where
 
     fn setup_num_ticks(
         &self,
-        major_ticks: &ir::axis::Ticks,
+        major_ticks: &des::axis::Ticks,
         nb: NumBounds,
-        scale: &ir::axis::Scale,
+        scale: &des::axis::Scale,
         side: Side,
         copy_from: Option<&NumTicks>,
     ) -> Result<NumTicks, Error> {
@@ -501,9 +501,9 @@ where
 
     fn setup_minor_ticks(
         &self,
-        minor_ticks: &ir::axis::MinorTicks,
+        minor_ticks: &des::axis::MinorTicks,
         major_ticks: Option<&NumTicks>,
-        scale: &ir::axis::Scale,
+        scale: &des::axis::Scale,
         nb: NumBounds,
     ) -> Result<MinorTicks, Error> {
         let mut locs = ticks::locate_minor(minor_ticks.locator(), nb, scale)?;
@@ -526,9 +526,9 @@ where
     #[cfg(feature = "time")]
     fn setup_time_ticks(
         &self,
-        major_ticks: &ir::axis::Ticks,
+        major_ticks: &des::axis::Ticks,
         tb: TimeBounds,
-        scale: &ir::axis::Scale,
+        scale: &des::axis::Scale,
         side: Side,
     ) -> Result<NumTicks, Error> {
         let db: &font::Database = self.fontdb();
@@ -537,7 +537,7 @@ where
         let ticks_align = side.ticks_labels_align();
         let annot_align = side.annot_align();
 
-        if matches!(scale, ir::axis::Scale::Log(_)) {
+        if matches!(scale, des::axis::Scale::Log(_)) {
             return Err(Error::InconsistentIr(
                 "Log scale not supported for time axis".into(),
             ));
@@ -577,12 +577,12 @@ where
 
     fn setup_cat_ticks(
         &self,
-        ir: &ir::axis::Ticks,
+        des: &des::axis::Ticks,
         cb: &Categories,
         side: Side,
     ) -> Result<CategoryTicks, Error> {
         let db: &font::Database = self.fontdb();
-        let font = ir.font();
+        let font = des.font();
 
         let ticks_align = side.ticks_labels_align();
 
@@ -595,7 +595,7 @@ where
                 font.font.clone(),
                 db,
             )?;
-            let lbl = Text::from_line_text(&lbl, db, ir.color())?;
+            let lbl = Text::from_line_text(&lbl, db, des.color())?;
             lbls.push(lbl);
         }
 
@@ -614,10 +614,10 @@ where
 
     fn setup_axis_draw_opts(
         &self,
-        ir_axis: &ir::Axis,
+        ir_axis: &des::Axis,
         side: Side,
         uses_shared: bool,
-        spine: Option<ir::plot::Border>,
+        spine: Option<des::plot::Border>,
     ) -> Result<DrawOpts, Error> {
         let title = ir_axis
             .title()
@@ -703,13 +703,13 @@ where
     }
 }
 
-fn adapt_ir_scale(ir_scale: &ir::axis::Scale, axis_bounds: &NumBounds) -> ir::axis::Scale {
+fn adapt_ir_scale(ir_scale: &des::axis::Scale, axis_bounds: &NumBounds) -> des::axis::Scale {
     match ir_scale {
-        ir::axis::Scale::Linear(range) => {
-            ir::axis::Scale::Linear(adapt_ir_range(range, axis_bounds))
+        des::axis::Scale::Linear(range) => {
+            des::axis::Scale::Linear(adapt_ir_range(range, axis_bounds))
         }
-        ir::axis::Scale::Log(ir::axis::LogScale { base, range }) => {
-            ir::axis::Scale::Log(ir::axis::LogScale {
+        des::axis::Scale::Log(des::axis::LogScale { base, range }) => {
+            des::axis::Scale::Log(des::axis::LogScale {
                 base: *base,
                 range: adapt_ir_range(range, axis_bounds),
             })
@@ -718,13 +718,13 @@ fn adapt_ir_scale(ir_scale: &ir::axis::Scale, axis_bounds: &NumBounds) -> ir::ax
     }
 }
 
-fn adapt_ir_range(ir_range: &ir::axis::Range, axis_bounds: &NumBounds) -> ir::axis::Range {
+fn adapt_ir_range(ir_range: &des::axis::Range, axis_bounds: &NumBounds) -> des::axis::Range {
     match ir_range {
-        ir::axis::Range::Auto => ir::axis::Range::Auto,
-        ir::axis::Range::MinAuto(..) => ir::axis::Range::MinAuto(axis_bounds.start()),
-        ir::axis::Range::AutoMax(..) => ir::axis::Range::AutoMax(axis_bounds.end()),
-        ir::axis::Range::MinMax(..) => {
-            ir::axis::Range::MinMax(axis_bounds.start(), axis_bounds.end())
+        des::axis::Range::Auto => des::axis::Range::Auto,
+        des::axis::Range::MinAuto(..) => des::axis::Range::MinAuto(axis_bounds.start()),
+        des::axis::Range::AutoMax(..) => des::axis::Range::AutoMax(axis_bounds.end()),
+        des::axis::Range::MinMax(..) => {
+            des::axis::Range::MinMax(axis_bounds.start(), axis_bounds.end())
         }
     }
 }
@@ -919,7 +919,7 @@ impl Axis {
         surface: &mut S,
         style: &Style<T, P>,
         plot_rect: &geom::Rect,
-        spine: &ir::plot::Border,
+        spine: &des::plot::Border,
     ) where
         S: render::Surface,
         T: Theme,

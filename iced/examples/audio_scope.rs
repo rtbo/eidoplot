@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use plotive::data::Column;
-use plotive::{Drawing, data, drawing, geom, ir};
+use plotive::{Drawing, data, drawing, geom, des};
 use iced::futures::channel::mpsc;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{button, column, container, pick_list, row, space, text};
@@ -359,58 +359,58 @@ impl data::Source for AudioScopeDataSrc {
     }
 }
 
-fn build_figure() -> ir::Figure {
-    ir::Figure::new(
-        ir::Subplots::new(2, 1)
+fn build_figure() -> des::Figure {
+    des::Figure::new(
+        des::Subplots::new(2, 1)
             .with_plot(
                 (0, 0),
-                ir::Plot::new(vec![
-                    ir::series::Line::new(
-                        ir::DataCol::SrcRef("time".to_string()),
-                        ir::DataCol::SrcRef("time_y".to_string()),
+                des::Plot::new(vec![
+                    des::series::Line::new(
+                        des::DataCol::SrcRef("time".to_string()),
+                        des::DataCol::SrcRef("time_y".to_string()),
                     )
                     .into(),
                 ])
-                .with_annotation(ir::annot::Line::horizontal(0.0).into())
+                .with_annotation(des::annot::Line::horizontal(0.0).into())
                 .with_x_axis(
-                    ir::Axis::new()
+                    des::Axis::new()
                         .with_title("Time (s)".to_string().into())
                         .with_ticks(Default::default())
                         .with_grid(Default::default()),
                 )
                 .with_y_axis(
-                    ir::Axis::new()
-                        .with_scale(ir::axis::Range::MinMax(-1.0, 1.0).into())
+                    des::Axis::new()
+                        .with_scale(des::axis::Range::MinMax(-1.0, 1.0).into())
                         .with_ticks(Default::default())
                         .with_grid(Default::default()),
                 ),
             )
             .with_plot(
                 (1, 0),
-                ir::Plot::new(vec![
-                    ir::series::Line::new(
-                        ir::DataCol::SrcRef("freq".to_string()),
-                        ir::DataCol::SrcRef("freq_y".to_string()),
+                des::Plot::new(vec![
+                    des::series::Line::new(
+                        des::DataCol::SrcRef("freq".to_string()),
+                        des::DataCol::SrcRef("freq_y".to_string()),
                     )
                     .into(),
                 ])
                 .with_x_axis(
-                    ir::Axis::new()
+                    des::Axis::new()
                         .with_title("Frequency (Hz)".to_string().into())
-                        .with_scale(ir::axis::Range::MinMax(0.0, 4000.0).into())
+                        .with_scale(des::axis::Range::MinMax(0.0, 4000.0).into())
                         .with_ticks(
-                            ir::axis::Ticks::new()
-                                .with_formatter(ir::axis::ticks::Formatter::Prec(0).into()),
+                            des::axis::Ticks::new()
+                                .with_formatter(des::axis::ticks::Formatter::Prec(0).into()),
                         )
                         .with_grid(Default::default()),
                 )
                 .with_y_axis(
-                    ir::Axis::new()
+                    des::Axis::new()
                         .with_title("Amplitude (dBFS)".to_string().into())
-                        .with_scale(ir::axis::Range::MinMax(-100.0, 0.0).into())
+                        .with_scale(des::axis::Range::MinMax(-100.0, 0.0).into())
                         .with_ticks(
-                            ir::axis::Ticks::new()
-                                .with_formatter(ir::axis::ticks::Formatter::Prec(0).into()),
+                            des::axis::Ticks::new()
+                                .with_formatter(des::axis::ticks::Formatter::Prec(0).into()),
                         )
                         .with_grid(Default::default()),
                 ),

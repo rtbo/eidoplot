@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use plotive::{ir, style};
+use plotive::{des, style};
 use polars::prelude::*;
 
 mod common;
@@ -15,27 +15,27 @@ fn main() {
     )
     .unwrap();
 
-    let title = ir::figure::Title::from("Sine wave from polars");
+    let title = des::figure::Title::from("Sine wave from polars");
 
-    let x_axis = ir::Axis::new()
+    let x_axis = des::Axis::new()
         .with_title("x".into())
         .with_ticks(Default::default());
-    let y_axis = ir::Axis::new()
+    let y_axis = des::Axis::new()
         .with_title("y".into())
         .with_ticks(Default::default());
 
-    let series = ir::Series::Line(
-        ir::series::Line::new(ir::data_src_ref("x"), ir::data_src_ref("y"))
+    let series = des::Series::Line(
+        des::series::Line::new(des::data_src_ref("x"), des::data_src_ref("y"))
             .with_name("y=sin(x)")
             .with_line(style::series::Line::default().with_width(4.0)),
     );
 
-    let plot = ir::Plot::new(vec![series])
+    let plot = des::Plot::new(vec![series])
         .with_x_axis(x_axis)
         .with_y_axis(y_axis)
-        .with_legend(ir::plot::LegendPos::InTopRight.into());
+        .with_legend(des::plot::LegendPos::InTopRight.into());
 
-    let fig = ir::Figure::new(plot.into()).with_title(title);
+    let fig = des::Figure::new(plot.into()).with_title(title);
 
     common::save_figure(&fig, &data_source, None, "polars-sine");
 }

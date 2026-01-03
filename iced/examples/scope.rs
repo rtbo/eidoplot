@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 use std::time::Instant;
 
 use plotive::style::theme;
-use plotive::{Drawing, data, drawing, ir, style, utils};
+use plotive::{Drawing, data, drawing, des, style, utils};
 use plotive_iced::figure::figure;
 use iced::widget::{column, text};
 use iced::{Element, Subscription, Task, window};
@@ -115,35 +115,35 @@ impl Scope {
     }
 }
 
-fn build_figure() -> ir::Figure {
-    let x_axis = ir::Axis::new()
-        .with_scale(ir::axis::Range::MinMax(0.0, 2.0 * PI).into())
+fn build_figure() -> des::Figure {
+    let x_axis = des::Axis::new()
+        .with_scale(des::axis::Range::MinMax(0.0, 2.0 * PI).into())
         .with_title("x".to_string().into())
         .with_ticks(
-            ir::axis::Ticks::default()
-                .with_locator(ir::axis::ticks::PiMultipleLocator::default().into()),
+            des::axis::Ticks::default()
+                .with_locator(des::axis::ticks::PiMultipleLocator::default().into()),
         );
-    let y_axis = ir::Axis::new()
+    let y_axis = des::Axis::new()
         .with_title("y".to_string().into())
         .with_ticks(Default::default())
         .with_grid(Default::default());
 
-    let series = ir::Series::Line(
-        ir::series::Line::new(
-            ir::DataCol::SrcRef("x".to_string()),
-            ir::DataCol::SrcRef("y".to_string()),
+    let series = des::Series::Line(
+        des::series::Line::new(
+            des::DataCol::SrcRef("x".to_string()),
+            des::DataCol::SrcRef("y".to_string()),
         )
         .with_name("y=sin(x)".to_string())
         .with_line(style::series::Line::default().with_width(2.0)),
     );
 
-    let plot = ir::Plot::new(vec![series])
+    let plot = des::Plot::new(vec![series])
         .with_x_axis(x_axis)
         .with_y_axis(y_axis)
         .with_fill(theme::Col::Background.into())
-        .with_legend(ir::plot::LegendPos::InTopRight.into());
+        .with_legend(des::plot::LegendPos::InTopRight.into());
 
-    ir::Figure::new(plot.into())
+    des::Figure::new(plot.into())
         .with_title("Real-time plot".to_string().into())
         .with_fill(None)
 }

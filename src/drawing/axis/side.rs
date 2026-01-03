@@ -1,6 +1,6 @@
 use crate::drawing::plot::Orientation;
 use crate::drawing::scale::CoordMap;
-use crate::{geom, ir, missing_params, text};
+use crate::{geom, des, missing_params, text};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
@@ -17,21 +17,21 @@ enum Direction {
 }
 
 impl Side {
-    pub fn from_or_ir_side(or: Orientation, ir_side: ir::axis::Side) -> Self {
+    pub fn from_or_ir_side(or: Orientation, ir_side: des::axis::Side) -> Self {
         match (or, ir_side) {
-            (Orientation::X, ir::axis::Side::Main) => Side::Bottom,
-            (Orientation::X, ir::axis::Side::Opposite) => Side::Top,
-            (Orientation::Y, ir::axis::Side::Main) => Side::Left,
-            (Orientation::Y, ir::axis::Side::Opposite) => Side::Right,
+            (Orientation::X, des::axis::Side::Main) => Side::Bottom,
+            (Orientation::X, des::axis::Side::Opposite) => Side::Top,
+            (Orientation::Y, des::axis::Side::Main) => Side::Left,
+            (Orientation::Y, des::axis::Side::Opposite) => Side::Right,
         }
     }
 
-    pub fn to_ir_side(&self) -> ir::axis::Side {
+    pub fn to_ir_side(&self) -> des::axis::Side {
         match self {
-            Side::Bottom => ir::axis::Side::Main,
-            Side::Top => ir::axis::Side::Opposite,
-            Side::Left => ir::axis::Side::Main,
-            Side::Right => ir::axis::Side::Opposite,
+            Side::Bottom => des::axis::Side::Main,
+            Side::Top => des::axis::Side::Opposite,
+            Side::Left => des::axis::Side::Main,
+            Side::Right => des::axis::Side::Opposite,
         }
     }
 
@@ -87,11 +87,11 @@ impl Side {
         }
     }
 
-    pub fn spine_path(&self, rect: &geom::Rect, spine: &ir::plot::Border) -> geom::Path {
+    pub fn spine_path(&self, rect: &geom::Rect, spine: &des::plot::Border) -> geom::Path {
         let overflow = match spine {
-            ir::plot::Border::Box(_) => 0.0,
-            ir::plot::Border::Axis(_) => 0.0,
-            ir::plot::Border::AxisArrow(arrow) => arrow.overflow,
+            des::plot::Border::Box(_) => 0.0,
+            des::plot::Border::Axis(_) => 0.0,
+            des::plot::Border::AxisArrow(arrow) => arrow.overflow,
         };
         let (origin, end) = match self {
             Side::Bottom => (
@@ -138,7 +138,7 @@ impl Side {
         let mut builder = geom::PathBuilder::with_capacity(2, 2);
         builder.move_to(origin.x, origin.y);
         builder.line_to(end.x, end.y);
-        if let ir::plot::Border::AxisArrow(arrow) = spine {
+        if let des::plot::Border::AxisArrow(arrow) = spine {
             let arrow_size = arrow.size;
             match self {
                 Side::Bottom => {

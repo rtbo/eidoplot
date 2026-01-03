@@ -1,6 +1,6 @@
 //! Data series definitions for plots.
 use crate::data;
-use crate::ir::axis;
+use crate::des::axis;
 use crate::style::{self, defaults};
 
 /// A data column, either inline or a reference to a data source.
