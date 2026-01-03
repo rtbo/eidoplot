@@ -1,16 +1,16 @@
 <svg height="500" viewBox="0 0 400 500" width="400" xmlns="http://www.w3.org/2000/svg">
 <rect fill="#ffffff" height="100%" width="100%"/>
-<clipPath id="eidoplot-clip1">
+<clipPath id="plotive-clip1">
 <rect height="225" width="360" x="20" y="20"/>
 </clipPath>
-<g clip-path="url(#eidoplot-clip1)">
+<g clip-path="url(#plotive-clip1)">
 <path d="M40,225 L200,132.5 L360,40" fill="none" stroke="#000000" stroke-width="1.5"/>
 </g>
 <rect fill="none" height="225" stroke="#000000" stroke-width="1" width="360" x="20" y="20"/>
-<clipPath id="eidoplot-clip2">
+<clipPath id="plotive-clip2">
 <rect height="225" width="360" x="20" y="255"/>
 </clipPath>
-<g clip-path="url(#eidoplot-clip2)">
+<g clip-path="url(#plotive-clip2)">
 <path d="M40,460 L200,367.5 L360,275" fill="none" stroke="#000000" stroke-width="1.5"/>
 </g>
 <rect fill="none" height="225" stroke="#000000" stroke-width="1" width="360" x="20" y="255"/>

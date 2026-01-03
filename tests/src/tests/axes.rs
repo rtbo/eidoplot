@@ -1,4 +1,4 @@
-use eidoplot::{color, ir};
+use plotive::{color, ir};
 
 use super::{fig_small, line, line2};
 use crate::tests::fig_mid;

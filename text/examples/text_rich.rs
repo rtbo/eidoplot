@@ -1,4 +1,4 @@
-use eidoplot_text::{self as text, Font, RichTextBuilder, font, rich};
+use plotive_text::{self as text, Font, RichTextBuilder, font, rich};
 use tiny_skia::Transform;
 
 fn main() {

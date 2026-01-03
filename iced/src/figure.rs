@@ -1,8 +1,8 @@
-use eidoplot::render::Surface;
-use eidoplot::style::series::Palette;
-use eidoplot::style::theme::Theme;
-use eidoplot::style::{CustomStyle, theme};
-use eidoplot::{drawing, geom, style};
+use plotive::render::Surface;
+use plotive::style::series::Palette;
+use plotive::style::theme::Theme;
+use plotive::style::{CustomStyle, theme};
+use plotive::{drawing, geom, style};
 use iced::advanced::graphics::geometry;
 use iced::advanced::widget::tree;
 use iced::advanced::{Layout, Widget, layout, mouse, renderer, widget};
@@ -327,7 +327,7 @@ where
             let line = theme::Line::from(theme::Col::Foreground)
                 .with_pattern(style::Dash::default().into());
             let stroke = line.as_stroke(&style);
-            let _ = surface.draw_rect(&eidoplot::render::Rect {
+            let _ = surface.draw_rect(&plotive::render::Rect {
                 rect,
                 stroke: Some(stroke),
                 fill: None,
@@ -354,12 +354,12 @@ pub trait Catalog: Sized {
 }
 
 #[inline]
-fn from_iced_color(color: iced::Color) -> eidoplot::ColorU8 {
+fn from_iced_color(color: iced::Color) -> plotive::ColorU8 {
     let [r, g, b, a] = color.into_rgba8();
-    eidoplot::ColorU8::from_rgba(r, g, b, a)
+    plotive::ColorU8::from_rgba(r, g, b, a)
 }
 
-/// Map an `iced::Theme` to an eidoplot theme.
+/// Map an `iced::Theme` to an plotive theme.
 pub fn map_theme(theme: &iced::Theme) -> theme::Custom {
     let pal = theme.palette();
     let back = from_iced_color(pal.background);
@@ -367,7 +367,7 @@ pub fn map_theme(theme: &iced::Theme) -> theme::Custom {
     style::theme::Custom::new_back_and_fore(back, fore)
 }
 
-/// Map an `iced::Theme` to an eidoplot style.
+/// Map an `iced::Theme` to an plotive style.
 pub fn map_style(theme: &iced::Theme) -> CustomStyle {
     match theme {
         iced::Theme::CatppuccinMocha => style::Builtin::CatppuccinMocha.to_style().to_custom(),

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use eidoplot_base::Color;
+use plotive_base::Color;
 
 use crate::rich::{TextOptProps, TextProps};
 use crate::{RichTextBuilder, font};

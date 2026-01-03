@@ -1287,107 +1287,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
-name = "eidoplot"
-version = "0.1.0-dev"
-dependencies = [
- "eidoplot-base",
- "eidoplot-dsl",
- "eidoplot-iced",
- "eidoplot-pxl",
- "eidoplot-svg",
- "eidoplot-text",
- "ode_solvers",
- "polars",
- "rand",
- "rand_chacha",
- "rand_distr",
- "rustybuzz",
- "ttf-parser",
-]
-
-[[package]]
-name = "eidoplot-base"
-version = "0.1.0-dev"
-dependencies = [
- "strict-num 0.2.0",
- "tiny-skia-path",
-]
-
-[[package]]
-name = "eidoplot-dsl"
-version = "0.1.0-dev"
-dependencies = [
- "miette",
-]
-
-[[package]]
-name = "eidoplot-iced"
-version = "0.1.0-dev"
-dependencies = [
- "arboard",
- "bytes",
- "cpal",
- "eidoplot",
- "eidoplot-pxl",
- "eidoplot-svg",
- "iced",
- "iced_font_awesome",
- "rfd",
- "rustfft",
- "tokio",
-]
-
-[[package]]
-name = "eidoplot-pxl"
-version = "0.1.0-dev"
-dependencies = [
- "eidoplot",
- "eidoplot-text",
- "rustybuzz",
- "tiny-skia",
- "tiny-skia-path",
- "ttf-parser",
-]
-
-[[package]]
-name = "eidoplot-svg"
-version = "0.1.0-dev"
-dependencies = [
- "eidoplot",
- "eidoplot-text",
- "rustybuzz",
- "svg",
-]
-
-[[package]]
-name = "eidoplot-tests"
-version = "0.1.0-dev"
-dependencies = [
- "eidoplot",
- "eidoplot-pxl",
- "eidoplot-svg",
- "similar",
- "tiny-skia",
-]
-
-[[package]]
-name = "eidoplot-text"
-version = "0.1.0-dev"
-dependencies = [
- "eidoplot-base",
- "fontconfig-parser",
- "log",
- "memmap2",
- "rustybuzz",
- "slotmap",
- "tiny-skia",
- "tiny-skia-path",
- "tinyvec",
- "ttf-parser",
- "unicode-bidi",
-]
-
-[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3878,6 +3777,107 @@ checksum = "3daf8e3d4b712abe1d690838f6e29fb76b76ea19589c4afa39ec30e12f62af71"
 dependencies = [
  "array-init-cursor",
  "hashbrown 0.15.5",
+]
+
+[[package]]
+name = "plotive"
+version = "0.1.0-dev"
+dependencies = [
+ "ode_solvers",
+ "plotive-base",
+ "plotive-dsl",
+ "plotive-iced",
+ "plotive-pxl",
+ "plotive-svg",
+ "plotive-text",
+ "polars",
+ "rand",
+ "rand_chacha",
+ "rand_distr",
+ "rustybuzz",
+ "ttf-parser",
+]
+
+[[package]]
+name = "plotive-base"
+version = "0.1.0-dev"
+dependencies = [
+ "strict-num 0.2.0",
+ "tiny-skia-path",
+]
+
+[[package]]
+name = "plotive-dsl"
+version = "0.1.0-dev"
+dependencies = [
+ "miette",
+]
+
+[[package]]
+name = "plotive-iced"
+version = "0.1.0-dev"
+dependencies = [
+ "arboard",
+ "bytes",
+ "cpal",
+ "iced",
+ "iced_font_awesome",
+ "plotive",
+ "plotive-pxl",
+ "plotive-svg",
+ "rfd",
+ "rustfft",
+ "tokio",
+]
+
+[[package]]
+name = "plotive-pxl"
+version = "0.1.0-dev"
+dependencies = [
+ "plotive",
+ "plotive-text",
+ "rustybuzz",
+ "tiny-skia",
+ "tiny-skia-path",
+ "ttf-parser",
+]
+
+[[package]]
+name = "plotive-svg"
+version = "0.1.0-dev"
+dependencies = [
+ "plotive",
+ "plotive-text",
+ "rustybuzz",
+ "svg",
+]
+
+[[package]]
+name = "plotive-tests"
+version = "0.1.0-dev"
+dependencies = [
+ "plotive",
+ "plotive-pxl",
+ "plotive-svg",
+ "similar",
+ "tiny-skia",
+]
+
+[[package]]
+name = "plotive-text"
+version = "0.1.0-dev"
+dependencies = [
+ "fontconfig-parser",
+ "log",
+ "memmap2",
+ "plotive-base",
+ "rustybuzz",
+ "slotmap",
+ "tiny-skia",
+ "tiny-skia-path",
+ "tinyvec",
+ "ttf-parser",
+ "unicode-bidi",
 ]
 
 [[package]]

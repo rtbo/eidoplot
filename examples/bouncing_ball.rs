@@ -1,4 +1,4 @@
-use eidoplot::ir;
+use plotive::ir;
 
 mod common;
 
@@ -108,7 +108,7 @@ impl BouncingBallData {
 
 fn main() {
     let data = BouncingBallData::calculate();
-    let mut data_source = eidoplot::data::NamedColumns::new();
+    let mut data_source = plotive::data::NamedColumns::new();
     data_source.add_column("time", &data.time);
     data_source.add_column("height", &data.location);
     data_source.add_column("velocity", &data.velocity);

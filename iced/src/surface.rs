@@ -1,4 +1,4 @@
-use eidoplot::{geom, render};
+use plotive::{geom, render};
 use iced::advanced::graphics::geometry::{self, frame};
 
 #[derive(Debug)]
@@ -40,7 +40,7 @@ where
     }
 }
 
-impl<Frame> eidoplot::render::Surface for IcedSurface<Frame>
+impl<Frame> plotive::render::Surface for IcedSurface<Frame>
 where
     Frame: frame::Backend,
 {
@@ -100,7 +100,7 @@ where
 }
 
 #[inline]
-fn to_iced_color(color: eidoplot::ColorU8) -> iced::Color {
+fn to_iced_color(color: plotive::ColorU8) -> iced::Color {
     let [r, g, b, a] = color.rgba_f32();
     iced::Color::from_rgba(r, g, b, a)
 }

@@ -1,4 +1,4 @@
-use eidoplot_base::{Color, ColorU8, color, geom};
+use plotive_base::{Color, ColorU8, color, geom};
 use ttf_parser as ttf;
 
 use crate::{Error, font, fontdb, line};

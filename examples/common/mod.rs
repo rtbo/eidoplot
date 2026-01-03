@@ -2,11 +2,11 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use eidoplot::style::{self};
-use eidoplot::{Drawing, data, fontdb, ir};
-use eidoplot_iced::Show;
-use eidoplot_pxl::SavePng;
-use eidoplot_svg::SaveSvg;
+use plotive::style::{self};
+use plotive::{Drawing, data, fontdb, ir};
+use plotive_iced::Show;
+use plotive_pxl::SavePng;
+use plotive_svg::SaveSvg;
 use rand::SeedableRng;
 
 /// Get the path to a file in the examples folder
@@ -101,7 +101,7 @@ pub fn save_figure<D>(
     if let Some(fontdb) = fontdb {
         save_fig(fig, data_source, &args, fontdb, default_name);
     } else {
-        let fontdb = eidoplot::bundled_font_db();
+        let fontdb = plotive::bundled_font_db();
         save_fig(fig, data_source, &args, &fontdb, default_name);
     }
 }
@@ -127,7 +127,7 @@ fn save_fig<D>(
             };
             fig.save_png(
                 &file_name,
-                eidoplot_pxl::DrawingParams {
+                plotive_pxl::DrawingParams {
                     style: style.clone(),
                     scale: 2.0,
                 },
@@ -145,7 +145,7 @@ fn save_fig<D>(
             };
             fig.save_svg(
                 &file_name,
-                eidoplot_svg::DrawingParams {
+                plotive_svg::DrawingParams {
                     style: style.clone(),
                     scale: 1.0,
                 },

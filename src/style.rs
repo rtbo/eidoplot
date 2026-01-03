@@ -114,7 +114,7 @@ where
     }
 }
 
-/// Symbolic constants for Built-in styles available in Eidoplot
+/// Symbolic constants for Built-in styles available in Plotive
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Builtin {
     /// Black and white monochrome style

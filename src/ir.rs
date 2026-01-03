@@ -1,5 +1,5 @@
 /*!
- * # Intermediate representation (IR) for eidoplot
+ * # Intermediate representation (IR) for plotive
  *
  * This module contains all data structures for the design of plotting figures.
  */
@@ -108,7 +108,7 @@ macro_rules! define_rich_text_structs {
         /// Rich text properties that can apply only some properties on a given text span
         pub type $opt_props_struct = $crate::text::rich::TextOptProps<$crate::style::theme::Color>;
 
-        /// Rich text base properties with eidoplot theme colors
+        /// Rich text base properties with plotive theme colors
         #[derive(Debug, Clone)]
         pub struct $props_struct($crate::text::rich::TextProps<$crate::style::theme::Color>);
 
@@ -171,7 +171,7 @@ macro_rules! define_rich_text_structs {
             }
         }
 
-        /// Rich text structure with eidoplot theme colors
+        /// Rich text structure with plotive theme colors
         #[derive(Debug, Clone)]
         pub struct $text_struct {
             text: String,

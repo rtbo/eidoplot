@@ -1,5 +1,5 @@
-use eidoplot_base::geom;
-use eidoplot_text::{bundled_font_db, font, line};
+use plotive_base::geom;
+use plotive_text::{bundled_font_db, font, line};
 use line::LineText;
 
 fn main() {

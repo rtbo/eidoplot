@@ -1,12 +1,12 @@
-# eidoplot
+# plotive
 
-A simple and minimal data plotting library for Rust.
+_declarative plotting_. A simple data plotting library for Rust.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
 
-Eidoplot separates figure design from data and rendering surfaces.
+Plotive separates figure design from data and from rendering surfaces.
 
 ### Key Features
 
@@ -31,7 +31,7 @@ Eidoplot separates figure design from data and rendering surfaces.
   for axis ticks labels, legends etc. without a single line of code on the user side.
 
 - **GUI integration and real-time rendering**
-  - The package `eidoplot-iced` provides a [iced](https::/github.com/iced-rs/iced.git) `Figure` widget.
+  - The package `plotive-iced` provides a [iced](https::/github.com/iced-rs/iced.git) `Figure` widget.
 Thanks to separation of data from design, redraws of the same figure with different data
 is very efficient and compatible with real-time rendering, up to hundreds of redraws per second.
 
@@ -42,12 +42,12 @@ This DSL is fairly incomplete, but all examples in the repo are working.
 
 ## Installation
 
-Add eidoplot to your `Cargo.toml`:
+Add plotive to your `Cargo.toml`:
 
 ```sh
-cargo add eidoplot
-cargo add eidoplot-pxl # for rasterized rendering (e.g. pixels, PNG)
-cargo add eidoplot-svg # for SVG rendering
+cargo add plotive
+cargo add plotive-pxl # for rasterized rendering (e.g. pixels, PNG)
+cargo add plotive-svg # for SVG rendering
 ```
 
 ### Available Features
@@ -70,9 +70,9 @@ The `ir` module contains a declarative representation of figures, independent of
 ### Rendering Surfaces
 
 Rendering surfaces implement the `render::Surface` trait and are in separate crates:
-- **`eidoplot-svg`**: SVG format rendering
-- **`eidoplot-pxl`**: Bitmap rendering (PNG, etc.)
-- **`eidoplot-iced`**: Rendering in iced window.
+- **`plotive-svg`**: SVG format rendering
+- **`plotive-pxl`**: Bitmap rendering (PNG, etc.)
+- **`plotive-iced`**: Rendering in iced window.
 
 Rendering surfaces don't need to know anything about figures or plotted data.
 They only have to render path primitives. Even text is pre-processed as paths before being submitted to surfaces.
@@ -106,18 +106,18 @@ cargo run --example iris --features data-csv -- svg png
 
 ## Workspace Crates
 
-- **`eidoplot`**: Main library
-- **`eidoplot-base`**: Base types (colors, geometry)
-- **`eidoplot-dsl`**: Parser for `.eplt` DSL
-- **`eidoplot-svg`**: SVG rendering backend
-- **`eidoplot-pxl`**: Pixel rendering backend (suitable for PNG exports)
-- **`eidoplot-iced`**: Figure widget for iced
-- **`eidoplot-text`**: Text and font management
-- **`eidoplot-tests`**: Integration tests
+- **`plotive`**: Main library
+- **`plotive-base`**: Base types (colors, geometry)
+- **`plotive-dsl`**: Parser for `.eplt` DSL
+- **`plotive-svg`**: SVG rendering backend
+- **`plotive-pxl`**: Pixel rendering backend (suitable for PNG exports)
+- **`plotive-iced`**: Figure widget for iced
+- **`plotive-text`**: Text and font management
+- **`plotive-tests`**: Integration tests
 
 ## Polars Integration
 
-With the `data-polars` feature, you can use Polars DataFrames as `eidoplot::data::Source` directly.
+With the `data-polars` feature, you can use Polars DataFrames as `plotive::data::Source` directly.
 
 
 ## License
@@ -128,4 +128,4 @@ Copyright (c) 2025 Rémi Thebault
 
 ## Contributing
 
-Contributions are welcome! Feel free to open issues or pull requests on the [GitHub repository](https://github.com/rtbo/eidoplot).
+Contributions are welcome! Feel free to open issues or pull requests on the [GitHub repository](https://github.com/rtbo/plotive).

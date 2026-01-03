@@ -1,4 +1,4 @@
-use eidoplot_base::{ColorU8, geom};
+use plotive_base::{ColorU8, geom};
 use ttf_parser as ttf;
 
 use super::RichText;

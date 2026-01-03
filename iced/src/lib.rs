@@ -10,7 +10,7 @@ pub trait ToIced {
     fn to_iced(&self) -> Self::IcedType;
 }
 
-impl ToIced for eidoplot::ColorU8 {
+impl ToIced for plotive::ColorU8 {
     type IcedType = iced::Color;
 
     fn to_iced(&self) -> Self::IcedType {

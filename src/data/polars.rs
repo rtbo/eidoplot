@@ -1,4 +1,4 @@
-//! Polars data source integration in eidoplot.
+//! Polars data source integration in plotive.
 use std::sync::Arc;
 
 use polars::prelude::*;

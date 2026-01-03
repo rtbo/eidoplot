@@ -1,5 +1,5 @@
 [package]
-name = "eidoplot"
+name = "plotive"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -9,19 +9,19 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
-eidoplot-base.workspace = true
-eidoplot-text.workspace = true
+plotive-base.workspace = true
+plotive-text.workspace = true
 rustybuzz.workspace = true
 ttf-parser.workspace = true
 # feature eplt
-eidoplot-dsl = { workspace = true, optional = true }
+plotive-dsl = { workspace = true, optional = true }
 # feature data-polars
 polars = { workspace = true, optional = true }
 
 [dev-dependencies]
-eidoplot-iced = { workspace = true, features = ["clipboard"] }
-eidoplot-svg.workspace = true
-eidoplot-pxl.workspace = true
+plotive-iced = { workspace = true, features = ["clipboard"] }
+plotive-svg.workspace = true
+plotive-pxl.workspace = true
 rand = "0.9.2"
 rand_distr = "0.5.1"
 rand_chacha = "0.9.0"
@@ -32,12 +32,12 @@ default = ["noto-sans"]
 
 data-csv = []
 data-polars = ["dep:polars"]
-eplt = ["eidoplot-dsl/diag"]
-noto-mono = ["eidoplot-text/noto-mono"]
-noto-sans = ["eidoplot-text/noto-sans"]
-noto-sans-italic = ["eidoplot-text/noto-sans-italic"]
-noto-serif = ["eidoplot-text/noto-serif"]
-noto-serif-italic = ["eidoplot-text/noto-serif-italic"]
+eplt = ["plotive-dsl/diag"]
+noto-mono = ["plotive-text/noto-mono"]
+noto-sans = ["plotive-text/noto-sans"]
+noto-sans-italic = ["plotive-text/noto-sans-italic"]
+noto-serif = ["plotive-text/noto-serif"]
+noto-serif-italic = ["plotive-text/noto-serif-italic"]
 time = []
 utils = []
 
@@ -106,19 +106,19 @@ resolver = "3"
 version = "0.1.0-dev"
 authors = ["Rémi THEBAULT"]
 edition = "2024"
-repository = "https://github.com/rtbo/eidoplot"
+repository = "https://github.com/rtbo/plotive"
 license = "MIT"
 categories = ["science", "graphics"]
 keywords = ["data", "visualization", "plotting"]
 
 [workspace.dependencies]
-eidoplot = { version = "0.1.0-dev", path = "." }
-eidoplot-base = { version = "0.1.0-dev", path = "base" }
-eidoplot-dsl = { version = "0.1.0-dev", path = "dsl" }
-eidoplot-iced = { version = "0.1.0-dev", path = "iced" }
-eidoplot-pxl = { version = "0.1.0-dev", path = "pxl" }
-eidoplot-svg = { version = "0.1.0-dev", path = "svg" }
-eidoplot-text = { version = "0.1.0-dev", path = "text" }
+plotive = { version = "0.1.0-dev", path = "." }
+plotive-base = { version = "0.1.0-dev", path = "base" }
+plotive-dsl = { version = "0.1.0-dev", path = "dsl" }
+plotive-iced = { version = "0.1.0-dev", path = "iced" }
+plotive-pxl = { version = "0.1.0-dev", path = "pxl" }
+plotive-svg = { version = "0.1.0-dev", path = "svg" }
+plotive-text = { version = "0.1.0-dev", path = "text" }
 arboard = "3.6.1"
 bytes = "1.6"
 iced = { version = "0.14.0", features = [

@@ -2,9 +2,9 @@ use core::f32;
 use std::f64::consts::PI;
 use std::time::Instant;
 
-use eidoplot::style::theme;
-use eidoplot::{Drawing, data, drawing, ir, style, utils};
-use eidoplot_iced::figure::figure;
+use plotive::style::theme;
+use plotive::{Drawing, data, drawing, ir, style, utils};
+use plotive_iced::figure::figure;
 use iced::widget::{column, text};
 use iced::{Element, Subscription, Task, window};
 
@@ -150,7 +150,7 @@ fn build_figure() -> ir::Figure {
 
 fn main() -> iced::Result {
     iced::application(Scope::default, Scope::update, Scope::view)
-        .title("eidoplot-iced: Real-time")
+        .title("plotive-iced: Real-time")
         .subscription(|_| Subscription::batch([window::frames().map(Message::Frame)]))
         .antialiasing(true)
         .run()

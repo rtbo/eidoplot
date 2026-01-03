@@ -1,9 +1,9 @@
 use std::path::Path;
 use std::{fmt, io};
 
-use eidoplot::geom::{self, Transform};
-use eidoplot::render::{self, Surface};
-use eidoplot::{Style, drawing, style};
+use plotive::geom::{self, Transform};
+use plotive::render::{self, Surface};
+use plotive::{Style, drawing, style};
 use svg::Node;
 use svg::node::element;
 
@@ -196,12 +196,12 @@ impl SvgSurface {
 
     fn bump_clip_id(&mut self) -> String {
         self.clip_num += 1;
-        format!("eidoplot-clip{}", self.clip_num)
+        format!("plotive-clip{}", self.clip_num)
     }
 
     fn _bump_node_id(&mut self) -> String {
         self._node_num += 1;
-        format!("eidoplot-node{}", self._node_num)
+        format!("plotive-node{}", self._node_num)
     }
 
     // fn draw_rich_text_hor(

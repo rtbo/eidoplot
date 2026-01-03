@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use eidoplot::{data, ir, style};
+use plotive::{data, ir, style};
 use rand_distr::{Distribution, Normal};
 
 mod common;

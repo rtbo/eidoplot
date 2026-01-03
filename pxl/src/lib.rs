@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::{fmt, io};
 
-use eidoplot::{ColorU8, Style, drawing, geom, render, style};
+use plotive::{ColorU8, Style, drawing, geom, render, style};
 use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 #[derive(Debug)]

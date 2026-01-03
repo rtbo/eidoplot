@@ -1,5 +1,5 @@
 [package]
-name = "eidoplot-pxl"
+name = "plotive-pxl"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -9,8 +9,8 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
-eidoplot.workspace = true
-eidoplot-text.workspace = true
+plotive.workspace = true
+plotive-text.workspace = true
 rustybuzz.workspace = true
 tiny-skia.workspace = true
 tiny-skia-path.workspace = true

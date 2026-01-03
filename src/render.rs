@@ -1,7 +1,7 @@
 //! Render module: provides abstraction over rendering surfaces, like pixel-based, SVG, or GUI.
 //!
 //! All rendering surfaces must implement the `Surface` trait.
-//! See the `eidoplot-pxl` and `eidoplot-svg` crates for examples.
+//! See the `plotive-pxl` and `plotive-svg` crates for examples.
 
 use crate::{ColorU8, geom};
 

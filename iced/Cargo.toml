@@ -1,5 +1,5 @@
 [package]
-name = "eidoplot-iced"
+name = "plotive-iced"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -9,9 +9,9 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
-eidoplot.workspace = true
-eidoplot-pxl.workspace = true
-eidoplot-svg.workspace = true
+plotive.workspace = true
+plotive-pxl.workspace = true
+plotive-svg.workspace = true
 bytes.workspace = true
 iced.workspace = true
 iced_font_awesome.workspace = true
@@ -26,15 +26,16 @@ name = "scope"
 name = "audio_scope"
 
 [dev-dependencies]
-eidoplot = { workspace = true, features = ["utils"] }
+plotive = { workspace = true, features = ["utils"] }
 cpal = "0.16.0"
 rustfft = "6.4.1"
 
 [features]
 default = ["noto-sans"]
 clipboard = ["dep:arboard", "dep:tokio"]
-noto-sans = ["eidoplot/noto-sans"]
-noto-sans-italic = ["eidoplot/noto-sans-italic"]
-noto-serif = ["eidoplot/noto-serif"]
-noto-serif-italic = ["eidoplot/noto-serif-italic"]
-noto-mono = ["eidoplot/noto-mono"]
+noto-sans = ["plotive/noto-sans"]
+noto-sans-italic = ["plotive/noto-sans-italic"]
+noto-serif = ["plotive/noto-serif"]
+noto-serif-italic = ["plotive/noto-serif-italic"]
+noto-mono = ["plotive/noto-mono"]
+

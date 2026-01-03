@@ -3,9 +3,9 @@
 
 use std::sync::Arc;
 
-use eidoplot::drawing::zoom;
-use eidoplot::style::{BuiltinStyle, CustomStyle};
-use eidoplot::{Drawing, data, drawing, fontdb, geom, ir};
+use plotive::drawing::zoom;
+use plotive::style::{BuiltinStyle, CustomStyle};
+use plotive::{Drawing, data, drawing, fontdb, geom, ir};
 use iced::widget::{button, column, mouse_area, row, space, text};
 use iced::{Alignment, Length, mouse};
 use iced_font_awesome::{fa_icon, fa_icon_solid};
@@ -339,7 +339,7 @@ where
                 self.fig_scale = scale;
             }
             Message::ExportPng => {
-                use eidoplot_pxl::SavePng;
+                use plotive_pxl::SavePng;
                 let filename = rfd::FileDialog::new()
                     .set_title("Save figure as PNG")
                     .add_filter("PNG Image", &["png"])
@@ -353,12 +353,12 @@ where
                     };
                     let scale = self.fig_scale;
                     self.figure
-                        .save_png(path, eidoplot_pxl::DrawingParams { style, scale })
+                        .save_png(path, plotive_pxl::DrawingParams { style, scale })
                         .unwrap();
                 }
             }
             Message::ExportSvg => {
-                use eidoplot_svg::SaveSvg;
+                use plotive_svg::SaveSvg;
                 let filename = rfd::FileDialog::new()
                     .set_title("Save figure as SVG")
                     .add_filter("SVG Image", &["svg"])
@@ -372,7 +372,7 @@ where
                     };
                     let scale = self.fig_scale;
                     self.figure
-                        .save_svg(path, eidoplot_svg::DrawingParams { style, scale })
+                        .save_svg(path, plotive_svg::DrawingParams { style, scale })
                         .unwrap();
                 }
             }
@@ -380,7 +380,7 @@ where
             Message::ExportClipboard => {
                 use std::borrow::Cow;
 
-                use eidoplot_pxl::ToPixmap;
+                use plotive_pxl::ToPixmap;
 
                 let style = if let Some(style) = &self.style {
                     style.clone()
@@ -390,7 +390,7 @@ where
                 let scale = self.fig_scale;
                 let pixmap = self
                     .figure
-                    .to_pixmap(eidoplot_pxl::DrawingParams { style, scale })
+                    .to_pixmap(plotive_pxl::DrawingParams { style, scale })
                     .unwrap();
                 self.clipboard
                     .set_image(arboard::ImageData {

@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use eidoplot::{Style, style};
+use plotive::{Style, style};
 
 mod harness;
 mod pixelmatch;

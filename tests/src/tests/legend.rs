@@ -1,4 +1,4 @@
-use eidoplot::ir;
+use plotive::ir;
 
 use super::{fig_small, line};
 use crate::{TestHarness, assert_fig_eq_ref};

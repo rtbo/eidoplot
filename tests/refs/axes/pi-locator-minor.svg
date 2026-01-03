@@ -1,9 +1,9 @@
 <svg height="300" viewBox="0 0 400 300" width="400" xmlns="http://www.w3.org/2000/svg">
 <rect fill="#ffffff" height="100%" width="100%"/>
-<clipPath id="eidoplot-clip1">
+<clipPath id="plotive-clip1">
 <rect height="235.656" width="360" x="20" y="20"/>
 </clipPath>
-<g clip-path="url(#eidoplot-clip1)">
+<g clip-path="url(#plotive-clip1)">
 <path d="M40,235.656 L200,196.52481 L360,40" fill="none" stroke="#000000" stroke-width="1.5"/>
 </g>
 <path d="M4,-2 L4,2 M36,-2 L36,2 M52.000004,-2 L52.000004,2 M68,-2 L68,2 M84,-2 L84,2 M116,-2 L116,2 M132,-2 L132,2 M148,-2 L148,2 M164,-2 L164,2 M196,-2 L196,2 M212,-2 L212,2 M228,-2 L228,2 M244,-2 L244,2 M276,-2 L276,2 M292,-2 L292,2 M308,-2 L308,2 M324,-2 L324,2 M356,-2 L356,2" fill="none" stroke="#000000" stroke-width="0.5" transform="matrix(1 0 0 1 20 255.656)"/>

@@ -1,4 +1,4 @@
-use eidoplot_base::geom;
+use plotive_base::geom;
 use ttf_parser as ttf;
 
 use super::{
@@ -694,7 +694,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use eidoplot_base::ColorU8;
+    use plotive_base::ColorU8;
 
     use super::*;
     use crate::bundled_font_db;

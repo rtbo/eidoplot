@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use eidoplot::data::Column;
-use eidoplot::{Drawing, data, drawing, geom, ir};
+use plotive::data::Column;
+use plotive::{Drawing, data, drawing, geom, ir};
 use iced::futures::channel::mpsc;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{button, column, container, pick_list, row, space, text};
@@ -645,7 +645,7 @@ impl AudioScope {
             column![host_row, device_row, bs_row, sr_row,],
         ];
         let plot: Element<'_, Message> = if let Some(fig) = &self.fig {
-            eidoplot_iced::Figure::new(&fig).scale(2.0).into()
+            plotive_iced::Figure::new(&fig).scale(2.0).into()
         } else {
             text("No data")
                 .width(Length::Fill)

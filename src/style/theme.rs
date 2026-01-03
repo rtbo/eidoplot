@@ -43,7 +43,7 @@ pub trait Theme {
     }
 }
 
-/// Eidoplot built-in themes
+/// Plotive built-in themes
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Builtin {
     #[default]

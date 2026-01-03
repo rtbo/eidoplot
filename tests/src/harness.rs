@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use eidoplot::style::series;
-use eidoplot::style::theme::Theme;
-use eidoplot::{Drawing, Style, ir};
-use eidoplot_pxl::PxlSurface;
-use eidoplot_svg::SvgSurface;
+use plotive::style::series;
+use plotive::style::theme::Theme;
+use plotive::{Drawing, Style, ir};
+use plotive_pxl::PxlSurface;
+use plotive_svg::SvgSurface;
 
 use crate::pixelmatch;
 

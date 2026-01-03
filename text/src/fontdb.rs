@@ -56,7 +56,7 @@ then you can use the unsafe [`Database::make_shared_face_data`] function.
 [ttf-parser]: https://github.com/RazrFalcon/ttf-parser
 */
 /*
-This file is copied from the fontdb crate into eidoplot-text because
+This file is copied from the fontdb crate into plotive-text because
 fontdb is not maintained anymore.
 fontdb has the following license terms:
 */

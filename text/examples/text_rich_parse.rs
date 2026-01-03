@@ -1,5 +1,5 @@
-use eidoplot_base::color;
-use eidoplot_text::{self as text, Font, bundled_font_db, font, rich};
+use plotive_base::color;
+use plotive_text::{self as text, Font, bundled_font_db, font, rich};
 use tiny_skia::Transform;
 fn main() {
     let db = bundled_font_db();

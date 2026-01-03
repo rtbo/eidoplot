@@ -18,10 +18,10 @@
 <path d="M51.808,88.914 L380,88.914" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
 <path d="M51.808,64.457 L380,64.457" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
 <path d="M51.808,40 L380,40" fill="none" stroke="#808080" stroke-opacity="0.6" stroke-width="1"/>
-<clipPath id="eidoplot-clip1">
+<clipPath id="plotive-clip1">
 <rect height="235.656" width="328.19202" x="51.808" y="20"/>
 </clipPath>
-<g clip-path="url(#eidoplot-clip1)">
+<g clip-path="url(#plotive-clip1)">
 <path d="M71.808,235.656 L215.904,137.828 L360,40" fill="none" stroke="#000000" stroke-width="1.5"/>
 </g>
 <path d="M20,-4 L20,4 M56.024002,-4 L56.024002,4 M92.048,-4 L92.048,4 M128.072,-4 L128.072,4 M164.09601,-4 L164.09601,4 M200.12001,-4 L200.12001,4 M236.14401,-4 L236.14401,4 M272.168,-4 L272.168,4 M308.19202,-4 L308.19202,4" fill="none" stroke="#000000" stroke-width="1" transform="matrix(1 0 0 1 51.808 255.656)"/>

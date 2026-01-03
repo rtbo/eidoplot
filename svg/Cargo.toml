@@ -1,5 +1,5 @@
 [package]
-name = "eidoplot-svg"
+name = "plotive-svg"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -9,7 +9,7 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
-eidoplot.workspace = true
-eidoplot-text.workspace = true
+plotive.workspace = true
+plotive-text.workspace = true
 rustybuzz.workspace = true
 svg = "0.18.0"

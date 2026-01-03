@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use eidoplot::{data, eplt, utils};
+use plotive::{data, eplt, utils};
 
 mod common;
 

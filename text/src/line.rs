@@ -1,6 +1,6 @@
 //! Module that contains a simple single line text layout and rendering engine
 
-use eidoplot_base::geom;
+use plotive_base::geom;
 use ttf_parser as ttf;
 
 use crate::bidi::{self, BidiAlgo};

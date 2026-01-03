@@ -1,5 +1,5 @@
 [package]
-name = "eidoplot-tests"
+name = "plotive-tests"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -10,8 +10,8 @@ keywords.workspace = true
 publish = false
 
 [dependencies]
-eidoplot.workspace = true
-eidoplot-pxl.workspace = true
-eidoplot-svg.workspace = true
+plotive.workspace = true
+plotive-pxl.workspace = true
+plotive-svg.workspace = true
 tiny-skia.workspace = true
 similar = "2.7.0"

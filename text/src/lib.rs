@@ -1,6 +1,6 @@
 use std::fmt;
 
-use eidoplot_base::geom;
+use plotive_base::geom;
 use ttf_parser as ttf;
 
 mod bidi;
@@ -23,7 +23,7 @@ pub use rich::{
     feature = "noto-serif-italic",
     feature = "noto-mono"
 ))]
-/// Loads fonts that are bundled with eidoplot
+/// Loads fonts that are bundled with plotive
 /// and returns the database.
 pub fn bundled_font_db() -> fontdb::Database {
     let mut db = fontdb::Database::new();

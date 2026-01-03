@@ -20,8 +20,8 @@ while [[ $# -gt 0 ]]; do
         esac
 done
 
-cargo run --example text_line --package eidoplot-text --features noto-sans
-cargo run --example text_rich --package eidoplot-text --features noto-sans,noto-serif
+cargo run --example text_line --package plotive-text --features noto-sans
+cargo run --example text_rich --package plotive-text --features noto-sans,noto-serif
 
 cargo run --example bars -- ${POS_ARGS[@]}
 cargo run --example gauss -- ${POS_ARGS[@]}

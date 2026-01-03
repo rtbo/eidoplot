@@ -127,15 +127,15 @@ pub mod palette {
     use crate::style::catppuccin;
     use crate::style::series::Palette;
 
-    /// Eidoplot built-in palettes
+    /// Plotive built-in palettes
     #[derive(Debug, Clone, Copy, Default)]
     pub enum Builtin {
         /// Black monochrome palette
         Black,
         #[default]
-        /// Standard eidoplot palette
+        /// Standard plotive palette
         Standard,
-        /// Pastel eidoplot palette
+        /// Pastel plotive palette
         Pastel,
         /// Paul Tol's bright colorblind-safe palette
         TolBright,

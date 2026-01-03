@@ -1,4 +1,4 @@
-use eidoplot::{data, ir};
+use plotive::{data, ir};
 
 mod common;
 

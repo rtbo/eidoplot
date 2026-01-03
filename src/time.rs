@@ -3,7 +3,7 @@
 //! for use in time series plots.
 //!
 //! The [`DateTime`] type represents a date and time as a floating-point.
-//! The value is the number of seconds elapsed since Jan 1, 2030 (Eidoplot Epoch).
+//! The value is the number of seconds elapsed since Jan 1, 2030 (Plotive Epoch).
 use core::{cmp, fmt, ops};
 use std::iter::Peekable;
 use std::str::{Chars, FromStr};
@@ -79,7 +79,7 @@ const fn days_in_year(year: i32) -> i32 {
 }
 
 /// A type representing a date and time.
-/// It is represented by a `f64`, that is the seconds elapsed since Jan. 1, 2030, which is Eidoplot Epoch.
+/// It is represented by a `f64`, that is the seconds elapsed since Jan. 1, 2030, which is Plotive Epoch.
 /// Timezone is not supported.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct DateTime(f64);
@@ -91,7 +91,7 @@ impl DateTime {
         date.try_into()
     }
 
-    /// The date time of the Eidoplot Epoch, 2030-01-01 00:00:00.
+    /// The date time of the Plotive Epoch, 2030-01-01 00:00:00.
     pub const fn epoch() -> Self {
         DateTime(0.0)
     }
@@ -299,7 +299,7 @@ pub struct DateTimeComps {
 }
 
 impl DateTimeComps {
-    /// The date time of the Eidoplot Epoch, 2030-01-01 00:00:00.
+    /// The date time of the Plotive Epoch, 2030-01-01 00:00:00.
     pub const fn epoch() -> Self {
         DateTimeComps {
             year: EPOCH_YEAR,

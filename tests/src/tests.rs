@@ -1,4 +1,4 @@
-use eidoplot::{geom, ir};
+use plotive::{geom, ir};
 
 use crate::*;
 

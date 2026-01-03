@@ -1,7 +1,7 @@
 use std::path;
 
-use eidoplot::data::Source;
-use eidoplot::{data, ir};
+use plotive::data::Source;
+use plotive::{data, ir};
 
 mod common;
 

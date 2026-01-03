@@ -2,30 +2,30 @@
 #![warn(missing_debug_implementations)]
 #![warn(missing_copy_implementations)]
 /*!
- * # eidoplot
+ * # plotive
  * A simple and minimal data plotting library for Rust
  *
- * Eidoplot separates figure design from data representation and from rendering surfaces.
+ * Plotive separates figure design from data representation and from rendering surfaces.
  *
  * ## Supported figure types
  *  - XY line plots
  *  - Scatter plots
  *  - Histograms
  *
- * ## Notes about eidoplot's design
+ * ## Notes about plotive's design
  *
  * The figure design lies in the `ir` module (IR = Intermediate Representation).
  * The IR describes the figure design in a declarative way. It ignores everything about the rendering surfaces.
- * This will allow to bridge easily eidoplot to other programming languages and to write a compiler for eidoplot figures.
+ * This will allow to bridge easily plotive to other programming languages and to write a compiler for plotive figures.
  *
  * The rendering surfaces implements the `render::Surface` trait and are in separate crates.
- * (see `eidoplot-pxl` and `eidoplot-svg`)
+ * (see `plotive-pxl` and `plotive-svg`)
  * The rendering surfaces themselves ignore everything about figure design and the `ir` module.
  * They focus on rendering primitives, like lines and text.
  *
  * IR and rendering are bridged together by the `drawing` module, which exposes very little public API.
  */
-// Eidoplot is released under the MIT License with the following copyright:
+// Plotive is released under the MIT License with the following copyright:
 // Copyright (c) 2025 Rémi Thebault
 
 pub mod data;
@@ -43,26 +43,26 @@ pub mod time;
 pub use drawing::Drawing;
 pub use style::Style;
 
-/// Rexports of [`eidoplot_base::color`]` items
+/// Rexports of [`plotive_base::color`]` items
 pub mod color {
-    pub use eidoplot_base::color::*;
+    pub use plotive_base::color::*;
 }
 pub use color::{Color, ColorU8, ResolveColor};
 
 #[cfg(feature = "eplt")]
-/// Rexports of [`eidoplot_dsl`]` items
+/// Rexports of [`plotive_dsl`]` items
 pub mod dsl {
-    pub use eidoplot_dsl::*;
+    pub use plotive_dsl::*;
 }
 
-/// Rexports of [`eidoplot_base::geom`]` items
+/// Rexports of [`plotive_base::geom`]` items
 pub mod geom {
-    pub use eidoplot_base::geom::*;
+    pub use plotive_base::geom::*;
 }
 
-/// Rexports of [`eidoplot_text`]` items
+/// Rexports of [`plotive_text`]` items
 pub mod text {
-    pub use eidoplot_text::*;
+    pub use plotive_text::*;
 }
 #[cfg(any(
     feature = "noto-sans",
@@ -71,7 +71,7 @@ pub mod text {
     feature = "noto-serif-italic",
     feature = "noto-mono"
 ))]
-/// Loads fonts that are bundled with eidoplot
+/// Loads fonts that are bundled with plotive
 /// and returns the database.
 pub use text::bundled_font_db;
 pub use text::fontdb;
