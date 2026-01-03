@@ -3835,7 +3835,6 @@ name = "plotive-pxl"
 version = "0.1.0-dev"
 dependencies = [
  "plotive",
- "plotive-text",
  "rustybuzz",
  "tiny-skia",
  "tiny-skia-path",
@@ -3847,7 +3846,6 @@ name = "plotive-svg"
 version = "0.1.0-dev"
 dependencies = [
  "plotive",
- "plotive-text",
  "rustybuzz",
  "svg",
 ]

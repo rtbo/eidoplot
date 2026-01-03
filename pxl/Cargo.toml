@@ -10,7 +10,6 @@ keywords.workspace = true
 
 [dependencies]
 plotive.workspace = true
-plotive-text.workspace = true
 rustybuzz.workspace = true
 tiny-skia.workspace = true
 tiny-skia-path.workspace = true
