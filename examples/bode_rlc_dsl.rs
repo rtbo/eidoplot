@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use plotive::{data, eplt, des, utils};
+use plotive::{data, dsl, des, utils};
 
 mod common;
 
@@ -40,10 +40,10 @@ fn main() {
 
     let mut source = data::NamedOwnedColumns::new();
 
-    let filename = common::example_res("bode-rlc.eplt");
+    let filename = common::example_res("bode-rlc.plotive");
     let content = std::fs::read_to_string(&filename).unwrap();
 
-    let figs = eplt::parse_diag(&content, Some(&filename)).unwrap();
+    let figs = dsl::parse_diag(&content, Some(&filename)).unwrap();
     let mut fig = figs.into_iter().next().unwrap();
 
     let freq = utils::logspace(100.0, 1000000.0, 500);
@@ -64,5 +64,5 @@ fn main() {
         );
     }
     source.add_column("freq", Box::new(freq));
-    common::save_figure(&fig, &source, None, "bode_rlc_eplt");
+    common::save_figure(&fig, &source, None, "bode_rlc_dsl");
 }

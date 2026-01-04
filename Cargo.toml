@@ -8,6 +8,9 @@ license.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 plotive-base.workspace = true
 plotive-text.workspace = true
@@ -132,7 +135,7 @@ iced = { version = "0.14.0", features = [
 ] }
 iced_font_awesome = "0.4.0"
 log = "0.4"
-miette = "7.6.0"
+miette = { version = "7.6.0", features = ["fancy"] }
 polars = { version = "0.50.0", features = ["lazy"] }
 rfd = "0.16.0"
 rustybuzz = "0.20.1"

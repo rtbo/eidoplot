@@ -1,7 +1,7 @@
 use std::path;
 
 use plotive::data::Source;
-use plotive::{data, eplt};
+use plotive::{data, dsl};
 
 mod common;
 
@@ -96,12 +96,12 @@ fn main() {
     );
 
     let file_name = file!();
-    let eplt_file = path::Path::new(file_name)
+    let dsl_file = path::Path::new(file_name)
         .parent()
         .unwrap()
         .join("iris.plotive");
-    let eplt = std::fs::read_to_string(&eplt_file).unwrap();
+    let dsl = std::fs::read_to_string(&dsl_file).unwrap();
 
-    let figs = eplt::parse_diag(&eplt, Some(&eplt_file)).unwrap();
-    common::save_figure(&figs[0], &source, None, "iris_eplt");
+    let figs = dsl::parse_diag(&dsl, Some(&dsl_file)).unwrap();
+    common::save_figure(&figs[0], &source, None, "iris_dsl");
 }

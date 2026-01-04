@@ -349,7 +349,7 @@ pub trait Catalog: Sized {
     /// The default class produced by this [`Catalog`].
     fn default<'a>() -> Self::Class<'a>;
 
-    /// The [`Style`] of a class with the given status.
+    /// The [`Style`](plotive::Style) of a class with the given status.
     fn style(&self, item: &Self::Class<'_>) -> CustomStyle;
 }
 

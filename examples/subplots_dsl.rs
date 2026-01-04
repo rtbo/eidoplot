@@ -1,4 +1,4 @@
-use plotive::{data, eplt, utils};
+use plotive::{data, dsl, utils};
 
 mod common;
 
@@ -16,9 +16,9 @@ fn main() {
     data_source.add_column("x2", &x2 as &dyn data::Column);
     data_source.add_column("y2", &y2 as &dyn data::Column);
 
-    let filename = common::example_res("subplots.eplt");
+    let filename = common::example_res("subplots.plotive");
     let content = std::fs::read_to_string(&filename).unwrap();
-    let figs = eplt::parse_diag(&content, Some(&filename)).unwrap();
+    let figs = dsl::parse_diag(&content, Some(&filename)).unwrap();
 
-    common::save_figure(&figs[0], &data_source, None, "subplots_eplt");
+    common::save_figure(&figs[0], &data_source, None, "subplots_dsl");
 }

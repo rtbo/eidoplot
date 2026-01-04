@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use plotive::{data, eplt, utils};
+use plotive::{data, dsl, utils};
 
 mod common;
 
@@ -14,9 +14,9 @@ fn main() {
     data_src.add_column("sin(x)", &sin_x as &dyn data::Column);
     data_src.add_column("exp(x)", &exp_x as &dyn data::Column);
 
-    let filename = common::example_res("multiple_axes.eplt");
+    let filename = common::example_res("multiple_axes.plotive");
     let content = std::fs::read_to_string(&filename).unwrap();
-    let figs = eplt::parse_diag(&content, Some(&filename)).unwrap();
+    let figs = dsl::parse_diag(&content, Some(&filename)).unwrap();
 
-    common::save_figure(&figs[0], &data_src, None, "multiple_axes_eplt");
+    common::save_figure(&figs[0], &data_src, None, "multiple_axes_dsl");
 }

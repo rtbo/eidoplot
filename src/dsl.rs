@@ -1,12 +1,57 @@
-//! EPLT DSL parser
+//! Plotive DSL parser
 //!
-//! EPLT is a domain-specific language for defining plots and figures.
-//! An `*.plotive*` file contains one or more [`des::Figure`] definitions.
+//! Plotive-DSL is a domain-specific language for defining plots and figures.
+//! The DSL is based on the [plotive-dsl](https://crates.io/crates/plotive-dsl) crate.
+//! A `*.plotive*` file contains one or more [`des::Figure`] definitions.
+//!
+//! Here is a simple example that defines a figure with two subplots, sharing the x-axis:
+//! ```dsl
+//! figure: {
+//!     title: "Subplots"
+//!     space: 10
+//!     subplots: 2, 1
+//!     plot: {
+//!         subplot: 1, 1
+//!         x-axis: shared("x"), Grid
+//!         y-axis: "y1", Ticks
+//!         series: Line {
+//!             x-data: "x1"
+//!             y-data: "y1"
+//!         }
+//!     }
+//!     plot: {
+//!         subplot: 2, 1
+//!         x-axis: "x", PiMultipleTicks, Grid, id("x-axis")
+//!         y-axis: "y2", Ticks
+//!         series: Line {
+//!             x-data: "x2"
+//!             y-data: "y2"
+//!         }
+//!     }
+//! }
+//! ```
+//!
+//! The main entry points are the [`parse`] and [`parse_diag`] functions.
+//! The former returns a simple `Result`, while the latter returns
+//! rich diagnostics powered by [`miette`](https://crates.io/crates/miette),
+//! printable to console in case of errors.
+//!
+//! Here is an example of what can be printed in case of errors:
+//! ```text
+//!  × unknown axis property enum: PiMultipleTcks
+//!    ╭─[/home/remi/dev/plotive/examples/subplots.plotive:16:22]
+//! 15 │         subplot: 2, 1
+//! 16 │         x-axis: "x", PiMultipleTcks, Grid, id("x-axis")
+//!    ·                      ───────┬──────
+//!    ·                             ╰── unknown axis property enum: PiMultipleTcks
+//! 17 │         y-axis: "y2", Ticks
+//!    ╰────
+//! ```
 use std::{fmt, path};
 
-pub use dsl::{Diagnostic, Source};
+pub use plotive_dsl::{Diagnostic, Source};
 
-use crate::dsl::{self, ast};
+use plotive_dsl::{self, ast, Span};
 use crate::text::{self, ParseRichTextError, ParsedRichText};
 use crate::{des, style};
 
@@ -14,13 +59,13 @@ use crate::{des, style};
 #[derive(Debug, Clone)]
 pub enum Error {
     /// DSL parsing error
-    Dsl(dsl::Error),
+    Dsl(plotive_dsl::Error),
     /// Rich text parsing error with offset
     ParseRichText(usize, ParseRichTextError),
     /// General parse error
     Parse {
         /// Span of the error
-        span: dsl::Span,
+        span: Span,
         /// Reason for the error
         reason: String,
         /// Optional help message
@@ -44,14 +89,14 @@ impl fmt::Display for Error {
     }
 }
 
-impl From<dsl::Error> for Error {
-    fn from(err: dsl::Error) -> Self {
+impl From<plotive_dsl::Error> for Error {
+    fn from(err: plotive_dsl::Error) -> Self {
         Error::Dsl(err)
     }
 }
 
-impl dsl::DiagTrait for Error {
-    fn span(&self) -> dsl::Span {
+impl plotive_dsl::DiagTrait for Error {
+    fn span(&self) -> Span {
         match self {
             Error::Dsl(err) => err.span(),
             Error::ParseRichText(offset, err) => {
@@ -81,7 +126,7 @@ impl dsl::DiagTrait for Error {
 
 /// Parse EPLT DSL input into a list of design figures
 pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<des::Figure>, Error> {
-    let props = dsl::parse(input.as_ref().chars())?;
+    let props = plotive_dsl::parse(input.as_ref().chars())?;
 
     let mut figs = vec![];
     for prop in props {
@@ -103,7 +148,7 @@ pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<des::Figure>, Error> {
 pub fn parse_diag<'a>(
     input: &'a str,
     file_name: Option<&'a path::Path>,
-) -> dsl::DiagResult<Vec<des::Figure>> {
+) -> plotive_dsl::DiagResult<Vec<des::Figure>> {
     match parse(input) {
         Ok(figs) => Ok(figs),
         Err(err) => {
@@ -112,7 +157,7 @@ pub fn parse_diag<'a>(
                 src: input.to_string(),
             };
             let diag = Diagnostic::new(Box::new(err), src);
-            let report = dsl::DiagReport::new(diag);
+            let report = plotive_dsl::DiagReport::new(diag);
             Err(report)
         }
     }
@@ -151,7 +196,7 @@ fn expect_float_val(prop: ast::Prop) -> Result<f64, Error> {
     }
 }
 
-fn expect_string_val(prop: ast::Prop) -> Result<(dsl::Span, String), Error> {
+fn expect_string_val(prop: ast::Prop) -> Result<(Span, String), Error> {
     let Some(ast::Value::Scalar(ast::Scalar {
         span,
         kind: ast::ScalarKind::Str(val),
@@ -216,7 +261,7 @@ fn check_opt_type(val: &ast::Struct, type_name: &str) -> Result<(), Error> {
 }
 
 fn parse_rich_text(
-    span: dsl::Span,
+    span: Span,
     fmt: String,
 ) -> Result<ParsedRichText<style::theme::Color>, Error> {
     let text = text::parse_rich_text::<style::theme::Color>(&fmt)
@@ -273,8 +318,8 @@ fn parse_fig(mut val: ast::Struct) -> Result<des::Figure, Error> {
     } else {
         let (rows, cols) = row_cols;
         let mut subplots = des::Subplots::new(rows, cols);
-        // eplt has rows and cols starting at 1,
-        // but ir has rows and cols starting at 0
+        // dsl has rows and cols starting at 1,
+        // but des has rows and cols starting at 0
         let mut row = 0;
         let mut col = 0;
         for (rc, plot) in plots {
@@ -618,7 +663,7 @@ fn parse_axis(prop: ast::Prop, is_y: bool) -> Result<des::Axis, Error> {
 fn axis_set_enum_field(
     axis: des::Axis,
     is_y: bool,
-    span: dsl::Span,
+    span: Span,
     ident: &str,
 ) -> Result<des::Axis, Error> {
     match ident {
@@ -645,7 +690,7 @@ fn axis_set_enum_field(
 fn axis_set_side_enum(
     axis: des::Axis,
     is_y: bool,
-    span: dsl::Span,
+    span: Span,
     ident: &str,
 ) -> Result<des::Axis, Error> {
     match ident {
@@ -672,7 +717,7 @@ fn axis_set_side_enum(
 fn axis_set_side_prop(
     axis: des::Axis,
     is_y: bool,
-    span: dsl::Span,
+    span: Span,
     ident: &str,
 ) -> Result<des::Axis, Error> {
     match ident {
@@ -859,7 +904,7 @@ fn parse_ticks_seq(val: ast::Seq) -> Result<des::axis::Ticks, Error> {
 
 fn ticks_set_enum_field(
     ticks: des::axis::Ticks,
-    span: dsl::Span,
+    span: Span,
     ident: &str,
 ) -> Result<des::axis::Ticks, Error> {
     match ident {
