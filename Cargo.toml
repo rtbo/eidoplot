@@ -13,7 +13,7 @@ plotive-base.workspace = true
 plotive-text.workspace = true
 rustybuzz.workspace = true
 ttf-parser.workspace = true
-# feature eplt
+# feature dsl
 plotive-dsl = { workspace = true, optional = true }
 # feature data-polars
 polars = { workspace = true, optional = true }
@@ -32,7 +32,7 @@ default = ["noto-sans"]
 
 data-csv = []
 data-polars = ["dep:polars"]
-eplt = ["plotive-dsl/diag"]
+dsl = ["plotive-dsl/diag"]
 noto-mono = ["plotive-text/noto-mono"]
 noto-sans = ["plotive-text/noto-sans"]
 noto-sans-italic = ["plotive-text/noto-sans-italic"]
@@ -53,8 +53,8 @@ name = "bode_rlc"
 required-features = ["noto-serif-italic", "utils"]
 
 [[example]]
-name = "bode_rlc_eplt"
-required-features = ["eplt", "noto-serif-italic", "utils"]
+name = "bode_rlc_dsl"
+required-features = ["dsl", "noto-serif-italic", "utils"]
 
 [[example]]
 name = "bouncing_ball"
@@ -68,16 +68,16 @@ name = "iris"
 required-features = ["data-csv"]
 
 [[example]]
-name = "iris_eplt"
-required-features = ["data-csv", "eplt"]
+name = "iris_dsl"
+required-features = ["data-csv", "dsl"]
 
 [[example]]
 name = "multiple_axes"
 required-features = ["utils"]
 
 [[example]]
-name = "multiple_axes_eplt"
-required-features = ["eplt", "utils"]
+name = "multiple_axes_dsl"
+required-features = ["dsl", "utils"]
 
 [[example]]
 name = "polars_iris"
@@ -98,8 +98,8 @@ name = "subplots"
 required-features = ["utils"]
 
 [[example]]
-name = "subplots_eplt"
-required-features = ["eplt", "utils"]
+name = "subplots_dsl"
+required-features = ["dsl", "utils"]
 
 [workspace]
 members = ["base", "dsl", "iced", "pxl", "svg", "text", "tests"]

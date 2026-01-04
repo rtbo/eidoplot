@@ -37,12 +37,12 @@ cargo run --example subplots --features utils -- ${POS_ARGS[@]}
 cargo run --example bitcoin --features data-csv,time -- ${POS_ARGS[@]}
 cargo run --example iris --features data-csv -- ${POS_ARGS[@]}
 
-cargo run --example bode_rlc_eplt --features eplt,noto-serif-italic,utils -- ${POS_ARGS[@]}
+cargo run --example bode_rlc_dsl --features dsl,noto-serif-italic,utils -- ${POS_ARGS[@]}
 
-cargo run --example iris_eplt --features data-csv,eplt -- ${POS_ARGS[@]}
+cargo run --example iris_dsl --features data-csv,dsl -- ${POS_ARGS[@]}
 
-cargo run --example multiple_axes_eplt --features eplt,utils -- ${POS_ARGS[@]}
-cargo run --example subplots_eplt --features eplt,utils -- ${POS_ARGS[@]}
+cargo run --example multiple_axes_dsl --features dsl,utils -- ${POS_ARGS[@]}
+cargo run --example subplots_dsl --features dsl,utils -- ${POS_ARGS[@]}
 
 if [ "$RUN_POLARS" = "y" ]; then
         cargo run --example polars_iris --features data-polars -- ${POS_ARGS[@]}

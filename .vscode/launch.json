@@ -29,7 +29,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "bode_rlc_eplt example",
+            "name": "bode_rlc_dsl example",
             "cargo": {
                 "args": [
                     "build", "--example", "bode_rlc",
@@ -63,10 +63,10 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "iris_eplt example",
+            "name": "iris_dsl example",
             "cargo": {
                 "args": [
-                    "build", "--example", "iris_eplt",
+                    "build", "--example", "iris_dsl",
                     "--features", "dsl-diag"
                 ]
             },
@@ -97,10 +97,10 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "multiple_axes_eplt example",
+            "name": "multiple_axes_dsl example",
             "cargo": {
                 "args": [
-                    "build", "--example", "multiple_axes_eplt",
+                    "build", "--example", "multiple_axes_dsl",
                     "--features", "dsl-diag"
                 ]
             },
@@ -131,10 +131,10 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "subplots_eplt example",
+            "name": "subplots_dsl example",
             "cargo": {
                 "args": [
-                    "build", "--example", "subplots_eplt",
+                    "build", "--example", "subplots_dsl",
                     "--features", "dsl-diag"
                 ]
             },

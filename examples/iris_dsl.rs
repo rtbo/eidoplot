@@ -99,7 +99,7 @@ fn main() {
     let eplt_file = path::Path::new(file_name)
         .parent()
         .unwrap()
-        .join("iris.eplt");
+        .join("iris.plotive");
     let eplt = std::fs::read_to_string(&eplt_file).unwrap();
 
     let figs = eplt::parse_diag(&eplt, Some(&eplt_file)).unwrap();

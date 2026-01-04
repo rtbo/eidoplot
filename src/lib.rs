@@ -34,7 +34,7 @@ pub mod drawing;
 pub mod render;
 pub mod style;
 
-#[cfg(feature = "eplt")]
+#[cfg(feature = "dsl")]
 pub mod eplt;
 
 #[cfg(feature = "time")]
@@ -49,7 +49,7 @@ pub mod color {
 }
 pub use color::{Color, ColorU8, ResolveColor};
 
-#[cfg(feature = "eplt")]
+#[cfg(feature = "dsl")]
 /// Rexports of [`plotive_dsl`]` items
 pub mod dsl {
     pub use plotive_dsl::*;
