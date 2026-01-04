@@ -17,8 +17,8 @@ enum Direction {
 }
 
 impl Side {
-    pub fn from_or_ir_side(or: Orientation, ir_side: des::axis::Side) -> Self {
-        match (or, ir_side) {
+    pub fn from_or_des_side(or: Orientation, des_side: des::axis::Side) -> Self {
+        match (or, des_side) {
             (Orientation::X, des::axis::Side::Main) => Side::Bottom,
             (Orientation::X, des::axis::Side::Opposite) => Side::Top,
             (Orientation::Y, des::axis::Side::Main) => Side::Left,
@@ -26,7 +26,7 @@ impl Side {
         }
     }
 
-    pub fn to_ir_side(&self) -> des::axis::Side {
+    pub fn to_des_side(&self) -> des::axis::Side {
         match self {
             Side::Bottom => des::axis::Side::Main,
             Side::Top => des::axis::Side::Opposite,

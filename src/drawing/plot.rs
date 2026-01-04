@@ -258,7 +258,7 @@ impl PlotAxes {
         let mut cnt = 0;
         for a in &self.0 {
             if let Some(a) = a {
-                if a.side().to_ir_side() != side {
+                if a.side().to_des_side() != side {
                     continue;
                 }
                 sz += a.size_across();
@@ -277,11 +277,11 @@ impl<D> Ctx<'_, D>
 where
     D: data::Source + ?Sized,
 {
-    /// Setup a collection of plots, given an IR representation of the plots
+    /// Setup a collection of plots, given an design representation of the plots
     /// and a bounding rectangle.
     pub fn setup_plots(
         &self,
-        ir_plots: &des::figure::Plots,
+        des_plots: &des::figure::Plots,
         rect: &geom::Rect,
     ) -> Result<Plots, Error> {
         // We build all needed characteristics by the plots one after another.
@@ -289,62 +289,62 @@ where
         // same order than the plots
 
         // PlotData contains all data that is not impacted by the size of axes
-        let plot_data = self.setup_plot_data(ir_plots, rect)?;
+        let plot_data = self.setup_plot_data(des_plots, rect)?;
 
         // Estimate the space taken by all horizontal axes
         // Can be slightly wrong if font metrics height isn't exactly font size.
         // This will be fixed at end of the setup phase.
         let bottom_heights =
-            self.calc_estimated_x_heights(ir_plots, &plot_data, des::axis::Side::Main);
+            self.calc_estimated_x_heights(des_plots, &plot_data, des::axis::Side::Main);
         let top_heights =
-            self.calc_estimated_x_heights(ir_plots, &plot_data, des::axis::Side::Opposite);
+            self.calc_estimated_x_heights(des_plots, &plot_data, des::axis::Side::Opposite);
         let hor_space_height = bottom_heights.iter().sum::<f32>()
             + top_heights.iter().sum::<f32>()
-            + ir_plots.space() * (ir_plots.rows() - 1) as f32;
+            + des_plots.space() * (des_plots.rows() - 1) as f32;
 
         // Now we can determine length of vertical axes and set them all up
-        let subplot_rect_height = (rect.height() - hor_space_height) / ir_plots.rows() as f32;
+        let subplot_rect_height = (rect.height() - hor_space_height) / des_plots.rows() as f32;
         let y_axes =
-            self.setup_orientation_axes(Orientation::Y, ir_plots, &plot_data, subplot_rect_height)?;
+            self.setup_orientation_axes(Orientation::Y, des_plots, &plot_data, subplot_rect_height)?;
 
         // Now we calculate the interspace between vertical axes
-        let left_widths = self.calc_y_widths(ir_plots, &plot_data, &y_axes, des::axis::Side::Main);
+        let left_widths = self.calc_y_widths(des_plots, &plot_data, &y_axes, des::axis::Side::Main);
         let right_widths =
-            self.calc_y_widths(ir_plots, &plot_data, &y_axes, des::axis::Side::Opposite);
+            self.calc_y_widths(des_plots, &plot_data, &y_axes, des::axis::Side::Opposite);
         let vert_space_width = left_widths.iter().sum::<f32>()
             + right_widths.iter().sum::<f32>()
-            + ir_plots.space() * (ir_plots.cols() - 1) as f32;
+            + des_plots.space() * (des_plots.cols() - 1) as f32;
 
         // Now we can determine width of horizontal axes and set them all up
-        let subplot_rect_width = (rect.width() - vert_space_width) / ir_plots.cols() as f32;
+        let subplot_rect_width = (rect.width() - vert_space_width) / des_plots.cols() as f32;
         let x_axes =
-            self.setup_orientation_axes(Orientation::X, ir_plots, &plot_data, subplot_rect_width)?;
+            self.setup_orientation_axes(Orientation::X, des_plots, &plot_data, subplot_rect_width)?;
 
         // bottom heights were estimated, we can now calculate them accurately and rebuild the y-axes
         let bottom_heights =
-            self.calc_x_heights(ir_plots, &plot_data, &x_axes, des::axis::Side::Main);
+            self.calc_x_heights(des_plots, &plot_data, &x_axes, des::axis::Side::Main);
         let top_heights =
-            self.calc_x_heights(ir_plots, &plot_data, &x_axes, des::axis::Side::Opposite);
+            self.calc_x_heights(des_plots, &plot_data, &x_axes, des::axis::Side::Opposite);
         let hor_space_height = bottom_heights.iter().sum::<f32>()
             + top_heights.iter().sum::<f32>()
-            + ir_plots.space() * (ir_plots.rows() - 1) as f32;
-        let subplot_rect_height = (rect.height() - hor_space_height) / ir_plots.rows() as f32;
+            + des_plots.space() * (des_plots.rows() - 1) as f32;
+        let subplot_rect_height = (rect.height() - hor_space_height) / des_plots.rows() as f32;
         let y_axes =
-            self.setup_orientation_axes(Orientation::Y, ir_plots, &plot_data, subplot_rect_height)?;
+            self.setup_orientation_axes(Orientation::Y, des_plots, &plot_data, subplot_rect_height)?;
 
         // Everything is now ready to setup all plots
-        let mut plots: Vec<Option<Plot>> = vec![None; ir_plots.len()];
+        let mut plots: Vec<Option<Plot>> = vec![None; des_plots.len()];
         let mut plot_data = plot_data.into_iter();
         let mut x_axes = x_axes.into_iter();
         let mut y_axes = y_axes.into_iter();
 
         let mut y = rect.y();
-        for row in 0..ir_plots.rows() {
+        for row in 0..des_plots.rows() {
             let height =
                 subplot_rect_height + top_heights[row as usize] + bottom_heights[row as usize];
             let mut x = rect.x();
 
-            for col in 0..ir_plots.cols() {
+            for col in 0..des_plots.cols() {
                 let width =
                     subplot_rect_width + left_widths[col as usize] + right_widths[col as usize];
 
@@ -352,7 +352,7 @@ where
                 let x_axes = x_axes.next().unwrap();
                 let y_axes = y_axes.next().unwrap();
 
-                if let Some(ir_plot) = ir_plots.plot((row, col)) {
+                if let Some(des_plot) = des_plots.plot((row, col)) {
                     let outer_rect = geom::Rect::from_xywh(x, y, width, height);
                     let plot_rect = geom::Rect::from_xywh(
                         x + left_widths[col as usize],
@@ -365,7 +365,7 @@ where
 
                     let legend = legend.map(|leg| {
                         let top_left = legend_top_left(
-                            ir_plot.legend().unwrap(),
+                            des_plot.legend().unwrap(),
                             leg.size(),
                             &plot_rect,
                             &outer_rect,
@@ -391,7 +391,7 @@ where
                     };
 
                     let annots = if let Some(axes) = axes.as_ref() {
-                        ir_plot
+                        des_plot
                             .annotations()
                             .iter()
                             .map(|a| self.setup_annot(a, axes))
@@ -400,12 +400,12 @@ where
                         Vec::new()
                     };
 
-                    let plt_idx = row * ir_plots.cols() + col;
+                    let plt_idx = row * des_plots.cols() + col;
                     let plot = Plot {
                         idx: (row, col).into(),
                         rect: plot_rect,
-                        fill: ir_plot.fill().cloned(),
-                        border: ir_plot.border().cloned(),
+                        fill: des_plot.fill().cloned(),
+                        border: des_plot.border().cloned(),
                         axes,
                         series,
                         legend,
@@ -413,15 +413,15 @@ where
                     };
                     plots[plt_idx as usize] = Some(plot);
                 }
-                x += width + ir_plots.space();
+                x += width + des_plots.space();
             }
 
-            y += height + ir_plots.space();
+            y += height + des_plots.space();
         }
 
         let mut plots = Plots {
             plots,
-            size: (ir_plots.rows(), ir_plots.cols()),
+            size: (des_plots.rows(), des_plots.cols()),
         };
 
         plots.update_series_data(self.data_source())?;
@@ -431,17 +431,17 @@ where
 
     fn setup_plot_data(
         &self,
-        ir_plots: &des::figure::Plots,
+        des_plots: &des::figure::Plots,
         rect: &geom::Rect,
     ) -> Result<Vec<Option<PlotData>>, Error> {
-        let mut plot_data = vec![None; ir_plots.len()];
-        for (idx, ir_plot) in ir_plots.iter().enumerate() {
-            let Some(ir_plot) = ir_plot else { continue };
-            let series = self.setup_plot_series(ir_plot)?;
-            let cols = ir_plots.cols() as f32;
-            let avail_width = (rect.width() - ir_plots.space() * (cols - 1.0)) / cols;
-            let legend = self.setup_plot_legend(ir_plot, avail_width)?;
-            let insets = plot_insets(ir_plot);
+        let mut plot_data = vec![None; des_plots.len()];
+        for (idx, des_plot) in des_plots.iter().enumerate() {
+            let Some(des_plot) = des_plot else { continue };
+            let series = self.setup_plot_series(des_plot)?;
+            let cols = des_plots.cols() as f32;
+            let avail_width = (rect.width() - des_plots.space() * (cols - 1.0)) / cols;
+            let legend = self.setup_plot_legend(des_plot, avail_width)?;
+            let insets = plot_insets(des_plot);
             plot_data[idx] = Some(PlotData {
                 series,
                 legend,
@@ -461,22 +461,22 @@ where
 
     fn setup_plot_legend(
         &self,
-        ir_plot: &des::Plot,
+        des_plot: &des::Plot,
         avail_width: f32,
     ) -> Result<Option<Legend>, Error> {
-        let Some(ir_leg) = ir_plot.legend() else {
+        let Some(des_leg) = des_plot.legend() else {
             return Ok(None);
         };
 
         let mut builder = LegendBuilder::from_ir(
-            ir_leg.legend(),
-            ir_leg.pos().prefers_vertical(),
+            des_leg.legend(),
+            des_leg.pos().prefers_vertical(),
             avail_width,
             self.fontdb(),
         );
 
         let mut idx = 0;
-        for_each_series(ir_plot, |s| {
+        for_each_series(des_plot, |s| {
             if let Some(entry) = s.legend_entry() {
                 builder.add_entry(idx, entry)?;
                 idx += 1;
@@ -489,22 +489,22 @@ where
 
     fn calc_estimated_x_heights(
         &self,
-        ir_plots: &des::figure::Plots,
+        des_plots: &des::figure::Plots,
         datas: &[Option<PlotData>],
         side: des::axis::Side,
     ) -> Vec<f32> {
-        let mut heights = Vec::with_capacity(ir_plots.rows() as usize);
-        for row in 0..ir_plots.rows() {
+        let mut heights = Vec::with_capacity(des_plots.rows() as usize);
+        for row in 0..des_plots.rows() {
             let mut max_height: f32 = 0.0;
-            for col in 0..ir_plots.cols() {
-                if let Some((plt_idx, ir_plot)) = ir_plots.idx_plt((row, col)) {
+            for col in 0..des_plots.cols() {
+                if let Some((plt_idx, des_plot)) = des_plots.idx_plt((row, col)) {
                     let data = datas[plt_idx].as_ref().unwrap();
 
                     let mut height = x_plot_padding(side);
-                    height += self.estimate_x_axes_height(ir_plot.x_axes(), side);
-                    if let (Some(ir_leg), Some(leg)) = (ir_plot.legend(), data.legend.as_ref()) {
-                        if x_side_matches_out_legend_pos(side, ir_leg.pos()) {
-                            height += leg.size().height() + ir_leg.margin();
+                    height += self.estimate_x_axes_height(des_plot.x_axes(), side);
+                    if let (Some(des_leg), Some(leg)) = (des_plot.legend(), data.legend.as_ref()) {
+                        if x_side_matches_out_legend_pos(side, des_leg.pos()) {
+                            height += leg.size().height() + des_leg.margin();
                         }
                     }
                     max_height = max_height.max(height);
@@ -517,17 +517,17 @@ where
 
     fn calc_x_heights(
         &self,
-        ir_plots: &des::figure::Plots,
+        des_plots: &des::figure::Plots,
         datas: &[Option<PlotData>],
         x_axes: &[Option<PlotAxes>],
         side: des::axis::Side,
     ) -> Vec<f32> {
-        let mut heights = Vec::with_capacity(ir_plots.rows() as usize);
+        let mut heights = Vec::with_capacity(des_plots.rows() as usize);
 
-        for row in 0..ir_plots.rows() {
+        for row in 0..des_plots.rows() {
             let mut max_height = f32::NAN;
-            for col in 0..ir_plots.cols() {
-                let Some((index, ir_plot)) = ir_plots.idx_plt((row, col)) else {
+            for col in 0..des_plots.cols() {
+                let Some((index, des_plot)) = des_plots.idx_plt((row, col)) else {
                     continue;
                 };
 
@@ -537,9 +537,9 @@ where
                 let mut height = x_plot_padding(side);
                 height += x_axes.size_across(side);
 
-                if let (Some(ir_leg), Some(leg)) = (ir_plot.legend(), data.legend.as_ref()) {
-                    if x_side_matches_out_legend_pos(side, ir_leg.pos()) {
-                        height += leg.size().height() + ir_leg.margin();
+                if let (Some(des_leg), Some(leg)) = (des_plot.legend(), data.legend.as_ref()) {
+                    if x_side_matches_out_legend_pos(side, des_leg.pos()) {
+                        height += leg.size().height() + des_leg.margin();
                     }
                 }
 
@@ -553,26 +553,26 @@ where
 
     fn calc_y_widths(
         &self,
-        ir_plots: &des::figure::Plots,
+        des_plots: &des::figure::Plots,
         datas: &[Option<PlotData>],
         y_axes: &[Option<PlotAxes>],
         side: des::axis::Side,
     ) -> Vec<f32> {
-        let mut widths = Vec::with_capacity(ir_plots.cols() as usize);
+        let mut widths = Vec::with_capacity(des_plots.cols() as usize);
 
-        for col in 0..ir_plots.cols() {
+        for col in 0..des_plots.cols() {
             let mut max_width = f32::NAN;
-            for row in 0..ir_plots.rows() {
-                if let Some((index, ir_plot)) = ir_plots.idx_plt((row, col)) {
+            for row in 0..des_plots.rows() {
+                if let Some((index, des_plot)) = des_plots.idx_plt((row, col)) {
                     let data = datas[index].as_ref().unwrap();
                     let y_axis = y_axes[index].as_ref().unwrap();
 
                     let mut width = y_plot_padding(side);
                     width += y_axis.size_across(side);
 
-                    if let (Some(ir_leg), Some(leg)) = (ir_plot.legend(), data.legend.as_ref()) {
-                        if y_side_matches_out_legend_pos(side, ir_leg.pos()) {
-                            width += leg.size().width() + ir_leg.margin();
+                    if let (Some(des_leg), Some(leg)) = (des_plot.legend(), data.legend.as_ref()) {
+                        if y_side_matches_out_legend_pos(side, des_leg.pos()) {
+                            width += leg.size().width() + des_leg.margin();
                         }
                     }
 
@@ -588,66 +588,66 @@ where
     fn setup_orientation_axes(
         &self,
         or: Orientation,
-        ir_plots: &des::figure::Plots,
+        des_plots: &des::figure::Plots,
         datas: &[Option<PlotData>],
         size_along: f32,
     ) -> Result<Vec<Option<PlotAxes>>, Error> {
-        let mut plot_axes = vec![None; ir_plots.len()];
+        let mut plot_axes = vec![None; des_plots.len()];
 
         // collecting all axes that own their scale.
 
         // ax_infos is Some only for the axis owning their scale
         let mut ax_infos: Vec<Option<(Bounds, Rc<RefCell<AxisScale>>)>> =
-            vec![None; ir_plots.or_axes_len(or)];
+            vec![None; des_plots.or_axes_len(or)];
 
         // index of the first axis of a plot, at figure level
         let mut fig_ax_idx0 = 0;
 
-        for (plt_idx, ir_plot) in ir_plots.iter().enumerate() {
-            let Some(ir_plot) = ir_plot else { continue };
+        for (plt_idx, des_plot) in des_plots.iter().enumerate() {
+            let Some(des_plot) = des_plot else { continue };
 
-            let ir_axes = ir_plot.or_axes(or);
-            let mut axes = vec![None; ir_axes.len()];
+            let des_axes = des_plot.or_axes(or);
+            let mut axes = vec![None; des_axes.len()];
 
             // track whether the main and opposite axes are directly attached to the plot area
             let mut main_off_plot = false;
             let mut opposite_off_plot = false;
 
-            for (ax_idx, ir_ax) in ir_axes.iter().enumerate() {
-                if ir_ax.scale().is_shared() {
+            for (ax_idx, des_ax) in des_axes.iter().enumerate() {
+                if des_ax.scale().is_shared() {
                     continue;
                 }
 
-                // `ir_ax` owns its scale.
+                // `des_ax` owns its scale.
                 // We have to collect data bounds of all the series that refer to it.
-                // `matcher` will match the series that refer to `ir_ax` with Series::x/y_axis.
+                // `matcher` will match the series that refer to `des_ax` with Series::x/y_axis.
                 // If Series::x/y_axis returns None, it refers implicitly to ax_idx == 0.
 
                 // We also have to collect data bounds of series that refer to a shared axis
-                // referring explicitly to `ir_ax`. This is done in the inner loop with `ir_ax2`.
+                // referring explicitly to `des_ax`. This is done in the inner loop with `des_ax2`.
 
                 let matcher = series::AxisMatcher {
                     plt_idx,
                     ax_idx,
-                    id: ir_ax.id(),
-                    title: ir_ax.title().map(|t| t.text()),
+                    id: des_ax.id(),
+                    title: des_ax.title().map(|t| t.text()),
                 };
                 let mut bounds = None;
 
-                for (plt_idx2, ir_plot2) in ir_plots.iter().enumerate() {
-                    let Some(ir_plot2) = ir_plot2 else { continue };
+                for (plt_idx2, des_plot2) in des_plots.iter().enumerate() {
+                    let Some(des_plot2) = des_plot2 else { continue };
                     let data = datas[plt_idx2].as_ref().unwrap();
                     let series = &data.series;
                     bounds = Series::unite_bounds(or, series, bounds, &matcher, plt_idx2)?;
 
-                    for (ax_idx2, ir_ax2) in ir_plot2.or_axes(or).iter().enumerate() {
-                        if let des::axis::Scale::Shared(ax_ref2) = ir_ax2.scale() {
+                    for (ax_idx2, des_ax2) in des_plot2.or_axes(or).iter().enumerate() {
+                        if let des::axis::Scale::Shared(ax_ref2) = des_ax2.scale() {
                             if matcher.matches_ref(ax_ref2, plt_idx2)? {
                                 let matcher = series::AxisMatcher {
                                     plt_idx: plt_idx2,
                                     ax_idx: ax_idx2,
-                                    id: ir_ax2.id(),
-                                    title: ir_ax2.title().map(|t| t.text()),
+                                    id: des_ax2.id(),
+                                    title: des_ax2.title().map(|t| t.text()),
                                 };
                                 bounds =
                                     Series::unite_bounds(or, series, bounds, &matcher, plt_idx2)?;
@@ -658,7 +658,7 @@ where
 
                 let Some(bounds) = bounds else { continue };
 
-                let off_plot = match ir_ax.side() {
+                let off_plot = match des_ax.side() {
                     des::axis::Side::Main => &mut main_off_plot,
                     des::axis::Side::Opposite => &mut opposite_off_plot,
                 };
@@ -668,17 +668,17 @@ where
                 // spine is drawn by axis:
                 //  - when it is off plot area
                 //  - when it is in plot area, but not a boxed plot
-                let spine = match (off_plot_area, ir_plot.border()) {
-                    (true, _) => ir_plot.border().cloned(),
+                let spine = match (off_plot_area, des_plot.border()) {
+                    (true, _) => des_plot.border().cloned(),
                     (false, Some(des::plot::Border::Box(_))) => None,
                     (false, Some(border)) => Some(border.clone()),
                     (false, None) => None,
                 };
 
                 let ax = self.setup_axis(
-                    ir_ax,
+                    des_ax,
                     &bounds,
-                    Side::from_or_ir_side(or, ir_ax.side()),
+                    Side::from_or_des_side(or, des_ax.side()),
                     size_along,
                     &datas[plt_idx].as_ref().unwrap().insets,
                     None,
@@ -688,29 +688,29 @@ where
                 axes[ax_idx] = Some(ax);
             }
 
-            fig_ax_idx0 += ir_axes.len();
+            fig_ax_idx0 += des_axes.len();
             plot_axes[plt_idx] = Some(PlotAxes(axes));
         }
 
         // build the others with shared scale
 
-        for (plt_idx, ir_plot) in ir_plots.iter().enumerate() {
-            let Some(ir_plot) = ir_plot else {
+        for (plt_idx, des_plot) in des_plots.iter().enumerate() {
+            let Some(des_plot) = des_plot else {
                 continue;
             };
 
-            let ir_axes = ir_plot.or_axes(or);
+            let des_axes = des_plot.or_axes(or);
             let axes = plot_axes[plt_idx].as_mut().unwrap();
 
             // track whether the main and opposite axes are directly attached to the plot area
             let mut main_off_plot = false;
             let mut opposite_off_plot = false;
 
-            for (ax_idx, ir_ax) in ir_axes.iter().enumerate() {
-                let des::axis::Scale::Shared(ax_ref) = ir_ax.scale() else {
+            for (ax_idx, des_ax) in des_axes.iter().enumerate() {
+                let des::axis::Scale::Shared(ax_ref) = des_ax.scale() else {
                     continue;
                 };
-                let (fig_ax_idx, _) = ir_plots
+                let (fig_ax_idx, _) = des_plots
                     .or_find_axis(or, ax_ref, plt_idx)
                     .ok_or_else(|| Error::UnknownAxisRef(ax_ref.clone()))?;
 
@@ -718,7 +718,7 @@ where
                     .as_ref()
                     .ok_or_else(|| Error::IllegalAxisRef(ax_ref.clone()))?;
 
-                let off_plot = match ir_ax.side() {
+                let off_plot = match des_ax.side() {
                     des::axis::Side::Main => &mut main_off_plot,
                     des::axis::Side::Opposite => &mut opposite_off_plot,
                 };
@@ -728,17 +728,17 @@ where
                 // spine is drawn by axis:
                 //  - when it is off plot area
                 //  - when it is in plot area, but not a boxed plot
-                let spine = match (off_plot_area, ir_plot.border()) {
-                    (true, _) => ir_plot.border().cloned(),
+                let spine = match (off_plot_area, des_plot.border()) {
+                    (true, _) => des_plot.border().cloned(),
                     (false, Some(des::plot::Border::Box(_))) => None,
                     (false, Some(border)) => Some(border.clone()),
                     (false, None) => None,
                 };
 
                 let axis = self.setup_axis(
-                    ir_ax,
+                    des_ax,
                     &info.0,
-                    Side::from_or_ir_side(or, ir_ax.side()),
+                    Side::from_or_des_side(or, des_ax.side()),
                     size_along,
                     &datas[plt_idx].as_ref().unwrap().insets,
                     Some(info.1.clone()),

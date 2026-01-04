@@ -1,4 +1,4 @@
-//! Plot IR structures
+//! Plot design structures
 
 use crate::des::{Annotation, Axis, Legend, PlotIdx, Series};
 use crate::style::{defaults, theme};

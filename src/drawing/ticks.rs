@@ -38,7 +38,7 @@ pub fn locate_num(
         (Locator::TimeDelta(loc), Scale::Auto | Scale::Linear { .. }) => {
             locate_timedelta_num(loc, nb)
         }
-        _ => Err(Error::InconsistentIr(format!(
+        _ => Err(Error::InconsistentDesign(format!(
             "Unsupported locator/scale combination: {:?}/{:?}",
             locator, scale
         ))),
@@ -67,7 +67,7 @@ pub fn locate_minor(
         (Locator::Log(locator), Scale::Log(LogScale { base, .. })) if locator.base == *base => {
             Ok(LogLocator::new_minor(*base).ticks(nb))
         }
-        _ => Err(Error::InconsistentIr(format!(
+        _ => Err(Error::InconsistentDesign(format!(
             "Unsupported locator/scale combination: {:?}/{:?}",
             locator, scale
         ))),
@@ -211,7 +211,7 @@ pub fn locate_datetime(locator: &Locator, tb: axis::TimeBounds) -> Result<Vec<Da
             let td = TimeDelta::from_seconds(1E-6) * n as f64;
             Ok(locate_datetime_even(start.try_into().unwrap(), tb, td))
         }
-        _ => Err(Error::InconsistentIr(format!(
+        _ => Err(Error::InconsistentDesign(format!(
             "Inconsistent ticks locator for time axis: {locator:?}"
         ))),
     }
@@ -282,7 +282,7 @@ fn locate_timedelta_num(loc: &TimeDeltaLocator, nb: axis::NumBounds) -> Result<V
         TimeDeltaLocator::Seconds(n) if *n > 0 => *n as f64,
         TimeDeltaLocator::Micros(n) if *n > 0 => *n as f64 * 1E-6,
         _ => {
-            return Err(Error::InconsistentIr(
+            return Err(Error::InconsistentDesign(
                 "TimeDeltaLocator with null step".into(),
             ));
         }

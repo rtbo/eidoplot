@@ -37,8 +37,8 @@ pub enum Error {
     IllegalAxisRef(des::axis::Ref),
     /// An axis has no bounds (e.g. all data is NaN)
     UnboundedAxis,
-    /// The IR model is inconsistent
-    InconsistentIr(String),
+    /// The design model is inconsistent
+    InconsistentDesign(String),
     /// Axis bounds are inconsistent.
     /// For example, different data types are mixed on the same axis.
     InconsistentAxisBounds(String),
@@ -68,7 +68,7 @@ impl fmt::Display for Error {
             Error::UnknownAxisRef(axis_ref) => write!(f, "Unknown axis reference: {:?}", axis_ref),
             Error::IllegalAxisRef(axis_ref) => write!(f, "Illegal axis reference: {:?}", axis_ref),
             Error::UnboundedAxis => write!(f, "Unbounded axis, check data"),
-            Error::InconsistentIr(reason) => write!(f, "Inconsistent IR: {}", reason),
+            Error::InconsistentDesign(reason) => write!(f, "Inconsistent Design: {}", reason),
             Error::InconsistentAxisBounds(reason) => {
                 write!(f, "Inconsistent axis bounds: {}", reason)
             }
@@ -90,7 +90,7 @@ fn fig_y_to_plot_y(plot_rect: &geom::Rect, fig_y: f32) -> f32 {
     plot_rect.bottom() - fig_y
 }
 
-/// Extension trait to prepare an IR figure for drawing
+/// Extension trait to prepare an design figure for drawing
 pub trait Drawing {
     /// Prepare a figure for drawing.
     /// The resulting [`Figure`] can then be drawn multiple times on different rendering surfaces.

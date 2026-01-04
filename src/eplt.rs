@@ -79,7 +79,7 @@ impl dsl::DiagTrait for Error {
     }
 }
 
-/// Parse EPLT DSL input into a list of IR figures
+/// Parse EPLT DSL input into a list of design figures
 pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<des::Figure>, Error> {
     let props = dsl::parse(input.as_ref().chars())?;
 
@@ -99,7 +99,7 @@ pub fn parse<S: AsRef<str>>(input: S) -> Result<Vec<des::Figure>, Error> {
     Ok(figs)
 }
 
-/// Parse EPLT DSL input into a list of IR figures, returning diagnostics on error.
+/// Parse EPLT DSL input into a list of design figures, returning diagnostics on error.
 pub fn parse_diag<'a>(
     input: &'a str,
     file_name: Option<&'a path::Path>,

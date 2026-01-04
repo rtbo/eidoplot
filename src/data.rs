@@ -635,7 +635,7 @@ pub trait Source: fmt::Debug {
 }
 
 /// Empty source.
-/// Use this if your data is inlined in the IR.
+/// Use this if your data is inlined in the design.
 impl Source for () {
     fn names(&self) -> Vec<&str> {
         Vec::new()

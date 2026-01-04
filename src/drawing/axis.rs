@@ -101,8 +101,8 @@ impl Axis {
 pub enum AxisScale {
     /// Numerical axis
     Num {
-        /// IR definition of the scale
-        ir_scale: des::axis::Scale,
+        /// Design definition of the scale
+        des_scale: des::axis::Scale,
         /// The coordinate mapper
         cm: Arc<dyn CoordMap>,
         /// The ticks and labels for the axis
@@ -119,8 +119,8 @@ pub enum AxisScale {
 
 #[derive(Debug, Clone)]
 pub struct NumTicks {
-    /// IR definition of the ticks
-    ir_ticks: des::axis::Ticks,
+    /// Design definition of the ticks
+    des_ticks: des::axis::Ticks,
     /// The list of ticks
     ticks: Vec<NumTick>,
     /// Annotation of the axis (e.g. a multiplication factor)
@@ -183,7 +183,7 @@ struct TickMark {
 
 #[derive(Debug, Clone)]
 pub struct MinorTicks {
-    ir_ticks: des::axis::MinorTicks,
+    des_ticks: des::axis::MinorTicks,
     locs: Vec<f64>,
 }
 
@@ -343,7 +343,7 @@ where
 
     pub fn setup_axis(
         &self,
-        ir_axis: &des::Axis,
+        des_axis: &des::Axis,
         bounds: &Bounds,
         side: Side,
         size_along: f32,
@@ -351,18 +351,18 @@ where
         shared_scale: Option<Rc<RefCell<AxisScale>>>,
         spine: Option<des::plot::Border>,
     ) -> Result<Axis, Error> {
-        let id = ir_axis.id().map(|s| s.to_string());
-        let title_text = ir_axis.title().map(|t| t.text().to_string());
+        let id = des_axis.id().map(|s| s.to_string());
+        let title_text = des_axis.title().map(|t| t.text().to_string());
 
         let uses_shared = shared_scale.is_some();
-        let draw_opts = self.setup_axis_draw_opts(ir_axis, side, uses_shared, spine)?;
+        let draw_opts = self.setup_axis_draw_opts(des_axis, side, uses_shared, spine)?;
 
         let scale = if let Some(scale) = shared_scale {
             scale
         } else {
             let insets = side.insets(insets);
             Rc::new(RefCell::new(
-                self.setup_axis_scale(ir_axis, bounds, side, size_along, insets)?,
+                self.setup_axis_scale(des_axis, bounds, side, size_along, insets)?,
             ))
         };
 
@@ -377,7 +377,7 @@ where
 
     fn setup_axis_scale(
         &self,
-        ir_axis: &des::Axis,
+        des_axis: &des::Axis,
         bounds: &Bounds,
         side: Side,
         size_along: f32,
@@ -385,18 +385,18 @@ where
     ) -> Result<AxisScale, Error> {
         match bounds {
             Bounds::Num(nb) => {
-                let cm = scale::map_scale_coord_num(ir_axis.scale(), size_along, &nb, insets);
+                let cm = scale::map_scale_coord_num(des_axis.scale(), size_along, &nb, insets);
                 let nb = cm.axis_bounds().as_num().unwrap();
 
-                let ticks = ir_axis
+                let ticks = des_axis
                     .ticks()
                     .map(|major_ticks| {
-                        self.setup_num_ticks(major_ticks, nb, ir_axis.scale(), side, None)
+                        self.setup_num_ticks(major_ticks, nb, des_axis.scale(), side, None)
                     })
                     .transpose()?;
 
-                let minor_ticks = if let Some(mt) = ir_axis.minor_ticks() {
-                    Some(self.setup_minor_ticks(mt, ticks.as_ref(), ir_axis.scale(), nb)?)
+                let minor_ticks = if let Some(mt) = des_axis.minor_ticks() {
+                    Some(self.setup_minor_ticks(mt, ticks.as_ref(), des_axis.scale(), nb)?)
                 } else {
                     None
                 };
@@ -405,25 +405,25 @@ where
                     cm,
                     ticks,
                     minor_ticks,
-                    ir_scale: ir_axis.scale().clone(),
+                    des_scale: des_axis.scale().clone(),
                 })
             }
             #[cfg(feature = "time")]
             Bounds::Time(tb) => {
                 let nb: NumBounds = (*tb).into();
-                let cm = scale::map_scale_coord_num(ir_axis.scale(), size_along, &nb, insets);
+                let cm = scale::map_scale_coord_num(des_axis.scale(), size_along, &nb, insets);
                 let nb = cm.axis_bounds().as_num().unwrap();
                 let tb: TimeBounds = nb.into();
 
-                let ticks = ir_axis
+                let ticks = des_axis
                     .ticks()
                     .map(|major_ticks| {
-                        self.setup_time_ticks(major_ticks, tb, ir_axis.scale(), side)
+                        self.setup_time_ticks(major_ticks, tb, des_axis.scale(), side)
                     })
                     .transpose()?;
 
-                if ir_axis.minor_ticks().is_some() {
-                    return Err(Error::InconsistentIr(
+                if des_axis.minor_ticks().is_some() {
+                    return Err(Error::InconsistentDesign(
                         "Minor ticks not supported for time axis".into(),
                     ));
                 }
@@ -432,12 +432,12 @@ where
                     cm,
                     ticks,
                     minor_ticks: None,
-                    ir_scale: ir_axis.scale().clone(),
+                    des_scale: des_axis.scale().clone(),
                 })
             }
             Bounds::Cat(cats) => {
                 let bins = CategoryBins::new(size_along, insets, cats.clone());
-                let ticks = ir_axis
+                let ticks = des_axis
                     .ticks()
                     .map(|t| self.setup_cat_ticks(t, cats, side))
                     .transpose()?;
@@ -495,7 +495,7 @@ where
             ticks,
             annot,
             lbl_formatter,
-            ir_ticks: major_ticks.clone(),
+            des_ticks: major_ticks.clone(),
         })
     }
 
@@ -519,7 +519,7 @@ where
 
         Ok(MinorTicks {
             locs,
-            ir_ticks: minor_ticks.clone(),
+            des_ticks: minor_ticks.clone(),
         })
     }
 
@@ -538,7 +538,7 @@ where
         let annot_align = side.annot_align();
 
         if matches!(scale, des::axis::Scale::Log(_)) {
-            return Err(Error::InconsistentIr(
+            return Err(Error::InconsistentDesign(
                 "Log scale not supported for time axis".into(),
             ));
         }
@@ -571,7 +571,7 @@ where
             ticks,
             annot,
             lbl_formatter,
-            ir_ticks: major_ticks.clone(),
+            des_ticks: major_ticks.clone(),
         })
     }
 
@@ -614,12 +614,12 @@ where
 
     fn setup_axis_draw_opts(
         &self,
-        ir_axis: &des::Axis,
+        des_axis: &des::Axis,
         side: Side,
         uses_shared: bool,
         spine: Option<des::plot::Border>,
     ) -> Result<DrawOpts, Error> {
-        let title = ir_axis
+        let title = des_axis
             .title()
             .map(|title| title.to_rich_text(side.title_layout(), &self.fontdb))
             .transpose()?
@@ -627,19 +627,19 @@ where
             .transpose()?;
 
         let ticks_labels = !uses_shared;
-        let marks = ir_axis.ticks().map(|ticks| TickMark {
+        let marks = des_axis.ticks().map(|ticks| TickMark {
             line: ticks.color().into(),
             size_in: missing_params::TICK_SIZE,
             size_out: missing_params::TICK_SIZE,
         });
-        let minor_marks = ir_axis.minor_ticks().map(|ticks| TickMark {
+        let minor_marks = des_axis.minor_ticks().map(|ticks| TickMark {
             line: theme::Line::from(ticks.color())
                 .with_width(missing_params::MINOR_TICK_LINE_WIDTH),
             size_in: missing_params::MINOR_TICK_SIZE,
             size_out: missing_params::MINOR_TICK_SIZE,
         });
-        let grid = ir_axis.grid().map(|grid| grid.0.clone());
-        let minor_grid = ir_axis.minor_grid().map(|grid| grid.0.clone());
+        let grid = des_axis.grid().map(|grid| grid.0.clone());
+        let minor_grid = des_axis.minor_grid().map(|grid| grid.0.clone());
 
         Ok(DrawOpts {
             title,
@@ -670,29 +670,29 @@ where
         let scale = axis.scale.as_ref().borrow();
         match &*scale {
             AxisScale::Num {
-                ir_scale,
+                des_scale,
                 ticks,
                 minor_ticks,
                 ..
             } => {
                 let bounds = coord_map.axis_bounds().as_num().unwrap();
-                let ir_scale = adapt_ir_scale(ir_scale, &bounds);
+                let des_scale = adapt_des_scale(des_scale, &bounds);
                 let ticks = ticks
                     .as_ref()
                     .map(|t| {
-                        self.setup_num_ticks(&t.ir_ticks, bounds, &ir_scale, axis.side, Some(t))
+                        self.setup_num_ticks(&t.des_ticks, bounds, &des_scale, axis.side, Some(t))
                     })
                     .transpose()?;
 
                 let minor_ticks = minor_ticks
                     .as_ref()
                     .map(|mt| {
-                        self.setup_minor_ticks(&mt.ir_ticks, ticks.as_ref(), &ir_scale, bounds)
+                        self.setup_minor_ticks(&mt.des_ticks, ticks.as_ref(), &des_scale, bounds)
                     })
                     .transpose()?;
 
                 Ok(AxisScale::Num {
-                    ir_scale,
+                    des_scale,
                     cm: coord_map,
                     ticks,
                     minor_ticks,
@@ -703,23 +703,23 @@ where
     }
 }
 
-fn adapt_ir_scale(ir_scale: &des::axis::Scale, axis_bounds: &NumBounds) -> des::axis::Scale {
-    match ir_scale {
+fn adapt_des_scale(des_scale: &des::axis::Scale, axis_bounds: &NumBounds) -> des::axis::Scale {
+    match des_scale {
         des::axis::Scale::Linear(range) => {
-            des::axis::Scale::Linear(adapt_ir_range(range, axis_bounds))
+            des::axis::Scale::Linear(adapt_des_range(range, axis_bounds))
         }
         des::axis::Scale::Log(des::axis::LogScale { base, range }) => {
             des::axis::Scale::Log(des::axis::LogScale {
                 base: *base,
-                range: adapt_ir_range(range, axis_bounds),
+                range: adapt_des_range(range, axis_bounds),
             })
         }
-        _ => ir_scale.clone(),
+        _ => des_scale.clone(),
     }
 }
 
-fn adapt_ir_range(ir_range: &des::axis::Range, axis_bounds: &NumBounds) -> des::axis::Range {
-    match ir_range {
+fn adapt_des_range(des_range: &des::axis::Range, axis_bounds: &NumBounds) -> des::axis::Range {
+    match des_range {
         des::axis::Range::Auto => des::axis::Range::Auto,
         des::axis::Range::MinAuto(..) => des::axis::Range::MinAuto(axis_bounds.start()),
         des::axis::Range::AutoMax(..) => des::axis::Range::AutoMax(axis_bounds.end()),

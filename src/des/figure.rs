@@ -1,4 +1,4 @@
-//! Figure IR structures
+//! Figure design structures
 use std::iter::FusedIterator;
 
 use crate::geom;
