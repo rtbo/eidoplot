@@ -1,131 +1,137 @@
 # plotive
 
-_declarative plotting_. A simple data plotting library for Rust.
+_declarative plotting_. A simple data plotting library written in Rust.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Overview
+## Overview and features
 
-Plotive separates figure design from data and from rendering surfaces.
+Plotive decouples figure design from data and from rendering surfaces.
 
-### Key Features
+### Supported series types
+ - XY line plots
+ - Scatter plots
+ - Histograms and bar plots
 
-- **Supported plot types:**
-  - XY line plots
-  - Scatter plots
-  - Histograms and bars
+More will come. Don't hesitate to open an issue to request a feature!
 
-- **Modular architecture:**
-  - Declarative Intermediate Representation (IR) for figure design
-  - Separate rendering surfaces (SVG, pixels)
-  - Data is separated from figure design.
-  - Support for multiple data sources (CSV, Polars)
-  - Figure units are decorrelated from pixel size for easy scaling
+### Modular architecture
 
-- **Theme**
-  - A theme can be applied to change the look of a figure with a single line of code.
+ - **Declarative design** (`plotive::des`)
+   - Design of figure is entirely declarative and decoupled from data and drawing primitives
+   - Sensible defaults. Most types that populates design implement carefully crafted `Default` trait.
+   - Figure units are decorrelated from pixel size for easy scaling
+   - `.plotive` DSL language for concise figure description.
+This DSL is still fairly incomplete, but all examples in the repo are working.
 
-- **Automatic Layout**
-  - All the layout is done consistently and automatically. You can add multiple axes,
-  multiple plots etc. All will be laid-out in a consistent way, leaving enough space
-  for axis ticks labels, legends etc. without a single line of code on the user side.
+ - **Data sources** (`plotive::data`)
+   - Flexible, column-friendly data source system
+   - Support for CSV and [polars](https://pola.rs) is included
 
-- **GUI integration and real-time rendering**
-  - The package `plotive-iced` provides a [iced](https::/github.com/iced-rs/iced.git) `Figure` widget.
+ - **Rendering surfaces** (`plotive::render` and separate crates)
+   - `plotive-pxl`: Rasterized rendering (PNG, etc.)
+   - `plotive-svg`: SVG rendering
+   - `plotive-iced`: GUI rendering with [iced](https://iced.rs).
+
+
+### Automatic Layout
+ - All the layout is done consistently and automatically.
+ You can add multiple axes, multiple plots etc.
+ Everything will be laid-out consistently, leaving enough space for axis ticks labels, legends etc.  Your code never need to calculate size of anything.
+
+### Advanced typography
+ - Automatic font look-up and text shaping
+ - Rich text
+ - Automatic right to left layout using unicode-bidirectional algorithm
+ - vertical layout
+
+### Themes
+ - Change the theme of your figure with a single line of code (see the bode diagram hereunder)
+
+### Annotations
+ - Annotate your figures, with labels, infinite lines, markers etc.
+ - Annotations are placed using data space coordinates
+
+### GUI integration and real-time rendering
+ - The crate `plotive-iced` provides a `Figure` widget.
 Thanks to separation of data from design, redraws of the same figure with different data
 is very efficient and compatible with real-time rendering, up to hundreds of redraws per second.
 
-- **Declarative DSL:**
-  - `.eplt` language for concise figure description.
-This DSL is fairly incomplete, but all examples in the repo are working.
 
 
-## Installation
+## Gallery
 
-Add plotive to your `Cargo.toml`:
+(a few more in the gallery folder)
 
-```sh
+![a simple sine plot](gallery/sine.png)
+![a bode diagram](gallery/bode_rlc.png)
+![a bode diagram with catpuccin mocha theme](gallery/bode_rlc_mocha.png)
+![a plot with multiple axes](gallery/multiple_axes.png)
+![a plot with normal distribution](gallery/gauss.png)
+
+## Get started
+
+Add `plotive` to your project, as well as one of the surface backend crates.
+(here a GUI crate for [iced.rs](https://iced.rs))
+```
 cargo add plotive
-cargo add plotive-pxl # for rasterized rendering (e.g. pixels, PNG)
-cargo add plotive-svg # for SVG rendering
+cargo add plotive-iced
 ```
 
-### Available Features
+To create a figure, you start by its design, referencing data that will come later.
+The design structure is purely declarative and very lightweight:
 
-- `data-csv` (enabled by default): CSV file support
-- `data-polars`: Polars DataFrames support
-- `dsl-diag`: Diagnostics for `.eplt` DSL
-- `utils` (enabled by default): Utility functions (linspace, logspace, etc.)
-- `noto-sans` (enabled by default): Bundles the Noto-Sans font in the executable.
+```rust
+use plotive::des;
 
-## Architecture
+let x_axis = des::Axis::new()
+    .with_title("x".into())
+    .with_ticks(
+        des::axis::Ticks::new()
+            .with_locator(des::axis::ticks::PiMultipleLocator::default().into()),
+    )
+    .with_grid(Default::default());
 
-### Intermediate Representation (IR)
+let y_axis = des::Axis::new()
+    .with_title("y".into())
+    .with_ticks(Default::default())
+    .with_grid(Default::default())
+    .with_minor_ticks(Default::default())
+    .with_minor_grid(Default::default());
 
-The `ir` module contains a declarative representation of figures, independent of rendering. This allows:
-- Separation of design logic from rendering logic
-- A stable intermediate format
-- In the future, an easy mapping to other programming languages
+let series = des::series::Line::new(des::data_src_ref("x"), des::data_src_ref("y"))
+    .with_name("y=sin(x)")
+    .into();
 
-### Rendering Surfaces
+let plot = des::Plot::new(vec![series])
+    .with_x_axis(x_axis)
+    .with_y_axis(y_axis)
+    .with_legend(des::plot::LegendPos::InTopRight.into());
 
-Rendering surfaces implement the `render::Surface` trait and are in separate crates:
-- **`plotive-svg`**: SVG format rendering
-- **`plotive-pxl`**: Bitmap rendering (PNG, etc.)
-- **`plotive-iced`**: Rendering in iced window.
-
-Rendering surfaces don't need to know anything about figures or plotted data.
-They only have to render path primitives. Even text is pre-processed as paths before being submitted to surfaces.
-Therefore, implementing support for a new surface type is really straightforward.
-
-### Drawing Module
-
-The `drawing` module bridges the IR and rendering surfaces. It translates abstract IR concepts into drawing primitives (lines, text, etc.).
-
-## Examples
-
-The project includes several examples in the `examples/` folder, among others:
-
-- `sine`: Simple sine wave
-- `bode_rlc`: Bode diagram of RLC circuit
-- `gauss`: Normal distribution with histogram
-- `iris`: Iris dataset with scatter plot
-- `bars`: Bar charts
-- `bitcoin`: Time series data
-- `subplots`: Figures with multiple subplots
-- `multiple_axes`: Plots with multiple axes
-
-To run an example:
-
-```bash
-cargo run --example sine -- svg png
-cargo run --example bode_rlc -- svg png macchiato
-cargo run --example gauss -- svg png
-cargo run --example iris --features data-csv -- svg png
+let fig = des::Figure::new(plot.into()).with_title("a sine wave".into());
 ```
 
-## Workspace Crates
+Then (or before) you can prepare the data to be plotted with any structure implementing the column-friendly trait `plotive::data::Source`.
 
-- **`plotive`**: Main library
-- **`plotive-base`**: Base types (colors, geometry)
-- **`plotive-dsl`**: Parser for `.eplt` DSL
-- **`plotive-svg`**: SVG rendering backend
-- **`plotive-pxl`**: Pixel rendering backend (suitable for PNG exports)
-- **`plotive-iced`**: Figure widget for iced
-- **`plotive-text`**: Text and font management
-- **`plotive-tests`**: Integration tests
+```rust
+use plotive::data;
 
-## Polars Integration
+let x: Vec<f64> = (0..=360).map(|t| t as f64 * PI / 180.0).collect();
+let y = x.iter().map(|x| x.sin()).collect();
 
-With the `data-polars` feature, you can use Polars DataFrames as `plotive::data::Source` directly.
+let data_source = data::TableSource::new()
+    .with_f64_column("x", x)
+    .with_f64_column("y", y);
+```
 
+Everything is ready. You can use any of the crate implementing `plotive::render::Surface` to either save to an image file, or show it in a GUI:
 
-## License
+```rust
+use plotive_iced::Show;
 
-This project is distributed under the MIT License. See the [LICENSE](LICENSE) file for details.
+fig.show(Arc::new(data_source), Default::default()).unwrap();
+```
 
-Copyright (c) 2025 Rémi Thebault
+During execution, the following window shows:
 
-## Contributing
-
-Contributions are welcome! Feel free to open issues or pull requests on the [GitHub repository](https://github.com/rtbo/plotive).
+![Iced window with sine wave](gallery/iced_sine.png)

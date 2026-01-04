@@ -88,6 +88,9 @@ name = "polars_sine"
 required-features = ["data-polars"]
 
 [[example]]
+name = "readme"
+
+[[example]]
 name = "sine"
 
 [[example]]
