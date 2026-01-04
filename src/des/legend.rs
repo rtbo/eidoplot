@@ -45,8 +45,7 @@ impl Default for Legend {
     /// - Border: theme::Col::LegendBorder, 1.0
     /// - Font: default EntryFont
     /// - Default column layout (depdend on the position and number and width of entries)
-    /// - Padding: [`defaults::LEGEND_PADDING`]
-    /// - Spacing: [`defaults::LEGEND_H_SPACING`], [`defaults::LEGEND_V_SPACING`]
+    /// - Default padding and spacing
     fn default() -> Self {
         Self {
             font: EntryFont::default(),

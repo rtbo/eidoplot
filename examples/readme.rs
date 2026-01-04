@@ -1,7 +1,7 @@
+// example from README.md
 use std::f64::consts::PI;
 use std::sync::Arc;
 
-// example from README.md
 use plotive::{data, des, style};
 use plotive_iced::{Show, show};
 

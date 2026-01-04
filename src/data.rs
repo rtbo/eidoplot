@@ -24,7 +24,7 @@ use crate::time::{DateTime, TimeDelta};
 /// You will typically not used a `Vec<Sample>`. Rather a [`VecColumn`] or similar
 /// that iterate over samples in a more efficient way.
 ///
-/// This type borrows string data for categorical samples. See also [`OwnedSample`].
+/// This type borrows string data for categorical samples. See also [`Sample`].
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub enum SampleRef<'a> {
     /// Null value

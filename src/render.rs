@@ -32,10 +32,10 @@ pub trait Surface {
 
     /// Push a clipping rect
     /// Subsequent draw operations will be clipped to this rect,
-    /// until a matching [`pop_clip`] is called
+    /// until a matching [`pop_clip`](Surface::pop_clip) is called
     fn push_clip(&mut self, clip: &Clip);
 
-    /// Pop a clipping rect that was pushed previously with [`push_clip`]
+    /// Pop a clipping rect that was pushed previously with [`push_clip`](Surface::push_clip)
     fn pop_clip(&mut self);
 }
 

@@ -3,7 +3,7 @@
 #![warn(missing_copy_implementations)]
 /*!
  * # plotive
- * A simple and minimal data plotting library for Rust
+ * _declarative plotting_. A simple data plotting library written in Rust
  *
  * Plotive separates figure design from data representation and from rendering surfaces.
  *
@@ -11,19 +11,83 @@
  *  - XY line plots
  *  - Scatter plots
  *  - Histograms
+ *  - Bar plots
  *
  * ## Notes about plotive's design
  *
- * The figure design lies in the `ir` module (IR = Intermediate Representation).
- * The IR describes the figure design in a declarative way. It ignores everything about the rendering surfaces.
+ * The figure design lies in the [`des`] module.
+ * This module describes the figure design in a declarative way. It ignores everything about the rendering surfaces.
  * This will allow to bridge easily plotive to other programming languages and to write a compiler for plotive figures.
  *
- * The rendering surfaces implements the `render::Surface` trait and are in separate crates.
- * (see `plotive-pxl` and `plotive-svg`)
- * The rendering surfaces themselves ignore everything about figure design and the `ir` module.
- * They focus on rendering primitives, like lines and text.
+ * The rendering surfaces implements the [`render::Surface`] trait and are in separate crates.
+ * (see `plotive-pxl`, `plotive-svg`, `plotive-iced`)
+ * The rendering surfaces themselves ignore everything about figure design and the `des` module.
+ * They focus on rendering primitives, like rects and paths. Even text is pre-processed to paths before reaching the surface.
+ * This allows to easily add new rendering surfaces to plotive.
  *
- * IR and rendering are bridged together by the `drawing` module, which exposes very little public API.
+ * [`des`] and [`render`] are bridged together by the [`drawing`] module, which exposes very little public API.
+ * This module draws a [`des::Figure`] onto a [`render::Surface`] and acts in two phases:
+ *  - preparation: [`drawing::Drawing::prepare()`] returns a [`drawing::Figure`], which caches all the layout information,
+ *    the text preprocessed as paths, the series data converted to paths, etc.
+ *  - drawing: [`drawing::Figure::draw()`] draws the prepared figure onto the surface, using the cached information. Themes
+ *    colors are resolved at this stage.
+ *
+ * The [`drawing::Figure`] has API to update the series with new data, so that dynamic plots can be implemented easily.
+ * It also supports zooming and panning operations.
+ *
+ * ## Example
+ *
+ * ```no_run
+ * use std::f64::consts::PI;
+ * use std::sync::Arc;
+ *
+ * use plotive::{data, des, style};
+ * use plotive_iced::{Show, show};
+ *
+ * fn main() {
+ *     let x_axis = des::Axis::new()
+ *         .with_title("x".into())
+ *         .with_ticks(
+ *             des::axis::Ticks::new()
+ *                 .with_locator(des::axis::ticks::PiMultipleLocator::default().into()),
+ *         )
+ *         .with_grid(Default::default());
+ *
+ *     let y_axis = des::Axis::new()
+ *         .with_title("y".into())
+ *         .with_ticks(Default::default())
+ *         .with_grid(Default::default())
+ *         .with_minor_ticks(Default::default())
+ *         .with_minor_grid(Default::default());
+ *
+ *     let series = des::series::Line::new(des::data_src_ref("x"), des::data_src_ref("y"))
+ *         .with_name("y=sin(x)")
+ *         .into();
+ *
+ *     let plot = des::Plot::new(vec![series])
+ *         .with_x_axis(x_axis)
+ *         .with_y_axis(y_axis)
+ *         .with_legend(des::plot::LegendPos::InTopRight.into());
+ *
+ *     let fig = des::Figure::new(plot.into()).with_title("a sine wave".into());
+ *
+ *     let x: Vec<f64> = (0..=360).map(|t| t as f64 * PI / 180.0).collect();
+ *     let y = x.iter().map(|x| x.sin()).collect();
+ *
+ *     let data_source = data::TableSource::new()
+ *         .with_f64_column("x", x)
+ *         .with_f64_column("y", y);
+ *
+ *     fig.show(
+ *         Arc::new(data_source),
+ *         show::Params {
+ *             style: Some(style::Builtin::Light.into()),
+ *             ..Default::default()
+ *         },
+ *     )
+ *     .unwrap();
+ * }
+ * ```
  */
 // Plotive is released under the MIT License with the following copyright:
 // Copyright (c) 2025 Rémi Thebault

@@ -9,7 +9,7 @@
 use strict_num::{FiniteF32, PositiveF32};
 pub use tiny_skia_path::{Path, PathBuilder, PathSegment, PathVerb, Point, Transform};
 
-/// A size in 2D space reprensented by width and height
+/// A size in 2D space represented by width and height
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Size {
     w: f32,
@@ -41,7 +41,7 @@ impl Size {
     }
 }
 
-/// A rectangle in 2D space reprensented by x, y, width and height
+/// A rectangle in 2D space represented by x, y, width and height
 #[derive(Debug, Clone, Copy)]
 pub struct Rect {
     x: FiniteF32,

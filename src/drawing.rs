@@ -1,8 +1,8 @@
 //! Drawing module
 //!
-//! This module contains all the logic to convert an IR figure into rendering commands
+//! This module contains all the logic to convert a design figure into rendering commands
 //! for a given rendering surface.
-//! It is the bridge between the [`ir`] module and the [`render`] module.
+//! It is the bridge between the [`des`] module and the [`render`] module.
 use std::fmt;
 
 use text::fontdb;

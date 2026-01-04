@@ -25,10 +25,10 @@ pub enum Align {
     /// The end of the text is aligned with the reference point.
     End,
     /// Text is left aligned.
-    /// For vertical layout, this is the same as [Start](Self::Start).
+    /// For vertical layout, this is the same as [`Start`](Align::Start).
     Left,
     /// Text is right aligned.
-    /// For vertical layout, this is the same as [`End`].
+    /// For vertical layout, this is the same as [`End`](Align::End).
     Right,
     /// The text is justified on both ends.
     /// The parameter is the total width of the text (or height for vertical text)
@@ -76,8 +76,9 @@ pub enum HorAlign {
 /// Direction refers to left to right, or right to left text.
 /// The mixed directions take into account bidirectional text and refer to
 /// the main direction of the text.
-/// (see https://www.w3.org/International/articles/inline-bidi-markup/uba-basics#context)
+/// (see <https://www.w3.org/International/articles/inline-bidi-markup/uba-basics#context>)
 #[derive(Debug, Clone, Copy, Default)]
+
 pub enum Direction {
     /// The main direction is the one of the first encountered script.
     /// This is the default.

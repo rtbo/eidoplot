@@ -3,7 +3,7 @@ use crate::drawing::{Ctx, Error, plot};
 use crate::style::theme::{self, Theme};
 use crate::{Style, data, geom, des, missing_params, render, style, text};
 
-/// A figure that has been prepared for drawing. See [`Figure::prepare`].
+/// A figure that has been prepared for drawing. See [`Drawing::prepare`](crate::drawing::Drawing::prepare).
 /// It contains all the necessary data and layout information.
 ///
 /// The texts have been shaped, laid out and transformed to paths.

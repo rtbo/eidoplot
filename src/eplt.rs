@@ -1,7 +1,7 @@
 //! EPLT DSL parser
 //!
 //! EPLT is a domain-specific language for defining plots and figures.
-//! An `*.eplt*` file contains one or more [`ir::Figure`] definitions.
+//! An `*.plotive*` file contains one or more [`des::Figure`] definitions.
 use std::{fmt, path};
 
 pub use dsl::{Diagnostic, Source};

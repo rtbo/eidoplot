@@ -1,5 +1,5 @@
 /*!
- * # Intermediate representation (IR) for plotive
+ * # Declarative design module for plotive
  *
  * This module contains all data structures for the design of plotting figures.
  */

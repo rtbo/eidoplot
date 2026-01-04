@@ -6,7 +6,7 @@ use crate::text::Font;
 /// An arbitrary graphical annotation placed on the plot area.
 /// The placement is made according to the data coordinates.
 /// By default, lines are plotted under the series, and other annotations are plotted above the series.
-/// This can be changed using [`with_zpos()`].
+/// This can be changed using [`with_zpos()`](Annotation::with_zpos).
 #[derive(Debug, Clone)]
 pub enum Annotation {
     /// A line plotted on the plot area.
@@ -238,7 +238,7 @@ pub struct Marker {
     pub(crate) pos: Pos,
 }
 
-/// An anchor point for [`PlotLabel`].
+/// An anchor point for [`Label`].
 /// It defines which point of the label is positioned at the given data coordinates.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Anchor {
