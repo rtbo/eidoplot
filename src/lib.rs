@@ -13,6 +13,103 @@
  *  - Histograms
  *  - Bar plots
  *
+ *
+ * ## Get started
+ *
+ * Add `plotive` to your project, as well as one of the surface backend crates.<br />
+ * (here `plotive-iced`, a GUI crate for [iced.rs](https://iced.rs))
+ *
+ * ```text
+ * cargo add plotive
+ * cargo add plotive-iced
+ * ```
+ *
+ * Here is a quick tuto and example to create your first figure:
+ *
+ * ```no_run
+ * # use std::f64::consts::PI;
+ * # use std::sync::Arc;
+ * # fn main() {
+ * // We start by the figure design. We need the `des` module for that.
+ * use plotive::des;
+ *
+ * // Create the axes. They are empty by default.
+ * // We add titles, ticks and grids to the axes.
+ * let x_axis = des::Axis::new()
+ *     // the title can be built from a String or a `plotive_text::RichText` object
+ *    .with_title("x".into())
+ *     .with_ticks(
+ *         // we specify a tick locator that places ticks at multiples of pi
+ *         des::axis::Ticks::new().with_locator(
+ *             des::axis::ticks::PiMultipleLocator::default().into()
+ *         ),
+ *     )
+ *     // add default grid on major ticks
+ *     .with_grid(Default::default());
+ *
+ * // similarly for the y axis, with minor ticks and grid as well
+ * let y_axis = des::Axis::new()
+ *     .with_title("y".into())
+ *     .with_ticks(Default::default())
+ *     .with_grid(Default::default())
+ *     .with_minor_ticks(Default::default())
+ *     .with_minor_grid(Default::default());
+ *
+ * // Create a line series.
+ * // We don't provide data just yet, we reference instead data columns "x" and "y".
+ * // It is also possible to provide data inline in the design if it fits your need.
+ * // (If so, supply `()` as data source when creating the figure below)
+ * let series = des::series::Line::new(des::data_src_ref("x"), des::data_src_ref("y"))
+ *     // name the series for the legend
+ *     .with_name("y=sin(x)")
+ *     .into();
+ *
+ * // Create the plot with what we just built,
+ * // and add a legend at top-right inside the plot area
+ * let plot = des::Plot::new(vec![series])
+ *     .with_x_axis(x_axis)
+ *     .with_y_axis(y_axis)
+ *     .with_legend(des::plot::LegendPos::InTopRight.into());
+ *
+ * // We can now finalize our design by creating the figure from the plot.
+ * // `des::Figure` is the top-level design object in plotive.
+ * let fig = des::Figure::new(plot.into()).with_title("a sine wave".into());
+ *
+ * // We can now create the data source for the figure.
+ * use plotive::data;
+ *
+ * let x: Vec<f64> = (0..=360).map(|t| t as f64 * PI / 180.0).collect();
+ * let y = x.iter().map(|x| x.sin()).collect();
+ *
+ * // This is a simple source type, that takes ownership of the data.
+ * let data_source = data::TableSource::new()
+ *     .with_f64_column("x", x)
+ *     .with_f64_column("y", y);
+ *
+ * // Finally, we can show the figure using the `Show` trait from the `plotive-iced` crate.
+ * use plotive_iced::Show;
+ *
+ * // To implement zooming and panning, `Show` needs to keep a reference
+ * // to the data source, so we wrap it in an Arc.
+ * // It means that `Show` doesn't support data sources that borrow data.
+ * // But `plotive-pxl` and `plotive-svg` do support borrowed data sources.
+ *
+ * fig.show(
+ *     Arc::new(data_source),
+ *     // We specify light theme style for the figure.
+ *     // Default would follow the default theme of the iced window. (system light/dark mode)
+ *     show::Params {
+ *         style: Some(style::Builtin::Light.into()),
+ *         ..Default::default()
+ *     },
+ * )
+ * .unwrap();
+ * # }
+ * ```
+ *
+ * This should open the following window:
+ * ![A sine wave plot window](https://github.com/rtbo/plotive/blob/main/gallery/iced_sine.png?raw=true)
+ *
  * ## Notes about plotive's design
  *
  * The figure design lies in the [`des`] module.
@@ -32,62 +129,9 @@
  *  - drawing: [`drawing::Figure::draw()`] draws the prepared figure onto the surface, using the cached information. Themes
  *    colors are resolved at this stage.
  *
- * The [`drawing::Figure`] has API to update the series with new data, so that dynamic plots can be implemented easily.
+ * The [`drawing::Figure`] has API to update the series with new data, so that dynamic plots can be implemented easily and efficiently.
  * It also supports zooming and panning operations.
  *
- * ## Example
- *
- * ```no_run
- * use std::f64::consts::PI;
- * use std::sync::Arc;
- *
- * use plotive::{data, des, style};
- * use plotive_iced::{Show, show};
- *
- * fn main() {
- *     let x_axis = des::Axis::new()
- *         .with_title("x".into())
- *         .with_ticks(
- *             des::axis::Ticks::new()
- *                 .with_locator(des::axis::ticks::PiMultipleLocator::default().into()),
- *         )
- *         .with_grid(Default::default());
- *
- *     let y_axis = des::Axis::new()
- *         .with_title("y".into())
- *         .with_ticks(Default::default())
- *         .with_grid(Default::default())
- *         .with_minor_ticks(Default::default())
- *         .with_minor_grid(Default::default());
- *
- *     let series = des::series::Line::new(des::data_src_ref("x"), des::data_src_ref("y"))
- *         .with_name("y=sin(x)")
- *         .into();
- *
- *     let plot = des::Plot::new(vec![series])
- *         .with_x_axis(x_axis)
- *         .with_y_axis(y_axis)
- *         .with_legend(des::plot::LegendPos::InTopRight.into());
- *
- *     let fig = des::Figure::new(plot.into()).with_title("a sine wave".into());
- *
- *     let x: Vec<f64> = (0..=360).map(|t| t as f64 * PI / 180.0).collect();
- *     let y = x.iter().map(|x| x.sin()).collect();
- *
- *     let data_source = data::TableSource::new()
- *         .with_f64_column("x", x)
- *         .with_f64_column("y", y);
- *
- *     fig.show(
- *         Arc::new(data_source),
- *         show::Params {
- *             style: Some(style::Builtin::Light.into()),
- *             ..Default::default()
- *         },
- *     )
- *     .unwrap();
- * }
- * ```
  */
 // Plotive is released under the MIT License with the following copyright:
 // Copyright (c) 2025 Rémi Thebault
