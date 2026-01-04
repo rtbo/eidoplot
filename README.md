@@ -29,13 +29,13 @@ This DSL is still fairly incomplete, but all examples in the repo are working.
    - Support for CSV and [polars](https://pola.rs) is included
 
  - **Rendering surfaces** (`plotive::render` and separate crates)
-   - `plotive-pxl`: Rasterized rendering (PNG, etc.)
+   - `plotive-pxl`: Rasterized rendering (PNG, or pixels array)
    - `plotive-svg`: SVG rendering
    - `plotive-iced`: GUI rendering with [iced](https://iced.rs).
 
 
 ### Automatic Layout
- - All the layout is done consistently and automatically.
+ - All the layout is done consistently and automatically.<br />
  You can add multiple axes, multiple plots etc.
  Everything will be laid-out consistently, leaving enough space for axis ticks labels, legends etc.  Your code never need to calculate size of anything.
 
@@ -53,7 +53,7 @@ This DSL is still fairly incomplete, but all examples in the repo are working.
  - Annotations are placed using data space coordinates
 
 ### GUI integration and real-time rendering
- - The crate `plotive-iced` provides a `Figure` widget.
+ - The crate `plotive-iced` provides a `Figure` widget.<br />
 Thanks to separation of data from design, redraws of the same figure with different data
 is very efficient and compatible with real-time rendering, up to hundreds of redraws per second.
 
@@ -61,25 +61,25 @@ is very efficient and compatible with real-time rendering, up to hundreds of red
 
 ## Gallery
 
-(a few more in the gallery folder)
-
 ![a simple sine plot](gallery/sine.png)
 ![a bode diagram](gallery/bode_rlc.png)
 ![a bode diagram with catpuccin mocha theme](gallery/bode_rlc_mocha.png)
 ![a plot with multiple axes](gallery/multiple_axes.png)
 ![a plot with normal distribution](gallery/gauss.png)
 
+(a few more in the gallery folder)
+
 ## Get started
 
-Add `plotive` to your project, as well as one of the surface backend crates.
-(here a GUI crate for [iced.rs](https://iced.rs))
+Add `plotive` to your project, as well as one of the surface backend crates.<br />
+(here `plotive-iced`, a GUI crate for [iced.rs](https://iced.rs))
 ```
 cargo add plotive
 cargo add plotive-iced
 ```
 
-To create a figure, you start by its design, referencing data that will come later.
-The design structure is purely declarative and very lightweight:
+To create a figure, you start by declaring its design with the `des` module, referencing data that will come later.
+The design structure is purely declarative, own all its data and very lightweight:
 
 ```rust
 use plotive::des;
@@ -124,7 +124,7 @@ let data_source = data::TableSource::new()
     .with_f64_column("y", y);
 ```
 
-Everything is ready. You can use any of the crate implementing `plotive::render::Surface` to either save to an image file, or show it in a GUI:
+Everything is ready. You can use any of the crate providing implementation for `plotive::render::Surface` to either save to an image file, or show it in a GUI:
 
 ```rust
 use plotive_iced::Show;
@@ -135,3 +135,14 @@ fig.show(Arc::new(data_source), Default::default()).unwrap();
 During execution, the following window shows:
 
 ![Iced window with sine wave](gallery/iced_sine.png)
+
+## Crate features
+
+ - `data-csv`: enables `plotive::data::{csv, CsvParser}`
+ - `data-polars`: enables `plotive::data::polars`<br />
+   pulls in the `polars` dependency, which is a big beast.
+ - `dsl`: enables the support for `.plotive` DSL.
+ - `noto-mono`, `noto-sans`, `noto-sans-italic`, `noto-serif`, `noto-serif-italic`: bundles the corresponding fonts from Google in the final executable, and enables `plotive::bundled_font_db()`.<br />
+  `noto-sans` is enabled by default
+ - `time`: enables `plotive::time` module and support for time series, CSV date-time parsing etc.
+ - `utils`: enables `plotive::utils`, that contains various utilities such as `linspace`, `logspace` etc.
