@@ -1,5 +1,5 @@
 pub mod figure;
-mod show;
+pub mod show;
 mod surface;
 
 pub use figure::{Figure, figure};

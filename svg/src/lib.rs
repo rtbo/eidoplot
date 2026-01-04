@@ -38,12 +38,12 @@ impl std::error::Error for Error {}
 
 /// Parameters needed for saving a [`drawing::Figure`] as SVG
 #[derive(Debug, Clone)]
-pub struct DrawingParams<T, SP> {
+pub struct Params<T, SP> {
     pub style: Style<T, SP>,
     pub scale: f32,
 }
 
-impl<T, SP> Default for DrawingParams<T, SP>
+impl<T, SP> Default for Params<T, SP>
 where
     T: style::Theme + Default,
     SP: style::series::Palette + Default,
@@ -60,7 +60,7 @@ where
 }
 
 pub trait SaveSvg {
-    fn save_svg<P, T, SP>(&self, path: P, params: DrawingParams<T, SP>) -> Result<(), Error>
+    fn save_svg<P, T, SP>(&self, path: P, params: Params<T, SP>) -> Result<(), Error>
     where
         P: AsRef<Path>,
         T: style::Theme,
@@ -68,7 +68,7 @@ pub trait SaveSvg {
 }
 
 impl SaveSvg for drawing::Figure {
-    fn save_svg<P, T, SP>(&self, path: P, params: DrawingParams<T, SP>) -> Result<(), Error>
+    fn save_svg<P, T, SP>(&self, path: P, params: Params<T, SP>) -> Result<(), Error>
     where
         P: AsRef<Path>,
         T: style::Theme,

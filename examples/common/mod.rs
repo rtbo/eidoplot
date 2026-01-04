@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use plotive::style::{self};
-use plotive::{Drawing, data, fontdb, des};
+use plotive::{Drawing, data, des, fontdb};
 use plotive_iced::Show;
 use plotive_pxl::SavePng;
 use plotive_svg::SaveSvg;
@@ -127,7 +127,7 @@ fn save_fig<D>(
             };
             fig.save_png(
                 &file_name,
-                plotive_pxl::DrawingParams {
+                plotive_pxl::Params {
                     style: style.clone(),
                     scale: 2.0,
                 },
@@ -145,7 +145,7 @@ fn save_fig<D>(
             };
             fig.save_svg(
                 &file_name,
-                plotive_svg::DrawingParams {
+                plotive_svg::Params {
                     style: style.clone(),
                     scale: 1.0,
                 },
@@ -158,7 +158,13 @@ fn save_fig<D>(
         let data_source = data_source.copy();
         let fontdb = Arc::new(fontdb.clone());
 
-        fig.show(data_source, fontdb, Some(style))
-            .unwrap();
+        fig.show(
+            data_source,
+            plotive_iced::show::Params {
+                style: args.style.map(|s| s.into()),
+                fontdb: Some(fontdb),
+            },
+        )
+        .unwrap();
     }
 }

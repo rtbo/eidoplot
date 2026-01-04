@@ -6,59 +6,61 @@ use iced::widget::{button, column, mouse_area, row, space, text};
 use iced::{Alignment, Length, mouse};
 use iced_font_awesome::{fa_icon, fa_icon_solid};
 use plotive::drawing::zoom;
-use plotive::style::{self, BuiltinStyle, CustomStyle};
-use plotive::{Drawing, Style, data, drawing, fontdb, geom, des};
+use plotive::style::{BuiltinStyle, CustomStyle};
+use plotive::{Drawing, data, des, drawing, fontdb, geom};
 
 use crate::figure::figure;
+
+#[derive(Debug, Clone)]
+pub struct Params {
+    pub style: Option<CustomStyle>,
+    pub fontdb: Option<Arc<fontdb::Database>>,
+}
+
+impl Default for Params {
+    fn default() -> Self {
+        Self {
+            style: None,
+            fontdb: None,
+        }
+    }
+}
 
 /// Trait to show figures in a window
 pub trait Show {
     /// Show the figure in a GUI window.
     /// This function will block the calling thread until the window is closed.
-    fn show<D, T, P>(
-        self,
-        data_source: Arc<D>,
-        fontdb: Arc<fontdb::Database>,
-        style: Option<Style<T, P>>,
-    ) -> iced::Result
+    fn show<D>(self, data_source: Arc<D>, params: Params) -> iced::Result
     where
-        D: data::Source + ?Sized + 'static,
-        T: style::Theme,
-        P: style::series::Palette;
+        D: data::Source + ?Sized + 'static;
 }
 
 impl Show for des::Figure {
-    fn show<D, T, P>(
-        self,
-        data_source: Arc<D>,
-        fontdb: Arc<fontdb::Database>,
-        style: Option<Style<T, P>>,
-    ) -> iced::Result
+    fn show<D>(self, data_source: Arc<D>, params: Params) -> iced::Result
     where
         D: data::Source + ?Sized + 'static,
-        T: style::Theme,
-        P: style::series::Palette,
     {
+        let fontdb = params
+            .fontdb
+            .unwrap_or_else(|| Arc::new(plotive::bundled_font_db()));
         let fig = self
             .prepare(&*data_source, Some(&*fontdb))
             .expect("Failed to prepare figure");
-        show_app(fig, data_source, fontdb, style.map(|s| s.to_custom()))
+
+        show_app(fig, data_source, fontdb, params.style)
     }
 }
 
 impl Show for drawing::Figure {
-    fn show<D, T, P>(
-        self,
-        data_source: Arc<D>,
-        fontdb: Arc<fontdb::Database>,
-        style: Option<Style<T, P>>,
-    ) -> iced::Result
+    fn show<D>(self, data_source: Arc<D>, params: Params) -> iced::Result
     where
         D: data::Source + ?Sized + 'static,
-        T: style::Theme,
-        P: style::series::Palette,
     {
-        show_app(self, data_source, fontdb, style.map(|s| s.to_custom()))
+        let fontdb = params
+            .fontdb
+            .unwrap_or_else(|| Arc::new(plotive::bundled_font_db()));
+
+        show_app(self, data_source, fontdb, params.style)
     }
 }
 
@@ -358,7 +360,7 @@ where
                     };
                     let scale = self.fig_scale;
                     self.figure
-                        .save_png(path, plotive_pxl::DrawingParams { style, scale })
+                        .save_png(path, plotive_pxl::Params { style, scale })
                         .unwrap();
                 }
             }
@@ -377,7 +379,7 @@ where
                     };
                     let scale = self.fig_scale;
                     self.figure
-                        .save_svg(path, plotive_svg::DrawingParams { style, scale })
+                        .save_svg(path, plotive_svg::Params { style, scale })
                         .unwrap();
                 }
             }
@@ -395,7 +397,7 @@ where
                 let scale = self.fig_scale;
                 let pixmap = self
                     .figure
-                    .to_pixmap(plotive_pxl::DrawingParams { style, scale })
+                    .to_pixmap(plotive_pxl::Params { style, scale })
                     .unwrap();
                 self.clipboard
                     .set_image(arboard::ImageData {

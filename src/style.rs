@@ -25,6 +25,12 @@ pub type BuiltinStyle = Style<theme::Builtin, series::palette::Builtin>;
 /// Type alias for a style with custom theme and palette
 pub type CustomStyle = Style<theme::Custom, series::palette::Custom>;
 
+impl From<Builtin> for CustomStyle {
+    fn from(builtin: Builtin) -> Self {
+        builtin.to_style().to_custom()
+    }
+}
+
 impl<T, P> Style<T, P> {
     /// Create a new style from the given theme and palette
     pub fn new(theme: T, palette: P) -> Self {

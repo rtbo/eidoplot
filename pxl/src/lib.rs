@@ -37,12 +37,12 @@ impl std::error::Error for Error {}
 
 /// Parameters needed for saving a [`drawing::Figure`] as PNG
 #[derive(Debug, Clone)]
-pub struct DrawingParams<T, SP> {
+pub struct Params<T, SP> {
     pub style: Style<T, SP>,
     pub scale: f32,
 }
 
-impl<T, SP> Default for DrawingParams<T, SP>
+impl<T, SP> Default for Params<T, SP>
 where
     T: style::Theme + Default,
     SP: style::series::Palette + Default,
@@ -59,7 +59,7 @@ where
 }
 
 pub trait SavePng {
-    fn save_png<P, T, SP>(&self, path: P, params: DrawingParams<T, SP>) -> Result<(), Error>
+    fn save_png<P, T, SP>(&self, path: P, params: Params<T, SP>) -> Result<(), Error>
     where
         P: AsRef<Path>,
         T: style::Theme,
@@ -67,7 +67,7 @@ pub trait SavePng {
 }
 
 impl SavePng for drawing::Figure {
-    fn save_png<P, T, SP>(&self, path: P, params: DrawingParams<T, SP>) -> Result<(), Error>
+    fn save_png<P, T, SP>(&self, path: P, params: Params<T, SP>) -> Result<(), Error>
     where
         P: AsRef<Path>,
         T: style::Theme,
@@ -88,14 +88,14 @@ impl SavePng for drawing::Figure {
 }
 
 pub trait ToPixmap {
-    fn to_pixmap<T, P>(&self, params: DrawingParams<T, P>) -> Result<tiny_skia::Pixmap, Error>
+    fn to_pixmap<T, P>(&self, params: Params<T, P>) -> Result<tiny_skia::Pixmap, Error>
     where
         T: style::Theme,
         P: style::series::Palette;
 }
 
 impl ToPixmap for drawing::Figure {
-    fn to_pixmap<T, P>(&self, params: DrawingParams<T, P>) -> Result<tiny_skia::Pixmap, Error>
+    fn to_pixmap<T, P>(&self, params: Params<T, P>) -> Result<tiny_skia::Pixmap, Error>
     where
         T: style::Theme,
         P: style::series::Palette,
