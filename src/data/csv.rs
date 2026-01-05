@@ -1,10 +1,13 @@
+//! Module for parsing and exporting CSV data.
+use std::collections::HashMap;
+
 use super::{TableSource, VecColumn};
 #[cfg(feature = "time")]
 use crate::time::DateTime;
 
 /// CSV parsing error
 #[derive(Debug, Clone)]
-pub enum CsvParseError {
+pub enum ParseError {
     /// Inconsistent column count
     ColCount {
         /// Line number where the error occurred
@@ -32,32 +35,32 @@ pub enum CsvParseError {
     },
 }
 
-impl std::fmt::Display for CsvParseError {
+impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CsvParseError::ColCount { line } => {
+            ParseError::ColCount { line } => {
                 write!(f, "Inconsistent column count at line {line}")
             }
-            CsvParseError::ColType { line } => {
+            ParseError::ColType { line } => {
                 write!(f, "Inconsistent column type at line {line}")
             }
-            CsvParseError::UnknownCol { title } => {
+            ParseError::UnknownCol { title } => {
                 write!(f, "Unknown column title {title}")
             }
-            CsvParseError::UnknownColIdx { idx } => {
+            ParseError::UnknownColIdx { idx } => {
                 write!(f, "Unknown column index {idx}")
             }
-            CsvParseError::AllNull { col } => write!(f, "Only null values in column {col}"),
+            ParseError::AllNull { col } => write!(f, "Only null values in column {col}"),
         }
     }
 }
 
-impl std::error::Error for CsvParseError {}
+impl std::error::Error for ParseError {}
 
 #[allow(missing_copy_implementations)]
 /// CSV parsing spec for a specific column
 #[derive(Debug, Clone)]
-pub enum CsvColSpec {
+pub enum ColSpec {
     /// Let the parser guess the column type
     /// (the default if no spec is provided)
     Auto,
@@ -117,15 +120,15 @@ impl CsvColumn {
 
 /// A CSV file parser
 #[derive(Debug, Clone)]
-pub struct CsvParser {
+pub struct Parser {
     sep: char,
-    col_specs: Vec<(ColId, CsvColSpec)>,
+    col_specs: Vec<(ColId, ColSpec)>,
 }
 
-impl CsvParser {
+impl Parser {
     /// Creates a new CSV parser with default settings.
     pub fn new() -> Self {
-        CsvParser {
+        Parser {
             sep: ',',
             col_specs: Vec::new(),
         }
@@ -138,19 +141,19 @@ impl CsvParser {
     }
 
     /// Add a column specification by title
-    pub fn with_col_spec(mut self, title: &str, spec: CsvColSpec) -> Self {
+    pub fn with_col_spec(mut self, title: &str, spec: ColSpec) -> Self {
         self.col_specs.push((ColId::Tit(title.to_string()), spec));
         self
     }
 
     /// Add a column specification by index
-    pub fn with_col_spec_idx(mut self, idx: usize, spec: CsvColSpec) -> Self {
+    pub fn with_col_spec_idx(mut self, idx: usize, spec: ColSpec) -> Self {
         self.col_specs.push((ColId::Idx(idx), spec));
         self
     }
 
     /// Parse the given CSV data
-    pub fn parse(self, data: &str) -> Result<TableSource, CsvParseError> {
+    pub fn parse(self, data: &str) -> Result<TableSource, ParseError> {
         let sep = self.sep;
         let mut col_specs = self.col_specs;
 
@@ -167,7 +170,7 @@ impl CsvParser {
             }) {
                 spec.0 = ColId::Idx(idx);
             } else {
-                col_specs.push((ColId::Idx(idx), CsvColSpec::Auto));
+                col_specs.push((ColId::Idx(idx), ColSpec::Auto));
             }
         }
 
@@ -175,12 +178,12 @@ impl CsvParser {
         for col_spec in &col_specs {
             match &col_spec.0 {
                 ColId::Tit(title) => {
-                    return Err(CsvParseError::UnknownCol {
+                    return Err(ParseError::UnknownCol {
                         title: title.clone(),
                     });
                 }
                 ColId::Idx(idx) if idx >= &header.len() => {
-                    return Err(CsvParseError::UnknownColIdx { idx: *idx });
+                    return Err(ParseError::UnknownColIdx { idx: *idx });
                 }
                 _ => (),
             }
@@ -195,14 +198,14 @@ impl CsvParser {
         let mut columns: Vec<Option<CsvColumn>> = col_specs
             .into_iter()
             .map(|spec| match spec.1 {
-                CsvColSpec::F64 => Some(CsvColumn::F64(Vec::new())),
-                CsvColSpec::I64 => Some(CsvColumn::I64(Vec::new())),
-                CsvColSpec::Str => Some(CsvColumn::Str(Vec::new())),
+                ColSpec::F64 => Some(CsvColumn::F64(Vec::new())),
+                ColSpec::I64 => Some(CsvColumn::I64(Vec::new())),
+                ColSpec::Str => Some(CsvColumn::Str(Vec::new())),
                 #[cfg(feature = "time")]
-                CsvColSpec::TimeAuto => Some(CsvColumn::Time(Vec::new(), None)),
+                ColSpec::TimeAuto => Some(CsvColumn::Time(Vec::new(), None)),
                 #[cfg(feature = "time")]
-                CsvColSpec::TimeCustom { fmt } => Some(CsvColumn::Time(Vec::new(), Some(fmt))),
-                CsvColSpec::Auto => None,
+                ColSpec::TimeCustom { fmt } => Some(CsvColumn::Time(Vec::new(), Some(fmt))),
+                ColSpec::Auto => None,
             })
             .collect();
 
@@ -210,7 +213,7 @@ impl CsvParser {
         for line in lines {
             for (cidx, data) in line.split(sep).map(|s| s.trim()).enumerate() {
                 if cidx >= columns.len() {
-                    return Err(CsvParseError::ColCount { line: 2 });
+                    return Err(ParseError::ColCount { line: 2 });
                 }
                 let col = &mut columns[cidx];
                 if col.is_none() && !data.is_empty() {
@@ -232,7 +235,7 @@ impl CsvParser {
                 Some(CsvColumn::Time(vec, ..)) => Some(VecColumn::Time(vec)),
                 None => None,
             };
-            let col = col.ok_or(CsvParseError::AllNull { col: ci })?;
+            let col = col.ok_or(ParseError::AllNull { col: ci })?;
             src.add_column(&header[ci], col);
         }
         Ok(src)
@@ -273,7 +276,7 @@ fn guess_column_type(data: &str, num_nulls: usize) -> CsvColumn {
     }
 }
 
-fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), CsvParseError> {
+fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), ParseError> {
     match col {
         CsvColumn::F64(vec) => {
             if data.is_empty() {
@@ -281,7 +284,7 @@ fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), CsvParseErro
             } else if let Ok(d) = data.parse::<f64>() {
                 vec.push(d);
             } else {
-                return Err(CsvParseError::ColType { line: 2 });
+                return Err(ParseError::ColType { line: 2 });
             }
         }
         CsvColumn::I64(vec) => {
@@ -290,7 +293,7 @@ fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), CsvParseErro
             } else if let Ok(d) = data.parse::<i64>() {
                 vec.push(Some(d));
             } else {
-                return Err(CsvParseError::ColType {
+                return Err(ParseError::ColType {
                     line: col.len() + 2,
                 });
             }
@@ -320,7 +323,7 @@ fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), CsvParseErro
                             vec.push(Some(dt));
                             *fmt = Some("%Y-%m-%d".to_string());
                         } else {
-                            return Err(CsvParseError::ColType {
+                            return Err(ParseError::ColType {
                                 line: col.len() + 2,
                             });
                         }
@@ -329,7 +332,7 @@ fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), CsvParseErro
                         if let Ok(dt) = DateTime::fmt_parse(data, fmt) {
                             vec.push(Some(dt));
                         } else {
-                            return Err(CsvParseError::ColType {
+                            return Err(ParseError::ColType {
                                 line: col.len() + 2,
                             });
                         }
@@ -350,7 +353,7 @@ mod tests {
 
     #[test]
     fn test_parse_csv_data() {
-        let src = CsvParser::new().parse(CSV_DATA).unwrap();
+        let src = Parser::new().parse(CSV_DATA).unwrap();
         assert_eq!(src.len(), 3);
 
         let int_col = src
@@ -386,7 +389,7 @@ mod tests {
 
     #[test]
     fn test_parse_csv_data_null() {
-        let src = CsvParser::new().parse(CSV_NULL_DATA).unwrap();
+        let src = Parser::new().parse(CSV_NULL_DATA).unwrap();
         assert_eq!(src.len(), 3);
 
         let int_col = src
@@ -421,7 +424,7 @@ mod tests {
 
     #[test]
     fn test_parse_csv_data_null_fst_line() {
-        let src = CsvParser::new().parse(CSV_NULL_DATA_FST_LINE).unwrap();
+        let src = Parser::new().parse(CSV_NULL_DATA_FST_LINE).unwrap();
         assert_eq!(src.len(), 3);
 
         let int_col = src
@@ -458,7 +461,7 @@ mod tests {
     #[cfg(feature = "time")]
     #[test]
     fn test_parse_csv_date() {
-        let src = CsvParser::new().parse(CSV_DATE).unwrap();
+        let src = Parser::new().parse(CSV_DATE).unwrap();
         assert_eq!(src.len(), 3);
 
         let date_col = src

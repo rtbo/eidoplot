@@ -47,7 +47,7 @@ fn main() {
     let iris_csv = iris_csv_path();
     let csv_data = std::fs::read_to_string(&iris_csv).unwrap();
 
-    let table = data::CsvParser::new().parse(&csv_data).unwrap();
+    let table = data::csv::Parser::new().parse(&csv_data).unwrap();
 
     let species = table.column("Species").unwrap();
     let sepal_length = table.column("SepalLengthCm").unwrap();

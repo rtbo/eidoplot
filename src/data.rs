@@ -10,9 +10,7 @@ use core::fmt;
 use std::sync::Arc;
 
 #[cfg(feature = "data-csv")]
-mod csv;
-#[cfg(feature = "data-csv")]
-pub use csv::{CsvColSpec, CsvParseError, CsvParser};
+pub mod csv;
 
 #[cfg(feature = "data-polars")]
 pub mod polars;
