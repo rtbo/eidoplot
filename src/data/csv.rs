@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 
 use super::{TableSource, VecColumn};
+use crate::data::SampleRef;
 #[cfg(feature = "time")]
 use crate::time::DateTime;
 
@@ -340,6 +341,233 @@ fn parse_column_data(data: &str, col: &mut CsvColumn) -> Result<(), ParseError> 
                 }
             }
         }
+    }
+    Ok(())
+}
+
+/// An error that can occur during CSV export
+#[derive(Debug)]
+pub enum ExportError {
+    /// I/O error
+    Io(std::io::Error),
+    /// Row count is not consistent across columns
+    InconsistentRowCount,
+    /// Column type not consistent with specified format
+    /// See [`ExportFormat`]
+    InconsistentColumnType,
+}
+
+impl std::fmt::Display for ExportError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExportError::Io(e) => write!(f, "IO error: {}", e),
+            ExportError::InconsistentRowCount => write!(f, "Inconsistent row count"),
+            ExportError::InconsistentColumnType => write!(f, "Inconsistent column type"),
+        }
+    }
+}
+
+impl From<std::io::Error> for ExportError {
+    fn from(err: std::io::Error) -> Self {
+        ExportError::Io(err)
+    }
+}
+
+impl std::error::Error for ExportError {}
+
+/// A CSV export column value format
+#[derive(Default)]
+pub enum ExportFormat {
+    /// Automatic format based on sample type (the default)
+    #[default]
+    Auto,
+    /// Floating point number with fixed number of decimals
+    Decimals(usize),
+    /// Floating point number in scientific notation with fixed number of decimals
+    Scientific(usize),
+    #[cfg(feature = "time")]
+    /// Date/time with custom format
+    DateTime(String),
+    #[cfg(feature = "time")]
+    /// Time delta with custom format
+    TimeDelta(String),
+    /// Custom formatting function
+    Custom(Box<dyn Fn(SampleRef) -> String + Send + Sync>),
+}
+
+impl std::fmt::Debug for ExportFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExportFormat::Auto => write!(f, "CsvExportFormat::Auto"),
+            ExportFormat::Decimals(d) => write!(f, "CsvExportFormat::Decimals({})", d),
+            ExportFormat::Scientific(d) => {
+                write!(f, "CsvExportFormat::Scientific({})", d)
+            }
+            #[cfg(feature = "time")]
+            ExportFormat::DateTime(fmt) => {
+                write!(f, "CsvExportFormat::DateTime({})", fmt)
+            }
+            #[cfg(feature = "time")]
+            ExportFormat::TimeDelta(fmt) => {
+                write!(f, "CsvExportFormat::TimeDelta({})", fmt)
+            }
+            ExportFormat::Custom(_) => write!(f, "CsvExportFormat::Custom(..)"),
+        }
+    }
+}
+
+impl ExportFormat {
+    fn format_value(
+        &self,
+        value: SampleRef,
+        decimal_point: char,
+    ) -> Result<String, ExportError> {
+        match (self, value) {
+            (_, SampleRef::Null) => Ok(String::new()),
+            (ExportFormat::Auto, SampleRef::Cat(s)) => Ok(s.to_string()),
+            (ExportFormat::Auto, SampleRef::Num(v)) => {
+                Ok(handle_dec_point(format!("{}", v), decimal_point))
+            }
+            (ExportFormat::Decimals(d), SampleRef::Num(v)) => {
+                Ok(handle_dec_point(format!("{:.*}", *d, v), decimal_point))
+            }
+            (ExportFormat::Scientific(d), SampleRef::Num(v)) => {
+                Ok(handle_dec_point(format!("{:.*e}", *d, v), decimal_point))
+            }
+            #[cfg(feature = "time")]
+            (ExportFormat::Auto, SampleRef::Time(dt)) => Ok(dt.to_string()),
+            #[cfg(feature = "time")]
+            (ExportFormat::Auto, SampleRef::TimeDelta(dt)) => Ok(dt.to_string()),
+            #[cfg(feature = "time")]
+            (ExportFormat::DateTime(fmt), SampleRef::Time(dt)) => Ok(dt.fmt_to_string(fmt)),
+            #[cfg(feature = "time")]
+            (ExportFormat::TimeDelta(fmt), SampleRef::TimeDelta(td)) => {
+                Ok(td.fmt_to_string(fmt))
+            }
+            (ExportFormat::Custom(f), v) => Ok(f(v)),
+            _ => Err(ExportError::InconsistentColumnType),
+        }
+    }
+}
+
+fn handle_dec_point(s: String, decimal_point: char) -> String {
+    if decimal_point != '.' {
+        s.replace('.', &decimal_point.to_string())
+    } else {
+        s
+    }
+}
+
+/// CSV header row export options
+#[derive(Debug, Default)]
+pub enum ExportHeaderRow {
+    /// No header row
+    None,
+    #[default]
+    /// Use column names as headers
+    Names,
+    /// Use custom mapped names
+    /// The map key is the original column name, and the value is the desired header name
+    /// If a column name is not found in the map, the original name is used
+    MappedNames(HashMap<String, String>),
+}
+
+/// Options for exporting CSV data
+#[derive(Debug)]
+pub struct ExportOptions {
+    /// Header row options
+    pub header_row: ExportHeaderRow,
+    /// Column delimiter character (default to ',')
+    pub delimiter: char,
+    /// Decimal point character (default to '.')
+    pub decimal_point: char,
+    /// Per-column value formats (default to all Auto)
+    /// Only include here columns that need custom formatting
+    pub value_formats: Option<HashMap<String, ExportFormat>>,
+}
+
+impl Default for ExportOptions {
+    fn default() -> Self {
+        ExportOptions {
+            header_row: ExportHeaderRow::default(),
+            delimiter: ',',
+            decimal_point: '.',
+            value_formats: None,
+        }
+    }
+}
+
+/// Export the given data source to CSV format
+pub fn export_data_source<W, D>(
+    output: &mut W,
+    data_source: &D,
+    options: ExportOptions,
+) -> Result<(), ExportError>
+where
+    W: std::io::Write,
+    D: super::Source + ?Sized,
+{
+    let names = data_source.names();
+    if names.is_empty() {
+        return Ok(());
+    }
+
+    if matches!(options.header_row, ExportHeaderRow::Names | ExportHeaderRow::MappedNames(_)) {
+        for (i, h) in names.iter().enumerate() {
+            let h = match &options.header_row {
+                ExportHeaderRow::MappedNames(map) => {
+                    map.get(*h).map(|s| s.as_str()).unwrap_or(*h)
+                }
+                _ => *h,
+            };
+            write!(output, "{}", h)?;
+            if i + 1 < names.len() {
+                write!(output, "{}", options.delimiter)?;
+            }
+        }
+        writeln!(output)?;
+    }
+
+    let mut columns = Vec::with_capacity(names.len());
+    let mut data_len = None;
+    for n in 0..names.len() {
+        let col = data_source.column(names[n]).unwrap();
+        match data_len {
+            Some(len) => {
+                if col.len() != len {
+                    return Err(ExportError::InconsistentRowCount);
+                }
+            }
+            None => {
+                data_len = Some(col.len());
+            }
+        }
+        columns.push(col.sample_iter());
+    }
+
+    let def_fmt = ExportFormat::default();
+    let value_formats = names
+        .iter()
+        .map(|name| {
+            options
+                .value_formats
+                .as_ref()
+                .and_then(|vf| vf.get(*name))
+                .unwrap_or(&def_fmt)
+        })
+        .collect::<Vec<_>>();
+
+    for _ in 0..data_len.unwrap() {
+        for (cidx, col_iter) in columns.iter_mut().enumerate() {
+            let sample = col_iter.next().expect("Inconsistent row count");
+            let fmt = value_formats[cidx];
+            let value_str = fmt.format_value(sample, options.decimal_point)?;
+            write!(output, "{}", value_str)?;
+            if cidx + 1 < names.len() {
+                write!(output, "{}", options.delimiter)?;
+            }
+        }
+        writeln!(output)?;
     }
     Ok(())
 }
