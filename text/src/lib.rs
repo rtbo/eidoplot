@@ -1,3 +1,19 @@
+//! # plotive-text
+//!
+//! A crate for text shaping, layout and rendering, used by [plotive](https://crates.io/crates/plotive).
+//!
+//! This crate provides the following main functionalities:
+//!  - `fontdb`: This is a copied and modified version of the [fontdb](https://crates.io/crates/fontdb) crate.
+//!  - `font`:  Font description and matching utilities.
+//!  - `line`: Text layout and shaping for single lines of text.
+//!  - `rich`: Rich text parsing and rendering.
+//!
+//! For both single line text and rich text, the text is first analyzed for bidirectional runs using
+//! the [unicode-bidi](https://crates.io/crates/unicode-bidi) crate, then each run is shaped separately
+//! using [rustybuzz](https://crates.io/crates/rustybuzz) (a Rust port of [HarfBuzz](https://harfbuzz.github.io/)).
+//!
+//! Text is rendered as vector paths using the outline data from the font files, parsed with
+//! [ttf-parser](https://crates.io/crates/ttf-parser).
 use std::fmt;
 
 use plotive_base::geom;
