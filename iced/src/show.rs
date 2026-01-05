@@ -29,6 +29,8 @@ impl Commands {
     const SVG: u16 = 0x4;
     #[cfg(feature = "clipboard")]
     const CLIPBOARD: u16 = 0x8;
+    #[cfg(feature = "data-csv")]
+    const CSV: u16 = 0x10;
 
     pub fn has_view(&self) -> bool {
         (self.0 & Self::VIEW) != 0
@@ -86,6 +88,23 @@ impl Commands {
     #[cfg(feature = "clipboard")]
     pub fn without_export_clipboard(mut self) -> Self {
         self.0 &= !Self::CLIPBOARD;
+        self
+    }
+
+    #[cfg(feature = "data-csv")]
+    pub fn has_export_csv(&self) -> bool {
+        (self.0 & Self::CSV) != 0
+    }
+
+    #[cfg(feature = "data-csv")]
+    pub fn with_export_csv(mut self) -> Self {
+        self.0 |= Self::CSV;
+        self
+    }
+
+    #[cfg(feature = "data-csv")]
+    pub fn without_export_csv(mut self) -> Self {
+        self.0 &= !Self::CSV;
         self
     }
 }
@@ -214,6 +233,8 @@ pub enum Message {
     ExportClipboard,
     #[cfg(feature = "clipboard")]
     ResetClipboardAck,
+    #[cfg(feature = "data-csv")]
+    ExportCsv,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -571,6 +592,19 @@ where
                     self.ack_clipboard = false;
                 }
             }
+            #[cfg(feature = "data-csv")]
+            Message::ExportCsv => {
+                let filename = rfd::FileDialog::new()
+                    .set_title("Save figure data as CSV")
+                    .add_filter("CSV File", &["csv"])
+                    .set_file_name("figure_data.csv")
+                    .save_file();
+                if let Some(path) = filename {
+                    let mut file = std::fs::File::create(path).unwrap();
+                    data::csv::export_data_source(&mut file, &*fig.data_source, Default::default())
+                        .expect("Failed to export figure data to CSV");
+                }
+            }
             _ => {}
         }
         iced::Task::none()
@@ -678,6 +712,26 @@ where
             .spacing(5);
         toolbar = toolbar.push(status_txt).push(space::horizontal());
 
+        if self.commands.has_export_png() {
+            let convert_png = button(
+                row![fa_icon_solid("file-image"), text("PNG").size(TEXT_SZ)]
+                    .align_y(Alignment::Center)
+                    .spacing(5),
+            )
+            .on_press_maybe(has_fig.then_some(Message::ExportPng));
+            toolbar = toolbar.push(convert_png);
+        }
+
+        if self.commands.has_export_svg() {
+            let convert_svg = button(
+                row![fa_icon_solid("file-image"), text("SVG").size(TEXT_SZ)]
+                    .align_y(Alignment::Center)
+                    .spacing(5),
+            )
+            .on_press_maybe(has_fig.then_some(Message::ExportSvg));
+            toolbar = toolbar.push(convert_svg);
+        }
+
         #[cfg(feature = "clipboard")]
         if self.commands.has_export_clipboard() {
             let icon = if self.ack_clipboard {
@@ -691,24 +745,11 @@ where
             toolbar = toolbar.push(convert_clipboard);
         }
 
-        if self.commands.has_export_png() {
-            let convert_png = button(
-                row![fa_icon("file-image"), text("PNG").size(TEXT_SZ)]
-                    .align_y(Alignment::Center)
-                    .spacing(5),
-            )
-            .on_press_maybe(has_fig.then_some(Message::ExportPng));
-            toolbar = toolbar.push(convert_png);
-        }
-
-        if self.commands.has_export_svg() {
-            let convert_svg = button(
-                row![fa_icon("file-image"), text("SVG").size(TEXT_SZ)]
-                    .align_y(Alignment::Center)
-                    .spacing(5),
-            )
-            .on_press_maybe(has_fig.then_some(Message::ExportSvg));
-            toolbar = toolbar.push(convert_svg);
+        #[cfg(feature = "data-csv")]
+        if self.commands.has_export_csv() {
+            let convert_csv = button(fa_icon_solid("file-csv"))
+                .on_press_maybe(has_fig.then_some(Message::ExportCsv));
+            toolbar = toolbar.push(convert_csv);
         }
 
         toolbar
