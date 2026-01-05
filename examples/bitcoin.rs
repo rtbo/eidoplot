@@ -6,7 +6,7 @@ fn main() {
     // FIXME: support parsing datetime in CSV
     let btc_csv = common::example_res("BTC-USD.csv");
     let csv_data = std::fs::read_to_string(&btc_csv).unwrap();
-    let data_source = data::csv::Parser::new().parse(&csv_data).unwrap();
+    let data_source = data::csv::parse_str(&csv_data, Default::default()).unwrap();
 
     let price_series = des::series::Line::new(des::data_src_ref("Date"), des::data_src_ref("Close"))
         .with_name("Closing Price")
