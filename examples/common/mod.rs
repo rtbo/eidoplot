@@ -163,6 +163,7 @@ fn save_fig<D>(
             plotive_iced::show::Params {
                 style: args.style.map(|s| s.into()),
                 fontdb: Some(fontdb),
+                ..Default::default()
             },
         )
         .unwrap();

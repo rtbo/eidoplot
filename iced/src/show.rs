@@ -1,5 +1,6 @@
 //! Module that provides the "show" functionality using the `iced` GUI library
 
+use core::fmt;
 use std::sync::Arc;
 
 use iced::widget::{button, column, mouse_area, row, space, text};
@@ -11,10 +12,109 @@ use plotive::{Drawing, data, des, drawing, fontdb, geom};
 
 use crate::figure::figure;
 
+#[derive(Clone, Copy)]
+pub struct Commands(u16);
+
+impl Commands {
+    pub fn all() -> Self {
+        Self(0xffff)
+    }
+
+    pub fn none() -> Self {
+        Self(0)
+    }
+
+    const VIEW: u16 = 0x1;
+    const PNG: u16 = 0x2;
+    const SVG: u16 = 0x4;
+    #[cfg(feature = "clipboard")]
+    const CLIPBOARD: u16 = 0x8;
+
+    pub fn has_view(&self) -> bool {
+        (self.0 & Self::VIEW) != 0
+    }
+
+    pub fn with_view(mut self) -> Self {
+        self.0 |= Self::VIEW;
+        self
+    }
+
+    pub fn without_view(mut self) -> Self {
+        self.0 &= !Self::VIEW;
+        self
+    }
+
+    pub fn has_export_png(&self) -> bool {
+        (self.0 & Self::PNG) != 0
+    }
+
+    pub fn with_export_png(mut self) -> Self {
+        self.0 |= Self::PNG;
+        self
+    }
+
+    pub fn without_export_png(mut self) -> Self {
+        self.0 &= !Self::PNG;
+        self
+    }
+
+    pub fn has_export_svg(&self) -> bool {
+        (self.0 & Self::SVG) != 0
+    }
+
+    pub fn with_export_svg(mut self) -> Self {
+        self.0 |= Self::SVG;
+        self
+    }
+
+    pub fn without_export_svg(mut self) -> Self {
+        self.0 &= !Self::SVG;
+        self
+    }
+
+    #[cfg(feature = "clipboard")]
+    pub fn has_export_clipboard(&self) -> bool {
+        (self.0 & Self::CLIPBOARD) != 0
+    }
+
+    #[cfg(feature = "clipboard")]
+    pub fn with_export_clipboard(mut self) -> Self {
+        self.0 |= Self::CLIPBOARD;
+        self
+    }
+
+    #[cfg(feature = "clipboard")]
+    pub fn without_export_clipboard(mut self) -> Self {
+        self.0 &= !Self::CLIPBOARD;
+        self
+    }
+}
+
+impl fmt::Debug for Commands {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut cmds = vec![];
+        if self.has_view() {
+            cmds.push("View");
+        }
+        if self.has_export_png() {
+            cmds.push("ExportPng");
+        }
+        if self.has_export_svg() {
+            cmds.push("ExportSvg");
+        }
+        #[cfg(feature = "clipboard")]
+        if self.has_export_clipboard() {
+            cmds.push("ExportClipboard");
+        }
+        write!(f, "Commands({})", cmds.join(" | "))
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Params {
     pub style: Option<CustomStyle>,
     pub fontdb: Option<Arc<fontdb::Database>>,
+    pub commands: Commands,
 }
 
 impl Default for Params {
@@ -22,6 +122,7 @@ impl Default for Params {
         Self {
             style: None,
             fontdb: None,
+            commands: Commands::all(),
         }
     }
 }
@@ -79,21 +180,22 @@ where
             let data_source = data_source.clone();
             let fontdb = fontdb.clone();
             let style = style.clone();
-            (
-                ShowWindow::new(fig, data_source, fontdb, style),
-                iced::Task::none(),
-            )
+            let mut show = FigureShow::new(fontdb, Commands::all(), None);
+            show.set_figure(fig, data_source.clone());
+            show.set_style(style.clone());
+            (show, iced::Task::none())
         },
-        ShowWindow::update,
-        ShowWindow::view,
+        FigureShow::update,
+        FigureShow::view,
     )
     // subscribe to key events
-    .subscription(ShowWindow::subscription)
+    .subscription(FigureShow::subscription)
     .run()
 }
 
+/// Message type for the [`FigureShow`] controller.
 #[derive(Debug, Clone)]
-enum Message {
+pub enum Message {
     GoHome,
     EnableZoom,
     EnablePan,
@@ -131,12 +233,25 @@ enum Interaction {
     },
 }
 
-struct ShowWindow<D: ?Sized> {
-    figure: drawing::Figure,
+/// struct gathering data that is optional in FigureShow
+struct Fig<D: data::Source + ?Sized + 'static> {
+    fig: drawing::Figure,
     home_view: zoom::FigureView,
     data_source: Arc<D>,
+}
+
+/// A figure show controller that manages a toolbar and a figure widget,
+/// mapping events of the toolbar and the figure to [`Message`] that
+/// can be routed to [`FigureShow::update`]
+///
+/// You can use this to integrate the functionality of the [`Show`] trait
+/// into your own application.
+pub struct FigureShow<D: data::Source + ?Sized + 'static> {
+    fig: Option<Fig<D>>,
+    no_fig_placeholder: Option<String>,
     fontdb: Arc<fontdb::Database>,
     style: Option<CustomStyle>,
+    commands: Commands,
     at_home: bool,
     over_plot: bool,
     tb_status: Option<(String, String)>,
@@ -149,23 +264,21 @@ struct ShowWindow<D: ?Sized> {
     ack_clipboard: bool,
 }
 
-impl<D> ShowWindow<D>
+impl<D> FigureShow<D>
 where
     D: data::Source + ?Sized + 'static,
 {
-    fn new(
-        figure: drawing::Figure,
-        data_source: Arc<D>,
+    pub fn new(
         fontdb: Arc<fontdb::Database>,
-        style: Option<CustomStyle>,
+        commands: Commands,
+        no_fig_placeholder: Option<String>,
     ) -> Self {
-        let home_view = figure.view();
         Self {
-            figure,
-            home_view,
-            data_source,
+            fig: None,
+            no_fig_placeholder,
             fontdb,
-            style,
+            style: None,
+            commands,
             at_home: true,
             over_plot: false,
             tb_status: None,
@@ -179,15 +292,56 @@ where
         }
     }
 
+    pub fn set_figure(&mut self, fig: drawing::Figure, data_source: Arc<D>) {
+        let home_view = fig.view();
+        self.fig = Some(Fig {
+            fig,
+            home_view,
+            data_source,
+        });
+        self.at_home = true;
+        self.interaction = Interaction::None;
+    }
+
+    pub fn reset_figure(&mut self) {
+        self.fig = None;
+        self.at_home = true;
+        self.interaction = Interaction::None;
+    }
+
+    pub fn set_style(&mut self, style: Option<CustomStyle>) {
+        self.style = style;
+    }
+
+    pub fn figure(&self) -> Option<&drawing::Figure> {
+        self.fig.as_ref().map(|f| &f.fig)
+    }
+
+    pub fn data_source(&self) -> Option<&Arc<D>> {
+        self.fig.as_ref().map(|f| &f.data_source)
+    }
+
+    pub fn style(&self) -> Option<&CustomStyle> {
+        self.style.as_ref()
+    }
+
+    pub fn fontdb(&self) -> &Arc<fontdb::Database> {
+        &self.fontdb
+    }
+
     fn subscription(&self) -> iced::Subscription<Message> {
         iced::event::listen().map(Message::Event)
     }
 
-    fn update(&mut self, msg: Message) -> iced::Task<Message> {
+    pub fn update(&mut self, msg: Message) -> iced::Task<Message> {
+        let Some(fig) = &mut self.fig else {
+            return iced::Task::none();
+        };
+
         match msg {
             Message::GoHome => {
-                self.figure
-                    .apply_view(&self.home_view, &*self.data_source, Some(&*self.fontdb))
+                fig.fig
+                    .apply_view(&fig.home_view, &*fig.data_source, Some(&*self.fontdb))
                     .expect("Failed to apply home view");
                 self.at_home = true;
                 self.interaction = Interaction::None;
@@ -215,7 +369,7 @@ where
                 };
             }
             Message::FigureMouseMove(point) => {
-                let hit = self.figure.hit_test(point);
+                let hit = fig.fig.hit_test(point);
                 self.over_plot = hit.is_some();
 
                 let status = hit
@@ -234,11 +388,11 @@ where
                         let delta_x = point.x - last.x;
                         let delta_y = point.y - last.y;
                         *last = point;
-                        let view = self.figure.plot_view(*idx).expect("Plot index invalid");
+                        let view = fig.fig.plot_view(*idx).expect("Plot index invalid");
                         let rect = view.rect().translate(-delta_x, -delta_y);
                         let zoom = zoom::Zoom::new(rect);
-                        self.figure
-                            .apply_zoom(*idx, &zoom, &*self.data_source, Some(&*self.fontdb))
+                        fig.fig
+                            .apply_zoom(*idx, &zoom, &*fig.data_source, Some(&*self.fontdb))
                             .expect("Failed to apply pan");
                         self.at_home = false;
                     }
@@ -249,20 +403,17 @@ where
                     let delta_x = point.x - last.x;
                     let delta_y = point.y - last.y;
                     *last = point;
-                    let view = self
-                        .figure
-                        .plot_view(*plot_idx)
-                        .expect("Plot index invalid");
+                    let view = fig.fig.plot_view(*plot_idx).expect("Plot index invalid");
                     let rect = view.rect().translate(-delta_x, -delta_y);
                     let zoom = zoom::Zoom::new(rect);
-                    self.figure
-                        .apply_zoom(*plot_idx, &zoom, &*self.data_source, Some(&*self.fontdb))
+                    fig.fig
+                        .apply_zoom(*plot_idx, &zoom, &*fig.data_source, Some(&*self.fontdb))
                         .expect("Failed to apply pan");
                     self.at_home = false;
                 }
             }
             Message::FigureMousePress(point, mouse::Button::Left) => {
-                let hit = self.figure.hit_test_idx(point);
+                let hit = fig.fig.hit_test_idx(point);
                 match (&self.interaction, hit) {
                     (Interaction::ZoomEnabled, Some(plot)) => {
                         self.interaction = Interaction::ZoomDragging {
@@ -282,13 +433,13 @@ where
             }
             Message::FigureMouseRelease(point, mouse::Button::Left) => match &self.interaction {
                 Interaction::ZoomDragging { idx, start, end } => {
-                    let hit = self.figure.hit_test_idx(point);
+                    let hit = fig.fig.hit_test_idx(point);
                     if let Some(hit_plot_idx) = hit {
                         let rect = geom::Rect::from_corners(*start, *end);
                         if *idx == hit_plot_idx {
                             let zoom = zoom::Zoom::new(rect);
-                            self.figure
-                                .apply_zoom(*idx, &zoom, &*self.data_source, Some(&*self.fontdb))
+                            fig.fig
+                                .apply_zoom(*idx, &zoom, &*fig.data_source, Some(&*self.fontdb))
                                 .expect("Failed to apply zoom");
                             self.at_home = false;
                         }
@@ -303,7 +454,7 @@ where
                 }
             },
             Message::FigureMousePress(point, mouse::Button::Middle) => {
-                let hit = self.figure.hit_test_idx(point);
+                let hit = fig.fig.hit_test_idx(point);
                 if let Some(plot_idx) = hit {
                     self.middle_but_drag = Some((plot_idx, point));
                 }
@@ -312,14 +463,14 @@ where
                 self.middle_but_drag = None;
             }
             Message::FigureMouseWheel(point, delta) => {
-                let hit = self.figure.hit_test_idx(point);
+                let hit = fig.fig.hit_test_idx(point);
                 if let Some(plot_idx) = hit {
-                    let view = self.figure.plot_view(plot_idx).expect("Plot index invalid");
+                    let view = fig.fig.plot_view(plot_idx).expect("Plot index invalid");
                     let scale_factor = (1.0 + delta * 0.1).max(0.1);
                     let rect = view.rect().scale_about(point, scale_factor);
                     let zoom = zoom::Zoom::new(rect);
-                    self.figure
-                        .apply_zoom(plot_idx, &zoom, &*self.data_source, Some(&*self.fontdb))
+                    fig.fig
+                        .apply_zoom(plot_idx, &zoom, &*fig.data_source, Some(&*self.fontdb))
                         .expect("Failed to apply zoom");
                     self.at_home = false;
                 }
@@ -359,7 +510,7 @@ where
                         BuiltinStyle::default().to_custom()
                     };
                     let scale = self.fig_scale;
-                    self.figure
+                    fig.fig
                         .save_png(path, plotive_pxl::Params { style, scale })
                         .unwrap();
                 }
@@ -378,7 +529,7 @@ where
                         BuiltinStyle::default().to_custom()
                     };
                     let scale = self.fig_scale;
-                    self.figure
+                    fig.fig
                         .save_svg(path, plotive_svg::Params { style, scale })
                         .unwrap();
                 }
@@ -395,8 +546,8 @@ where
                     BuiltinStyle::default().to_custom()
                 };
                 let scale = self.fig_scale;
-                let pixmap = self
-                    .figure
+                let pixmap = fig
+                    .fig
                     .to_pixmap(plotive_pxl::Params { style, scale })
                     .unwrap();
                 self.clipboard
@@ -425,12 +576,23 @@ where
         iced::Task::none()
     }
 
-    fn view(&self) -> iced::Element<'_, Message> {
+    /// Create the view for both figure and toolbar, stacked in a column with figure above toolbar.
+    pub fn view(&self) -> iced::Element<'_, Message> {
         column![self.figure_view(), self.toolbar_view()].into()
     }
 
-    fn figure_view(&self) -> iced::Element<'_, Message> {
-        let mut fig = figure(&self.figure)
+    /// Create the view for the figure
+    pub fn figure_view(&self) -> iced::Element<'_, Message> {
+        let Some(fig) = &self.fig else {
+            return text(self.no_fig_placeholder.clone().unwrap_or_else(String::new))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(Alignment::Center)
+                .align_y(Alignment::Center)
+                .into();
+        };
+
+        let mut fig = figure(&fig.fig)
             .width(Length::Fill)
             .height(Length::Fill)
             .on_mouse_move(Message::FigureMouseMove)
@@ -463,36 +625,46 @@ where
         mouse_area(fig).interaction(interaction).into()
     }
 
-    fn toolbar_view(&self) -> iced::Element<'_, Message> {
-        let zooming = matches!(
-            self.interaction,
-            Interaction::ZoomEnabled | Interaction::ZoomDragging { .. }
-        );
-        let panning = matches!(
-            self.interaction,
-            Interaction::PanEnabled | Interaction::PanDragging { .. }
-        );
+    /// Create a view for the toolbar
+    pub fn toolbar_view(&self) -> iced::Element<'_, Message> {
+        let has_fig = self.fig.is_some();
 
-        const ICON_SZ: u16 = 24;
-        const FA_HOME: &str = "down-left-and-up-right-to-center";
-        const FA_ZOOM: &str = "expand";
-        const FA_PAN: &str = "arrows-up-down-left-right";
+        let mut toolbar = row![];
 
-        let home_button = button(fa_icon_solid(FA_HOME).size(ICON_SZ))
-            .on_press_maybe((!self.at_home).then_some(Message::GoHome));
-        let zoom_button =
-            button(fa_icon_solid(FA_ZOOM).size(ICON_SZ)).on_press(Message::EnableZoom);
-        let zoom_button = if zooming {
-            zoom_button.style(button::secondary)
-        } else {
-            zoom_button.style(button::primary)
-        };
-        let pan_button = button(fa_icon_solid(FA_PAN).size(ICON_SZ)).on_press(Message::EnablePan);
-        let pan_button = if panning {
-            pan_button.style(button::secondary)
-        } else {
-            pan_button.style(button::primary)
-        };
+        if self.commands.has_view() {
+            let zooming = matches!(
+                self.interaction,
+                Interaction::ZoomEnabled | Interaction::ZoomDragging { .. }
+            );
+            let panning = matches!(
+                self.interaction,
+                Interaction::PanEnabled | Interaction::PanDragging { .. }
+            );
+
+            const ICON_SZ: u16 = 24;
+            const FA_HOME: &str = "down-left-and-up-right-to-center";
+            const FA_ZOOM: &str = "expand";
+            const FA_PAN: &str = "arrows-up-down-left-right";
+
+            let home_button = button(fa_icon_solid(FA_HOME).size(ICON_SZ))
+                .on_press_maybe((has_fig && !self.at_home).then_some(Message::GoHome));
+            let zoom_button = button(fa_icon_solid(FA_ZOOM).size(ICON_SZ))
+                .on_press_maybe(has_fig.then_some(Message::EnableZoom));
+            let zoom_button = if zooming {
+                zoom_button.style(button::secondary)
+            } else {
+                zoom_button.style(button::primary)
+            };
+            let pan_button = button(fa_icon_solid(FA_PAN).size(ICON_SZ))
+                .on_press_maybe(has_fig.then_some(Message::EnablePan));
+            let pan_button = if panning {
+                pan_button.style(button::secondary)
+            } else {
+                pan_button.style(button::primary)
+            };
+
+            toolbar = toolbar.push(home_button).push(zoom_button).push(pan_button);
+        }
 
         let (x, y) = if let Some((x, y)) = &self.tb_status {
             (x.as_str(), y.as_str())
@@ -504,47 +676,47 @@ where
         let status_txt = column![text(x).size(TEXT_SZ), text(y).size(TEXT_SZ),]
             .padding(4)
             .spacing(5);
-
-        let convert_png = button(
-            row![fa_icon("file-image"), text("PNG").size(TEXT_SZ)]
-                .align_y(Alignment::Center)
-                .spacing(5),
-        )
-        .on_press(Message::ExportPng);
-        let convert_svg = button(
-            row![fa_icon("file-image"), text("SVG").size(TEXT_SZ)]
-                .align_y(Alignment::Center)
-                .spacing(5),
-        )
-        .on_press(Message::ExportSvg);
-
-        let mut tb = row![
-            home_button,
-            zoom_button,
-            pan_button,
-            status_txt,
-            space::horizontal(),
-            convert_png,
-            convert_svg,
-        ]
-        .align_y(Alignment::Center)
-        .width(Length::Fill)
-        .height(Length::Shrink)
-        .spacing(10)
-        .padding(5);
+        toolbar = toolbar.push(status_txt).push(space::horizontal());
 
         #[cfg(feature = "clipboard")]
-        {
+        if self.commands.has_export_clipboard() {
             let icon = if self.ack_clipboard {
                 fa_icon_solid("check")
             } else {
                 fa_icon("clipboard")
             };
 
-            let convert_clipboard = button(icon).on_press(Message::ExportClipboard);
-            tb = tb.push(convert_clipboard);
+            let convert_clipboard =
+                button(icon).on_press_maybe(has_fig.then_some(Message::ExportClipboard));
+            toolbar = toolbar.push(convert_clipboard);
         }
 
-        tb.into()
+        if self.commands.has_export_png() {
+            let convert_png = button(
+                row![fa_icon("file-image"), text("PNG").size(TEXT_SZ)]
+                    .align_y(Alignment::Center)
+                    .spacing(5),
+            )
+            .on_press_maybe(has_fig.then_some(Message::ExportPng));
+            toolbar = toolbar.push(convert_png);
+        }
+
+        if self.commands.has_export_svg() {
+            let convert_svg = button(
+                row![fa_icon("file-image"), text("SVG").size(TEXT_SZ)]
+                    .align_y(Alignment::Center)
+                    .spacing(5),
+            )
+            .on_press_maybe(has_fig.then_some(Message::ExportSvg));
+            toolbar = toolbar.push(convert_svg);
+        }
+
+        toolbar
+            .align_y(Alignment::Center)
+            .width(Length::Fill)
+            .height(Length::Shrink)
+            .spacing(10)
+            .padding(5)
+            .into()
     }
 }
