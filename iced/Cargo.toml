@@ -36,8 +36,10 @@ clipboard = ["dep:arboard", "dep:tokio"]
 
 # Some optional features re-exported from plotive
 data-csv = ["plotive/data-csv"]
+data-polars = ["plotive/data-polars"]
 noto-sans = ["plotive/noto-sans"]
 noto-sans-italic = ["plotive/noto-sans-italic"]
 noto-serif = ["plotive/noto-serif"]
 noto-serif-italic = ["plotive/noto-serif-italic"]
 noto-mono = ["plotive/noto-mono"]
+time = ["plotive/time"]
