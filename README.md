@@ -138,11 +138,11 @@ During execution, the following window shows:
 
 ## Crate features
 
- - `data-csv`: enables `plotive::data::{csv, CsvParser}`
- - `data-polars`: enables `plotive::data::polars`<br />
-   pulls in the `polars` dependency, which is a big beast.
+ - `data-csv`: enables CSV data source support ([`plotive::data::csv`](https://docs.rs/plotive/latest/plotive/data/csv/index.html))
+ - `data-polars`: enables [Polars](https://pola.rs) data source support ([`plotive::data::polars`](https://docs.rs/plotive/latest/plotive/data/polars/index.html))
+   pulls in the `polars` dependency, which is quite a beast to compile.
  - `dsl`: enables the support for `.plotive` DSL.
  - `noto-mono`, `noto-sans`, `noto-sans-italic`, `noto-serif`, `noto-serif-italic`: bundles the corresponding fonts from Google in the final executable, and enables `plotive::bundled_font_db()`.<br />
   `noto-sans` is enabled by default
- - `time`: enables `plotive::time` module and support for time series, CSV date-time parsing etc.
- - `utils`: enables `plotive::utils`, that contains various utilities such as `linspace`, `logspace` etc.
+ - `time`: enables support for time series, CSV date-time parsing etc. ([`plotive::time`](https://docs.rs/plotive/latest/plotive/time/index.html))
+ - `utils`: enables various utilities such as `linspace`, `logspace` etc. ([`plotive::utils`](https://docs.rs/plotive/latest/plotive/utils/index.html))

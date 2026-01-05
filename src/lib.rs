@@ -87,7 +87,7 @@
  *     .with_f64_column("y", y);
  *
  * // Finally, we can show the figure using the `Show` trait from the `plotive-iced` crate.
- * use plotive_iced::Show;
+ * use plotive_iced::{show, Show};
  *
  * // To implement zooming and panning, `Show` needs to keep a reference
  * // to the data source, so we wrap it in an Arc.
@@ -99,7 +99,7 @@
  *     // We specify light theme style for the figure.
  *     // Default would follow the default theme of the iced window. (system light/dark mode)
  *     show::Params {
- *         style: Some(style::Builtin::Light.into()),
+ *         style: Some(plotive::style::Builtin::Light.into()),
  *         ..Default::default()
  *     },
  * )
@@ -109,6 +109,19 @@
  *
  * This should open the following window:
  * ![A sine wave plot window](https://github.com/rtbo/plotive/blob/main/gallery/iced_sine.png?raw=true)
+ *
+ *
+ * ## Crate features
+ *
+ *  - `data-csv`: enables CSV data source support (See [`data::csv`])
+ *  - `data-polars`: enables [Polars](https://pola.rs) data source support (See [`data::polars`])
+ *    pulls in the `polars` dependency, which is quite a beast to compile.
+ *  - `dsl`: enables the support for `.plotive` DSL. (See [`dsl`] and [`plotive-dsl` crate](https://crates.io/crates/plotive-dsl))
+ *  - `noto-mono`, `noto-sans`, `noto-sans-italic`, `noto-serif`, `noto-serif-italic`: bundles the corresponding fonts from Google in the final executable, and enables `plotive::bundled_font_db()`.<br />
+ *   `noto-sans` is enabled by default
+ *  - `time`: enables support for time series, CSV date-time parsing etc. (See [`time`])
+ *  - `utils`: enables various utilities such as `linspace`, `logspace` etc. (See [`utils`])
+ *
  *
  * ## Notes about plotive's design
  *
@@ -134,7 +147,7 @@
  *
  */
 // Plotive is released under the MIT License with the following copyright:
-// Copyright (c) 2025 Rémi Thebault
+// Copyright (c) 2025-2026 Rémi Thebault
 
 pub mod data;
 pub mod des;
