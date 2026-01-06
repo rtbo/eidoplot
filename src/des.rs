@@ -15,7 +15,7 @@ pub use axis::Axis;
 pub use figure::{FigLegend, Figure};
 pub use legend::Legend;
 pub use plot::{Plot, PlotLegend, Subplots};
-pub use series::{DataCol, Series, data_src_ref};
+pub use series::{DataCol, Series, data_inline, data_src_ref};
 
 /// Index of a plot in a subplot grid
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

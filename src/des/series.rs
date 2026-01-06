@@ -29,6 +29,18 @@ pub fn data_src_ref<S: Into<String>>(src: S) -> DataCol {
     DataCol::SrcRef(src.into())
 }
 
+/// Build a inline data column.
+/// Creates a [`DataCol::Inline`] variant from a vector of values.
+/// Use this to provide data directly in the series.
+/// Doing this, you may pass `()` as data source when building the plot.
+/// # Examples
+//// ```ignore
+/// let col = data_inline(vec![1.0, 2.0, 3.0]);
+/// ```
+pub fn data_inline<T: Into<data::VecColumn>>(data: T) -> DataCol {
+    DataCol::Inline(data.into())
+}
+
 impl From<data::VecColumn> for DataCol {
     fn from(col: data::VecColumn) -> Self {
         DataCol::Inline(col)
