@@ -37,7 +37,7 @@ impl std::error::Error for Error {}
 
 /// Parameters needed for saving a [`drawing::Figure`] as PNG
 #[derive(Debug, Clone)]
-pub struct Params<T, SP> {
+pub struct Params<T = plotive::style::theme::Builtin, SP = plotive::style::series::palette::Builtin> {
     pub style: Style<T, SP>,
     pub scale: f32,
 }
@@ -58,6 +58,28 @@ where
     }
 }
 
+/// Trait for saving a [`drawing::Figure`] as PNG file
+///
+/// # Example
+///
+/// ```rust
+/// use plotive::des;
+/// use plotive::Drawing;
+/// use plotive_pxl::{SavePng, Params};
+///
+/// // Create your figure design (this one has inline data for simplicity)
+/// let fig = des::Figure::new(
+///     des::Plot::new(vec![
+///        des::series::Line::new(
+///            des::data_inline(vec![0.0, 1.0, 2.0]), des::data_inline(vec![0.0, 1.0, 0.0]),
+///        ).into(),
+///     ]).into(),
+/// );
+/// let fig = fig.prepare(&(), None).unwrap();
+/// let params = Params::<plotive::style::theme::Builtin, plotive::style::series::palette::Builtin>::default();
+/// fig.save_png("figure.png", params).unwrap();
+/// # std::fs::remove_file("figure.png").unwrap();
+/// ```
 pub trait SavePng {
     fn save_png<P, T, SP>(&self, path: P, params: Params<T, SP>) -> Result<(), Error>
     where
