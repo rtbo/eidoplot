@@ -10,8 +10,7 @@ use crate::drawing::series::{self, Series, SeriesExt};
 use crate::drawing::{Ctx, Error};
 use crate::des::{PlotIdx, annot};
 use crate::style::defaults;
-use crate::style::series::Palette;
-use crate::style::theme::{self, Theme};
+use crate::style::theme;
 use crate::{Style, data, geom, des, missing_params, render};
 
 #[derive(Debug, Clone)]
@@ -839,11 +838,9 @@ impl Plots {
         Ok(())
     }
 
-    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    pub fn draw<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        T: Theme,
-        P: Palette,
     {
         self.plots
             .iter()
@@ -880,11 +877,9 @@ impl Plot {
         Ok(())
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    fn draw<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        T: Theme,
-        P: Palette,
     {
         self.draw_background(surface, style);
         let Some(axes) = &self.axes else {
@@ -906,10 +901,9 @@ impl Plot {
         }
     }
 
-    fn draw_background<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    fn draw_background<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        T: Theme,
     {
         if let Some(fill) = &self.fill {
             surface.draw_rect(&render::Rect {
@@ -921,10 +915,9 @@ impl Plot {
         }
     }
 
-    fn draw_border_box<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    fn draw_border_box<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        T: Theme,
     {
         // border is drawn by plot only when it is a box
         // otherwise, axes draw the border as spines
@@ -942,10 +935,9 @@ impl Plot {
         }
     }
 
-    fn draw_series<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    fn draw_series<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        P: Palette,
     {
         let rect = self.rect;
         let series = &self.series;
@@ -962,16 +954,14 @@ impl Plot {
         surface.pop_clip();
     }
 
-    fn draw_annotations<S, T, P>(
+    fn draw_annotations<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         axes: &Axes,
         zpos: annot::ZPos,
     ) where
         S: render::Surface,
-        T: Theme,
-        P: Palette,
     {
         for annot in self.annots.iter() {
             if annot.zpos() == zpos {
@@ -982,10 +972,9 @@ impl Plot {
 }
 
 impl Axes {
-    fn draw_grids<S, T, P>(&self, surface: &mut S, style: &Style<T, P>, rect: &geom::Rect)
+    fn draw_grids<S>(&self, surface: &mut S, style: &Style, rect: &geom::Rect)
     where
         S: render::Surface,
-        T: Theme,
     {
         for axis in self.x.iter() {
             axis.draw_minor_grids(surface, style, rect);
@@ -1001,10 +990,9 @@ impl Axes {
         }
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>, plot_rect: &geom::Rect)
+    fn draw<S>(&self, surface: &mut S, style: &Style, plot_rect: &geom::Rect)
     where
         S: render::Surface,
-        T: Theme,
     {
         self.draw_side(surface, style, &self.x, Side::Top, plot_rect);
         self.draw_side(surface, style, &self.y, Side::Right, plot_rect);
@@ -1012,16 +1000,15 @@ impl Axes {
         self.draw_side(surface, style, &self.y, Side::Left, plot_rect);
     }
 
-    fn draw_side<S, T, P>(
+    fn draw_side<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         axes: &[Axis],
         side: Side,
         plot_rect: &geom::Rect,
     ) where
         S: render::Surface,
-        T: Theme,
     {
         let mut rect = *plot_rect;
         for axis in axes.iter() {

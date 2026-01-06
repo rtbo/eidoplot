@@ -1,6 +1,5 @@
 use crate::drawing::Text;
 use crate::geom::{Padding, Size};
-use crate::style::theme::Theme;
 use crate::style::{defaults, theme};
 use crate::text::{self, LineText, fontdb};
 use crate::{Style, drawing, geom, des, render, style};
@@ -201,11 +200,9 @@ impl Legend {
         self.size
     }
 
-    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>, top_left: &geom::Point)
+    pub fn draw<S>(&self, surface: &mut S, style: &Style, top_left: &geom::Point)
     where
         S: render::Surface,
-        T: Theme,
-        P: style::series::Palette,
     {
         let rect = geom::Rect::from_ps(*top_left, self.size);
         if self.fill.is_some() || self.border.is_some() {
@@ -224,11 +221,9 @@ impl Legend {
 }
 
 impl LegendEntry {
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>, rect: &geom::Rect)
+    fn draw<S>(&self, surface: &mut S, style: &Style, rect: &geom::Rect)
     where
         S: render::Surface,
-        T: Theme,
-        P: style::series::Palette,
     {
         let rect = geom::Rect::from_xywh(
             rect.left() + self.x,

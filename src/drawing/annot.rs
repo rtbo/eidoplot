@@ -106,15 +106,14 @@ impl Annot {
         self.pos().zpos
     }
 
-    pub fn draw<S, T, P>(
+    pub fn draw<S>(
         &self,
         surface: &mut S,
-        style: &style::Style<T, P>,
+        style: &style::Style,
         axes: &Axes,
         plot_rect: &geom::Rect,
     ) where
         S: render::Surface,
-        T: style::Theme,
     {
         let x_axis = axes
             .or_find(Orientation::X, &self.pos().x_axis)
@@ -140,17 +139,16 @@ impl Annot {
         }
     }
 
-    fn draw_annot_line<S, T, P>(
+    fn draw_annot_line<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         line: &des::annot::Line,
         x_axis: &Axis,
         y_axis: &Axis,
         plot_rect: &geom::Rect,
     ) where
         S: render::Surface,
-        T: style::Theme,
     {
         let (x, y) = (line.pos.x, line.pos.y);
         let (p1, p2) = match line.direction {
@@ -224,17 +222,16 @@ impl Annot {
         }
     }
 
-    fn draw_annot_arrow<S, T, P>(
+    fn draw_annot_arrow<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         arrow: &des::annot::Arrow,
         x_axis: &Axis,
         y_axis: &Axis,
         plot_rect: &geom::Rect,
     ) where
         S: render::Surface,
-        T: style::Theme,
     {
         let target_x = x_axis.coord_map().map_coord_num(arrow.pos.x);
         let target_y = y_axis.coord_map().map_coord_num(arrow.pos.y);
@@ -261,17 +258,16 @@ impl Annot {
         surface.draw_path(&rpath);
     }
 
-    fn draw_annot_marker<S, T, P>(
+    fn draw_annot_marker<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         marker: &des::annot::Marker,
         x_axis: &Axis,
         y_axis: &Axis,
         plot_rect: &geom::Rect,
     ) where
         S: render::Surface,
-        T: style::Theme,
     {
         let x = x_axis.coord_map().map_coord_num(marker.pos.x);
         let y = y_axis.coord_map().map_coord_num(marker.pos.y);
@@ -288,17 +284,16 @@ impl Annot {
         surface.draw_path(&rpath);
     }
 
-    fn draw_annot_label<S, T, P>(
+    fn draw_annot_label<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         label: &Label,
         x_axis: &Axis,
         y_axis: &Axis,
         plot_rect: &geom::Rect,
     ) where
         S: render::Surface,
-        T: style::Theme,
     {
         let x = x_axis.coord_map().map_coord_num(label.pos.x);
         let y = y_axis.coord_map().map_coord_num(label.pos.y);

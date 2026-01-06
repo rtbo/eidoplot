@@ -2,8 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use plotive::style::{self};
-use plotive::{Drawing, data, des, fontdb};
+use plotive::{Drawing, Style, data, des, fontdb};
 use plotive_iced::Show;
 use plotive_pxl::SavePng;
 use plotive_svg::SaveSvg;
@@ -42,7 +41,7 @@ struct Args {
     png: Png,
     svg: Svg,
     show: bool,
-    style: Option<style::Builtin>,
+    style: Option<Style>,
 }
 
 fn parse_args() -> Args {
@@ -53,18 +52,18 @@ fn parse_args() -> Args {
             "png" => args.png = Png::Yes(None),
             "svg" => args.svg = Svg::Yes(None),
             "show" => args.show = true,
-            "light" => args.style = Some(style::Builtin::Light),
-            "tol-bright" => args.style = Some(style::Builtin::TolBright),
-            "okabe-ito" => args.style = Some(style::Builtin::OkabeIto),
-            "dark" => args.style = Some(style::Builtin::Dark),
-            "latte" => args.style = Some(style::Builtin::CatppuccinLatte),
-            "frappe" => args.style = Some(style::Builtin::CatppuccinFrappe),
-            "macchiato" => args.style = Some(style::Builtin::CatppuccinMacchiato),
-            "mocha" => args.style = Some(style::Builtin::CatppuccinMocha),
-            "catppuccin-latte" => args.style = Some(style::Builtin::CatppuccinLatte),
-            "catppuccin-frappe" => args.style = Some(style::Builtin::CatppuccinFrappe),
-            "catppuccin-macchiato" => args.style = Some(style::Builtin::CatppuccinMacchiato),
-            "catppuccin-mocha" => args.style = Some(style::Builtin::CatppuccinMocha),
+            "light" => args.style = Some(Style::light()),
+            "tol-bright" => args.style = Some(Style::tol_bright()),
+            "okabe-ito" => args.style = Some(Style::okabe_ito()),
+            "dark" => args.style = Some(Style::dark()),
+            "latte" => args.style = Some(Style::catppuccin_latte()),
+            "frappe" => args.style = Some(Style::catppuccin_frappe()),
+            "macchiato" => args.style = Some(Style::catppuccin_macchiato()),
+            "mocha" => args.style = Some(Style::catppuccin_mocha()),
+            "catppuccin-latte" => args.style = Some(Style::catppuccin_latte()),
+            "catppuccin-frappe" => args.style = Some(Style::catppuccin_frappe()),
+            "catppuccin-macchiato" => args.style = Some(Style::catppuccin_macchiato()),
+            "catppuccin-mocha" => args.style = Some(Style::catppuccin_mocha()),
             _ if arg.starts_with("png=") => {
                 let filename = arg.trim_start_matches("png=");
                 args.png = Png::Yes(Some(PathBuf::from(filename)));
@@ -116,7 +115,6 @@ fn save_fig<D>(
     D: data::Source,
 {
     let fig = fig.prepare(data_source, Some(fontdb)).unwrap();
-    let style = args.style.clone().unwrap_or_default().to_style();
 
     match &args.png {
         Png::No => (),
@@ -128,7 +126,7 @@ fn save_fig<D>(
             fig.save_png(
                 &file_name,
                 plotive_pxl::Params {
-                    style: style.clone(),
+                    style: args.style.as_ref().cloned().unwrap_or_default(),
                     scale: 2.0,
                 },
             )
@@ -146,7 +144,7 @@ fn save_fig<D>(
             fig.save_svg(
                 &file_name,
                 plotive_svg::Params {
-                    style: style.clone(),
+                    style: args.style.as_ref().cloned().unwrap_or_default(),
                     scale: 1.0,
                 },
             )
@@ -161,7 +159,7 @@ fn save_fig<D>(
         fig.show(
             data_source,
             plotive_iced::show::Params {
-                style: args.style.map(|s| s.into()),
+                style: args.style.clone(),
                 fontdb: Some(fontdb),
                 ..Default::default()
             },

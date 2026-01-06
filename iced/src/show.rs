@@ -7,7 +7,6 @@ use iced::widget::{button, column, mouse_area, row, space, text};
 use iced::{Alignment, Length, mouse};
 use iced_font_awesome::{fa_icon, fa_icon_solid};
 use plotive::drawing::zoom;
-use plotive::style::{BuiltinStyle, CustomStyle};
 use plotive::{Drawing, data, des, drawing, fontdb, geom};
 
 use crate::figure::figure;
@@ -131,7 +130,7 @@ impl fmt::Debug for Commands {
 
 #[derive(Debug, Clone)]
 pub struct Params {
-    pub style: Option<CustomStyle>,
+    pub style: Option<plotive::Style>,
     pub fontdb: Option<Arc<fontdb::Database>>,
     pub commands: Commands,
 }
@@ -188,7 +187,7 @@ fn show_app<D>(
     fig: drawing::Figure,
     data_source: Arc<D>,
     fontdb: Arc<fontdb::Database>,
-    style: Option<CustomStyle>,
+    style: Option<plotive::Style>,
 ) -> iced::Result
 where
     D: data::Source + ?Sized + 'static,
@@ -271,7 +270,7 @@ pub struct FigureShow<D: data::Source + ?Sized + 'static> {
     fig: Option<Fig<D>>,
     no_fig_placeholder: Option<String>,
     fontdb: Arc<fontdb::Database>,
-    style: Option<CustomStyle>,
+    style: Option<plotive::Style>,
     commands: Commands,
     at_home: bool,
     over_plot: bool,
@@ -330,7 +329,7 @@ where
         self.interaction = Interaction::None;
     }
 
-    pub fn set_style(&mut self, style: Option<CustomStyle>) {
+    pub fn set_style(&mut self, style: Option<plotive::Style>) {
         self.style = style;
     }
 
@@ -342,7 +341,7 @@ where
         self.fig.as_ref().map(|f| &f.data_source)
     }
 
-    pub fn style(&self) -> Option<&CustomStyle> {
+    pub fn style(&self) -> Option<&plotive::Style> {
         self.style.as_ref()
     }
 
@@ -528,7 +527,7 @@ where
                     let style = if let Some(style) = &self.style {
                         style.clone()
                     } else {
-                        BuiltinStyle::default().to_custom()
+                        plotive::Style::default()
                     };
                     let scale = self.fig_scale;
                     fig.fig
@@ -547,7 +546,7 @@ where
                     let style = if let Some(style) = &self.style {
                         style.clone()
                     } else {
-                        BuiltinStyle::default().to_custom()
+                        plotive::Style::default()
                     };
                     let scale = self.fig_scale;
                     fig.fig
@@ -564,7 +563,7 @@ where
                 let style = if let Some(style) = &self.style {
                     style.clone()
                 } else {
-                    BuiltinStyle::default().to_custom()
+                    plotive::Style::default()
                 };
                 let scale = self.fig_scale;
                 let pixmap = fig

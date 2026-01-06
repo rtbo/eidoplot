@@ -1,7 +1,5 @@
 use plotive::render::Surface;
-use plotive::style::series::Palette;
-use plotive::style::theme::Theme;
-use plotive::style::{CustomStyle, theme};
+use plotive::style::{theme};
 use plotive::{drawing, geom, style};
 use iced::advanced::graphics::geometry;
 use iced::advanced::widget::tree;
@@ -88,7 +86,7 @@ where
 
     /// Sets the style of the [`Figure`].
     #[must_use]
-    pub fn style(mut self, style: impl Fn(&Theme) -> CustomStyle + 'a) -> Self
+    pub fn style(mut self, style: impl Fn(&Theme) -> plotive::Style + 'a) -> Self
     where
         Theme::Class<'a>: From<StyleFn<'a, Theme>>,
     {
@@ -350,7 +348,7 @@ pub trait Catalog: Sized {
     fn default<'a>() -> Self::Class<'a>;
 
     /// The [`Style`](plotive::Style) of a class with the given status.
-    fn style(&self, item: &Self::Class<'_>) -> CustomStyle;
+    fn style(&self, item: &Self::Class<'_>) -> plotive::Style;
 }
 
 #[inline]
@@ -360,31 +358,28 @@ fn from_iced_color(color: iced::Color) -> plotive::ColorU8 {
 }
 
 /// Map an `iced::Theme` to an plotive theme.
-pub fn map_theme(theme: &iced::Theme) -> theme::Custom {
+pub fn map_theme(theme: &iced::Theme) -> theme::Theme {
     let pal = theme.palette();
     let back = from_iced_color(pal.background);
     let fore = from_iced_color(pal.text);
-    style::theme::Custom::new_back_and_fore(back, fore)
+    theme::Theme::Custom(theme::ThemePalette::new_back_and_fore(back, fore))
 }
 
 /// Map an `iced::Theme` to an plotive style.
-pub fn map_style(theme: &iced::Theme) -> CustomStyle {
+pub fn map_style(theme: &iced::Theme) -> plotive::Style {
     match theme {
-        iced::Theme::CatppuccinMocha => style::Builtin::CatppuccinMocha.to_style().to_custom(),
-        iced::Theme::CatppuccinMacchiato => {
-            style::Builtin::CatppuccinMacchiato.to_style().to_custom()
-        }
-        iced::Theme::CatppuccinFrappe => style::Builtin::CatppuccinFrappe.to_style().to_custom(),
-        iced::Theme::CatppuccinLatte => style::Builtin::CatppuccinLatte.to_style().to_custom(),
+        iced::Theme::CatppuccinMocha => plotive::Style::catppuccin_mocha(),
+        iced::Theme::CatppuccinMacchiato => plotive::Style::catppuccin_macchiato(),
+        iced::Theme::CatppuccinFrappe => plotive::Style::catppuccin_frappe(),
+        iced::Theme::CatppuccinLatte => plotive::Style::catppuccin_latte(),
         _ => {
             let theme = map_theme(theme);
             let palette = if theme.is_dark() {
-                style::series::palette::Builtin::Pastel
+                style::series::Palette::Pastel
             } else {
-                style::series::palette::Builtin::Standard
-            }
-            .to_custom();
-            CustomStyle { theme, palette }
+                style::series::Palette::Standard
+            };
+            plotive::Style::new(theme, palette)
         }
     }
 }
@@ -392,7 +387,7 @@ pub fn map_style(theme: &iced::Theme) -> CustomStyle {
 /// A styling function for a [`Figure`].
 ///
 /// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
-pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> CustomStyle + 'a>;
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> plotive::Style + 'a>;
 
 impl Catalog for iced::Theme {
     type Class<'a> = StyleFn<'a, Self>;
@@ -401,7 +396,7 @@ impl Catalog for iced::Theme {
         Box::new(|theme| map_style(theme))
     }
 
-    fn style(&self, class: &Self::Class<'_>) -> CustomStyle {
+    fn style(&self, class: &Self::Class<'_>) -> plotive::Style {
         class(self)
     }
 }

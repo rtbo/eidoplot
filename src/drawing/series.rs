@@ -3,7 +3,6 @@ use scale::{CoordMap, CoordMapXy};
 
 use crate::drawing::plot::Orientation;
 use crate::drawing::{Categories, ColumnExt, Error, F64ColumnExt, axis, legend, marker, scale};
-use crate::style::series::Palette;
 use crate::{Style, data, geom, des, render, style};
 
 /// trait implemented by series, or any other item that
@@ -264,10 +263,9 @@ impl Series {
 }
 
 impl Series {
-    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    pub fn draw<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        P: Palette,
     {
         match &self.plot {
             SeriesPlot::Line(xy) => xy.draw(surface, style),
@@ -340,10 +338,9 @@ impl Line {
         self.path = Some(pb.finish().expect("Should be a valid path"));
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    fn draw<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        P: Palette,
     {
         let rc = (style, self.index);
 
@@ -409,10 +406,9 @@ impl Scatter {
         self.points = points;
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    fn draw<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        P: Palette,
     {
         let rc = (style, self.index);
 
@@ -524,10 +520,9 @@ impl Histogram {
         self.path = Some(path);
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    fn draw<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        P: Palette,
     {
         let rc = (style, self.index);
 
@@ -658,10 +653,9 @@ impl Bars {
         self.path = Some(path);
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    fn draw<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        P: Palette,
     {
         let rc = (style, self.index);
 
@@ -875,10 +869,9 @@ impl BarsGroup {
         paths
     }
 
-    fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    fn draw<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        P: Palette,
     {
         let mut col_idx = self.fst_index;
 

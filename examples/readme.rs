@@ -2,8 +2,8 @@
 use std::f64::consts::PI;
 use std::sync::Arc;
 
-use plotive::{data, des, style};
-use plotive_iced::{Show, show};
+use plotive::{data, des};
+use plotive_iced::Show;
 
 fn main() {
     let x_axis = des::Axis::new()
@@ -39,12 +39,5 @@ fn main() {
         .with_f64_column("x", x)
         .with_f64_column("y", y);
 
-    fig.show(
-        Arc::new(data_source),
-        show::Params {
-            style: Some(style::Builtin::Light.into()),
-            ..Default::default()
-        },
-    )
-    .unwrap();
+    fig.show(Arc::new(data_source), Default::default()).unwrap();
 }

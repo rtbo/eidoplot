@@ -12,9 +12,9 @@ pub use side::Side;
 
 use crate::drawing::scale::{self, CoordMap};
 use crate::drawing::{Categories, Ctx, Error, Text, ticks};
-use crate::style::theme::{self, Theme};
+use crate::style::theme;
 use crate::text::{self, font};
-use crate::{Style, data, geom, des, missing_params, render};
+use crate::{Style, data, des, geom, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub struct Axis {
@@ -735,14 +735,9 @@ fn tick_loc_is_close(a: f64, b: f64) -> bool {
 }
 
 impl Axis {
-    pub fn draw_minor_grids<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-        plot_rect: &geom::Rect,
-    ) where
+    pub fn draw_minor_grids<S>(&self, surface: &mut S, style: &Style, plot_rect: &geom::Rect)
+    where
         S: render::Surface,
-        T: Theme,
     {
         let scale = self.scale.as_ref().borrow();
         let AxisScale::Num {
@@ -777,14 +772,9 @@ impl Axis {
         }
     }
 
-    pub fn draw_major_grids<S, T, P>(
-        &self,
-        surface: &mut S,
-        style: &Style<T, P>,
-        plot_rect: &geom::Rect,
-    ) where
+    pub fn draw_major_grids<S>(&self, surface: &mut S, style: &Style, plot_rect: &geom::Rect)
+    where
         S: render::Surface,
-        T: Theme,
     {
         let scale = self.scale.as_ref().borrow();
         let AxisScale::Num { cm, ticks, .. } = &*scale else {
@@ -813,10 +803,9 @@ impl Axis {
         }
     }
 
-    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>, plot_rect: &geom::Rect) -> f32
+    pub fn draw<S>(&self, surface: &mut S, style: &Style, plot_rect: &geom::Rect) -> f32
     where
         S: render::Surface,
-        T: Theme,
     {
         if let Some(spine) = self.draw_opts.spine.as_ref() {
             self.draw_spine(surface, style, plot_rect, spine);
@@ -867,17 +856,16 @@ impl Axis {
         shift_across
     }
 
-    fn draw_major_ticks<S, T, P>(
+    fn draw_major_ticks<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         cm: &dyn CoordMap,
         ticks: &NumTicks,
         plot_rect: &geom::Rect,
     ) -> f32
     where
         S: render::Surface,
-        T: Theme,
     {
         let mut shift_across = 0.0;
 
@@ -914,15 +902,14 @@ impl Axis {
         shift_across
     }
 
-    fn draw_spine<S, T, P>(
+    fn draw_spine<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         plot_rect: &geom::Rect,
         spine: &des::plot::Border,
     ) where
         S: render::Surface,
-        T: Theme,
     {
         let stroke = spine.line().as_stroke(style);
         let path = self.side.spine_path(plot_rect, spine);
@@ -935,17 +922,16 @@ impl Axis {
         surface.draw_path(&rpath);
     }
 
-    fn draw_minor_ticks<S, T, P>(
+    fn draw_minor_ticks<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         cm: &dyn CoordMap,
         minor_ticks: &MinorTicks,
         plot_rect: &geom::Rect,
     ) -> f32
     where
         S: render::Surface,
-        T: Theme,
     {
         let Some(mark) = self.draw_opts.minor_marks.as_ref() else {
             return 0.0;
@@ -959,17 +945,16 @@ impl Axis {
         self.draw_ticks_marks(surface, style, ticks, mark, &transform)
     }
 
-    fn draw_category_ticks<S, T, P>(
+    fn draw_category_ticks<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         bins: &CategoryBins,
         ticks: &CategoryTicks,
         plot_rect: &geom::Rect,
     ) -> f32
     where
         S: render::Surface,
-        T: Theme,
     {
         if let Some(sep) = ticks.sep.as_ref() {
             let locs = (0..bins.len() + 1).map(|i| bins.sep_location(i));
@@ -996,10 +981,10 @@ impl Axis {
     }
 
     // return shift across axis (distance to get away from axis to avoid collision)
-    fn draw_ticks_marks<S, I, T, P>(
+    fn draw_ticks_marks<S, I>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         ticks: I,
         mark: &TickMark,
         transform: &geom::Transform,
@@ -1007,7 +992,6 @@ impl Axis {
     where
         S: render::Surface,
         I: Iterator<Item = f32>,
-        T: Theme,
     {
         let mut pb = geom::PathBuilder::new();
         for t in ticks {

@@ -1,26 +1,66 @@
 /*!
  * This module deals with colors and style of data series.
  */
-use crate::ColorU8;
-use crate::style::{self, defaults};
+use crate::{ResolveColor, ColorU8};
+use crate::style::{self, catppuccin, defaults};
 
-/// A trait for assigning colors to data series
-pub trait Palette {
-    /// Get the number of colors in the palette before repeating
-    fn len(&self) -> usize;
+/// A palette for data series.
+/// It provides ordered colors for series in a figure.
+/// If more series are present than colors in the palette,
+/// colors are reused in order.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum Palette {
+    /// Black monochrome palette
+    Black,
+    #[default]
+    /// Standard plotive palette
+    Standard,
+    /// Pastel plotive palette
+    Pastel,
+    /// Paul Tol's bright colorblind-safe palette
+    TolBright,
+    /// Okabe & Ito colorblind-safe palette
+    OkabeIto,
+    /// Catppuccin Mocha palette
+    CatppuccinMocha,
+    /// Catppuccin Macchiato palette
+    CatppuccinMacchiato,
+    /// Catppuccin Frappe palette
+    CatppuccinFrappe,
+    /// Catppuccin Latte palette
+    CatppuccinLatte,
+    /// A custom palette
+    Custom(Vec<ColorU8>),
+}
+
+impl Palette {
+    /// Get the colors in the palette
+    pub const fn colors(&self) -> &[ColorU8] {
+        match self {
+            Palette::Black => palettes::BLACK,
+            Palette::Standard => palettes::STANDARD,
+            Palette::Pastel => palettes::PASTEL,
+            Palette::TolBright => palettes::TOL_BRIGHT,
+            Palette::OkabeIto => palettes::OKABE_ITO,
+            Palette::CatppuccinMocha => catppuccin::series_colors::<catppuccin::Mocha>(),
+            Palette::CatppuccinMacchiato => catppuccin::series_colors::<catppuccin::Macchiato>(),
+            Palette::CatppuccinFrappe => catppuccin::series_colors::<catppuccin::Frappe>(),
+            Palette::CatppuccinLatte => catppuccin::series_colors::<catppuccin::Latte>(),
+            Palette::Custom(colors) => colors.as_slice(),
+        }
+    }
+
+    /// Get the number of colors in the palette
+    pub const fn len(&self) -> usize {
+        self.colors().len()
+    }
 
     /// Get a color from the palette by its index
-    fn get(&self, color: IndexColor) -> ColorU8;
-
-    /// Convert the palette into a `Custom` struct
-    fn to_custom(&self) -> palette::Custom {
-        let mut colors = Vec::with_capacity(self.len());
-        for i in 0..self.len() {
-            colors.push(self.get(IndexColor(i)));
-        }
-        palette::Custom(colors)
+    pub const fn get(&self, col: IndexColor) -> ColorU8 {
+        self.colors()[col.0 % self.len()]
     }
 }
+
 
 /// A series color identified by its index in a palette
 #[derive(Debug, Clone, Copy)]
@@ -65,6 +105,31 @@ impl From<ColorU8> for Color {
 }
 
 impl style::Color for Color {}
+
+impl ResolveColor<IndexColor> for Palette
+{
+    fn resolve_color(&self, col: &IndexColor) -> ColorU8 {
+        self.get(*col)
+    }
+}
+
+impl ResolveColor<AutoColor> for (&Palette, usize)
+{
+    fn resolve_color(&self, _col: &AutoColor) -> ColorU8 {
+        self.0.get(IndexColor(self.1))
+    }
+}
+
+impl ResolveColor<Color> for (&Palette, usize)
+{
+    fn resolve_color(&self, col: &Color) -> ColorU8 {
+        match col {
+            Color::Auto => self.0.get(IndexColor(self.1)),
+            Color::Index(idx) => self.0.get(*idx),
+            Color::Fixed(c) => *c,
+        }
+    }
+}
 
 /// Line style for theme elements
 pub type Line = style::Line<Color>;
@@ -121,88 +186,11 @@ impl From<ColorU8> for Marker {
 }
 
 /// Types for built-in and custom palettes
-pub mod palette {
-
+mod palettes {
     use crate::ColorU8;
-    use crate::style::catppuccin;
-    use crate::style::series::Palette;
 
-    /// Plotive built-in palettes
-    #[derive(Debug, Clone, Copy, Default)]
-    pub enum Builtin {
-        /// Black monochrome palette
-        Black,
-        #[default]
-        /// Standard plotive palette
-        Standard,
-        /// Pastel plotive palette
-        Pastel,
-        /// Paul Tol's bright colorblind-safe palette
-        TolBright,
-        /// Okabe & Ito colorblind-safe palette
-        OkabeIto,
-        /// Catppuccin Mocha palette
-        CatppuccinMocha,
-        /// Catppuccin Macchiato palette
-        CatppuccinMacchiato,
-        /// Catppuccin Frappe palette
-        CatppuccinFrappe,
-        /// Catppuccin Latte palette
-        CatppuccinLatte,
-    }
-
-    impl Palette for Builtin {
-        fn len(&self) -> usize {
-            match self {
-                Builtin::Black => BLACK.len(),
-                Builtin::Standard => STANDARD.len(),
-                Builtin::Pastel => PASTEL.len(),
-                Builtin::TolBright => TOL_BRIGHT.len(),
-                Builtin::OkabeIto => OKABE_ITO.len(),
-                Builtin::CatppuccinMocha => catppuccin::Mocha.len(),
-                Builtin::CatppuccinMacchiato => catppuccin::Macchiato.len(),
-                Builtin::CatppuccinFrappe => catppuccin::Frappe.len(),
-                Builtin::CatppuccinLatte => catppuccin::Latte.len(),
-            }
-        }
-
-        fn get(&self, color: super::IndexColor) -> ColorU8 {
-            match self {
-                Builtin::Black => BLACK[color.0 % BLACK.len()],
-                Builtin::Standard => STANDARD[color.0 % STANDARD.len()],
-                Builtin::Pastel => PASTEL[color.0 % PASTEL.len()],
-                Builtin::TolBright => TOL_BRIGHT[color.0 % TOL_BRIGHT.len()],
-                Builtin::OkabeIto => OKABE_ITO[color.0 % OKABE_ITO.len()],
-                Builtin::CatppuccinMocha => catppuccin::Mocha.get(color),
-                Builtin::CatppuccinMacchiato => catppuccin::Macchiato.get(color),
-                Builtin::CatppuccinFrappe => catppuccin::Frappe.get(color),
-                Builtin::CatppuccinLatte => catppuccin::Latte.get(color),
-            }
-        }
-    }
-
-    /// A custom palette
-    #[derive(Debug, Clone)]
-    pub struct Custom(pub Vec<ColorU8>);
-
-    impl Palette for Custom {
-        fn len(&self) -> usize {
-            self.0.len()
-        }
-
-        fn get(&self, color: super::IndexColor) -> ColorU8 {
-            self.0[color.0 % self.len()]
-        }
-    }
-
-    impl Default for Custom {
-        fn default() -> Self {
-            Builtin::default().to_custom()
-        }
-    }
-
-    const BLACK: &[ColorU8] = &[ColorU8::from_html(b"#000000")];
-    const STANDARD: &[ColorU8] = &[
+    pub const BLACK: &[ColorU8] = &[ColorU8::from_html(b"#000000")];
+    pub const STANDARD: &[ColorU8] = &[
         ColorU8::from_html(b"#1f77b4"), // blue
         ColorU8::from_html(b"#ff7f0e"), // orange
         ColorU8::from_html(b"#2ca02c"), // green
@@ -214,7 +202,7 @@ pub mod palette {
         ColorU8::from_html(b"#bcbd22"), // olive
         ColorU8::from_html(b"#17becf"), // cyan
     ];
-    const PASTEL: &[ColorU8] = &[
+    pub const PASTEL: &[ColorU8] = &[
         ColorU8::from_html(b"#aec7e8"), // light blue
         ColorU8::from_html(b"#ffbb78"), // light orange
         ColorU8::from_html(b"#98df8a"), // light green
@@ -226,7 +214,7 @@ pub mod palette {
         ColorU8::from_html(b"#dbdb8d"), // light olive
         ColorU8::from_html(b"#9edae5"), // light cyan
     ];
-    const TOL_BRIGHT: &[ColorU8] = &[
+    pub const TOL_BRIGHT: &[ColorU8] = &[
         ColorU8::from_html(b"#4477AA"), // blue
         ColorU8::from_html(b"#EE6677"), // red
         ColorU8::from_html(b"#228833"), // green
@@ -235,7 +223,7 @@ pub mod palette {
         ColorU8::from_html(b"#AA3377"), // purple
         ColorU8::from_html(b"#BBBBBB"), // gray
     ];
-    const OKABE_ITO: &[ColorU8] = &[
+    pub const OKABE_ITO: &[ColorU8] = &[
         ColorU8::from_html(b"#E69F00"), // orange
         ColorU8::from_html(b"#56B4E9"), // sky blue
         ColorU8::from_html(b"#009E73"), // bluish green

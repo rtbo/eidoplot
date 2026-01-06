@@ -1,7 +1,7 @@
 use crate::drawing::legend::{self, LegendBuilder};
 use crate::drawing::{Ctx, Error, plot};
-use crate::style::theme::{self, Theme};
-use crate::{Style, data, geom, des, missing_params, render, style, text};
+use crate::style::theme;
+use crate::{Style, data, geom, des, missing_params, render, text};
 
 /// A figure that has been prepared for drawing. See [`Drawing::prepare`](crate::drawing::Drawing::prepare).
 /// It contains all the necessary data and layout information.
@@ -185,11 +185,9 @@ where
 impl Figure {
     /// Draw the figure on the given rendering surface, using the given theme
     /// The surface content will be replaced by the figure drawing.
-    pub fn draw<S, T, P>(&self, surface: &mut S, style: &Style<T, P>)
+    pub fn draw<S>(&self, surface: &mut S, style: &Style)
     where
         S: render::Surface,
-        T: Theme,
-        P: style::series::Palette,
     {
         surface.prepare(self.size);
 

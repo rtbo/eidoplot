@@ -7,9 +7,8 @@ use std::fmt;
 
 use text::fontdb;
 
-use crate::style::theme::Theme;
-use crate::style::{self, theme};
-use crate::{Style, data, geom, des, render, text};
+use crate::style::theme;
+use crate::{Style, data, des, geom, render, text};
 
 mod annot;
 mod axis;
@@ -111,18 +110,16 @@ pub trait Drawing {
     /// Convenience method to prepare and draw a figure in one step.
     ///
     /// Panics if no font database is given and no bundled font feature is enabled.
-    fn draw<D, S, T, P>(
+    fn draw<D, S>(
         &self,
         data_source: &D,
         fontdb: Option<&fontdb::Database>,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
     ) -> Result<(), Error>
     where
         D: data::Source + ?Sized,
         S: render::Surface,
-        T: Theme,
-        P: style::series::Palette,
     {
         self.prepare(data_source, fontdb)?.draw(surface, style);
         Ok(())
@@ -287,14 +284,13 @@ impl Text {
         bbox
     }
 
-    fn draw<S, T, P>(
+    fn draw<S>(
         &self,
         surface: &mut S,
-        style: &Style<T, P>,
+        style: &Style,
         transform: Option<&geom::Transform>,
     ) where
         S: render::Surface,
-        T: Theme,
     {
         for span in &self.spans {
             let rpath = render::Path {

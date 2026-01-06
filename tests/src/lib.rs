@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use plotive::{Style, style};
+use plotive::Style;
 
 mod harness;
 mod pixelmatch;
@@ -9,7 +9,7 @@ mod tests;
 use harness::{PxlHarness, SvgHarness, TestHarness};
 
 fn bw_theme() -> Style {
-    style::Builtin::BlackWhite.to_style()
+    Style::black_white()
 }
 
 macro_rules! assert_fig_eq_ref {

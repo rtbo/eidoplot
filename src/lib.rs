@@ -99,7 +99,7 @@
  *     // We specify light theme style for the figure.
  *     // Default would follow the default theme of the iced window. (system light/dark mode)
  *     show::Params {
- *         style: Some(plotive::style::Builtin::Light.into()),
+ *         style: Some(plotive::Style::light()),
  *         ..Default::default()
  *     },
  * )

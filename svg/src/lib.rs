@@ -3,7 +3,7 @@ use std::{fmt, io};
 
 use plotive::geom::{self, Transform};
 use plotive::render::{self, Surface};
-use plotive::{Style, drawing, style};
+use plotive::{Style, drawing};
 use svg::Node;
 use svg::node::element;
 
@@ -38,41 +38,30 @@ impl std::error::Error for Error {}
 
 /// Parameters needed for saving a [`drawing::Figure`] as SVG
 #[derive(Debug, Clone)]
-pub struct Params<T, SP> {
-    pub style: Style<T, SP>,
+pub struct Params {
+    pub style: Style,
     pub scale: f32,
 }
 
-impl<T, SP> Default for Params<T, SP>
-where
-    T: style::Theme + Default,
-    SP: style::series::Palette + Default,
-{
+impl Default for Params {
     fn default() -> Self {
         Self {
-            style: Style {
-                theme: T::default(),
-                palette: SP::default(),
-            },
+            style: Style::default(),
             scale: 1.0,
         }
     }
 }
 
 pub trait SaveSvg {
-    fn save_svg<P, T, SP>(&self, path: P, params: Params<T, SP>) -> Result<(), Error>
+    fn save_svg<P>(&self, path: P, params: Params) -> Result<(), Error>
     where
-        P: AsRef<Path>,
-        T: style::Theme,
-        SP: style::series::Palette;
+        P: AsRef<Path>;
 }
 
 impl SaveSvg for drawing::Figure {
-    fn save_svg<P, T, SP>(&self, path: P, params: Params<T, SP>) -> Result<(), Error>
+    fn save_svg<P>(&self, path: P, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
-        T: style::Theme,
-        SP: style::series::Palette,
     {
         let size = self.size();
         let witdth = (size.width() * params.scale) as u32;

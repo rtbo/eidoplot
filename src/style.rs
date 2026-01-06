@@ -1,10 +1,11 @@
 //! Style definitions for lines, fills, markers, and themes.
-pub mod catppuccin;
+mod catppuccin;
 pub(crate) mod defaults;
 pub mod series;
 pub mod theme;
 
-pub use crate::style::theme::Theme;
+use crate::style::series::Palette;
+use crate::style::theme::Theme;
 use crate::{Color, ColorU8, ResolveColor, render};
 
 /// Overall style definition for figures
@@ -12,179 +13,140 @@ use crate::{Color, ColorU8, ResolveColor, render};
 /// The style gathers together two main components:
 /// - The theme, which defines colors for the figure background, foreground, grid lines, and legend.
 /// - The palette, which defines colors for data series.
-#[derive(Debug, Clone)]
-pub struct Style<T = theme::Builtin, P = series::palette::Builtin> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct Style {
     /// Theme used for the figure
-    pub theme: T,
+    theme: Theme,
     /// Palette used for series colors
-    pub palette: P,
+    palette: Palette,
+
 }
 
-/// Type alias for a style with built-in theme and palette
-pub type BuiltinStyle = Style<theme::Builtin, series::palette::Builtin>;
-/// Type alias for a style with custom theme and palette
-pub type CustomStyle = Style<theme::Custom, series::palette::Custom>;
-
-impl From<Builtin> for CustomStyle {
-    fn from(builtin: Builtin) -> Self {
-        builtin.to_style().to_custom()
-    }
-}
-
-impl<T, P> Style<T, P> {
-    /// Create a new style from the given theme and palette
-    pub fn new(theme: T, palette: P) -> Self {
-        Style { theme, palette }
-    }
-
-    /// Create a built-in style
-    pub fn builtin(builtin: Builtin) -> BuiltinStyle {
-        builtin.to_style()
-    }
-
-    /// Create a custom style
-    pub fn custom(theme: theme::Custom, palette: series::palette::Custom) -> CustomStyle {
-        Style { theme, palette }
-    }
-
-    /// Convert this style into a custom style
-    pub fn to_custom(&self) -> CustomStyle
-    where
-        T: theme::Theme,
-        P: series::Palette,
-    {
-        CustomStyle {
-            theme: self.theme.to_custom(),
-            palette: self.palette.to_custom(),
-        }
-    }
-}
-
-impl<T, P> Default for Style<T, P>
-where
-    T: Default,
-    P: Default,
-{
+impl Default for Style {
     fn default() -> Self {
-        Style {
-            theme: T::default(),
-            palette: P::default(),
-        }
+        Style::light()
     }
 }
 
-impl<T, P> ResolveColor<theme::Color> for Style<T, P>
-where
-    T: Theme,
+impl Style {
+    /// Create a new style with the given theme and palette
+    pub const fn new(theme: Theme, palette: Palette) -> Self {
+        Style { theme, palette }
+    }
+
+    /// Create a black and white monochrome style
+    /// If you use this with multiple series, consider styling the series lines with different patterns to distinguish them
+    pub const fn black_white() -> Self {
+        Style {
+            theme: Theme::Light,
+            palette: Palette::Black,
+        }
+    }
+
+    /// Create the default light style, using a light theme and standard palette
+    pub const fn light() -> Self {
+        Style {
+            theme: Theme::Light,
+            palette: Palette::Standard,
+        }
+    }
+
+    /// Create the default dark style, using a dark theme and pastel palette
+    pub const fn dark() -> Self {
+        Style {
+            theme: Theme::Dark,
+            palette: Palette::Pastel,
+        }
+    }
+
+    /// Create a light theme with Okabe & Ito colorblind-safe palette
+    pub const fn okabe_ito() -> Self {
+        Style {
+            theme: Theme::Light,
+            palette: Palette::OkabeIto,
+        }
+    }
+
+    /// Create a light theme with Paul Tol's bright colorblind-safe palette
+    pub const fn tol_bright() -> Self {
+        Style {
+            theme: Theme::Light,
+            palette: Palette::TolBright,
+        }
+    }
+
+    /// Create a Catppuccin Mocha theme and palette
+    pub const fn catppuccin_mocha() -> Self {
+        Style {
+            theme: Theme::CatppuccinMocha,
+            palette: Palette::CatppuccinMocha,
+        }
+    }
+
+    /// Create a Catppuccin Macchiato theme and palette
+    pub const fn catppuccin_macchiato() -> Self {
+        Style {
+            theme: Theme::CatppuccinMacchiato,
+            palette: Palette::CatppuccinMacchiato,
+        }
+    }
+
+    /// Create a Catppuccin Frappe theme and palette
+    pub const fn catppuccin_frappe() -> Self {
+        Style {
+            theme: Theme::CatppuccinFrappe,
+            palette: Palette::CatppuccinFrappe,
+        }
+    }
+
+    /// Create a Catppuccin Latte theme and palette
+    pub const fn catppuccin_latte() -> Self {
+        Style {
+            theme: Theme::CatppuccinLatte,
+            palette: Palette::CatppuccinLatte,
+        }
+    }
+
+    /// Theme used for the figure
+    pub const fn theme(&self) -> &Theme {
+        &self.theme
+    }
+
+    /// Palette used for series colors
+    pub const fn palette(&self) -> &Palette {
+        &self.palette
+    }
+}
+
+
+impl ResolveColor<theme::Color> for Style
 {
     fn resolve_color(&self, col: &theme::Color) -> ColorU8 {
-        match col {
-            theme::Color::Theme(theme::Col::Background) => self.theme.background(),
-            theme::Color::Theme(theme::Col::Foreground) => self.theme.foreground(),
-            theme::Color::Theme(theme::Col::Grid) => self.theme.grid(),
-            theme::Color::Theme(theme::Col::LegendFill) => self.theme.legend_fill(),
-            theme::Color::Theme(theme::Col::LegendBorder) => self.theme.legend_border(),
-            theme::Color::Fixed(c) => *c,
-        }
+        self.theme().resolve_color(col)
     }
 }
 
-impl<T, P> ResolveColor<series::IndexColor> for Style<T, P>
-where
-    P: series::Palette,
+impl ResolveColor<series::IndexColor> for Style
 {
     fn resolve_color(&self, col: &series::IndexColor) -> ColorU8 {
         self.palette.get(*col)
     }
 }
 
-impl<T, P> ResolveColor<series::AutoColor> for (&Style<T, P>, usize)
-where
-    P: series::Palette,
+impl ResolveColor<series::AutoColor> for (&Style, usize)
 {
     fn resolve_color(&self, _col: &series::AutoColor) -> ColorU8 {
         self.0.palette.get(series::IndexColor(self.1))
     }
 }
 
-impl<T, P> ResolveColor<series::Color> for (&Style<T, P>, usize)
-where
-    P: series::Palette,
+impl ResolveColor<series::Color> for (&Style, usize)
 {
     fn resolve_color(&self, col: &series::Color) -> ColorU8 {
         match col {
             series::Color::Auto => self.0.palette.get(series::IndexColor(self.1)),
             series::Color::Index(idx) => self.0.palette.get(*idx),
             series::Color::Fixed(c) => *c,
-        }
-    }
-}
-
-/// Symbolic constants for Built-in styles available in Plotive
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub enum Builtin {
-    /// Black and white monochrome style
-    /// If you use this with multiple series, consider styling the series lines with different patterns to distinguish them
-    BlackWhite,
-    #[default]
-    /// Light style
-    Light,
-    /// Dark style
-    Dark,
-    /// Okabe & Ito colorblind-safe style
-    OkabeIto,
-    /// Paul Tol's bright colorblind-safe style
-    TolBright,
-    /// Catppuccin Mocha style
-    CatppuccinMocha,
-    /// Catppuccin Macchiato style
-    CatppuccinMacchiato,
-    /// Catppuccin Frappe style
-    CatppuccinFrappe,
-    /// Catppuccin Latte style
-    CatppuccinLatte,
-}
-
-impl Builtin {
-    /// Generate a style from the built-in style enum
-    pub fn to_style(self) -> BuiltinStyle {
-        match self {
-            Builtin::BlackWhite => Style {
-                theme: theme::Builtin::Light,
-                palette: series::palette::Builtin::Black,
-            },
-            Builtin::Light => Style {
-                theme: theme::Builtin::Light,
-                palette: series::palette::Builtin::Standard,
-            },
-            Builtin::Dark => Style {
-                theme: theme::Builtin::Dark,
-                palette: series::palette::Builtin::Pastel,
-            },
-            Builtin::OkabeIto => Style {
-                theme: theme::Builtin::Light,
-                palette: series::palette::Builtin::OkabeIto,
-            },
-            Builtin::TolBright => Style {
-                theme: theme::Builtin::Light,
-                palette: series::palette::Builtin::TolBright,
-            },
-            Builtin::CatppuccinMocha => Style {
-                theme: theme::Builtin::CatppuccinMocha,
-                palette: series::palette::Builtin::CatppuccinMocha,
-            },
-            Builtin::CatppuccinMacchiato => Style {
-                theme: theme::Builtin::CatppuccinMacchiato,
-                palette: series::palette::Builtin::CatppuccinMacchiato,
-            },
-            Builtin::CatppuccinFrappe => Style {
-                theme: theme::Builtin::CatppuccinFrappe,
-                palette: series::palette::Builtin::CatppuccinFrappe,
-            },
-            Builtin::CatppuccinLatte => Style {
-                theme: theme::Builtin::CatppuccinLatte,
-                palette: series::palette::Builtin::CatppuccinLatte,
-            },
         }
     }
 }
@@ -468,7 +430,7 @@ mod tests {
 
     #[test]
     fn test_color_resolve() {
-        let style = Builtin::Light.to_style();
+        let style = Style::light();
 
         let theme_line: theme::Line = (theme::Color::Theme(theme::Col::LegendBorder), 2.0).into();
         let stroke = theme_line.as_stroke(&style);

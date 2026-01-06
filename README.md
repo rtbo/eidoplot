@@ -71,7 +71,7 @@ is very efficient and compatible with real-time rendering, up to hundreds of red
 
 ## Get started
 
-Add `plotive` to your project, as well as one of the surface backend crates.<br />
+Add `plotive` to your project, as well as one or more of the surface backend crates.<br />
 (here `plotive-iced`, a GUI crate for [iced.rs](https://iced.rs))
 ```
 cargo add plotive

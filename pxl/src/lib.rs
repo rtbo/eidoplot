@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::{fmt, io};
 
-use plotive::{ColorU8, Style, drawing, geom, render, style};
+use plotive::{ColorU8, Style, drawing, geom, render};
 use tiny_skia::{self, FillRule, Mask, Pixmap, PixmapMut};
 
 #[derive(Debug)]
@@ -37,22 +37,16 @@ impl std::error::Error for Error {}
 
 /// Parameters needed for saving a [`drawing::Figure`] as PNG
 #[derive(Debug, Clone)]
-pub struct Params<T = plotive::style::theme::Builtin, SP = plotive::style::series::palette::Builtin> {
-    pub style: Style<T, SP>,
+pub struct Params {
+    pub style: Style,
     pub scale: f32,
 }
 
-impl<T, SP> Default for Params<T, SP>
-where
-    T: style::Theme + Default,
-    SP: style::series::Palette + Default,
+impl Default for Params
 {
     fn default() -> Self {
         Self {
-            style: Style {
-                theme: T::default(),
-                palette: SP::default(),
-            },
+            style: Style::default(),
             scale: 1.0,
         }
     }
@@ -76,24 +70,19 @@ where
 ///     ]).into(),
 /// );
 /// let fig = fig.prepare(&(), None).unwrap();
-/// let params = Params::<plotive::style::theme::Builtin, plotive::style::series::palette::Builtin>::default();
-/// fig.save_png("figure.png", params).unwrap();
+/// fig.save_png("figure.png", Default::default()).unwrap();
 /// # std::fs::remove_file("figure.png").unwrap();
 /// ```
 pub trait SavePng {
-    fn save_png<P, T, SP>(&self, path: P, params: Params<T, SP>) -> Result<(), Error>
+    fn save_png<P>(&self, path: P, params: Params) -> Result<(), Error>
     where
-        P: AsRef<Path>,
-        T: style::Theme,
-        SP: style::series::Palette;
+        P: AsRef<Path>;
 }
 
 impl SavePng for drawing::Figure {
-    fn save_png<P, T, SP>(&self, path: P, params: Params<T, SP>) -> Result<(), Error>
+    fn save_png<P>(&self, path: P, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
-        T: style::Theme,
-        SP: style::series::Palette,
     {
         let size = self.size();
         let witdth = (size.width() * params.scale) as u32;
@@ -110,17 +99,11 @@ impl SavePng for drawing::Figure {
 }
 
 pub trait ToPixmap {
-    fn to_pixmap<T, P>(&self, params: Params<T, P>) -> Result<tiny_skia::Pixmap, Error>
-    where
-        T: style::Theme,
-        P: style::series::Palette;
+    fn to_pixmap(&self, params: Params) -> Result<tiny_skia::Pixmap, Error>;
 }
 
 impl ToPixmap for drawing::Figure {
-    fn to_pixmap<T, P>(&self, params: Params<T, P>) -> Result<tiny_skia::Pixmap, Error>
-    where
-        T: style::Theme,
-        P: style::series::Palette,
+    fn to_pixmap(&self, params: Params) -> Result<tiny_skia::Pixmap, Error>
     {
         let size = self.size();
         let witdth = (size.width() * params.scale) as u32;

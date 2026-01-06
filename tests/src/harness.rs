@@ -1,7 +1,5 @@
 use std::path::{Path, PathBuf};
 
-use plotive::style::series;
-use plotive::style::theme::Theme;
 use plotive::{Drawing, Style, des};
 use plotive_pxl::PxlSurface;
 use plotive_svg::SvgSurface;
@@ -36,10 +34,7 @@ pub trait TestHarness {
         Path::new(tests_dir).join("failed").join(file_name)
     }
 
-    fn draw_fig<T, P>(fig: &des::Figure, style: &Style<T, P>) -> Self::DrawnFig
-    where
-        T: Theme,
-        P: series::Palette;
+    fn draw_fig(fig: &des::Figure, style: &Style) -> Self::DrawnFig;
 
     fn diff_fig(actual: &Self::DrawnFig, ref_: &Self::DrawnFig) -> Option<Self::DiffFig>;
 
@@ -49,15 +44,7 @@ pub trait TestHarness {
 
     fn regenerate_refs() -> bool;
 
-    fn check_fig_eq_ref<T, P>(
-        fig: &des::Figure,
-        ref_name: &str,
-        style: &Style<T, P>,
-    ) -> Result<(), String>
-    where
-        T: Theme,
-        P: series::Palette,
-    {
+    fn check_fig_eq_ref(fig: &des::Figure, ref_name: &str, style: &Style) -> Result<(), String> {
         let ref_file = Self::ref_file_path(&ref_name);
         let failed_file = Self::failed_file_path(&ref_name);
         let failed_diff_file = Self::failed_diff_file_path(&ref_name);
@@ -134,11 +121,7 @@ impl TestHarness for PxlHarness {
         "-diff.png"
     }
 
-    fn draw_fig<T, P>(fig: &des::Figure, style: &Style<T, P>) -> Self::DrawnFig
-    where
-        T: Theme,
-        P: series::Palette,
-    {
+    fn draw_fig(fig: &des::Figure, style: &Style) -> Self::DrawnFig {
         let size = fig.size();
         let mut pxl = PxlSurface::new(size.width() as u32, size.height() as u32).unwrap();
         fig.draw(&(), None, &mut pxl, style).unwrap();
@@ -198,11 +181,7 @@ impl TestHarness for SvgHarness {
         ".svg.diff"
     }
 
-    fn draw_fig<T, P>(fig: &des::Figure, style: &Style<T, P>) -> Self::DrawnFig
-    where
-        T: Theme,
-        P: series::Palette,
-    {
+    fn draw_fig(fig: &des::Figure, style: &Style) -> Self::DrawnFig {
         let size = fig.size();
         let mut svg = SvgSurface::new(size.width() as u32, size.height() as u32);
         fig.draw(&(), None, &mut svg, style).unwrap();
