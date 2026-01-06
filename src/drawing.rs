@@ -90,7 +90,7 @@ fn fig_y_to_plot_y(plot_rect: &geom::Rect, fig_y: f32) -> f32 {
     plot_rect.bottom() - fig_y
 }
 
-/// Extension trait to prepare an design figure for drawing
+/// Extension trait to prepare a design figure for drawing
 pub trait Drawing {
     /// Prepare a figure for drawing.
     /// The resulting [`Figure`] can then be drawn multiple times on different rendering surfaces.
