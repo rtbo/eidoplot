@@ -60,6 +60,8 @@ impl ColorU8 {
         ColorU8 { r, g, b, a }
     }
 
+    /// Parse a color from an HTML hex string, e.g. `#ff0000` or `#f00` for red.
+    /// Supports also alpha channel: `#ff000080` or `#f008`.
     pub const fn from_html(hex: &[u8]) -> Self {
         if hex[0] != b'#' {
             panic!("Invalid hex color");
@@ -199,7 +201,7 @@ const fn hex_to_u8(hex: u8) -> u8 {
     }
 }
 
-/// Erreur de parsing pour ColorU8
+/// Parsing error for ColorU8
 #[derive(Debug)]
 pub enum ParseError {
     InvalidFormat,
@@ -275,6 +277,11 @@ fn parse_alpha(s: &str) -> Result<u8, ParseError> {
     }
 }
 
+/// Implement FromStr for ColorU8 to parse color from strings
+/// Supported formats:
+///  - HTML hex: `#rrggbb`, `#rgb`, `#rrggbbaa`, `#rgba`
+///  - CSS rgb(): `rgb(r,g,b)` where r,g,b are 0-255 or percentages
+///  - CSS rgba(): `rgba(r,g,b,a)` where r,g,b are 0-255 or percentages, a is 0.0-1.0
 impl FromStr for ColorU8 {
     type Err = ParseError;
 
@@ -351,7 +358,10 @@ mod tests {
         assert_eq!("rgb(255,0,0)".parse::<ColorU8>().unwrap(), RED);
 
         // percentage rgb
-        assert_eq!("rgb(100%,0%,0%)".parse::<ColorU8>().unwrap(), RED);
+        assert_eq!(
+            "rgb(40.5%,0%,0%)".parse::<ColorU8>().unwrap(),
+            ColorU8::from_rgb(103, 0, 0)
+        );
 
         // rgba with float alpha
         let c = "rgba(255,0,0,0.5)".parse::<ColorU8>().unwrap();
