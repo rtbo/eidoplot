@@ -2,6 +2,7 @@
 name = "plotive"
 version.workspace = true
 authors.workspace = true
+description.workspace = true
 edition.workspace = true
 repository.workspace = true
 license.workspace = true
@@ -109,8 +110,9 @@ members = ["base", "dsl", "iced", "pxl", "svg", "text", "tests"]
 resolver = "3"
 
 [workspace.package]
-version = "0.1.0-dev"
+version = "0.1.0"
 authors = ["Rémi THEBAULT"]
+description = "Simple data plotting library"
 edition = "2024"
 repository = "https://github.com/rtbo/plotive"
 license = "MIT"
@@ -118,13 +120,13 @@ categories = ["science", "graphics"]
 keywords = ["data", "visualization", "plotting"]
 
 [workspace.dependencies]
-plotive = { version = "0.1.0-dev", path = "." }
-plotive-base = { version = "0.1.0-dev", path = "base" }
-plotive-dsl = { version = "0.1.0-dev", path = "dsl" }
-plotive-iced = { version = "0.1.0-dev", path = "iced" }
-plotive-pxl = { version = "0.1.0-dev", path = "pxl" }
-plotive-svg = { version = "0.1.0-dev", path = "svg" }
-plotive-text = { version = "0.1.0-dev", path = "text" }
+plotive = { version = "0.1.0", path = "." }
+plotive-base = { version = "0.1.0", path = "base" }
+plotive-dsl = { version = "0.1.0", path = "dsl" }
+plotive-iced = { version = "0.1.0", path = "iced" }
+plotive-pxl = { version = "0.1.0", path = "pxl" }
+plotive-svg = { version = "0.1.0", path = "svg" }
+plotive-text = { version = "0.1.0", path = "text" }
 arboard = "3.6.1"
 bytes = "1.6"
 iced = { version = "0.14.0", features = [

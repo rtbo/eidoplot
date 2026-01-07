@@ -1,5 +1,6 @@
 [package]
 name = "plotive-iced"
+description = "Iced integration library for plotive"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
