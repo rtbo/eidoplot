@@ -1,5 +1,6 @@
 [package]
 name = "plotive-svg"
+description = "SVG rendering library for plotive"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

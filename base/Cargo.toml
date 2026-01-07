@@ -1,5 +1,6 @@
 [package]
 name = "plotive-base"
+description = "Base library for plotive"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

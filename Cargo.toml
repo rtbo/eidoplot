@@ -2,6 +2,7 @@
 name = "plotive"
 version.workspace = true
 authors.workspace = true
+description.workspace = true
 edition.workspace = true
 repository.workspace = true
 license.workspace = true
@@ -111,6 +112,7 @@ resolver = "3"
 [workspace.package]
 version = "0.1.0"
 authors = ["Rémi THEBAULT"]
+description = "Simple data plotting library"
 edition = "2024"
 repository = "https://github.com/rtbo/plotive"
 license = "MIT"

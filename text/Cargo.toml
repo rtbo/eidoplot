@@ -1,5 +1,6 @@
 [package]
 name = "plotive-text"
+description = "Text shaping and rendering library for plotive"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
