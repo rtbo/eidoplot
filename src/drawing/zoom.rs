@@ -148,7 +148,7 @@ pub struct FigureView {
     plot_views: Vec<Option<PlotView>>,
 }
 
-impl super::Figure {
+impl super::PreparedFigure {
     /// Get the current view of the figure.
     pub fn view(&self) -> FigureView {
         let mut plot_views = Vec::with_capacity(self.plots.len());

@@ -35,7 +35,7 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-/// Parameters needed for saving a [`drawing::Figure`] as PNG
+/// Parameters needed for saving a [`drawing::PreparedFigure`] as PNG
 #[derive(Debug, Clone)]
 pub struct Params {
     pub style: Style,
@@ -52,13 +52,13 @@ impl Default for Params
     }
 }
 
-/// Trait for saving a [`drawing::Figure`] as PNG file
+/// Trait for saving a [`drawing::PreparedFigure`] as PNG file
 ///
 /// # Example
 ///
 /// ```rust
 /// use plotive::des;
-/// use plotive::Drawing;
+/// use plotive::Prepare;
 /// use plotive_pxl::{SavePng, Params};
 ///
 /// // Create your figure design (this one has inline data for simplicity)
@@ -79,7 +79,7 @@ pub trait SavePng {
         P: AsRef<Path>;
 }
 
-impl SavePng for drawing::Figure {
+impl SavePng for drawing::PreparedFigure {
     fn save_png<P>(&self, path: P, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
@@ -102,7 +102,7 @@ pub trait ToPixmap {
     fn to_pixmap(&self, params: Params) -> Result<tiny_skia::Pixmap, Error>;
 }
 
-impl ToPixmap for drawing::Figure {
+impl ToPixmap for drawing::PreparedFigure {
     fn to_pixmap(&self, params: Params) -> Result<tiny_skia::Pixmap, Error>
     {
         let size = self.size();

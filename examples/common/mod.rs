@@ -2,7 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use plotive::{Drawing, Style, data, des, fontdb};
+use plotive::{Prepare, Style, data, des, fontdb};
 use plotive_iced::Show;
 use plotive_pxl::SavePng;
 use plotive_svg::SaveSvg;

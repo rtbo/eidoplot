@@ -3,7 +3,7 @@ use crate::drawing::{Ctx, Error, plot};
 use crate::style::theme;
 use crate::{Style, data, geom, des, missing_params, render, text};
 
-/// A figure that has been prepared for drawing. See [`Drawing::prepare`](crate::drawing::Drawing::prepare).
+/// A figure that has been prepared for drawing. See the [`Prepare`](crate::drawing::Prepare) trait.
 /// It contains all the necessary data and layout information.
 ///
 /// The texts have been shaped, laid out and transformed to paths.
@@ -11,7 +11,7 @@ use crate::{Style, data, geom, des, missing_params, render, text};
 ///
 /// The colors, strokes and fills will be resolved at draw time using the given theme.
 #[derive(Debug)]
-pub struct Figure {
+pub struct PreparedFigure {
     pub(super) size: geom::Size,
     pub(super) fill: Option<theme::Fill>,
     pub(super) title: Option<(geom::Transform, super::Text)>,
@@ -19,7 +19,7 @@ pub struct Figure {
     pub(super) plots: plot::Plots,
 }
 
-impl Clone for Figure {
+impl Clone for PreparedFigure {
     fn clone(&self) -> Self {
         Self {
             size: self.size,
@@ -31,7 +31,7 @@ impl Clone for Figure {
     }
 }
 
-impl Figure {
+impl PreparedFigure {
     /// The size of the figure in figure units
     pub fn size(&self) -> geom::Size {
         self.size
@@ -72,7 +72,7 @@ impl<D> Ctx<'_, D>
 where
     D: data::Source + ?Sized,
 {
-    pub fn setup_figure(&self, fig: &des::Figure) -> Result<Figure, Error> {
+    pub fn setup_figure(&self, fig: &des::Figure) -> Result<PreparedFigure, Error> {
         let mut rect =
             geom::Rect::from_ps(geom::Point { x: 0.0, y: 0.0 }, fig.size()).pad(fig.padding());
 
@@ -108,7 +108,7 @@ where
 
         let plots = self.setup_plots(fig.plots(), &rect)?;
 
-        Ok(Figure {
+        Ok(PreparedFigure {
             size: fig.size(),
             fill: fig.fill().clone(),
             title,
@@ -182,7 +182,7 @@ where
     }
 }
 
-impl Figure {
+impl PreparedFigure {
     /// Draw the figure on the given rendering surface, using the given theme
     /// The surface content will be replaced by the figure drawing.
     pub fn draw<S>(&self, surface: &mut S, style: &Style)

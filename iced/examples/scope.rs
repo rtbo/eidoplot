@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 use std::time::Instant;
 
 use plotive::style::theme;
-use plotive::{Drawing, data, drawing, des, style, utils};
+use plotive::{Prepare, data, drawing, des, style, utils};
 use plotive_iced::figure::figure;
 use iced::widget::{column, text};
 use iced::{Element, Subscription, Task, window};
@@ -49,7 +49,7 @@ struct Scope {
     fps: f32,
     fps_counter: FpsCounter,
     phase: f64,
-    fig: drawing::Figure,
+    fig: drawing::PreparedFigure,
     x: Vec<f64>,
     y: Vec<f64>,
 }

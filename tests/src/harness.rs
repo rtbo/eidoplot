@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use plotive::{Drawing, Style, des};
+use plotive::{Prepare, Style, des};
 use plotive_pxl::PxlSurface;
 use plotive_svg::SvgSurface;
 

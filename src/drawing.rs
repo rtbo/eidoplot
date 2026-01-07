@@ -22,7 +22,7 @@ mod series;
 mod ticks;
 pub mod zoom;
 
-pub use figure::Figure;
+pub use figure::PreparedFigure;
 pub use hit_test::PlotHit;
 
 /// Errors that can occur during figure drawing
@@ -90,9 +90,9 @@ fn fig_y_to_plot_y(plot_rect: &geom::Rect, fig_y: f32) -> f32 {
 }
 
 /// Extension trait to prepare a design figure for drawing
-pub trait Drawing {
+pub trait Prepare {
     /// Prepare a figure for drawing.
-    /// The resulting [`Figure`] can then be drawn multiple times on different rendering surfaces.
+    /// The resulting [`PreparedFigure`] can then be drawn multiple times on different rendering surfaces.
     /// The texts are shaped, laid out and transformed to paths using the given font database.
     ///
     /// Theme and series colors are not used at this stage, they will be resolved at draw time.
@@ -103,7 +103,7 @@ pub trait Drawing {
         &self,
         data_source: &D,
         fontdb: Option<&fontdb::Database>,
-    ) -> Result<Figure, Error>
+    ) -> Result<PreparedFigure, Error>
     where
         D: data::Source + ?Sized;
 
@@ -126,12 +126,12 @@ pub trait Drawing {
     }
 }
 
-impl Drawing for des::Figure {
+impl Prepare for des::Figure {
     fn prepare<D>(
         &self,
         data_source: &D,
         fontdb: Option<&fontdb::Database>,
-    ) -> Result<Figure, Error>
+    ) -> Result<PreparedFigure, Error>
     where
         D: data::Source + ?Sized,
     {

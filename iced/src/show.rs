@@ -7,7 +7,7 @@ use iced::widget::{button, column, mouse_area, row, space, text};
 use iced::{Alignment, Length, mouse};
 use iced_font_awesome::{fa_icon, fa_icon_solid};
 use plotive::drawing::zoom;
-use plotive::{Drawing, data, des, drawing, fontdb, geom};
+use plotive::{Prepare, data, des, drawing, fontdb, geom};
 
 use crate::figure::figure;
 
@@ -170,7 +170,7 @@ impl Show for des::Figure {
     }
 }
 
-impl Show for drawing::Figure {
+impl Show for drawing::PreparedFigure {
     fn show<D>(self, data_source: Arc<D>, params: Params) -> iced::Result
     where
         D: data::Source + ?Sized + 'static,
@@ -184,7 +184,7 @@ impl Show for drawing::Figure {
 }
 
 fn show_app<D>(
-    fig: drawing::Figure,
+    fig: drawing::PreparedFigure,
     data_source: Arc<D>,
     fontdb: Arc<fontdb::Database>,
     style: Option<plotive::Style>,
@@ -255,7 +255,7 @@ enum Interaction {
 
 /// struct gathering data that is optional in FigureShow
 struct Fig<D: data::Source + ?Sized + 'static> {
-    fig: drawing::Figure,
+    fig: drawing::PreparedFigure,
     home_view: zoom::FigureView,
     data_source: Arc<D>,
 }
@@ -312,7 +312,7 @@ where
         }
     }
 
-    pub fn set_figure(&mut self, fig: drawing::Figure, data_source: Arc<D>) {
+    pub fn set_figure(&mut self, fig: drawing::PreparedFigure, data_source: Arc<D>) {
         let home_view = fig.view();
         self.fig = Some(Fig {
             fig,
@@ -333,7 +333,7 @@ where
         self.style = style;
     }
 
-    pub fn figure(&self) -> Option<&drawing::Figure> {
+    pub fn figure(&self) -> Option<&drawing::PreparedFigure> {
         self.fig.as_ref().map(|f| &f.fig)
     }
 

@@ -34,7 +34,7 @@ pub fn data_src_ref<S: Into<String>>(src: S) -> DataCol {
 /// Use this to provide data directly in the series.
 /// Doing this, you may pass `()` as data source when building the plot.
 /// # Examples
-//// ```ignore
+/// ```ignore
 /// let col = data_inline(vec![1.0, 2.0, 3.0]);
 /// ```
 pub fn data_inline<T: Into<data::VecColumn>>(data: T) -> DataCol {

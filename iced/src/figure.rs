@@ -8,7 +8,7 @@ use iced::{Element, Length, Rectangle, Size};
 
 use crate::surface;
 
-pub fn figure<'a, Message, Theme>(fig: &'a drawing::Figure) -> Figure<'a, Message, Theme>
+pub fn figure<'a, Message, Theme>(fig: &'a drawing::PreparedFigure) -> Figure<'a, Message, Theme>
 where
     Theme: Catalog,
 {
@@ -19,7 +19,7 @@ pub struct Figure<'a, Message, Theme = iced::Theme>
 where
     Theme: Catalog,
 {
-    fig: &'a drawing::Figure,
+    fig: &'a drawing::PreparedFigure,
     width: Length,
     height: Length,
     scale: f32,
@@ -50,7 +50,7 @@ impl<'a, Message, Theme> Figure<'a, Message, Theme>
 where
     Theme: Catalog,
 {
-    pub fn new(fig: &'a drawing::Figure) -> Self {
+    pub fn new(fig: &'a drawing::PreparedFigure) -> Self {
         Figure {
             fig,
             width: Length::Shrink,

@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use plotive::data::Column;
-use plotive::{Drawing, data, drawing, geom, des};
+use plotive::{Prepare, data, drawing, geom, des};
 use iced::futures::channel::mpsc;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{button, column, container, pick_list, row, space, text};
@@ -432,7 +432,7 @@ struct AudioScope {
     capturing: bool,
     sender: Option<mpsc::Sender<AudioLoopMsg>>,
 
-    fig: Option<drawing::Figure>,
+    fig: Option<drawing::PreparedFigure>,
 }
 
 const BUFFER_SIZES: &[u32] = &[256, 512, 1024, 2048];

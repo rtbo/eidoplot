@@ -36,7 +36,7 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-/// Parameters needed for saving a [`drawing::Figure`] as SVG
+/// Parameters needed for saving a [`drawing::PreparedFigure`] as SVG
 #[derive(Debug, Clone)]
 pub struct Params {
     pub style: Style,
@@ -58,7 +58,7 @@ pub trait SaveSvg {
         P: AsRef<Path>;
 }
 
-impl SaveSvg for drawing::Figure {
+impl SaveSvg for drawing::PreparedFigure {
     fn save_svg<P>(&self, path: P, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,

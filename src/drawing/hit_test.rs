@@ -85,7 +85,7 @@ pub struct PlotHit {
     pub y_coords: PlotCoords,
 }
 
-impl super::Figure {
+impl super::PreparedFigure {
     /// Perform a hit test on the figure for the given point in figure coordinates.
     pub fn hit_test(&self, point: geom::Point) -> Option<PlotHit> {
         for p in self.plots.plots().iter().filter_map(Option::as_ref) {

@@ -137,12 +137,12 @@
  *
  * [`des`] and [`render`] are bridged together by the [`drawing`] module, which exposes very little public API.
  * This module draws a [`des::Figure`] onto a [`render::Surface`] and acts in two phases:
- *  - preparation: [`drawing::Drawing::prepare()`] returns a [`drawing::Figure`], which caches all the layout information,
+ *  - preparation: [`drawing::Prepare::prepare()`] returns a [`drawing::PreparedFigure`], which caches all the layout information,
  *    the text preprocessed as paths, the series data converted to paths, etc.
- *  - drawing: [`drawing::Figure::draw()`] draws the prepared figure onto the surface, using the cached information. Themes
+ *  - drawing: [`drawing::PreparedFigure::draw()`] draws the prepared figure onto the surface, using the cached information. Themes
  *    colors are resolved at this stage.
  *
- * The [`drawing::Figure`] has API to update the series with new data, so that dynamic plots can be implemented easily and efficiently.
+ * The [`drawing::PreparedFigure`] has API to update the series with new data, so that dynamic plots can be implemented easily and efficiently.
  * It also supports zooming and panning operations.
  *
  */
@@ -161,7 +161,7 @@ pub mod dsl;
 #[cfg(feature = "time")]
 pub mod time;
 
-pub use drawing::Drawing;
+pub use drawing::Prepare;
 pub use style::Style;
 
 /// Rexports of [`plotive_base::color`]` items
