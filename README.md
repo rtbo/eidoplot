@@ -3,6 +3,9 @@
 _declarative plotting_. A simple data plotting library written in Rust.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Crates.io Version](https://img.shields.io/crates/v/plotive)
+![docs.rs link](https://img.shields.io/docsrs/plotive)
+[![Test Suite](https://github.com/rtbo/plotive/actions/workflows/test.yml/badge.svg)](https://github.com/rtbo/plotive/actions/workflows/test.yml)
 
 ## Overview and features
 
