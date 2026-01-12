@@ -285,6 +285,7 @@ struct Line {
     axes: (des::axis::Ref, des::axis::Ref),
     path: Option<geom::Path>,
     stroke: style::series::Stroke,
+    interpolation: des::series::Interpolation,
 }
 
 impl Line {
@@ -301,6 +302,7 @@ impl Line {
             axes: (des.x_axis().clone(), des.y_axis().clone()),
             path: None,
             stroke: des.stroke().clone(),
+            interpolation: des.interpolation(),
         })
     }
 
@@ -314,10 +316,20 @@ impl Line {
 
         debug_assert!(x_col.len() == y_col.len());
 
-        let mut in_a_line = false;
+        let path = match self.interpolation {
+            des::series::Interpolation::Linear => {
+                self.make_path_linear(rect, x_col, y_col, cm)
+            }
+            _ => todo!("Interpolation method {:?}", self.interpolation),
+        };
 
-        let mut pb = geom::PathBuilder::with_capacity(x_col.len() + 1, x_col.len());
-        for (x, y) in x_col.sample_iter().zip(y_col.sample_iter()) {
+        self.path = Some(path);
+    }
+
+    fn make_path_linear(&self, rect: &geom::Rect, x: &dyn data::Column, y: &dyn data::Column, cm: &CoordMapXy) -> geom::Path {
+        let mut in_a_line = false;
+        let mut pb = geom::PathBuilder::with_capacity(x.len() + 1, x.len());
+        for (x, y) in x.sample_iter().zip(y.sample_iter()) {
             if x.is_null() || y.is_null() {
                 in_a_line = false;
                 continue;
@@ -335,7 +347,33 @@ impl Line {
                 in_a_line = true;
             }
         }
-        self.path = Some(pb.finish().expect("Should be a valid path"));
+        pb.finish().expect("Should be a valid path")
+    }
+
+    fn make_path_step_early(&self, rect: &geom::Rect, x: &dyn data::Column, y: &dyn data::Column, cm: &CoordMapXy) -> geom::Path {
+        let mut pb = geom::PathBuilder::new();
+
+        let mut prev_y: Option<f64> = None;
+
+        for (x, y) in x.sample_iter().zip(y.sample_iter()) {
+            if x.is_null() || y.is_null() {
+                prev_y = None;
+                continue;
+            }
+            let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
+            let x = rect.left() + x;
+            let y = rect.bottom() - y;
+
+            if let Some(px) = prev_x {
+                pb.line_to(x, y);
+                pb.line_to(x, y);
+            } else {
+                pb.move_to(x, y);
+            }
+            prev_x = Some(x);
+        }
+
+        pb.finish().expect("Should be a valid path")
     }
 
     fn draw<S>(&self, surface: &mut S, style: &Style)
