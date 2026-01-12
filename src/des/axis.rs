@@ -594,11 +594,11 @@ pub mod ticks {
 
     /// Describes the style of the major grid lines
     #[derive(Debug, Clone)]
-    pub struct Grid(pub theme::Line);
+    pub struct Grid(pub theme::Stroke);
 
     impl Default for Grid {
         fn default() -> Self {
-            Grid(theme::Line {
+            Grid(theme::Stroke {
                 width: 1.0,
                 color: theme::Col::Grid.into(),
                 pattern: style::LinePattern::Solid,
@@ -607,8 +607,8 @@ pub mod ticks {
         }
     }
 
-    impl From<theme::Line> for Grid {
-        fn from(line: theme::Line) -> Self {
+    impl From<theme::Stroke> for Grid {
+        fn from(line: theme::Stroke) -> Self {
             Grid(line)
         }
     }
@@ -691,11 +691,11 @@ pub mod ticks {
 
     /// Describes the style of the minor grid lines
     #[derive(Debug, Clone)]
-    pub struct MinorGrid(pub theme::Line);
+    pub struct MinorGrid(pub theme::Stroke);
 
     impl Default for MinorGrid {
         fn default() -> Self {
-            MinorGrid(theme::Line {
+            MinorGrid(theme::Stroke {
                 width: 0.5,
                 color: theme::Col::Grid.into(),
                 pattern: style::LinePattern::Dash(Dash::default()),
@@ -704,8 +704,8 @@ pub mod ticks {
         }
     }
 
-    impl From<theme::Line> for MinorGrid {
-        fn from(line: theme::Line) -> Self {
+    impl From<theme::Stroke> for MinorGrid {
+        fn from(line: theme::Stroke) -> Self {
             MinorGrid(line)
         }
     }

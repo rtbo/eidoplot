@@ -98,7 +98,7 @@ pub(crate) struct Pos {
 #[derive(Debug, Clone)]
 pub struct Line {
     pub(crate) direction: Direction,
-    pub(crate) line: theme::Line,
+    pub(crate) line: theme::Stroke,
 
     pub(crate) pos: Pos,
 }
@@ -176,7 +176,7 @@ impl Line {
 
     /// Set the line to be displayed.
     /// By default, the line is a solid line of the foreground theme color.
-    pub fn with_line(self, line: theme::Line) -> Self {
+    pub fn with_line(self, line: theme::Stroke) -> Self {
         Self { line, ..self }
     }
 
@@ -195,7 +195,7 @@ pub struct Arrow {
     pub(crate) dx: f32,
     pub(crate) dy: f32,
     pub(crate) head_size: f32,
-    pub(crate) line: theme::Line,
+    pub(crate) line: theme::Stroke,
 
     pub(crate) pos: Pos,
 }
@@ -221,7 +221,7 @@ impl Arrow {
 
     /// Set the line style of the arrow.
     /// By default the foreground theme color is used with a solid line of width 1.0.
-    pub fn with_line(self, line: theme::Line) -> Self {
+    pub fn with_line(self, line: theme::Stroke) -> Self {
         Self { line, ..self }
     }
 
@@ -271,7 +271,7 @@ pub struct Label {
     pub(crate) font: Font,
     pub(crate) color: theme::Color,
     pub(crate) anchor: Anchor,
-    pub(crate) frame: (Option<theme::Fill>, Option<theme::Line>),
+    pub(crate) frame: (Option<theme::Fill>, Option<theme::Stroke>),
     pub(crate) angle: f32,
 
     pub(crate) pos: Pos,
@@ -322,7 +322,7 @@ impl Label {
 
     /// Set the frame border and fill of the label.
     /// By default, there is no frame.
-    pub fn with_frame(self, fill: Option<theme::Fill>, stroke: Option<theme::Line>) -> Self {
+    pub fn with_frame(self, fill: Option<theme::Fill>, stroke: Option<theme::Stroke>) -> Self {
         Self {
             frame: (fill, stroke),
             ..self

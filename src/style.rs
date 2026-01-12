@@ -189,12 +189,12 @@ impl From<Dash> for LinePattern {
     }
 }
 
-/// Line style definition
+/// Stroke style definition. Defines how lines are stroked.
 ///
 /// The color is a generic parameter to support different color resolution strategies,
 /// such as fixed colors, theme-based colors, or series-based colors.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Line<C: Color> {
+pub struct Stroke<C: Color> {
     /// Line color
     pub color: C,
     /// Line width in figure units
@@ -207,15 +207,15 @@ pub struct Line<C: Color> {
 
 const DOT_DASH: &[f32] = &[1.0, 1.0];
 
-impl<C: Color> Line<C> {
+impl<C: Color> Stroke<C> {
     /// Set the line width in figure units, returning self for chaining
     pub fn with_width(self, width: f32) -> Self {
-        Line { width, ..self }
+        Stroke { width, ..self }
     }
 
     /// Set the line opacity (0.0 to 1.0), returning self for chaining
     pub fn with_opacity(self, opacity: f32) -> Self {
-        Line {
+        Stroke {
             opacity: Some(opacity),
             ..self
         }
@@ -223,7 +223,7 @@ impl<C: Color> Line<C> {
 
     /// Set the line pattern, returning self for chaining
     pub fn with_pattern(self, pattern: LinePattern) -> Self {
-        Line { pattern, ..self }
+        Stroke { pattern, ..self }
     }
 
     /// Convert to a renderable stroke, resolving colors using the provided resolver
@@ -251,9 +251,9 @@ impl<C: Color> Line<C> {
     }
 }
 
-impl<C: Color> From<C> for Line<C> {
+impl<C: Color> From<C> for Stroke<C> {
     fn from(color: C) -> Self {
-        Line {
+        Stroke {
             width: 1.0,
             color,
             pattern: LinePattern::default(),
@@ -262,9 +262,9 @@ impl<C: Color> From<C> for Line<C> {
     }
 }
 
-impl<C: Color> From<(C, f32)> for Line<C> {
+impl<C: Color> From<(C, f32)> for Stroke<C> {
     fn from((color, width): (C, f32)) -> Self {
-        Line {
+        Stroke {
             color,
             width,
             pattern: LinePattern::default(),
@@ -273,9 +273,9 @@ impl<C: Color> From<(C, f32)> for Line<C> {
     }
 }
 
-impl<C: Color> From<(C, f32, LinePattern)> for Line<C> {
+impl<C: Color> From<(C, f32, LinePattern)> for Stroke<C> {
     fn from((color, width, pattern): (C, f32, LinePattern)) -> Self {
-        Line {
+        Stroke {
             color,
             width,
             pattern,
@@ -284,9 +284,9 @@ impl<C: Color> From<(C, f32, LinePattern)> for Line<C> {
     }
 }
 
-impl<C: Color> From<(C, f32, Dash)> for Line<C> {
+impl<C: Color> From<(C, f32, Dash)> for Stroke<C> {
     fn from((color, width, dash): (C, f32, Dash)) -> Self {
-        Line {
+        Stroke {
             color,
             width,
             pattern: LinePattern::Dash(dash),
@@ -405,7 +405,7 @@ pub struct Marker<C: Color> {
     /// Marker fill style
     pub fill: Option<Fill<C>>,
     /// Marker stroke style
-    pub stroke: Option<Line<C>>,
+    pub stroke: Option<Stroke<C>>,
 }
 
 impl<C> Default for Marker<C>
@@ -432,19 +432,19 @@ mod tests {
     fn test_color_resolve() {
         let style = Style::light();
 
-        let theme_line: theme::Line = (theme::Color::Theme(theme::Col::LegendBorder), 2.0).into();
+        let theme_line: theme::Stroke = (theme::Color::Theme(theme::Col::LegendBorder), 2.0).into();
         let stroke = theme_line.as_stroke(&style);
         assert_eq!(stroke.color, ColorU8::from_html(b"#000000"));
 
-        let series_line: Line<series::IndexColor> = (series::IndexColor(2), 2.0).into();
+        let series_line: Stroke<series::IndexColor> = (series::IndexColor(2), 2.0).into();
         let stroke = series_line.as_stroke(&style);
         assert_eq!(stroke.color, ColorU8::from_html(b"#2ca02c"));
 
-        let series_line: Line<series::AutoColor> = (series::AutoColor, 2.0).into();
+        let series_line: Stroke<series::AutoColor> = (series::AutoColor, 2.0).into();
         let stroke = series_line.as_stroke(&(&style, 2));
         assert_eq!(stroke.color, ColorU8::from_html(b"#2ca02c"));
 
-        let fixed_color: Line<ColorU8> = (ColorU8::from_html(b"#123456"), 2.0).into();
+        let fixed_color: Stroke<ColorU8> = (ColorU8::from_html(b"#123456"), 2.0).into();
         let stroke = fixed_color.as_stroke(&());
         assert_eq!(stroke.color, ColorU8::from_html(b"#123456"));
     }

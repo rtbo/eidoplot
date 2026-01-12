@@ -132,7 +132,7 @@ pub struct Line {
     name: Option<String>,
     x_axis: axis::Ref,
     y_axis: axis::Ref,
-    line: style::series::Line,
+    stroke: style::series::Stroke,
 }
 
 impl Line {
@@ -145,7 +145,7 @@ impl Line {
             name: None,
             x_axis: Default::default(),
             y_axis: Default::default(),
-            line: style::series::Line::default().with_width(defaults::SERIES_LINE_WIDTH),
+            stroke: style::series::Stroke::default().with_width(defaults::SERIES_LINE_WIDTH),
         }
     }
 
@@ -172,8 +172,8 @@ impl Line {
     }
 
     /// Set the line style and return self for chaining
-    pub fn with_line(mut self, line: style::series::Line) -> Self {
-        self.line = line;
+    pub fn with_line(mut self, line: style::series::Stroke) -> Self {
+        self.stroke = line;
         self
     }
 
@@ -202,9 +202,9 @@ impl Line {
         &self.y_axis
     }
 
-    /// Get the line style
-    pub fn line(&self) -> &style::series::Line {
-        &self.line
+    /// Get the stroke style
+    pub fn stroke(&self) -> &style::series::Stroke {
+        &self.stroke
     }
 }
 
@@ -308,7 +308,7 @@ pub struct Histogram {
     x_axis: axis::Ref,
     y_axis: axis::Ref,
     fill: style::series::Fill,
-    line: Option<style::series::Line>,
+    line: Option<style::series::Stroke>,
     bins: u32,
     density: bool,
 }
@@ -355,7 +355,7 @@ impl Histogram {
     }
 
     /// Set the line style for the histogram outline and return self for chaining
-    pub fn with_line(mut self, line: style::series::Line) -> Self {
+    pub fn with_line(mut self, line: style::series::Stroke) -> Self {
         self.line = Some(line);
         self
     }
@@ -398,7 +398,7 @@ impl Histogram {
     }
 
     /// Get the line style, if any
-    pub fn line(&self) -> Option<&style::series::Line> {
+    pub fn line(&self) -> Option<&style::series::Stroke> {
         self.line.as_ref()
     }
 
@@ -449,7 +449,7 @@ pub struct Bars {
     x_axis: axis::Ref,
     y_axis: axis::Ref,
     fill: style::series::Fill,
-    line: Option<style::series::Line>,
+    line: Option<style::series::Stroke>,
     position: BarsPosition,
 }
 
@@ -483,7 +483,7 @@ impl Bars {
     }
 
     /// Set the line style for the bar outline and return self for chaining
-    pub fn with_line(self, line: style::series::Line) -> Self {
+    pub fn with_line(self, line: style::series::Stroke) -> Self {
         Self {
             line: Some(line),
             ..self
@@ -526,7 +526,7 @@ impl Bars {
     }
 
     /// Get the line style, if any
-    pub fn line(&self) -> Option<&style::series::Line> {
+    pub fn line(&self) -> Option<&style::series::Stroke> {
         self.line.as_ref()
     }
 
@@ -546,7 +546,7 @@ pub struct BarSeries {
 
     name: Option<String>,
     fill: style::series::Fill,
-    line: Option<style::series::Line>,
+    line: Option<style::series::Stroke>,
 }
 
 impl BarSeries {
@@ -575,7 +575,7 @@ impl BarSeries {
     }
 
     /// Set the line style for the bar outline and return self for chaining
-    pub fn with_line(self, line: style::series::Line) -> Self {
+    pub fn with_line(self, line: style::series::Stroke) -> Self {
         Self {
             line: Some(line),
             ..self
@@ -598,7 +598,7 @@ impl BarSeries {
     }
 
     /// Get the line style, if any
-    pub fn line(&self) -> Option<&style::series::Line> {
+    pub fn line(&self) -> Option<&style::series::Stroke> {
         self.line.as_ref()
     }
 }

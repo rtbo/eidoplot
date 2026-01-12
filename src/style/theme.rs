@@ -237,14 +237,14 @@ impl color::ResolveColor<Color> for Theme
     }
 }
 
-/// Line style for theme elements
-pub type Line = style::Line<Color>;
+/// Stroke style for theme elements
+pub type Stroke = style::Stroke<Color>;
 
-// From<Color> for Line is already defined in style.rs, using generics.
-// We just add From<Col> for Line here.
-impl From<Col> for Line {
+// From<Color> for Stroke is already defined in style.rs, using generics.
+// We just add From<Col> for Stroke here.
+impl From<Col> for Stroke {
     fn from(col: Col) -> Self {
-        Line {
+        Stroke {
             color: col.into(),
             width: 1.0,
             pattern: style::LinePattern::default(),

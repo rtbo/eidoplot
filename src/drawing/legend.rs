@@ -6,16 +6,16 @@ use crate::{Style, drawing, geom, des, render, style};
 
 #[derive(Debug, Clone)]
 pub enum Shape {
-    Line(style::series::Line),
+    Line(style::series::Stroke),
     Marker(style::series::Marker),
-    Rect(style::series::Fill, Option<style::series::Line>),
+    Rect(style::series::Fill, Option<style::series::Stroke>),
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum ShapeRef<'a> {
-    Line(&'a style::series::Line),
+    Line(&'a style::series::Stroke),
     Marker(&'a style::series::Marker),
-    Rect(&'a style::series::Fill, Option<&'a style::series::Line>),
+    Rect(&'a style::series::Fill, Option<&'a style::series::Stroke>),
 }
 
 impl ShapeRef<'_> {
@@ -60,7 +60,7 @@ impl LegendEntry {
 pub struct LegendBuilder<'a> {
     font: des::legend::EntryFont,
     fill: Option<theme::Fill>,
-    border: Option<theme::Line>,
+    border: Option<theme::Stroke>,
     columns: Option<u32>,
     spacing: Size,
     padding: Padding,
@@ -73,7 +73,7 @@ pub struct LegendBuilder<'a> {
 #[derive(Debug, Clone)]
 pub struct Legend {
     fill: Option<theme::Fill>,
-    border: Option<theme::Line>,
+    border: Option<theme::Stroke>,
     entries: Vec<LegendEntry>,
 
     size: geom::Size,

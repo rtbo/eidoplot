@@ -131,12 +131,12 @@ impl ResolveColor<Color> for (&Palette, usize)
     }
 }
 
-/// Line style for theme elements
-pub type Line = style::Line<Color>;
+/// Stroke style for theme elements
+pub type Stroke = style::Stroke<Color>;
 
-impl Default for Line {
+impl Default for Stroke {
     fn default() -> Self {
-        Line {
+        Stroke {
             color: Color::default(),
             width: defaults::SERIES_LINE_WIDTH,
             pattern: style::LinePattern::default(),
@@ -145,9 +145,9 @@ impl Default for Line {
     }
 }
 
-impl From<ColorU8> for Line {
+impl From<ColorU8> for Stroke {
     fn from(color: ColorU8) -> Self {
-        Line {
+        Stroke {
             color: color.into(),
             width: defaults::SERIES_LINE_WIDTH,
             pattern: style::LinePattern::default(),

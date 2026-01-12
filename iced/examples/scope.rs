@@ -134,7 +134,7 @@ fn build_figure() -> des::Figure {
             des::DataCol::SrcRef("y".to_string()),
         )
         .with_name("y=sin(x)".to_string())
-        .with_line(style::series::Line::default().with_width(2.0)),
+        .with_line(style::series::Stroke::default().with_width(2.0)),
     );
 
     let plot = des::Plot::new(vec![series])
