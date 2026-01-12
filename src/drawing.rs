@@ -209,7 +209,7 @@ struct Text {
 struct TextSpan {
     path: geom::Path,
     fill: Option<theme::Fill>,
-    stroke: Option<theme::Line>,
+    stroke: Option<theme::Stroke>,
 }
 
 impl Text {
@@ -250,7 +250,7 @@ impl Text {
                 spans.push(TextSpan {
                     path: path.clone(),
                     fill: None,
-                    stroke: Some(theme::Line {
+                    stroke: Some(theme::Stroke {
                         color: color.into(),
                         width: thickness,
                         opacity: None,

@@ -16,7 +16,7 @@ impl SeriesExt for des::series::Line {
         self.name().map(|n| legend::Entry {
             label: n.as_ref(),
             font: None,
-            shape: legend::ShapeRef::Line(self.line()),
+            shape: legend::ShapeRef::Line(self.stroke()),
         })
     }
 }
@@ -284,7 +284,7 @@ struct Line {
     ab: (axis::Bounds, axis::Bounds),
     axes: (des::axis::Ref, des::axis::Ref),
     path: Option<geom::Path>,
-    line: style::series::Line,
+    stroke: style::series::Stroke,
 }
 
 impl Line {
@@ -300,7 +300,7 @@ impl Line {
             ab: (x_bounds, y_bounds),
             axes: (des.x_axis().clone(), des.y_axis().clone()),
             path: None,
-            line: des.line().clone(),
+            stroke: des.stroke().clone(),
         })
     }
 
@@ -347,7 +347,7 @@ impl Line {
         let path = render::Path {
             path: self.path.as_ref().unwrap(),
             fill: None,
-            stroke: Some(self.line.as_stroke(&rc)),
+            stroke: Some(self.stroke.as_stroke(&rc)),
             transform: None,
         };
         surface.draw_path(&path);
@@ -441,7 +441,7 @@ struct Histogram {
     bins: Vec<HistBin>,
     path: Option<geom::Path>,
     fill: style::series::Fill,
-    line: Option<style::series::Line>,
+    line: Option<style::series::Stroke>,
 }
 
 impl Histogram {
@@ -551,7 +551,7 @@ struct Bars {
     position: des::series::BarsPosition,
     path: Option<geom::Path>,
     fill: style::series::Fill,
-    line: Option<style::series::Line>,
+    line: Option<style::series::Stroke>,
 }
 
 impl Bars {

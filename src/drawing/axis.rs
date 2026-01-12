@@ -176,7 +176,7 @@ struct NumTick {
 
 #[derive(Debug, Clone)]
 struct TickMark {
-    line: theme::Line,
+    stroke: theme::Stroke,
     size_in: f32,
     size_out: f32,
 }
@@ -306,8 +306,8 @@ struct DrawOpts {
     marks: Option<TickMark>,
     minor_marks: Option<TickMark>,
     ticks_labels: bool,
-    grid: Option<theme::Line>,
-    minor_grid: Option<theme::Line>,
+    grid: Option<theme::Stroke>,
+    minor_grid: Option<theme::Stroke>,
 }
 
 impl<D> Ctx<'_, D>
@@ -600,7 +600,7 @@ where
         }
 
         let sep = Some(TickMark {
-            line: theme::Col::Foreground.into(),
+            stroke: theme::Col::Foreground.into(),
             size_in: missing_params::TICK_SIZE,
             size_out: missing_params::TICK_SIZE,
         });
@@ -628,12 +628,12 @@ where
 
         let ticks_labels = !uses_shared;
         let marks = des_axis.ticks().map(|ticks| TickMark {
-            line: ticks.color().into(),
+            stroke: ticks.color().into(),
             size_in: missing_params::TICK_SIZE,
             size_out: missing_params::TICK_SIZE,
         });
         let minor_marks = des_axis.minor_ticks().map(|ticks| TickMark {
-            line: theme::Line::from(ticks.color())
+            stroke: theme::Stroke::from(ticks.color())
                 .with_width(missing_params::MINOR_TICK_LINE_WIDTH),
             size_in: missing_params::MINOR_TICK_SIZE,
             size_out: missing_params::MINOR_TICK_SIZE,
@@ -1002,7 +1002,7 @@ impl Axis {
             let rpath = render::Path {
                 path: &path,
                 fill: None,
-                stroke: Some(mark.line.as_stroke(style)),
+                stroke: Some(mark.stroke.as_stroke(style)),
                 transform: Some(transform),
             };
             surface.draw_path(&rpath);

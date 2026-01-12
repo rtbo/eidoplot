@@ -20,7 +20,7 @@ pub(super) enum Annot {
 #[derive(Debug, Clone)]
 pub(super) struct Label {
     text: Text,
-    frame: (Option<theme::Fill>, Option<theme::Line>),
+    frame: (Option<theme::Fill>, Option<theme::Stroke>),
     angle: f32,
     pos: Pos,
 }

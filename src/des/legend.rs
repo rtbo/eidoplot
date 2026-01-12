@@ -33,7 +33,7 @@ impl Default for EntryFont {
 pub struct Legend {
     font: EntryFont,
     fill: Option<theme::Fill>,
-    border: Option<theme::Line>,
+    border: Option<theme::Stroke>,
     columns: Option<NonZeroU32>,
     padding: Padding,
     spacing: Size,
@@ -75,7 +75,7 @@ impl Legend {
     }
 
     /// Get the border style for the legend box
-    pub fn border(&self) -> Option<&theme::Line> {
+    pub fn border(&self) -> Option<&theme::Stroke> {
         self.border.as_ref()
     }
 
@@ -105,7 +105,7 @@ impl Legend {
     }
 
     /// Set the border style for the legend box and return self for chaining
-    pub fn with_border(self, border: Option<theme::Line>) -> Self {
+    pub fn with_border(self, border: Option<theme::Stroke>) -> Self {
         Self { border, ..self }
     }
 

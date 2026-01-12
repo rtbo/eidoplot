@@ -322,9 +322,9 @@ where
 
         if let Some((start, end)) = self.zoom_rect {
             let rect = geom::Rect::from_corners(start, end);
-            let line = theme::Line::from(theme::Col::Foreground)
+            let stroke = theme::Stroke::from(theme::Col::Foreground)
                 .with_pattern(style::Dash::default().into());
-            let stroke = line.as_stroke(&style);
+            let stroke = stroke.as_stroke(&style);
             let _ = surface.draw_rect(&plotive::render::Rect {
                 rect,
                 stroke: Some(stroke),
