@@ -293,6 +293,27 @@ impl Plot {
     pub fn push_annotation(&mut self, annotation: Annotation) {
         self.annotations.push(annotation);
     }
+
+    /// Chaining helper to build a figure from this plot
+    /// This is equivalent to `Figure::new(self.into())`
+    ///
+    /// # Example
+    /// ```
+    /// use plotive::des;
+    /// use plotive::des::series::{self, data_src_ref};
+    ///
+    /// let fig: des::Figure = series::Line::new(data_src_ref("x_values"), data_src_ref("y_values"))
+    ///     .with_name("Line Series")
+    ///     .into_plot()
+    ///     .with_x_axis(des::Axis::new().with_ticks(Default::default()))
+    ///     .with_y_axis(des::Axis::new().with_ticks(Default::default()).with_grid(Default::default()))
+    ///     .into_figure()
+    ///     .with_title("Line Plot Example".into());
+    ///
+    /// ```
+    pub fn into_figure(self) -> super::Figure {
+        super::Figure::new(self.into())
+    }
 }
 
 /// A collection of plots, arranged in a grid
@@ -357,5 +378,11 @@ impl Subplots {
     /// The space between plots in the subplot grid
     pub fn space(&self) -> f32 {
         self.space
+    }
+
+    /// Chaining helper to build a figure from these subplots
+    /// This is equivalent to `Figure::new(self.into())`
+    pub fn into_figure(self) -> super::Figure {
+        super::Figure::new(self.into())
     }
 }
