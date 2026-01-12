@@ -467,8 +467,8 @@ where
             return Ok(None);
         };
 
-        let mut builder = LegendBuilder::from_ir(
-            des_leg.legend(),
+        let mut builder = LegendBuilder::from_des(
+            des_leg,
             des_leg.pos().prefers_vertical(),
             avail_width,
             self.fontdb(),

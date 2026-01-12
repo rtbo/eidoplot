@@ -80,8 +80,8 @@ pub struct Legend {
 }
 
 impl<'a> LegendBuilder<'a> {
-    pub fn from_ir(
-        legend: &des::Legend,
+    pub fn from_des<Pos>(
+        legend: &des::Legend<Pos>,
         prefers_vertical: bool,
         avail_width: f32,
         fontdb: &'a fontdb::Database,

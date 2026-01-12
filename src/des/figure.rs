@@ -35,58 +35,11 @@ impl LegendPos {
 }
 
 /// A per-figure legend
-#[derive(Debug, Clone)]
-pub struct FigLegend {
-    pos: LegendPos,
-    legend: Legend,
-    margin: f32,
-}
-
-impl FigLegend {
-    /// Build a new legend
-    pub fn new(legend: Legend) -> Self {
-        FigLegend {
-            pos: Default::default(),
-            legend,
-            margin: defaults::LEGEND_MARGIN,
-        }
-    }
-
-    /// The position of the legend relatively to the plot
-    pub fn pos(&self) -> LegendPos {
-        self.pos
-    }
-
-    /// The underlying legend
-    pub fn legend(&self) -> &Legend {
-        &self.legend
-    }
-
-    /// The margin around the legend
-    pub fn margin(&self) -> f32 {
-        self.margin
-    }
-
-    /// Set the position of the legend
-    pub fn with_pos(self, pos: LegendPos) -> Self {
-        Self { pos, ..self }
-    }
-
-    /// Set the margin around the legend
-    pub fn with_margin(self, margin: f32) -> Self {
-        Self { margin, ..self }
-    }
-}
-
-impl Default for FigLegend {
-    fn default() -> Self {
-        FigLegend::new(Legend::default())
-    }
-}
+pub type FigLegend = Legend<LegendPos>;
 
 impl From<LegendPos> for FigLegend {
     fn from(pos: LegendPos) -> Self {
-        FigLegend::new(Legend::default()).with_pos(pos)
+        FigLegend::new(pos)
     }
 }
 
