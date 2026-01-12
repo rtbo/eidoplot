@@ -123,8 +123,8 @@ where
         legend: &des::FigLegend,
         rect: &mut geom::Rect,
     ) -> Result<Option<(geom::Point, legend::Legend)>, Error> {
-        let mut builder = LegendBuilder::from_ir(
-            legend.legend(),
+        let mut builder = LegendBuilder::from_des(
+            legend,
             legend.pos().prefers_vertical(),
             rect.width(),
             self.fontdb(),

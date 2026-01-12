@@ -30,16 +30,18 @@ impl Default for EntryFont {
 
 /// Legend configuration for a plot
 #[derive(Debug, Clone)]
-pub struct Legend {
+pub struct Legend<Pos> {
+    pos: Pos,
     font: EntryFont,
     fill: Option<theme::Fill>,
     border: Option<theme::Stroke>,
     columns: Option<NonZeroU32>,
     padding: Padding,
+    margin: f32,
     spacing: Size,
 }
 
-impl Default for Legend {
+impl<Pos: Default> Default for Legend<Pos> {
     /// Create a default legend configuration
     /// - Fill color: theme::Col::LegendFill
     /// - Border: theme::Col::LegendBorder, 1.0
@@ -48,22 +50,42 @@ impl Default for Legend {
     /// - Default padding and spacing
     fn default() -> Self {
         Self {
+            pos: Pos::default(),
             font: EntryFont::default(),
             fill: Some(theme::Col::LegendFill.into()),
             border: Some(theme::Col::LegendBorder.into()),
             columns: None,
             padding: defaults::LEGEND_PADDING.into(),
+            margin: defaults::LEGEND_MARGIN,
             spacing: Size::new(defaults::LEGEND_H_SPACING, defaults::LEGEND_V_SPACING),
         }
     }
 }
 
-impl Legend {
-    /// Create a new legend with default properties
-    pub fn new() -> Self {
-        Self::default()
+impl<Pos> Legend<Pos>
+where
+    Pos: Default,
+{
+    /// Create a new legend at the specified position with default properties
+    pub fn new(pos: Pos) -> Self {
+        Self {
+            pos,
+            ..Self::default()
+        }
     }
+}
 
+impl<Pos> Legend<Pos>
+where
+    Pos: Copy,
+{
+    /// Get the position of the legend
+    pub fn pos(&self) -> Pos {
+        self.pos
+    }
+}
+
+impl<Pos> Legend<Pos> {
     /// Get the font configuration for legend entries
     pub fn font(&self) -> &EntryFont {
         &self.font
@@ -84,14 +106,24 @@ impl Legend {
         self.columns.map(|c| c.get())
     }
 
+    /// Get the spacing between legend entries
+    pub fn spacing(&self) -> Size {
+        self.spacing
+    }
+
     /// Get the padding inside the legend box
     pub fn padding(&self) -> Padding {
         self.padding
     }
 
-    /// Get the spacing between legend entries
-    pub fn spacing(&self) -> Size {
-        self.spacing
+    /// Get the margin around the legend box
+    pub fn margin(&self) -> f32 {
+        self.margin
+    }
+
+    /// Set the position of the legend and return self for chaining
+    pub fn with_pos(self, pos: Pos) -> Self {
+        Self { pos, ..self }
     }
 
     /// Set the font configuration for legend entries and return self for chaining
@@ -117,13 +149,18 @@ impl Legend {
         }
     }
 
+    /// Set the spacing between legend entries and return self for chaining
+    pub fn with_spacing(self, spacing: Size) -> Self {
+        Self { spacing, ..self }
+    }
+
     /// Set the padding inside the legend box and return self for chaining
     pub fn with_padding(self, padding: Padding) -> Self {
         Self { padding, ..self }
     }
 
-    /// Set the spacing between legend entries and return self for chaining
-    pub fn with_spacing(self, spacing: Size) -> Self {
-        Self { spacing, ..self }
+    /// Set the margin around the legend box and return self for chaining
+    pub fn with_margin(self, margin: f32) -> Self {
+        Self { margin, ..self }
     }
 }

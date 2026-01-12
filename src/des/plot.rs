@@ -132,65 +132,11 @@ impl LegendPos {
 }
 
 /// A per-plot legend
-#[derive(Debug, Clone)]
-pub struct PlotLegend {
-    pos: LegendPos,
-    legend: Legend,
-    margin: f32,
-}
-
-impl Default for PlotLegend {
-    fn default() -> Self {
-        PlotLegend {
-            pos: LegendPos::default(),
-            legend: Legend::default(),
-            margin: defaults::LEGEND_MARGIN,
-        }
-    }
-}
-
-impl PlotLegend {
-    /// Build a new legend
-    pub fn new(pos: LegendPos, legend: Legend) -> Self {
-        PlotLegend {
-            pos,
-            legend,
-            margin: defaults::LEGEND_MARGIN,
-        }
-    }
-
-    /// The position of the legend relatively to the plot
-    pub fn pos(&self) -> LegendPos {
-        self.pos
-    }
-
-    /// The underlying legend
-    pub fn legend(&self) -> &Legend {
-        &self.legend
-    }
-
-    /// The margin around the legend
-    pub fn margin(&self) -> f32 {
-        self.margin
-    }
-
-    /// Set the position of the legend and return self for chaining
-    pub fn with_pos(self, pos: LegendPos) -> Self {
-        Self { pos, ..self }
-    }
-
-    /// Set the margin around the legend and return self for chaining
-    pub fn with_margin(self, margin: f32) -> Self {
-        Self { margin, ..self }
-    }
-}
+pub type PlotLegend = Legend<LegendPos>;
 
 impl From<LegendPos> for PlotLegend {
     fn from(pos: LegendPos) -> Self {
-        PlotLegend {
-            pos,
-            ..Default::default()
-        }
+        PlotLegend::new(pos)
     }
 }
 
