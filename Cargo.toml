@@ -139,7 +139,7 @@ iced_font_awesome = "0.4.0"
 log = "0.4"
 miette = { version = "7.6.0", features = ["fancy"] }
 polars = { version = "0.50.0", features = ["lazy"] }
-rfd = "0.16.0"
+rfd = "0.17.1"
 rustybuzz = "0.20.1"
 tiny-skia = "0.11.4"
 tiny-skia-path = "0.11.4"
