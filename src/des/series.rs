@@ -88,6 +88,13 @@ impl Series {
             Series::BarsGroup(s) => (s.x_axis(), s.y_axis()),
         }
     }
+
+    /// Helper to build a plot from this series
+    /// This can only be used if your plot contains a single series.
+    /// This is equivalent to `Plot::new(vec![self])`
+    pub fn into_plot(self) -> super::Plot {
+        super::Plot::new(vec![self])
+    }
 }
 
 impl From<Line> for Series {
@@ -205,6 +212,28 @@ impl Line {
     /// Get the stroke style
     pub fn stroke(&self) -> &style::series::Stroke {
         &self.stroke
+    }
+
+    /// Chaining helper to build a plot from this series
+    /// This can only be used if your plot contains a single series.
+    /// This is equivalent to `Plot::new(vec![self.into()])`
+    ///
+    /// # Example
+    /// ```
+    /// use plotive::des;
+    /// use plotive::des::series::{self, data_src_ref};
+    ///
+    /// let fig: des::Figure = series::Line::new(data_src_ref("x_values"), data_src_ref("y_values"))
+    ///     .with_name("Line Series")
+    ///     .into_plot()
+    ///     .with_x_axis(des::Axis::new().with_ticks(Default::default()))
+    ///     .with_y_axis(des::Axis::new().with_ticks(Default::default()).with_grid(Default::default()))
+    ///     .into_figure()
+    ///     .with_title("Line Plot Example".into());
+    ///
+    /// ```
+    pub fn into_plot(self) -> super::Plot {
+        super::Plot::new(vec![self.into()])
     }
 }
 
