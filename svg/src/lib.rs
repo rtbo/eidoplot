@@ -3,7 +3,7 @@ use std::{fmt, io};
 
 use plotive::geom::{self, Transform};
 use plotive::render::{self, Surface};
-use plotive::{Style, drawing};
+use plotive::{Prepare, Style, des, drawing};
 use svg::Node;
 use svg::node::element;
 
@@ -36,32 +36,76 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-/// Parameters needed for saving a [`drawing::PreparedFigure`] as SVG
+/// Parameters needed for saving a figure as SVG
 #[derive(Debug, Clone)]
-pub struct Params {
+pub struct Params<'a> {
     pub style: Style,
     pub scale: f32,
+    /// Optional font database to use for text rendering
+    /// This parameter is ignored when saving a prepared figure,
+    /// as the fonts have already been resolved.
+    /// In such case, this parameter can be left to `None` (which is the default).
+    pub fontdb: Option<&'a plotive::fontdb::Database>,
 }
 
-impl Default for Params {
+impl Default for Params<'_> {
     fn default() -> Self {
         Self {
             style: Style::default(),
             scale: 1.0,
+            fontdb: None,
         }
     }
 }
 
+/// Trait for saving a figure as SVG file
 pub trait SaveSvg {
-    fn save_svg<P>(&self, path: P, params: Params) -> Result<(), Error>
+    /// Save the figure as a SVG file at the given path.
+    ///
+    /// The data source parameter is ignored when saving a prepared figure,
+    /// as the data has already been resolved.
+    /// Therefore, this parameter can be left to `&()` when saving a prepared figure.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use plotive::des;
+    /// use plotive::Prepare;
+    /// use plotive_pxl::{SavePng, Params};
+    ///
+    /// // Create your figure design (this one has inline data for simplicity)
+    /// let fig = des::series::Line::new(
+    ///     des::data_inline(vec![0.0, 1.0, 2.0]),
+    ///     des::data_inline(vec![0.0, 1.0, 0.0]),
+    /// ).into_plot()
+    /// .into_figure();
+    ///
+    /// // data source is not needed for inline data
+    /// fig.save_svg("figure.svg", &(), Default::default()).unwrap();
+    /// # std::fs::remove_file("figure.svg").unwrap();
+    /// ```
+    fn save_svg<P, D>(&self, path: P, data_src: &D, params: Params) -> Result<(), Error>
     where
-        P: AsRef<Path>;
+        P: AsRef<Path>,
+        D: plotive::data::Source;
+}
+
+impl SaveSvg for des::Figure {
+    fn save_svg<P, D>(&self, path: P, data_src: &D, params: Params) -> Result<(), Error>
+    where
+        P: AsRef<Path>,
+        D: plotive::data::Source,
+    {
+        let prepared = self.prepare(data_src, params.fontdb)?;
+        prepared.save_svg(path, data_src, params)
+    }
 }
 
 impl SaveSvg for drawing::PreparedFigure {
-    fn save_svg<P>(&self, path: P, params: Params) -> Result<(), Error>
+    fn save_svg<P, D>(&self, path: P, _data_src: &D, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
+        D: plotive::data::Source,
     {
         let size = self.size();
         let witdth = (size.width() * params.scale) as u32;

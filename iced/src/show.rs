@@ -537,7 +537,7 @@ where
                             plotive_pxl::Params {
                                 style,
                                 scale,
-                                fontdb: Some(&*self.fontdb),
+                                ..Default::default()
                             },
                         )
                         .unwrap();
@@ -558,7 +558,15 @@ where
                     };
                     let scale = self.fig_scale;
                     fig.fig
-                        .save_svg(path, plotive_svg::Params { style, scale })
+                        .save_svg(
+                            path,
+                            &(),
+                            plotive_svg::Params {
+                                style,
+                                scale,
+                                ..Default::default()
+                            },
+                        )
                         .unwrap();
                 }
             }
@@ -581,7 +589,7 @@ where
                         plotive_pxl::Params {
                             style,
                             scale,
-                            fontdb: Some(&*self.fontdb),
+                            ..Default::default()
                         },
                     )
                     .unwrap();

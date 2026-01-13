@@ -35,7 +35,7 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-/// Parameters needed for saving a [`drawing::PreparedFigure`] as PNG
+/// Parameters needed for saving a figure as PNG
 #[derive(Debug, Clone)]
 pub struct Params<'a> {
     pub style: Style,
