@@ -71,7 +71,7 @@ pub trait SaveSvg {
     /// ```rust
     /// use plotive::des;
     /// use plotive::Prepare;
-    /// use plotive_pxl::{SavePng, Params};
+    /// use plotive_svg::{SaveSvg, Params};
     ///
     /// // Create your figure design (this one has inline data for simplicity)
     /// let fig = des::series::Line::new(
