@@ -125,9 +125,11 @@ fn save_fig<D>(
             };
             fig.save_png(
                 &file_name,
+                data_source,
                 plotive_pxl::Params {
                     style: args.style.as_ref().cloned().unwrap_or_default(),
                     scale: 2.0,
+                    fontdb: Some(fontdb),
                 },
             )
             .unwrap();
@@ -143,9 +145,11 @@ fn save_fig<D>(
             };
             fig.save_svg(
                 &file_name,
+                data_source,
                 plotive_svg::Params {
                     style: args.style.as_ref().cloned().unwrap_or_default(),
                     scale: 1.0,
+                    fontdb: Some(fontdb),
                 },
             )
             .unwrap();

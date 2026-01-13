@@ -35,54 +35,79 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-/// Parameters needed for saving a [`drawing::PreparedFigure`] as PNG
+/// Parameters needed for saving a figure as PNG
 #[derive(Debug, Clone)]
-pub struct Params {
+pub struct Params<'a> {
     pub style: Style,
     pub scale: f32,
+    /// Optional font database to use for text rendering
+    /// This parameter is ignored when saving a prepared figure,
+    /// as the fonts have already been resolved.
+    /// In such case, this parameter can be left to `None` (which is the default).
+    pub fontdb: Option<&'a plotive::fontdb::Database>,
 }
 
-impl Default for Params
-{
+impl Default for Params<'_> {
     fn default() -> Self {
         Self {
             style: Style::default(),
             scale: 1.0,
+            fontdb: None,
         }
     }
 }
 
-/// Trait for saving a [`drawing::PreparedFigure`] as PNG file
-///
-/// # Example
-///
-/// ```rust
-/// use plotive::des;
-/// use plotive::Prepare;
-/// use plotive_pxl::{SavePng, Params};
-///
-/// // Create your figure design (this one has inline data for simplicity)
-/// let fig = des::Figure::new(
-///     des::Plot::new(vec![
-///        des::series::Line::new(
-///            des::data_inline(vec![0.0, 1.0, 2.0]), des::data_inline(vec![0.0, 1.0, 0.0]),
-///        ).into(),
-///     ]).into(),
-/// );
-/// let fig = fig.prepare(&(), None).unwrap();
-/// fig.save_png("figure.png", Default::default()).unwrap();
-/// # std::fs::remove_file("figure.png").unwrap();
-/// ```
+/// Trait for saving a figure as PNG file
 pub trait SavePng {
-    fn save_png<P>(&self, path: P, params: Params) -> Result<(), Error>
+    /// Save the figure as a PNG file at the given path.
+    ///
+    /// The data source parameter is ignored when saving a prepared figure,
+    /// as the data has already been resolved.
+    /// Therefore, this parameter can be left to `&()` when saving a prepared figure.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use plotive::des;
+    /// use plotive::Prepare;
+    /// use plotive_pxl::{SavePng, Params};
+    ///
+    /// // Create your figure design (this one has inline data for simplicity)
+    /// let fig = des::series::Line::new(
+    ///     des::data_inline(vec![0.0, 1.0, 2.0]),
+    ///     des::data_inline(vec![0.0, 1.0, 0.0]),
+    /// ).into_plot()
+    /// .into_figure();
+    ///
+    /// // data source is not needed for inline data
+    /// fig.save_png("figure.png", &(), Default::default()).unwrap();
+    /// # std::fs::remove_file("figure.png").unwrap();
+    /// ```
+    fn save_png<P, D>(&self, path: P, data_src: &D, params: Params) -> Result<(), Error>
     where
-        P: AsRef<Path>;
+        P: AsRef<Path>,
+        D: plotive::data::Source;
+}
+
+impl SavePng for plotive::des::Figure {
+    fn save_png<P, D>(&self, path: P, data_src: &D, params: Params) -> Result<(), Error>
+    where
+        P: AsRef<Path>,
+        D: plotive::data::Source,
+    {
+        use plotive::Prepare;
+
+        let prepared = self.prepare(data_src, params.fontdb)?;
+
+        prepared.save_png(path, &(), params)
+    }
 }
 
 impl SavePng for drawing::PreparedFigure {
-    fn save_png<P>(&self, path: P, params: Params) -> Result<(), Error>
+    fn save_png<P, D>(&self, path: P, _data_src: &D, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
+        D: plotive::data::Source,
     {
         let size = self.size();
         let witdth = (size.width() * params.scale) as u32;
@@ -98,12 +123,35 @@ impl SavePng for drawing::PreparedFigure {
     }
 }
 
+/// Trait for rasterizing a figure to a `tiny_skia::Pixmap`
 pub trait ToPixmap {
-    fn to_pixmap(&self, params: Params) -> Result<tiny_skia::Pixmap, Error>;
+    /// Rasterizes the figure on a `tiny_skia::Pixmap`
+    ///
+    /// The data source parameter is ignored when saving a prepared figure,
+    /// as the data has already been resolved.
+    /// Therefore, this parameter can be left to `&()` when saving a prepared figure.
+    fn to_pixmap<D>(&self, data_src: &D, params: Params) -> Result<tiny_skia::Pixmap, Error>
+    where
+        D: plotive::data::Source;
+}
+
+impl ToPixmap for plotive::des::Figure {
+    fn to_pixmap<D>(&self, data_src: &D, params: Params) -> Result<tiny_skia::Pixmap, Error>
+    where
+        D: plotive::data::Source,
+    {
+        use plotive::Prepare;
+
+        let prepared = self.prepare(data_src, params.fontdb)?;
+
+        prepared.to_pixmap(&(), params)
+    }
 }
 
 impl ToPixmap for drawing::PreparedFigure {
-    fn to_pixmap(&self, params: Params) -> Result<tiny_skia::Pixmap, Error>
+    fn to_pixmap<D>(&self, _data_src: &D, params: Params) -> Result<tiny_skia::Pixmap, Error>
+    where
+        D: plotive::data::Source,
     {
         let size = self.size();
         let witdth = (size.width() * params.scale) as u32;

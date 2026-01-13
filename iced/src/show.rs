@@ -531,7 +531,15 @@ where
                     };
                     let scale = self.fig_scale;
                     fig.fig
-                        .save_png(path, plotive_pxl::Params { style, scale })
+                        .save_png(
+                            path,
+                            &(),
+                            plotive_pxl::Params {
+                                style,
+                                scale,
+                                ..Default::default()
+                            },
+                        )
                         .unwrap();
                 }
             }
@@ -550,7 +558,15 @@ where
                     };
                     let scale = self.fig_scale;
                     fig.fig
-                        .save_svg(path, plotive_svg::Params { style, scale })
+                        .save_svg(
+                            path,
+                            &(),
+                            plotive_svg::Params {
+                                style,
+                                scale,
+                                ..Default::default()
+                            },
+                        )
                         .unwrap();
                 }
             }
@@ -568,7 +584,14 @@ where
                 let scale = self.fig_scale;
                 let pixmap = fig
                     .fig
-                    .to_pixmap(plotive_pxl::Params { style, scale })
+                    .to_pixmap(
+                        &(),
+                        plotive_pxl::Params {
+                            style,
+                            scale,
+                            ..Default::default()
+                        },
+                    )
                     .unwrap();
                 self.clipboard
                     .set_image(arboard::ImageData {
