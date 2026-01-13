@@ -2,8 +2,10 @@ use axis::AsBoundRef;
 use scale::{CoordMap, CoordMapXy};
 
 use crate::drawing::plot::Orientation;
-use crate::drawing::{Categories, ColumnExt, Error, F64ColumnExt, axis, legend, marker, scale};
-use crate::{Style, data, geom, des, render, style};
+use crate::drawing::{
+    Categories, ColumnExt, Error, F64ColumnExt, axis, legend, marker, plot_to_fig, scale,
+};
+use crate::{Style, data, des, geom, render, style};
 
 /// trait implemented by series, or any other item that
 /// has to populate the legend
@@ -317,16 +319,31 @@ impl Line {
         debug_assert!(x_col.len() == y_col.len());
 
         let path = match self.interpolation {
-            des::series::Interpolation::Linear => {
-                self.make_path_linear(rect, x_col, y_col, cm)
+            des::series::Interpolation::Linear => self.make_path_linear(rect, x_col, y_col, cm),
+            des::series::Interpolation::StepEarly => {
+                self.make_path_step_early(rect, x_col, y_col, cm)
             }
-            _ => todo!("Interpolation method {:?}", self.interpolation),
+            des::series::Interpolation::StepLate => {
+                self.make_path_step_late(rect, x_col, y_col, cm)
+            }
+            des::series::Interpolation::StepMiddle => {
+                self.make_path_step_middle(rect, x_col, y_col, cm)
+            }
+            des::series::Interpolation::Spline => {
+                self.make_path_cubic_spline(rect, x_col, y_col, cm)
+            }
         };
 
         self.path = Some(path);
     }
 
-    fn make_path_linear(&self, rect: &geom::Rect, x: &dyn data::Column, y: &dyn data::Column, cm: &CoordMapXy) -> geom::Path {
+    fn make_path_linear(
+        &self,
+        rect: &geom::Rect,
+        x: &dyn data::Column,
+        y: &dyn data::Column,
+        cm: &CoordMapXy,
+    ) -> geom::Path {
         let mut in_a_line = false;
         let mut pb = geom::PathBuilder::with_capacity(x.len() + 1, x.len());
         for (x, y) in x.sample_iter().zip(y.sample_iter()) {
@@ -350,10 +367,47 @@ impl Line {
         pb.finish().expect("Should be a valid path")
     }
 
-    fn make_path_step_early(&self, rect: &geom::Rect, x: &dyn data::Column, y: &dyn data::Column, cm: &CoordMapXy) -> geom::Path {
+    fn make_path_step_early(
+        &self,
+        rect: &geom::Rect,
+        x: &dyn data::Column,
+        y: &dyn data::Column,
+        cm: &CoordMapXy,
+    ) -> geom::Path {
         let mut pb = geom::PathBuilder::new();
 
-        let mut prev_y: Option<f64> = None;
+        let mut prev_x: Option<f32> = None;
+
+        for (x, y) in x.sample_iter().zip(y.sample_iter()) {
+            if x.is_null() || y.is_null() {
+                prev_x = None;
+                continue;
+            }
+            let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
+            let (x, y) = plot_to_fig(rect, x, y);
+
+            if let Some(px) = prev_x {
+                pb.line_to(px, y);
+                pb.line_to(x, y);
+            } else {
+                pb.move_to(x, y);
+            }
+            prev_x = Some(x);
+        }
+
+        pb.finish().expect("Should be a valid path")
+    }
+
+    fn make_path_step_late(
+        &self,
+        rect: &geom::Rect,
+        x: &dyn data::Column,
+        y: &dyn data::Column,
+        cm: &CoordMapXy,
+    ) -> geom::Path {
+        let mut pb = geom::PathBuilder::new();
+
+        let mut prev_y: Option<f32> = None;
 
         for (x, y) in x.sample_iter().zip(y.sample_iter()) {
             if x.is_null() || y.is_null() {
@@ -361,16 +415,131 @@ impl Line {
                 continue;
             }
             let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
-            let x = rect.left() + x;
-            let y = rect.bottom() - y;
+            let (x, y) = plot_to_fig(rect, x, y);
 
-            if let Some(px) = prev_x {
+            if let Some(py) = prev_y {
+                pb.line_to(x, py);
                 pb.line_to(x, y);
+            } else {
+                pb.move_to(x, y);
+            }
+            prev_y = Some(y);
+        }
+
+        pb.finish().expect("Should be a valid path")
+    }
+
+    fn make_path_step_middle(
+        &self,
+        rect: &geom::Rect,
+        x: &dyn data::Column,
+        y: &dyn data::Column,
+        cm: &CoordMapXy,
+    ) -> geom::Path {
+        let mut pb = geom::PathBuilder::new();
+
+        let mut prev_x: Option<f32> = None;
+        let mut prev_y: Option<f32> = None;
+
+        for (x, y) in x.sample_iter().zip(y.sample_iter()) {
+            if x.is_null() || y.is_null() {
+                prev_x = None;
+                prev_y = None;
+                continue;
+            }
+            let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
+            let (x, y) = plot_to_fig(rect, x, y);
+
+            if let (Some(px), Some(py)) = (prev_x, prev_y) {
+                let mx = (px + x) / 2.0;
+                pb.line_to(mx, py);
+                pb.line_to(mx, y);
                 pb.line_to(x, y);
             } else {
                 pb.move_to(x, y);
             }
             prev_x = Some(x);
+            prev_y = Some(y);
+        }
+
+        pb.finish().expect("Should be a valid path")
+    }
+
+    fn make_path_cubic_spline(
+        &self,
+        rect: &geom::Rect,
+        x: &dyn data::Column,
+        y: &dyn data::Column,
+        cm: &CoordMapXy,
+    ) -> geom::Path {
+        const NAN: (f32, f32) = (f32::NAN, f32::NAN);
+        let mut buf: [(f32, f32); 4] = [NAN, NAN, NAN, NAN];
+        let mut buf_idx = 0;
+
+        let mut pb = geom::PathBuilder::new();
+
+        fn add_point(pb: &mut geom::PathBuilder, points: &[(f32, f32); 4]) {
+            // Calculate control points for cubic Bezier using Catmull-Rom formulation
+            // The tangent at p1 is (p2 - p0) / 2
+            // The tangent at p2 is (p3 - p1) / 2
+
+            // Tension parameter (0.5 for standard Catmull-Rom)
+            let tension = 0.5;
+
+            // Control point 1: p1 + tangent_at_p1 / 3
+            let tangent1_x = (points[2].0 - points[0].0) * tension;
+            let tangent1_y = (points[2].1 - points[0].1) * tension;
+            let cp1_x = points[1].0 + tangent1_x / 3.0;
+            let cp1_y = points[1].1 + tangent1_y / 3.0;
+
+            // Control point 2: p2 - tangent_at_p2 / 3
+            let tangent2_x = (points[3].0 - points[1].0) * tension;
+            let tangent2_y = (points[3].1 - points[1].1) * tension;
+            let cp2_x = points[2].0 - tangent2_x / 3.0;
+            let cp2_y = points[2].1 - tangent2_y / 3.0;
+
+            // Draw cubic Bezier curve
+            pb.cubic_to(cp1_x, cp1_y, cp2_x, cp2_y, points[2].0, points[2].1);
+        }
+
+        for (x, y) in x.sample_iter().zip(y.sample_iter()) {
+            if x.is_null() || y.is_null() {
+                if buf_idx == 3 {
+                    // we draw the last segment if any
+                    add_point(&mut pb, &[buf[0], buf[1], buf[2], buf[2]]);
+                }
+                buf_idx = 0;
+                continue;
+            }
+            let (x, y) = cm.map_coord((x, y)).expect("Should be valid coordinates");
+            let (x, y) = plot_to_fig(rect, x, y);
+
+            // first point, or after a gap
+            if buf_idx == 0 {
+                pb.move_to(x, y);
+            }
+
+            buf[buf_idx] = (x, y);
+            buf_idx += 1;
+
+            if buf_idx == 3 {
+                // we draw the first segment
+                add_point(&mut pb, &[buf[0], buf[0], buf[1], buf[2]]);
+            } else if buf_idx == 4 {
+                // we draw a regular segment
+                add_point(&mut pb, &buf);
+
+                // Shift buffer
+                buf[0] = buf[1];
+                buf[1] = buf[2];
+                buf[2] = buf[3];
+                buf_idx = 3;
+            }
+        }
+
+        // we draw the last segment if any
+        if buf_idx == 3 {
+            add_point(&mut pb, &[buf[0], buf[1], buf[2], buf[2]]);
         }
 
         pb.finish().expect("Should be a valid path")
@@ -719,7 +888,11 @@ pub struct BarsGroup {
 }
 
 impl BarsGroup {
-    fn prepare<D>(index: usize, des: &des::series::BarsGroup, data_source: &D) -> Result<Self, Error>
+    fn prepare<D>(
+        index: usize,
+        des: &des::series::BarsGroup,
+        data_source: &D,
+    ) -> Result<Self, Error>
     where
         D: data::Source + ?Sized,
     {
