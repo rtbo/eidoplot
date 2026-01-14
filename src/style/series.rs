@@ -1,8 +1,8 @@
 /*!
  * This module deals with colors and style of data series.
  */
-use crate::{ResolveColor, ColorU8};
 use crate::style::{self, catppuccin, defaults};
+use crate::{ColorU8, ResolveColor};
 
 /// A palette for data series.
 /// It provides ordered colors for series in a figure.
@@ -61,7 +61,6 @@ impl Palette {
     }
 }
 
-
 /// A series color identified by its index in a palette
 #[derive(Debug, Clone, Copy)]
 pub struct IndexColor(pub usize);
@@ -106,22 +105,19 @@ impl From<ColorU8> for Color {
 
 impl style::Color for Color {}
 
-impl ResolveColor<IndexColor> for Palette
-{
+impl ResolveColor<IndexColor> for Palette {
     fn resolve_color(&self, col: &IndexColor) -> ColorU8 {
         self.get(*col)
     }
 }
 
-impl ResolveColor<AutoColor> for (&Palette, usize)
-{
+impl ResolveColor<AutoColor> for (&Palette, usize) {
     fn resolve_color(&self, _col: &AutoColor) -> ColorU8 {
         self.0.get(IndexColor(self.1))
     }
 }
 
-impl ResolveColor<Color> for (&Palette, usize)
-{
+impl ResolveColor<Color> for (&Palette, usize) {
     fn resolve_color(&self, col: &Color) -> ColorU8 {
         match col {
             Color::Auto => self.0.get(IndexColor(self.1)),

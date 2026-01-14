@@ -2,11 +2,11 @@ use core::f32;
 use std::f64::consts::PI;
 use std::time::Instant;
 
-use plotive::style::theme;
-use plotive::{Prepare, data, drawing, des, style, utils};
-use plotive_iced::figure::figure;
 use iced::widget::{column, text};
 use iced::{Element, Subscription, Task, window};
+use plotive::style::theme;
+use plotive::{Prepare, data, des, drawing, style, utils};
+use plotive_iced::figure::figure;
 
 #[derive(Debug, Clone)]
 enum Message {

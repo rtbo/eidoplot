@@ -1,4 +1,4 @@
-use plotive::{geom, des};
+use plotive::{des, geom};
 
 use crate::*;
 

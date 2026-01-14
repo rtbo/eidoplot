@@ -291,12 +291,8 @@ impl Text {
         bbox
     }
 
-    fn draw<S>(
-        &self,
-        surface: &mut S,
-        style: &Style,
-        transform: Option<&geom::Transform>,
-    ) where
+    fn draw<S>(&self, surface: &mut S, style: &Style, transform: Option<&geom::Transform>)
+    where
         S: render::Surface,
     {
         for span in &self.spans {

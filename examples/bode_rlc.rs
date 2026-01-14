@@ -113,12 +113,14 @@ fn main() {
     // magnitude two decades after cut-off (to increase precision)
     let mag_2_decades = rlc_freq_response(cutoff * 100.0, 1.0, L, C).0;
 
-    let cutoff_line = des::annot::Line::vertical(cutoff).with_pattern(style::Dash::default().into());
+    let cutoff_line =
+        des::annot::Line::vertical(cutoff).with_pattern(style::Dash::default().into());
     let slope_line = des::annot::Line::two_points(cutoff, 0.0, 100.0 * cutoff, mag_2_decades)
         .with_pattern(style::Dash::default().into());
-    let cut_off_label = des::annot::Label::new(format!("{:.2} kHz", cutoff / 1000.0), cutoff, -60.0)
-        .with_anchor(des::annot::Anchor::BottomLeft)
-        .with_angle(90.0);
+    let cut_off_label =
+        des::annot::Label::new(format!("{:.2} kHz", cutoff / 1000.0), cutoff, -60.0)
+            .with_anchor(des::annot::Anchor::BottomLeft)
+            .with_angle(90.0);
     let slope_label = des::annot::Label::new(
         format!("{:.0} dB/decade", mag_2_decades / 2.0),
         cutoff * 10.0,

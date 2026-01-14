@@ -1,5 +1,5 @@
-use plotive::{geom, render};
 use iced::advanced::graphics::geometry::{self, frame};
+use plotive::{geom, render};
 
 #[derive(Debug)]
 pub struct IcedSurface<Frame> {

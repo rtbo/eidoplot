@@ -130,7 +130,8 @@ fn main() {
                     des::axis::Ticks::new()
                         .with_locator(des::axis::ticks::TimeDeltaLocator::Seconds(2).into())
                         .with_formatter(Some(
-                            des::axis::ticks::TimeDeltaFormatter::Custom("%M:%S".to_string()).into(),
+                            des::axis::ticks::TimeDeltaFormatter::Custom("%M:%S".to_string())
+                                .into(),
                         )),
                 )
                 .with_grid(Default::default())

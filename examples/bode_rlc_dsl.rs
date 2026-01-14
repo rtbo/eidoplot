@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use plotive::{data, dsl, des, utils};
+use plotive::{data, des, dsl, utils};
 
 mod common;
 

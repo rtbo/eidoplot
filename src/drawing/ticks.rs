@@ -2,13 +2,13 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use crate::data;
-use crate::drawing::{Categories, Error, axis};
 #[cfg(feature = "time")]
 use crate::des::axis::ticks::{
     DateTimeFormatter, DateTimeLocator, TimeDeltaFormatter, TimeDeltaLocator,
 };
 use crate::des::axis::ticks::{Formatter, Locator, Ticks};
 use crate::des::axis::{LogScale, Scale};
+use crate::drawing::{Categories, Error, axis};
 #[cfg(feature = "time")]
 use crate::time::{DateTime, DateTimeComps, TimeDelta};
 

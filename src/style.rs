@@ -19,7 +19,6 @@ pub struct Style {
     theme: Theme,
     /// Palette used for series colors
     palette: Palette,
-
 }
 
 impl Default for Style {
@@ -118,30 +117,25 @@ impl Style {
     }
 }
 
-
-impl ResolveColor<theme::Color> for Style
-{
+impl ResolveColor<theme::Color> for Style {
     fn resolve_color(&self, col: &theme::Color) -> ColorU8 {
         self.theme().resolve_color(col)
     }
 }
 
-impl ResolveColor<series::IndexColor> for Style
-{
+impl ResolveColor<series::IndexColor> for Style {
     fn resolve_color(&self, col: &series::IndexColor) -> ColorU8 {
         self.palette.get(*col)
     }
 }
 
-impl ResolveColor<series::AutoColor> for (&Style, usize)
-{
+impl ResolveColor<series::AutoColor> for (&Style, usize) {
     fn resolve_color(&self, _col: &series::AutoColor) -> ColorU8 {
         self.0.palette.get(series::IndexColor(self.1))
     }
 }
 
-impl ResolveColor<series::Color> for (&Style, usize)
-{
+impl ResolveColor<series::Color> for (&Style, usize) {
     fn resolve_color(&self, col: &series::Color) -> ColorU8 {
         match col {
             series::Color::Auto => self.0.palette.get(series::IndexColor(self.1)),

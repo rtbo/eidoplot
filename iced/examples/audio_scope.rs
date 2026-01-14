@@ -1,12 +1,12 @@
 use std::sync::{Arc, Mutex};
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use plotive::data::Column;
-use plotive::{Prepare, data, drawing, geom, des};
 use iced::futures::channel::mpsc;
 use iced::futures::{SinkExt, Stream};
 use iced::widget::{button, column, container, pick_list, row, space, text};
 use iced::{Alignment, Element, Length, Subscription, Task, event, stream, window};
+use plotive::data::Column;
+use plotive::{Prepare, data, des, drawing, geom};
 use rustfft::FftPlanner;
 use rustfft::num_complex::Complex32;
 

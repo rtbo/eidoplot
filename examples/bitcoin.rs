@@ -8,14 +8,16 @@ fn main() {
     let csv_data = std::fs::read_to_string(&btc_csv).unwrap();
     let data_source = data::csv::parse_str(&csv_data, Default::default()).unwrap();
 
-    let price_series = des::series::Line::new(des::data_src_ref("Date"), des::data_src_ref("Close"))
-        .with_name("Closing Price")
-        .into();
+    let price_series =
+        des::series::Line::new(des::data_src_ref("Date"), des::data_src_ref("Close"))
+            .with_name("Closing Price")
+            .into();
 
-    let volume_series = des::series::Line::new(des::data_src_ref("Date"), des::data_src_ref("Volume"))
-        .with_name("Volume")
-        .with_y_axis(des::axis::ref_id("volume"))
-        .into();
+    let volume_series =
+        des::series::Line::new(des::data_src_ref("Date"), des::data_src_ref("Volume"))
+            .with_name("Volume")
+            .with_y_axis(des::axis::ref_id("volume"))
+            .into();
 
     let date_axis = des::Axis::new().with_ticks(Default::default());
     // setting Y-ranges to have ticks at same level

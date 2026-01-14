@@ -49,9 +49,9 @@
 //! ```
 use std::{fmt, path};
 
+use plotive_dsl::{self, Span, ast};
 pub use plotive_dsl::{Diagnostic, Source};
 
-use plotive_dsl::{self, ast, Span};
 use crate::text::{self, ParseRichTextError, ParsedRichText};
 use crate::{des, style};
 
@@ -260,10 +260,7 @@ fn check_opt_type(val: &ast::Struct, type_name: &str) -> Result<(), Error> {
     Ok(())
 }
 
-fn parse_rich_text(
-    span: Span,
-    fmt: String,
-) -> Result<ParsedRichText<style::theme::Color>, Error> {
+fn parse_rich_text(span: Span, fmt: String) -> Result<ParsedRichText<style::theme::Color>, Error> {
     let text = text::parse_rich_text::<style::theme::Color>(&fmt)
         .map_err(|err| Error::ParseRichText(span.0, err))?;
     Ok(text)
