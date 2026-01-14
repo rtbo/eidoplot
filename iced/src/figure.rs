@@ -1,10 +1,10 @@
-use plotive::render::Surface;
-use plotive::style::{theme};
-use plotive::{drawing, geom, style};
 use iced::advanced::graphics::geometry;
 use iced::advanced::widget::tree;
 use iced::advanced::{Layout, Widget, layout, mouse, renderer, widget};
 use iced::{Element, Length, Rectangle, Size};
+use plotive::render::Surface;
+use plotive::style::theme;
+use plotive::{drawing, geom, style};
 
 use crate::surface;
 

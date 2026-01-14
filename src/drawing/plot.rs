@@ -2,16 +2,15 @@ use std::cell::RefCell;
 use std::f32;
 use std::rc::Rc;
 
+use crate::des::{PlotIdx, annot};
 use crate::drawing::annot::Annot;
 use crate::drawing::axis::{Axis, AxisScale, Bounds, Side};
 use crate::drawing::legend::{Legend, LegendBuilder};
 use crate::drawing::scale::CoordMapXy;
 use crate::drawing::series::{self, Series, SeriesExt};
 use crate::drawing::{Ctx, Error};
-use crate::des::{PlotIdx, annot};
-use crate::style::defaults;
-use crate::style::theme;
-use crate::{Style, data, geom, des, missing_params, render};
+use crate::style::{defaults, theme};
+use crate::{Style, data, des, geom, missing_params, render};
 
 #[derive(Debug, Clone)]
 pub(super) struct Plots {
@@ -303,8 +302,12 @@ where
 
         // Now we can determine length of vertical axes and set them all up
         let subplot_rect_height = (rect.height() - hor_space_height) / des_plots.rows() as f32;
-        let y_axes =
-            self.setup_orientation_axes(Orientation::Y, des_plots, &plot_data, subplot_rect_height)?;
+        let y_axes = self.setup_orientation_axes(
+            Orientation::Y,
+            des_plots,
+            &plot_data,
+            subplot_rect_height,
+        )?;
 
         // Now we calculate the interspace between vertical axes
         let left_widths = self.calc_y_widths(des_plots, &plot_data, &y_axes, des::axis::Side::Main);
@@ -328,8 +331,12 @@ where
             + top_heights.iter().sum::<f32>()
             + des_plots.space() * (des_plots.rows() - 1) as f32;
         let subplot_rect_height = (rect.height() - hor_space_height) / des_plots.rows() as f32;
-        let y_axes =
-            self.setup_orientation_axes(Orientation::Y, des_plots, &plot_data, subplot_rect_height)?;
+        let y_axes = self.setup_orientation_axes(
+            Orientation::Y,
+            des_plots,
+            &plot_data,
+            subplot_rect_height,
+        )?;
 
         // Everything is now ready to setup all plots
         let mut plots: Vec<Option<Plot>> = vec![None; des_plots.len()];
@@ -954,13 +961,8 @@ impl Plot {
         surface.pop_clip();
     }
 
-    fn draw_annotations<S>(
-        &self,
-        surface: &mut S,
-        style: &Style,
-        axes: &Axes,
-        zpos: annot::ZPos,
-    ) where
+    fn draw_annotations<S>(&self, surface: &mut S, style: &Style, axes: &Axes, zpos: annot::ZPos)
+    where
         S: render::Surface,
     {
         for annot in self.annots.iter() {

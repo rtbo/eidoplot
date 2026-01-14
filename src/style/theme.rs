@@ -171,8 +171,7 @@ impl std::str::FromStr for Col {
     }
 }
 
-impl color::ResolveColor<Col> for Theme
-{
+impl color::ResolveColor<Col> for Theme {
     fn resolve_color(&self, col: &Col) -> ColorU8 {
         match col {
             Col::Background => self.background(),
@@ -183,7 +182,6 @@ impl color::ResolveColor<Col> for Theme
         }
     }
 }
-
 
 /// A flexible color for theme elements
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -227,8 +225,7 @@ impl text::rich::Foreground for Color {
     }
 }
 
-impl color::ResolveColor<Color> for Theme
-{
+impl color::ResolveColor<Color> for Theme {
     fn resolve_color(&self, col: &Color) -> ColorU8 {
         match col {
             Color::Theme(col) => self.resolve_color(col),

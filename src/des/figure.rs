@@ -1,8 +1,8 @@
 //! Figure design structures
 use std::iter::FusedIterator;
 
-use crate::geom;
 use crate::des::{Legend, Plot, PlotIdx, Subplots};
+use crate::geom;
 use crate::style::{defaults, theme};
 
 super::define_rich_text_structs!(Title, TitleProps, TitleOptProps);

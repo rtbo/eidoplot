@@ -1,6 +1,5 @@
 //! Catppuccin theme implementation
-use crate::ColorU8;
-use crate::style;
+use crate::{ColorU8, style};
 
 /// Catppuccin Latte theme
 #[derive(Debug, Clone, Copy)]
@@ -82,7 +81,6 @@ where
     ]
 }
 
-
 impl Flavors for Latte {
     const ROSEWATER: ColorU8 = ColorU8::from_html(b"#dc8a78");
     const FLAMINGO: ColorU8 = ColorU8::from_html(b"#dd7878");
@@ -140,7 +138,6 @@ impl Flavors for Frappe {
     const _MANTLE: ColorU8 = ColorU8::from_html(b"#292c36");
     const _CRUST: ColorU8 = ColorU8::from_html(b"#232634");
 }
-
 
 impl Flavors for Macchiato {
     const ROSEWATER: ColorU8 = ColorU8::from_html(b"#f4dbd6");

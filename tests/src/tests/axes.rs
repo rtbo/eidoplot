@@ -47,8 +47,8 @@ fn axes_titles() {
 #[test]
 fn axes_x_major_ticks() {
     let series = line().into();
-    let plot =
-        des::Plot::new(vec![series]).with_x_axis(des::Axis::default().with_ticks(Default::default()));
+    let plot = des::Plot::new(vec![series])
+        .with_x_axis(des::Axis::default().with_ticks(Default::default()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/x-major-ticks");
@@ -57,8 +57,8 @@ fn axes_x_major_ticks() {
 #[test]
 fn axes_y_major_ticks() {
     let series = line().into();
-    let plot =
-        des::Plot::new(vec![series]).with_y_axis(des::Axis::default().with_ticks(Default::default()));
+    let plot = des::Plot::new(vec![series])
+        .with_y_axis(des::Axis::default().with_ticks(Default::default()));
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/y-major-ticks");
@@ -218,9 +218,12 @@ fn axes_pi_locator() {
     let y = vec![1.0, 1.4, 3.0];
     let series = des::series::Line::new(x.into(), y.into());
 
-    let plot = des::Plot::new(vec![series.into()]).with_x_axis(des::Axis::new().with_ticks(
-        des::axis::Ticks::new().with_locator(des::axis::ticks::PiMultipleLocator { bins: 5 }.into()),
-    ));
+    let plot = des::Plot::new(vec![series.into()]).with_x_axis(
+        des::Axis::new().with_ticks(
+            des::axis::Ticks::new()
+                .with_locator(des::axis::ticks::PiMultipleLocator { bins: 5 }.into()),
+        ),
+    );
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/pi-locator");
@@ -277,8 +280,16 @@ fn axes_multiple_bl() {
     let plot = des::Plot::new(vec![s1.into(), s2.into()])
         .with_x_axis(des::Axis::new().with_ticks(Default::default()))
         .with_y_axis(des::Axis::new().with_ticks(Default::default()))
-        .with_x_axis(des::Axis::new().with_ticks(Default::default()).with_id("x2"))
-        .with_y_axis(des::Axis::new().with_ticks(Default::default()).with_id("y2"));
+        .with_x_axis(
+            des::Axis::new()
+                .with_ticks(Default::default())
+                .with_id("x2"),
+        )
+        .with_y_axis(
+            des::Axis::new()
+                .with_ticks(Default::default())
+                .with_id("y2"),
+        );
     let fig = fig_small(plot);
 
     assert_fig_eq_ref!(&fig, "axes/multiple-bl");

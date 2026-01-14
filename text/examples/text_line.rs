@@ -1,6 +1,6 @@
+use line::LineText;
 use plotive_base::geom;
 use plotive_text::{bundled_font_db, font, line};
-use line::LineText;
 
 fn main() {
     let db = bundled_font_db();

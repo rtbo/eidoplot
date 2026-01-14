@@ -1,11 +1,11 @@
 use std::f32;
 
 use super::Ctx;
+use crate::des::annot::{Anchor, Direction, Pos, ZPos};
+use crate::des::{self};
 use crate::drawing::axis::Axis;
 use crate::drawing::plot::{Axes, Orientation};
 use crate::drawing::{Text, marker};
-use crate::des::annot::{Anchor, Direction, Pos, ZPos};
-use crate::des::{self};
 use crate::style::{self, theme};
 use crate::{Style, data, geom, render, text};
 
@@ -68,14 +68,10 @@ where
         // Resolve axis reference to index, to ensure no error can happen later during drawing
         let x_axis = axes
             .or_find_idx(Orientation::X, &annot.pos().x_axis)?
-            .ok_or_else(|| {
-                super::Error::UnknownAxisRef(annot.pos().x_axis.clone())
-            })?;
+            .ok_or_else(|| super::Error::UnknownAxisRef(annot.pos().x_axis.clone()))?;
         let y_axis = axes
             .or_find_idx(Orientation::Y, &annot.pos().y_axis)?
-            .ok_or_else(|| {
-                super::Error::UnknownAxisRef(annot.pos().y_axis.clone())
-            })?;
+            .ok_or_else(|| super::Error::UnknownAxisRef(annot.pos().y_axis.clone()))?;
         annot.pos_mut().x_axis = des::axis::Ref::Idx(x_axis);
         annot.pos_mut().y_axis = des::axis::Ref::Idx(y_axis);
 

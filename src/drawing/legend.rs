@@ -2,7 +2,7 @@ use crate::drawing::Text;
 use crate::geom::{Padding, Size};
 use crate::style::{defaults, theme};
 use crate::text::{self, LineText, fontdb};
-use crate::{Style, drawing, geom, des, render, style};
+use crate::{Style, des, drawing, geom, render, style};
 
 #[derive(Debug, Clone)]
 pub enum Shape {
