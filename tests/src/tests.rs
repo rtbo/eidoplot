@@ -43,6 +43,7 @@ fn line2(x: &[f64], y: &[f64]) -> des::series::Line {
 }
 
 mod axes;
+mod interp;
 mod legend;
 mod subplots;
 

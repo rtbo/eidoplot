@@ -127,6 +127,25 @@ impl From<BarsGroup> for Series {
     }
 }
 
+/// Interpolation methods for line series.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Interpolation {
+    /// Straight line segments between points.
+    #[default]
+    Linear,
+    /// All segments are flat, with vertical jumps at each point.
+    /// Vertical joints are drawn at the start of each segment.
+    StepEarly,
+    /// All segments are flat, with vertical jumps at each point.
+    /// Vertical joints are centered between segments.
+    StepMiddle,
+    /// All segments are flat, with vertical jumps at each point.
+    /// Vertical joints are drawn at the end of each segment.
+    StepLate,
+    /// Smooth spline curve through the points.
+    Spline,
+}
+
 /// A line series structure.
 ///
 /// Plots data as a continuous line connecting points in order.
@@ -140,6 +159,7 @@ pub struct Line {
     x_axis: axis::Ref,
     y_axis: axis::Ref,
     stroke: style::series::Stroke,
+    interpolation: Interpolation,
 }
 
 impl Line {
@@ -153,6 +173,7 @@ impl Line {
             x_axis: Default::default(),
             y_axis: Default::default(),
             stroke: style::series::Stroke::default().with_width(defaults::SERIES_LINE_WIDTH),
+            interpolation: Interpolation::default(),
         }
     }
 
@@ -181,6 +202,12 @@ impl Line {
     /// Set the line style and return self for chaining
     pub fn with_line(mut self, line: style::series::Stroke) -> Self {
         self.stroke = line;
+        self
+    }
+
+    /// Set the interpolation method and return self for chaining
+    pub fn with_interpolation(mut self, interpolation: Interpolation) -> Self {
+        self.interpolation = interpolation;
         self
     }
 
@@ -234,6 +261,11 @@ impl Line {
     /// ```
     pub fn into_plot(self) -> super::Plot {
         super::Plot::new(vec![self.into()])
+    }
+
+    /// Get the interpolation method
+    pub fn interpolation(&self) -> Interpolation {
+        self.interpolation
     }
 }
 

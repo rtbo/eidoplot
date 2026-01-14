@@ -89,6 +89,13 @@ fn fig_y_to_plot_y(plot_rect: &geom::Rect, fig_y: f32) -> f32 {
     plot_rect.bottom() - fig_y
 }
 
+#[inline]
+fn plot_to_fig(plot_rect: &geom::Rect, plot_x: f32, plot_y: f32) -> (f32, f32) {
+    let fig_x = plot_x + plot_rect.x();
+    let fig_y = plot_rect.bottom() - plot_y;
+    (fig_x, fig_y)
+}
+
 /// Extension trait to prepare a design figure for drawing
 pub trait Prepare {
     /// Prepare a figure for drawing.
