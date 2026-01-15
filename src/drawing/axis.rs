@@ -719,14 +719,9 @@ fn adapt_des_scale(des_scale: &des::axis::Scale, axis_bounds: &NumBounds) -> des
 }
 
 fn adapt_des_range(des_range: &des::axis::Range, axis_bounds: &NumBounds) -> des::axis::Range {
-    match des_range {
-        des::axis::Range::Auto => des::axis::Range::Auto,
-        des::axis::Range::MinAuto(..) => des::axis::Range::MinAuto(axis_bounds.start()),
-        des::axis::Range::AutoMax(..) => des::axis::Range::AutoMax(axis_bounds.end()),
-        des::axis::Range::MinMax(..) => {
-            des::axis::Range::MinMax(axis_bounds.start(), axis_bounds.end())
-        }
-    }
+    let start = des_range.0.map(|_| axis_bounds.start());
+    let end = des_range.1.map(|_| axis_bounds.end());
+    des::axis::Range(start, end)
 }
 
 fn tick_loc_is_close(a: f64, b: f64) -> bool {

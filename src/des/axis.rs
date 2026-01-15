@@ -239,17 +239,54 @@ impl Axis {
 }
 
 /// Describe the bounds of an axis in data space
+/// None means automatic bounds depending on the data
 #[derive(Debug, Clone, Copy, Default)]
-pub enum Range {
-    /// Auto determine the bounds
-    #[default]
-    Auto,
-    /// Lower bound defined, and upper bound automatic
-    MinAuto(f64),
-    /// Higher bound defined, and upper bound automatic
-    AutoMax(f64),
-    /// Lower and higher bound defined
-    MinMax(f64, f64),
+pub struct Range(pub Option<f64>, pub Option<f64>);
+
+impl From<(Option<f64>, Option<f64>)> for Range {
+    fn from(bounds: (Option<f64>, Option<f64>)) -> Self {
+        Range(bounds.0, bounds.1)
+    }
+}
+
+impl From<(f64, f64)> for Range {
+    fn from(bounds: (f64, f64)) -> Self {
+        Range(Some(bounds.0), Some(bounds.1))
+    }
+}
+
+impl From<((), f64)> for Range {
+    fn from(bounds: ((), f64)) -> Self {
+        Range(None, Some(bounds.1))
+    }
+}
+
+impl From<(f64, ())> for Range {
+    fn from(bounds: (f64, ())) -> Self {
+        Range(Some(bounds.0), None)
+    }
+}
+
+impl From<((), ())> for Range {
+    fn from(_: ((), ())) -> Self {
+        Range(None, None)
+    }
+}
+
+impl From<()> for Range {
+    fn from(_: ()) -> Self {
+        Range(None, None)
+    }
+}
+
+impl Range {
+    /// Automatic bounds
+    pub const AUTO: Self = Range(None, None);
+
+    /// Create a new Range from min and max values
+    pub fn new(min: Option<f64>, max: Option<f64>) -> Self {
+        Range(min, max)
+    }
 }
 
 /// Describe a logarithmic scale options
@@ -267,7 +304,7 @@ impl LogScale {
     /// Panics if the range min and max have different signs
     /// For automatic min or max, the panic might happen during drawing, when the data bounds are known.
     pub fn new(base: f64, range: Range) -> Self {
-        if let Range::MinMax(min, max) = range {
+        if let Range(Some(min), Some(max)) = range {
             assert!(
                 (min > 0.0 && max > 0.0) || (min < 0.0 && max < 0.0),
                 "LogScale range min and max must have the same sign"
@@ -280,7 +317,7 @@ impl LogScale {
 
 impl Default for LogScale {
     fn default() -> Self {
-        Self::new(10.0, Range::Auto)
+        Self::new(10.0, Range::AUTO)
     }
 }
 

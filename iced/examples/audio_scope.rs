@@ -380,7 +380,7 @@ fn build_figure() -> des::Figure {
                 )
                 .with_y_axis(
                     des::Axis::new()
-                        .with_scale(des::axis::Range::MinMax(-1.0, 1.0).into())
+                        .with_scale(des::axis::Range(Some(-1.0), Some(1.0)).into())
                         .with_ticks(Default::default())
                         .with_grid(Default::default()),
                 ),
@@ -397,7 +397,7 @@ fn build_figure() -> des::Figure {
                 .with_x_axis(
                     des::Axis::new()
                         .with_title("Frequency (Hz)".to_string().into())
-                        .with_scale(des::axis::Range::MinMax(0.0, 4000.0).into())
+                        .with_scale(des::axis::Range(Some(0.0), Some(4000.0)).into())
                         .with_ticks(
                             des::axis::Ticks::new()
                                 .with_formatter(des::axis::ticks::Formatter::Prec(0).into()),
@@ -407,7 +407,7 @@ fn build_figure() -> des::Figure {
                 .with_y_axis(
                     des::Axis::new()
                         .with_title("Amplitude (dBFS)".to_string().into())
-                        .with_scale(des::axis::Range::MinMax(-100.0, 0.0).into())
+                        .with_scale(des::axis::Range(Some(-100.0), Some(0.0)).into())
                         .with_ticks(
                             des::axis::Ticks::new()
                                 .with_formatter(des::axis::ticks::Formatter::Prec(0).into()),
