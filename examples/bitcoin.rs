@@ -24,12 +24,12 @@ fn main() {
     // this will line-up the grid lines
     let price_axis = des::Axis::new()
         .with_title("Price [USD]".into())
-        .with_scale(des::axis::Range::MinMax(0.0, 8e4).into())
+        .with_scale(des::axis::Range(Some(0.0), Some(8e4)).into())
         .with_ticks(Default::default())
         .with_grid(Default::default());
     let volume_axis = des::Axis::new()
         .with_title("Volume [USD]".into())
-        .with_scale(des::axis::Range::MinMax(0.0, 4e11).into())
+        .with_scale(des::axis::Range(Some(0.0), Some(4e11)).into())
         .with_ticks(Default::default())
         .with_id("volume")
         .with_opposite_side();

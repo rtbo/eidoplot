@@ -61,7 +61,7 @@ pub fn map_scale_coord_num(
     insets: (f32, f32),
 ) -> Arc<dyn CoordMap> {
     match scale {
-        des::axis::Scale::Auto | des::axis::Scale::Linear(des::axis::Range::Auto) => {
+        des::axis::Scale::Auto | des::axis::Scale::Linear(des::axis::Range(None, None)) => {
             Arc::new(LinCoordMap::new(plot_size, insets, *axis_bounds))
         }
         des::axis::Scale::Linear(range) => {
@@ -82,10 +82,10 @@ fn adjusted_nb_insets(
     insets: (f32, f32),
 ) -> (axis::NumBounds, (f32, f32)) {
     match range {
-        des::axis::Range::Auto => (*nb, insets),
-        des::axis::Range::MinAuto(min) => ((min, nb.end()).into(), (0.0, insets.1)),
-        des::axis::Range::AutoMax(max) => ((nb.start(), max).into(), (insets.0, 0.0)),
-        des::axis::Range::MinMax(min, max) => ((min, max).into(), (0.0, 0.0)),
+        des::axis::Range(None, None) => (*nb, insets),
+        des::axis::Range(Some(min), None) => ((min, nb.end()).into(), (0.0, insets.1)),
+        des::axis::Range(None, Some(max)) => ((nb.start(), max).into(), (insets.0, 0.0)),
+        des::axis::Range(Some(min), Some(max)) => ((min, max).into(), (0.0, 0.0)),
     }
 }
 
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_map_scale_coord_linear_auto() {
-        let linear_auto = des::axis::Scale::Linear(des::axis::Range::Auto);
+        let linear_auto = des::axis::Scale::Linear(des::axis::Range::AUTO);
 
         let map = map_scale_coord_num(&linear_auto, 100.0, &(0.0, 10.0).into(), (0.0, 0.0));
         assert_near!(rel, map.map_coord_num(0.0), 0.0);
@@ -259,7 +259,7 @@ mod tests {
     fn test_map_scale_coord_log_auto() {
         let log_auto = des::axis::Scale::Log(des::axis::LogScale {
             base: 10.0,
-            range: des::axis::Range::Auto,
+            range: des::axis::Range::AUTO,
         });
         let axis_bounds = (1e-5, 1e5).into();
 

@@ -117,7 +117,7 @@ impl Scope {
 
 fn build_figure() -> des::Figure {
     let x_axis = des::Axis::new()
-        .with_scale(des::axis::Range::MinMax(0.0, 2.0 * PI).into())
+        .with_scale(des::axis::Range(Some(0.0), Some(2.0 * PI)).into())
         .with_title("x".to_string().into())
         .with_ticks(
             des::axis::Ticks::default()
