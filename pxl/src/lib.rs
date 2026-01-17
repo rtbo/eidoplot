@@ -86,14 +86,14 @@ pub trait SavePng {
     fn save_png<P, D>(&self, path: P, data_src: &D, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
-        D: plotive::data::Source;
+        D: plotive::data::Source + ?Sized;
 }
 
 impl SavePng for plotive::des::Figure {
     fn save_png<P, D>(&self, path: P, data_src: &D, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
-        D: plotive::data::Source,
+        D: plotive::data::Source + ?Sized,
     {
         use plotive::Prepare;
 
@@ -107,7 +107,7 @@ impl SavePng for drawing::PreparedFigure {
     fn save_png<P, D>(&self, path: P, _data_src: &D, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
-        D: plotive::data::Source,
+        D: plotive::data::Source + ?Sized,
     {
         let size = self.size();
         let witdth = (size.width() * params.scale) as u32;
@@ -132,13 +132,13 @@ pub trait ToPixmap {
     /// Therefore, this parameter can be left to `&()` when saving a prepared figure.
     fn to_pixmap<D>(&self, data_src: &D, params: Params) -> Result<tiny_skia::Pixmap, Error>
     where
-        D: plotive::data::Source;
+        D: plotive::data::Source + ?Sized;
 }
 
 impl ToPixmap for plotive::des::Figure {
     fn to_pixmap<D>(&self, data_src: &D, params: Params) -> Result<tiny_skia::Pixmap, Error>
     where
-        D: plotive::data::Source,
+        D: plotive::data::Source + ?Sized,
     {
         use plotive::Prepare;
 
@@ -151,7 +151,7 @@ impl ToPixmap for plotive::des::Figure {
 impl ToPixmap for drawing::PreparedFigure {
     fn to_pixmap<D>(&self, _data_src: &D, params: Params) -> Result<tiny_skia::Pixmap, Error>
     where
-        D: plotive::data::Source,
+        D: plotive::data::Source + ?Sized,
     {
         let size = self.size();
         let witdth = (size.width() * params.scale) as u32;

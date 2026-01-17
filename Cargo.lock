@@ -3756,7 +3756,7 @@ dependencies = [
 
 [[package]]
 name = "plotive"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ode_solvers",
  "plotive-base",
@@ -3775,7 +3775,7 @@ dependencies = [
 
 [[package]]
 name = "plotive-base"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "strict-num 0.2.0",
  "tiny-skia-path",
@@ -3783,14 +3783,14 @@ dependencies = [
 
 [[package]]
 name = "plotive-dsl"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "miette",
 ]
 
 [[package]]
 name = "plotive-iced"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "arboard",
  "bytes",
@@ -3807,7 +3807,7 @@ dependencies = [
 
 [[package]]
 name = "plotive-pxl"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "plotive",
  "rustybuzz",
@@ -3818,7 +3818,7 @@ dependencies = [
 
 [[package]]
 name = "plotive-svg"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "plotive",
  "rustybuzz",
@@ -3827,7 +3827,7 @@ dependencies = [
 
 [[package]]
 name = "plotive-tests"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "plotive",
  "plotive-pxl",
@@ -3838,7 +3838,7 @@ dependencies = [
 
 [[package]]
 name = "plotive-text"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "fontconfig-parser",
  "log",
