@@ -87,14 +87,14 @@ pub trait SaveSvg {
     fn save_svg<P, D>(&self, path: P, data_src: &D, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
-        D: plotive::data::Source;
+        D: plotive::data::Source + ?Sized;
 }
 
 impl SaveSvg for des::Figure {
     fn save_svg<P, D>(&self, path: P, data_src: &D, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
-        D: plotive::data::Source,
+        D: plotive::data::Source + ?Sized,
     {
         let prepared = self.prepare(data_src, params.fontdb)?;
         prepared.save_svg(path, data_src, params)
@@ -105,7 +105,7 @@ impl SaveSvg for drawing::PreparedFigure {
     fn save_svg<P, D>(&self, path: P, _data_src: &D, params: Params) -> Result<(), Error>
     where
         P: AsRef<Path>,
-        D: plotive::data::Source,
+        D: plotive::data::Source + ?Sized,
     {
         let size = self.size();
         let witdth = (size.width() * params.scale) as u32;

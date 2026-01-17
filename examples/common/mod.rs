@@ -94,7 +94,7 @@ pub fn save_figure<D>(
     fontdb: Option<&fontdb::Database>,
     default_name: &str,
 ) where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     let args = parse_args();
     if let Some(fontdb) = fontdb {
@@ -112,7 +112,7 @@ fn save_fig<D>(
     fontdb: &fontdb::Database,
     default_name: &str,
 ) where
-    D: data::Source,
+    D: data::Source + ?Sized,
 {
     let fig = fig.prepare(data_source, Some(fontdb)).unwrap();
 
